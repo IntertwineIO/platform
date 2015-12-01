@@ -1,0 +1,10 @@
+{
+    "homelessness": {
+        "title": "Homelessness",
+        "summary": "Today's homeless people"
+    },
+    "poverty" {
+        "title": "Poverty",
+        "description": "The destitute of the world"
+    }
+}

@@ -1,0 +1,20 @@
+// Just a starting point
+{
+    "definitions": {
+        "problem": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "description": {"type": "string", "default": ""},
+                "summary": {"type": "string", "default": ""},
+                "drivers": {"type": "array", "default": []},
+                "broad": {"type": "array", "default": []},
+                "narrow": {"type": "array", "default": []},
+                "impacts": {"type": "array", "default": []}
+            },
+            "required": ["title"]
+        }
+    }
+}
+
+
