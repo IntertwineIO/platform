@@ -1,10 +1,82 @@
 {
     "homelessness": {
-        "title": "Homelessness",
-        "summary": "Today's homeless people"
+        "name": "Homelessness",
+        "definition": "Homelessness is the condition of people without a regular dwelling.",
+        "drivers": [
+            {
+                "adjacent_problem": "Mental Illness",
+                "weights": [
+                    {
+                        "strength": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 4,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Substance Abuse",
+                "weights": [
+                    {
+                        "strength": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Domestic Violence",
+                "weights": [
+                    {
+                        "strength": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            }
+        ]
     },
-    "poverty" {
-        "title": "Poverty",
-        "description": "The destitute of the world"
+    "poverty": {
+        "name": "Poverty",
+        "definition": "Poverty is the state or condition of having little or no money, goods, or means of support"
     }
 }

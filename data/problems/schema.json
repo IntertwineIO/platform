@@ -1,18 +1,44 @@
-// Just a starting point
 {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+
     "definitions": {
+
         "problem": {
             "type": "object",
             "properties": {
-                "title": {"type": "string"},
-                "description": {"type": "string", "default": ""},
-                "summary": {"type": "string", "default": ""},
-                "drivers": {"type": "array", "default": []},
-                "broad": {"type": "array", "default": []},
-                "narrow": {"type": "array", "default": []},
-                "impacts": {"type": "array", "default": []}
+                "name": {"type": "string"},
+                "definition": {"type": "string", "default": ""},
+                "definition_url": {"type": "string", "default": ""},
+                "images": {"type": "array", "default": [], "items": {"type": "string"}},
+                "drivers": {"type": "array", "default": [], "items": {"$ref": "#/definitions/connection"}},
+                "impacts": {"type": "array", "default": [], "items": {"$ref": "#/definitions/connection"}},
+                "broader": {"type": "array", "default": [], "items": {"$ref": "#/definitions/connection"}},
+                "narrower": {"type": "array", "default": [], "items": {"$ref": "#/definitions/connection"}}
             },
-            "required": ["title"]
+            "required": ["name"],
+            "additionalProperties": false
+        },
+
+        "connection": {
+            "type": "object",
+            "properties": {
+                "adjacent_problem": {"type": "string"},
+                "weights": {"type": "array", "default": [], "items": {"$ref": "#/definitions/weight"}}
+            },
+            "required": ["adjacent_problem"],
+            "additionalProperties": false
+        },
+
+        "weight": {
+            "type": "object",
+            "properties": {
+                "strength": {"type": "integer", "minimum": 0, "maximum": 4} ,
+                "user_id": {"type": "string", "default": ""},
+                "geo_scope": {"type": "string", "default": "global"},
+                "org_scope": {"type": "string", "default": ""}
+            },
+            "required": ["strength", "user_id", "geo_scope", "org_scope"],
+            "additionalProperties": false
         }
     }
 }
