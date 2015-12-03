@@ -1,0 +1,239 @@
+{
+    "homelessness": {
+        "name": "Homelessness",
+        "definition": "Homelessness is the condition of people without a regular dwelling.",
+        "drivers": [
+            {
+                "adjacent_problem": "Mental Illness",
+                "problem_connection_weights": [
+                    {
+                        "strength": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 4,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Substance Abuse",
+                "problem_connection_weights": [
+                    {
+                        "strength": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Domestic Violence",
+                "problem_connection_weights": [
+                    {
+                        "strength": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            }
+        ]
+    },
+
+    "domestic violence": {
+        "name": "Domestic Violence",
+        "definition": "We define domestic violence as a pattern of abusive behavior in any relationship that is used by one partner to gain or maintain power and control over another intimate partner.  Domestic violence can be physical, sexual, emotional, economic, or psychological actions or threats of actions that influence another person. This includes any behaviors that intimidate, manipulate, humiliate, isolate, frighten, terrorize, coerce, threaten, blame, hurt, injure, or wound someone.",
+        "definition_url": "http://www.justice.gov/ovw/domestic-violence",
+        "impacts": [
+            {
+                "adjacent_problem": "Trauma",
+                "problem_connection_weights": [
+                    {
+                        "strength": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 4,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    }
+                    {
+                        "strength": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }                ]
+            },
+            {
+                "adjacent_problem": "Child Abuse",
+                "problem_connection_weights": [
+                    {
+                        "strength": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Depression",
+                "problem_connection_weights": [
+                    {
+                        "strength": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Homicide",
+                "problem_connection_weights": [
+                    {
+                        "strength": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Homelessness",
+                "problem_connection_weights": [
+                    {
+                        "strength": 2,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Suicide",
+                "problem_connection_weights": [
+                    {
+                        "strength": 2,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 2,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "strength": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            }
+        ]
+    },
+    "poverty": {
+        "name": "Poverty",
+        "definition": "Poverty is the state or condition of having little or no money, goods, or means of support"
+    }
+}
