@@ -5,7 +5,7 @@
         "drivers": [
             {
                 "adjacent_problem": "Mental Illness",
-                "weights": [
+                "problem_connection_weights": [
                     {
                         "strength": 4,
                         "user_id": "eli@intertwine.io",
@@ -25,7 +25,7 @@
             },
             {
                 "adjacent_problem": "Substance Abuse",
-                "weights": [
+                "problem_connection_weights": [
                     {
                         "strength": 4,
                         "user_id": "eli@intertwine.io",
@@ -50,7 +50,7 @@
             },
             {
                 "adjacent_problem": "Domestic Violence",
-                "weights": [
+                "problem_connection_weights": [
                     {
                         "strength": 4,
                         "user_id": "eli@intertwine.io",
