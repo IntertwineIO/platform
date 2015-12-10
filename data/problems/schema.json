@@ -27,22 +27,22 @@
             "type": "object",
             "properties": {
                 "adjacent_problem": {"type": "string"},
-                "problem_connection_weights": {"type": "array", "default": [],
-                    "items": {"$ref": "#/definitions/problem_connection_weight"}}
+                "problem_connection_ratings": {"type": "array", "default": [],
+                    "items": {"$ref": "#/definitions/problem_connection_rating"}}
             },
             "required": ["adjacent_problem"],
             "additionalProperties": false
         },
 
-        "problem_connection_weight": {
+        "problem_connection_rating": {
             "type": "object",
             "properties": {
-                "strength": {"type": "integer", "minimum": 0, "maximum": 4} ,
+                "rating": {"type": "integer", "minimum": 0, "maximum": 4} ,
                 "user_id": {"type": "string", "default": ""},
                 "geo_scope": {"type": "string", "default": "global"},
                 "org_scope": {"type": "string", "default": ""}
             },
-            "required": ["strength", "user_id", "geo_scope", "org_scope"],
+            "required": ["rating", "user_id", "geo_scope", "org_scope"],
             "additionalProperties": false
         }
     }
