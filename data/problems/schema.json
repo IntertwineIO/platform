@@ -37,7 +37,7 @@
         "problem_connection_rating": {
             "type": "object",
             "properties": {
-                "rating": {"type": "integer", "minimum": 0, "maximum": 4} ,
+                "rating": {"type": "integer", "minimum": 0, "maximum": 4},
                 "user_id": {"type": "string", "default": ""},
                 "geo_scope": {"type": "string", "default": "global"},
                 "org_scope": {"type": "string", "default": ""}

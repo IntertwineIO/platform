@@ -2,6 +2,7 @@
     "homelessness": {
         "name": "Homelessness",
         "definition": "Homelessness is the condition of people without a regular dwelling.",
+        "definition_url": "https://en.wikipedia.org/wiki/Homelessness#Causes_of_homelessness",
         "drivers": [
             {
                 "adjacent_problem": "Mental Illness",
@@ -173,7 +174,7 @@
                         "rating": 4,
                         "user_id": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
-                    }
+                    },
                     {
                         "rating": 4,
                         "user_id": "sapanadonde@hotmail.com",
