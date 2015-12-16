@@ -2,7 +2,7 @@ import json
 
 class MissingRequiredField(Exception):
     def __init__(self, field):
-        self.message = 'Required field "{field}"" is missing.'.format(field=field)
+        self.message = 'Required field "{field}" is missing.'.format(field=field)
 
 class Problem(object):
     """Base class for problems
