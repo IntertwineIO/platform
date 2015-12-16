@@ -5,19 +5,19 @@ class MissingRequiredField(Exception):
         self.message = 'Required field "{field}" is missing.'.format(field=field)
 
 class Problem(object):
-    """Base class for problems
+    '''Base class for problems
 
     Problems and the connections between them are global in that they
     don't vary by region or organization. However, the ratings of the
-    connections DO vary by geo, organization, and problem context."""
+    connections DO vary by geo, organization, and problem context.'''
     # todo: add db support
 
     def __init__(self, name, **kwargs):
-        """Initialize the problem fields EXCEPT for connections.
+        '''Initialize the problem fields EXCEPT for connections.
 
         Inputs are key-value pairs based on the JSON problem schema,
         EXCEPT those specifying problem connections. Problem connections
-        are established using the set_connections method."""
+        are established using the set_connections method.'''
         self.name = name.title()
         self.definition = None
         self.definition_url = None
@@ -34,12 +34,12 @@ class Problem(object):
         return '<{cname}: {name}>'.format(cname=cname, name=self.name)
 
     def set_values(self, **kwargs):
-        """Sets the problem fields EXCEPT for name and connections.
+        '''Sets the problem fields EXCEPT for name and connections.
 
         Inputs are key-value pairs based on the JSON problem schema,
         EXCEPT those specifying problem connections. This method is
         called by __init__, but is also used to set values on problems
-        that were previously created."""
+        that were previously created.'''
         self.definition = kwargs.get('definition', self.definition)
         self.definition_url = kwargs.get('definition_url', self.definition_url)
 
@@ -49,7 +49,7 @@ class Problem(object):
         self.images = kwargs.get('images', self.images)
 
     def set_connections(self, entities, **kwargs):
-        """Sets the problem connections and problem connection ratings.
+        '''Sets the problem connections and problem connection ratings.
 
         Inputs are key-value pairs describing problem connections, as
         defined by the JSON problem schema. The valid parameter names
@@ -67,16 +67,16 @@ class Problem(object):
         the context of problem A vs. problem B because the perceived
         importance of B as an impact of A may be quite different from
         the perceived importance of A as a driver of B.
-        """
+        '''
 
         # For each problem_connection, check if problem already exists.
         # If not, create it, setting the name and back-connection only.
         problems = entities['problems']
 
         for problem_connection in kwargs.get('drivers', []):
-            adjacent_problem_name = problem_connection.get("adjacent_problem", None)
+            adjacent_problem_name = problem_connection.get('adjacent_problem', None)
             if adjacent_problem_name == None:
-                raise MissingRequiredField("adjacent_problem_name")
+                raise MissingRequiredField('adjacent_problem_name')
             adjacent_problem_name = adjacent_problem_name.title()
             adjacent_problem = problems.get(adjacent_problem_name, None)
             if not adjacent_problem:
@@ -87,9 +87,9 @@ class Problem(object):
             # todo: add problem connections and ratings
 
         for problem_connection in kwargs.get('impacts', []):
-            adjacent_problem_name = problem_connection.get("adjacent_problem", None)
+            adjacent_problem_name = problem_connection.get('adjacent_problem', None)
             if adjacent_problem_name == None:
-                raise MissingRequiredField("adjacent_problem_name")
+                raise MissingRequiredField('adjacent_problem_name')
             adjacent_problem_name = adjacent_problem_name.title()
             adjacent_problem = problems.get(adjacent_problem_name, None)
             if not adjacent_problem:
@@ -104,7 +104,7 @@ class Problem(object):
 
 
 def decode(json_data_path):
-    """Loads JSON files within a path and returns data structures
+    '''Loads JSON files within a path and returns data structures
 
     Returns a dictionary in which the keys are plural forms of the
     objects defined by the JSON problem schema, and the values are
@@ -113,10 +113,10 @@ def decode(json_data_path):
     Usage:
     >>> json_path = '/data/problems/problems.json'
     >>> data = decode(json_path)
-    >>> problems = data["problems"]
-    >>> p = problems["homelessness"]
-    >>> connections = data["connections"]
-    """
+    >>> problems = data['problems']
+    >>> p = problems['homelessness']
+    >>> connections = data['connections']
+    '''
 
     # todo: ability to read in all json files in a directory
     with open(json_data_path) as json_file:
