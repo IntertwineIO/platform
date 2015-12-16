@@ -1,7 +1,7 @@
 {
     "Homelessness": {
         "definition": "Homelessness is the condition of people without a regular dwelling.",
-        "definition_url": "https://en.wikipedia.org/wiki/Homelessness#Causes_of_homelessness",
+        "definition_url": "https://en.wikipedia.org/wiki/Homelessness",
         "drivers": [
             {
                 "adjacent_problem": "Mental Illness",

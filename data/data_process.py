@@ -31,7 +31,13 @@ class Problem(object):
 
     def __repr__(self):
         cname = self.__class__.__name__
-        return '<{cname}: {name}>'.format(cname=cname, name=self.name)
+        return '<{cname!s}: {name!r}>'.format(cname=cname, name=self.name)
+
+    def __str__(self):
+        s = 'problem: {!s}\n'.format(self.name)
+        s += 'definition: {!s}\n'.format(self.definition)
+        s += 'definition_url: {!s}\n'.format(self.definition_url)
+        return s
 
     def set_values(self, **kwargs):
         '''Sets the problem fields EXCEPT for name and connections.
@@ -114,7 +120,7 @@ def decode(json_data_path):
     >>> json_path = '/data/problems/problems.json'
     >>> data = decode(json_path)
     >>> problems = data['problems']
-    >>> p = problems['homelessness']
+    >>> p = problems['Homelessness']
     >>> connections = data['connections']
     '''
 
