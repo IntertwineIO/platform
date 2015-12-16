@@ -6,7 +6,6 @@
         "problem": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
                 "definition": {"type": "string", "default": ""},
                 "definition_url": {"type": "string", "default": ""},
                 "images": {"type": "array", "default": [], "items": {"type": "string"}},

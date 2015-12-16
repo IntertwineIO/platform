@@ -12,15 +12,12 @@ class Problem(object):
     connections DO vary by geo, organization, and problem context."""
     # todo: add db support
 
-    def __init__(self, **kwargs):
+    def __init__(self, name, **kwargs):
         """Initialize the problem fields EXCEPT for connections.
 
         Inputs are key-value pairs based on the JSON problem schema,
         EXCEPT those specifying problem connections. Problem connections
         are established using the set_connections method."""
-        name = kwargs.get('name', None)
-        if name == None:
-            raise MissingRequiredField("name")
         self.name = name.title()
         self.definition = None
         self.definition_url = None
@@ -29,7 +26,7 @@ class Problem(object):
         self.impacts = []
         self.broader = []
         self.narrower = []
-        if len(kwargs) > 1:
+        if len(kwargs) > 0:
             self.set_values(**kwargs)
 
     def __repr__(self):
@@ -80,10 +77,11 @@ class Problem(object):
             adjacent_problem_name = problem_connection.get("adjacent_problem", None)
             if adjacent_problem_name == None:
                 raise MissingRequiredField("adjacent_problem_name")
-            adjacent_problem = problems.get(adjacent_problem_name.lower(), None)
+            adjacent_problem_name = adjacent_problem_name.title()
+            adjacent_problem = problems.get(adjacent_problem_name, None)
             if not adjacent_problem:
-                adjacent_problem = Problem(problems=problems, name=adjacent_problem_name)
-                problems[adjacent_problem_name.lower()] = adjacent_problem
+                adjacent_problem = Problem(name=adjacent_problem_name)
+                problems[adjacent_problem_name] = adjacent_problem
             self.drivers.append(adjacent_problem)
             adjacent_problem.impacts.append(self)
             # todo: add problem connections and ratings
@@ -92,10 +90,11 @@ class Problem(object):
             adjacent_problem_name = problem_connection.get("adjacent_problem", None)
             if adjacent_problem_name == None:
                 raise MissingRequiredField("adjacent_problem_name")
-            adjacent_problem = problems.get(adjacent_problem_name.lower(), None)
+            adjacent_problem_name = adjacent_problem_name.title()
+            adjacent_problem = problems.get(adjacent_problem_name, None)
             if not adjacent_problem:
-                adjacent_problem = Problem(problems=problems, name=adjacent_problem_name)
-                problems[adjacent_problem_name.lower()] = adjacent_problem
+                adjacent_problem = Problem(name=adjacent_problem_name)
+                problems[adjacent_problem_name] = adjacent_problem
             self.impacts.append(adjacent_problem)
             adjacent_problem.drivers.append(self)
             # todo: add problem connections and ratings
@@ -129,16 +128,18 @@ def decode(json_data_path):
         'problems': {},
         # 'connections': {}
         }
-    for key in json_data.keys():
-        problem = entities['problems'].get(key.lower(), None)
+    for problem_name in json_data.keys():
+        problem_json_data = json_data[problem_name]
+        problem_name = problem_name.title()
+        problem = entities['problems'].get(problem_name, None)
 
         if not problem:
-            problem = Problem(**json_data[key])
-            entities['problems'][key.lower()] = problem
+            problem = Problem(problem_name, **problem_json_data)
+            entities['problems'][problem_name] = problem
         else:
-            problem.set_values(**json_data[key])
+            problem.set_values(**problem_json_data)
 
-        problem.set_connections(entities=entities, **json_data[key])
+        problem.set_connections(entities, **problem_json_data)
 
     return entities
 
