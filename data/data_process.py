@@ -12,49 +12,63 @@ class Problem(object):
     connections DO vary by geo, organization, and problem context.'''
     # todo: add db support
 
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, definition=None, definition_url=None, images=[]):
         '''Initialize the problem fields EXCEPT for connections.
 
         Inputs are key-value pairs based on the JSON problem schema,
         EXCEPT those specifying problem connections. Problem connections
         are established using the set_connections method.'''
         self.name = name.title()
-        self.definition = None
-        self.definition_url = None
-        self.images = []
+        self.definition = definition
+        self.definition_url = definition_url
+        self.images = images
         self.drivers = []
         self.impacts = []
         self.broader = []
         self.narrower = []
-        if len(kwargs) > 0:
-            self.set_values(**kwargs)
 
     def __repr__(self):
         cname = self.__class__.__name__
         return '<{cname!s}: {name!r}>'.format(cname=cname, name=self.name)
 
     def __str__(self):
-        s = 'problem: {!s}\n'.format(self.name)
+        s = 'Problem: {!s}\n'.format(self.name)
         s += 'definition: {!s}\n'.format(self.definition)
         s += 'definition_url: {!s}\n'.format(self.definition_url)
+        s += 'images:\n'
+        for image in self.images:
+            s += '    {!s}\n'.format(image)
+        s += 'drivers:\n'
+        for problem in self.drivers:
+            s += '    {!s}\n'.format(problem.name)
+        s += 'impacts:\n'
+        for problem in self.impacts:
+            s += '    {!s}\n'.format(problem.name)
+        s += 'broader:\n'
+        for problem in self.broader:
+            s += '    {!s}\n'.format(problem.name)
+        s += 'narrower:\n'
+        for problem in self.narrower:
+            s += '    {!s}\n'.format(problem.name)
         return s
 
-    def set_values(self, **kwargs):
+    def set_values(self, definition=None, definition_url=None, images=[]):
         '''Sets the problem fields EXCEPT for name and connections.
 
         Inputs are key-value pairs based on the JSON problem schema,
         EXCEPT those specifying problem connections. This method is
         called by __init__, but is also used to set values on problems
         that were previously created.'''
-        self.definition = kwargs.get('definition', self.definition)
-        self.definition_url = kwargs.get('definition_url', self.definition_url)
 
+        self.definition = definition if definition else self.definition
+        self.definition_url = definition_url if definition_url else self.definition_url
         # for now, just store urls for images
         # todo: store local copies of images and keep track of url,
         # photo credit, licensing info, and user who posted it
-        self.images = kwargs.get('images', self.images)
+        self.images = images if len(images)>0 else self.images
 
-    def set_connections(self, entities, **kwargs):
+    def set_connections(self, entities, drivers=[], impacts=[],
+                                        broader=[], narrower=[]):
         '''Sets the problem connections and problem connection ratings.
 
         Inputs are key-value pairs describing problem connections, as
@@ -79,7 +93,7 @@ class Problem(object):
         # If not, create it, setting the name and back-connection only.
         problems = entities['problems']
 
-        for problem_connection in kwargs.get('drivers', []):
+        for problem_connection in drivers:
             adjacent_problem_name = problem_connection.get('adjacent_problem', None)
             if adjacent_problem_name == None:
                 raise MissingRequiredField('adjacent_problem_name')
@@ -92,7 +106,7 @@ class Problem(object):
             adjacent_problem.impacts.append(self)
             # todo: add problem connections and ratings
 
-        for problem_connection in kwargs.get('impacts', []):
+        for problem_connection in impacts:
             adjacent_problem_name = problem_connection.get('adjacent_problem', None)
             if adjacent_problem_name == None:
                 raise MissingRequiredField('adjacent_problem_name')
@@ -127,25 +141,33 @@ def decode(json_data_path):
     # todo: ability to read in all json files in a directory
     with open(json_data_path) as json_file:
         # May need to change this to load incrementally in the future
-        json_data = json.load(json_file)
+        data = json.load(json_file)
 
     # todo: determine object type to be decoded, based on directory name
     entities = {
         'problems': {},
         # 'connections': {}
         }
-    for problem_name in json_data.keys():
-        problem_json_data = json_data[problem_name]
+    for problem_name, problem_data in data.items():
         problem_name = problem_name.title()
         problem = entities['problems'].get(problem_name, None)
 
         if not problem:
-            problem = Problem(problem_name, **problem_json_data)
+            problem = Problem(name=problem_name,
+                              definition=problem_data.get('definition', None),
+                              definition_url=problem_data.get('definition_url', None),
+                              images=problem_data.get('images', []))
             entities['problems'][problem_name] = problem
         else:
-            problem.set_values(**problem_json_data)
+            problem.set_values(definition=problem_data.get('definition', None),
+                               definition_url=problem_data.get('definition_url', None),
+                               images=problem_data.get('images', []))
 
-        problem.set_connections(entities, **problem_json_data)
+        problem.set_connections(entities=entities,
+                                drivers=problem_data.get('drivers', []),
+                                impacts=problem_data.get('impacts', []),
+                                broader=problem_data.get('broader', []),
+                                narrower=problem_data.get('narrower', []))
 
     return entities
 
