@@ -190,17 +190,10 @@ def decode(json_data_path):
         'problems': {},
         # 'connections': {}
         }
+
     for problem_name, problem_data in data.items():
         problem_name = problem_name.title()
-
-        problem = Problem(name=problem_name,
-                          definition=problem_data.get('definition', None),
-                          definition_url=problem_data.get('definition_url', None),
-                          images=problem_data.get('images', []),
-                          drivers=problem_data.get('drivers', []),
-                          impacts=problem_data.get('impacts', []),
-                          broader=problem_data.get('broader', []),
-                          narrower=problem_data.get('narrower', []))
+        problem = Problem(name=problem_name, **problem_data)
 
     entities['problems'] = Problem._registry
     return entities
