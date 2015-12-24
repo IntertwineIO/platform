@@ -31,7 +31,7 @@ class Problem(object):
 
     def __new__(cls, name, definition=None, definition_url=None, images=[],
                  drivers=[], impacts=[], broader=[], narrower=[]):
-        """Create a new problem if it doesn't already existing
+        """Create a new problem if it doesn't already exist
 
         Checks if a problem already exists with the given name in the
         _registry. If it does, return it with new=False. If it doesn't,
