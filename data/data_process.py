@@ -3,7 +3,7 @@
 '''Decodes data
 
 Usage:
-    process [options] <json_data_path>
+    data_process.py [options] <json_data_path>
 
 Options:
     -h --help       This message
