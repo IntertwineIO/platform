@@ -205,7 +205,7 @@ class Problem(object):
 
         for problem_connection_data in drivers:
             adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
-            if adjacent_problem_name == None:
+            if adjacent_problem_name is None:
                 raise MissingRequiredField(field='adjacent_problem_name', classname='Problem')
             adjacent_problem_name = adjacent_problem_name.title()
             adjacent_problem = Problem(name=adjacent_problem_name)
@@ -217,7 +217,7 @@ class Problem(object):
 
         for problem_connection_data in impacts:
             adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
-            if adjacent_problem_name == None:
+            if adjacent_problem_name is None:
                 raise MissingRequiredField(field='adjacent_problem_name', classname='Problem')
             adjacent_problem_name = adjacent_problem_name.title()
             adjacent_problem = Problem(name=adjacent_problem_name)
