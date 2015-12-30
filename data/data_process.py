@@ -15,7 +15,7 @@ from __future__ import print_function
 import json
 import logging
 import os
-
+from titlecase import titlecase
 
 log = logging.getLogger('data_process')
 
@@ -97,6 +97,7 @@ class ProblemConnection(object):
             raise InvalidConnectionType(connection_type)
         if problem_a == problem_b:
             raise CircularConnection(problem_a)
+
         key = (connection_type, problem_a, problem_b)
         problem_connection = ProblemConnection._registry.get(key, None)
         if problem_connection:
@@ -153,7 +154,7 @@ class Problem(object):
         used by __init__ to distinguish between new vs. existing
         problems.
         '''
-        key = name.title()
+        key = name.strip().lower().replace(' ', '_')
         problem = Problem._registry.get(key, None)
         if problem:
             problem.new = False
@@ -177,7 +178,7 @@ class Problem(object):
         the input both have values (or len>0 for lists).'''
 
         if self.new:
-            self.name = name.title()
+            self.name = titlecase(name.strip())
             self.definition = definition
             self.definition_url = definition_url
             self.images = images
@@ -207,7 +208,6 @@ class Problem(object):
             adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
             if adjacent_problem_name is None:
                 raise MissingRequiredField(field='adjacent_problem_name', classname='Problem')
-            adjacent_problem_name = adjacent_problem_name.title()
             adjacent_problem = Problem(name=adjacent_problem_name)
             problem_connection = ProblemConnection('causal', adjacent_problem, self)
             if problem_connection not in self.drivers:
@@ -219,7 +219,6 @@ class Problem(object):
             adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
             if adjacent_problem_name is None:
                 raise MissingRequiredField(field='adjacent_problem_name', classname='Problem')
-            adjacent_problem_name = adjacent_problem_name.title()
             adjacent_problem = Problem(name=adjacent_problem_name)
             problem_connection = ProblemConnection('causal', self, adjacent_problem)
             if problem_connection not in self.impacts:
@@ -309,7 +308,6 @@ def decode(json_data_path, *args, **options):
     }
 
     for problem_name, problem_data in data.items():
-        problem_name = problem_name.title()
         problem = Problem(name=problem_name, **problem_data)
 
     entities['problems'] = Problem._registry
