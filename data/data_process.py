@@ -1,32 +1,57 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+'''Decodes data
+
+Usage:
+    process [options] <json_data_path>
+
+Options:
+    -h --help       This message
+    -v --verbose    More information
+    -q --quiet      Less information
+'''
+from __future__ import print_function
+
+from collections import OrderedDict as dict
 import json
+import logging
+import os
 
-class MissingRequiredField(Exception):
-    def __init__(self, field, classname):
-        msg = 'Required field "{!s}" on {!r} is missing.'.format(field, classname)
-        self.message = msg
 
-class FieldCollision(Exception):
-    def __init__(self, field, entity):
-        msg = 'Field "{!s}" on {!r} has already been set.'.format(field, entity)
-        self.message = msg
+log = logging.getLogger('data_process')
 
-class AsymmetricConnection(Exception):
-    def __init__(self, problem_a, connected_type_a, problem_b, not_connected_type_b):
-        msg = '{!r} defines {!r} as {!s}, '.format(problem_a, problem_b,
-                                                   connected_type_a)
-        msg += 'but {!r} does not define {!r} as {!s}.'.format(problem_b, problem_a,
-                                                             not_connected_type_b)
-        self.message = msg
 
-class InvalidConnectionType(Exception):
-    def __init__(self, connection_type):
-        msg = 'Connection type "{!s}" is not valid.'.format(connection_type)
-        self.message = msg
+class DataProcessException(Exception):
+    '''Data Process exception'''
+    def __init__(self, message=None, *args, **kwds):
+        if message is not None:
+            message = message.format(**kwds) if kwds else message
+        else:
+            message = self.__doc__.format(**kwds) if kwds else self.__doc__
+        log.error(message)
+        Exception.__init__(self, message)
 
-class CircularConnection(Exception):
-    def __init__(self, problem):
-        msg = '"{!r}" cannot be connected to itself.'.format(problem)
-        self.message = msg
+
+class MissingRequiredField(DataProcessException):
+    '''Required field "{field!s}" on {classname!r} is missing.'''
+
+
+class FieldCollision(DataProcessException):
+    '''Field "{field!s}" on {entity!r} has already been set.'''
+
+
+class AsymmetricConnection(DataProcessException):
+    '''{problem_a!r} defines {problem_b!r} as {connected_type_a!s},
+    but {problem_b!r} does not define {problem_a!r} as {not_connected_type_b!s}.
+    '''
+
+
+class InvalidConnectionType(DataProcessException):
+    '''Connection type "{connection_type!s}" is not valid.'''
+
+
+class CircularConnection(DataProcessException):
+    '''"{problem!r}" cannot be connected to itself.'''
 
 
 class ProblemConnectionRating(object):
@@ -38,7 +63,7 @@ class ProblemConnectionRating(object):
     the context of problem A vs. problem B because the perceived
     importance of B as an impact of A may be quite different from
     the perceived importance of A as a driver of B.'''
-    pass
+
 
 class ProblemConnection(object):
     '''Base class for problem connections
@@ -61,14 +86,14 @@ class ProblemConnection(object):
     _registry = {}
 
     def __new__(cls, connection_type, problem_a, problem_b):
-        """Create a new problem connection if it doesn't already exist
+        '''Create a new problem connection if it doesn't already exist
 
         Checks if a problem connection already exists in the _registry.
         If it does, return it with new=False. If it doesn't, create it
         and return it with new=True. The "new" attribute is used by
         __init__ to distinguish between new vs. existing connections.
-        """
-        # todo: make connection_type an Enum
+        '''
+        # TODO: make connection_type an Enum
         if connection_type not in ('causal', 'scope'):
             raise InvalidConnectionType(connection_type)
         if problem_a == problem_b:
@@ -79,7 +104,7 @@ class ProblemConnection(object):
             problem_connection.new = False
             return problem_connection
         else:
-            # todo?: instead of calling object's __new__, call parent's __new__
+            # TODO?: instead of calling object's __new__, call parent's __new__
             problem_connection = object.__new__(cls, connection_type,
                                                 problem_a, problem_b)
             problem_connection.new = True
@@ -107,34 +132,35 @@ class ProblemConnection(object):
             s = '<{!s}\n{!s}|\n{!s}>'.format(self.problem_a.name, indent, self.problem_b.name)
         return s
 
+
 class Problem(object):
     '''Base class for problems
 
     Problems and the connections between them are global in that they
     don't vary by region or organization. However, the ratings of the
     connections DO vary by geo, organization, and problem context.'''
-    # todo: add db support
+    # TODO: add db support
 
     # keeps track of all instances
     _registry = {}
 
     def __new__(cls, name, definition=None, definition_url=None, images=[],
-                 drivers=[], impacts=[], broader=[], narrower=[]):
-        """Create a new problem if it doesn't already exist
+                drivers=[], impacts=[], broader=[], narrower=[]):
+        '''Create a new problem if it doesn't already exist
 
         Checks if a problem already exists with the given name in the
         _registry. If it does, return it with new=False. If it doesn't,
         create it and return it with new=True. The "new" attribute is
         used by __init__ to distinguish between new vs. existing
         problems.
-        """
+        '''
         key = name.title()
         problem = Problem._registry.get(key, None)
         if problem:
             problem.new = False
             return problem
         else:
-            # todo?: instead of calling object's __new__, call parent's __new__
+            # TODO?: instead of calling object's __new__, call parent's __new__
             problem = object.__new__(cls, name, definition=None, definition_url=None, images=[])
             problem.new = True
             Problem._registry[key] = problem
@@ -171,8 +197,8 @@ class Problem(object):
                     self.definition_url = definition_url
                 else:
                     raise FieldCollision(field='definition_url', entity=self)
-            if len(images)>0:
-                if len(self.images)==0:
+            if len(images) > 0:
+                if len(self.images) == 0:
                     self.images = images
                 else:
                     raise FieldCollision('images', self)
@@ -188,7 +214,7 @@ class Problem(object):
             if problem_connection not in self.drivers:
                 self.drivers.append(problem_connection)
                 adjacent_problem.impacts.append(problem_connection)
-            # todo: add problem connection ratings
+            # TODO: add problem connection ratings
 
         for problem_connection_data in impacts:
             adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
@@ -200,40 +226,62 @@ class Problem(object):
             if problem_connection not in self.impacts:
                 self.impacts.append(problem_connection)
                 adjacent_problem.drivers.append(problem_connection)
-            # todo: add problem connection ratings
+            # TODO: add problem connection ratings
 
-        # todo: add broader connections
-        # todo: add narrower connections
+        # TODO: add broader connections
+        # TODO: add narrower connections
 
     def __repr__(self):
         cname = self.__class__.__name__
-        return '<{cname!s}: {name!r}>'.format(cname=cname, name=self.name)
+        return '<{cname}: {name!r}>'.format(cname=cname, name=self.name)
 
     def __str__(self):
-        s = 'Problem: {!s}\n'.format(self.name)
-        s += 'definition: {!s}\n'.format(self.definition)
-        s += 'definition_url: {!s}\n'.format(self.definition_url)
-        s += 'images:\n'
-        for image in self.images:
-            s += '    {!s}\n'.format(image)
-        s += 'drivers:\n'
-        for problem_connection in self.drivers:
-            s += '    {!s}\n'.format(problem_connection.problem_a.name)
-        s += 'impacts:\n'
-        for problem_connection in self.impacts:
-            s += '    {!s}\n'.format(problem_connection.problem_b.name)
-        s += 'broader:\n'
-        for problem_connection in self.broader:
-            s += '    {!s}\n'.format(problem_connection.problem_a.name)
-        s += 'narrower:\n'
-        for problem_connection in self.narrower:
-            s += '    {!s}\n'.format(problem_connection.problem_b.name)
-        return s
+        indent = ' '*4
+        fields = dict(
+            name=self.name,
+            definition=self.definition,
+            url=self.definition_url,
+            images=self.images,
+            drivers=[d.problem_a.name for d in self.drivers],
+            impacts=[d.problem_b.name for d in self.impacts],
+            broader=[d.problem_a.name for d in self.broader],
+            narrower='\n'.join(indent+'{}'.format(d.problem_b.name) for d in self.narrower),
+        )
+        field_order = ['name', 'definition', 'url', 'images', 'drivers', 'impacts', 'broader', 'narrower']
+        string = []
+        for field in field_order:
+            data = fields[field]
+            if data is None:
+                continue
+            if isinstance(data, basestring) and not data.strip():
+                continue
+            if not data:
+                continue
+            if field == 'name':
+                data_str = 'Problem: {' + field + '}'
+            else:
+                if isinstance(data, (list, type(iter(list())))):
+                    data_str = '  {field}:\n'.format(field=field)
+                    data = '\n'.join(indent+'{}'.format(v) for v in data)
+                    fields[field] = data
+                else:
+                    data_str = '  {field}: '.format(field=field)
+                data_str += '{' + field + '}'
+            try:
+                data_str = data_str.format(**fields)
+                string.append(data_str)
+            except KeyError:
+                print(data_str)
+                print(fields)
+                import pdb; pdb.set_trace()
+        return '\n'.join(string)
+
 
 def decode_problems(problem_name, problem_data):
     pass
 
-def decode(json_data_path):
+
+def decode(json_data_path, *args, **options):
     '''Loads JSON files within a path and returns data structures
 
     Returns a dictionary in which the keys are plural forms of the
@@ -248,21 +296,44 @@ def decode(json_data_path):
     >>> connections = data['connections']
     '''
 
-    # todo: ability to read in all json files in a directory
+    # TODO: ability to read in all json files in a directory
+    if os.path.isdir(json_data_path):
+        raise TypeError('"{}" is a folder and must be file'.format(json_data_path))
     with open(json_data_path) as json_file:
         # May need to change this to load incrementally in the future
         data = json.load(json_file)
 
-    # todo: determine object type to be decoded, based on directory name
+    # TODO: determine object type to be decoded, based on directory name
     entities = {
         'problems': {},
         'connections': {}
-        }
+    }
 
     for problem_name, problem_data in data.items():
         problem_name = problem_name.title()
         problem = Problem(name=problem_name, **problem_data)
+        print(problem)
 
     entities['problems'] = Problem._registry
     entities['connections'] = ProblemConnection._registry
     return entities
+
+
+if __name__ == '__main__':
+    from docopt import docopt
+
+    def fix(option):
+        option = option.lstrip('--')
+        option = option.lstrip('<').rstrip('>')
+        option = option.replace('-', '_')
+        return option
+
+    options = {fix(k): v for k, v in docopt(__doc__).items()}
+    if options.get('verbose'):
+        logging.basicConfig(level=logging.DEBUG)
+    elif options.get('quiet'):
+        logging.basicConfig(level=logging.WARNING)
+    else:
+        logging.basicConfig(level=logging.INFO)
+
+    decode(**options)
