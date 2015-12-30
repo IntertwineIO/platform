@@ -12,7 +12,6 @@ Options:
 '''
 from __future__ import print_function
 
-from collections import OrderedDict as dict
 import json
 import logging
 import os
@@ -312,7 +311,6 @@ def decode(json_data_path, *args, **options):
     for problem_name, problem_data in data.items():
         problem_name = problem_name.title()
         problem = Problem(name=problem_name, **problem_data)
-        print(problem)
 
     entities['problems'] = Problem._registry
     entities['connections'] = ProblemConnection._registry
