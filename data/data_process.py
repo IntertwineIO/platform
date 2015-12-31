@@ -40,9 +40,8 @@ class FieldCollision(DataProcessException):
 
 
 class AsymmetricConnection(DataProcessException):
-    '''{problem_a!r} defines {problem_b!r} as {connected_type_a!s},
-    but {problem_b!r} does not define {problem_a!r} as {not_connected_type_b!s}.
-    '''
+    '''{problem_a!r} defines {problem_b!r} as {connected_type_a!s}, but
+    {problem_b!r} does not define {problem_a!r} as {not_connected_type_b!s}.'''
 
 
 class InvalidConnectionType(DataProcessException):
@@ -53,6 +52,10 @@ class CircularConnection(DataProcessException):
     '''"{problem!r}" cannot be connected to itself.'''
 
 
+class RatingOutOfBounds(DataProcessException):
+    '''Rating of {rating!s} is out of bounds on {connection!r}.'''
+
+
 class ProblemConnectionRating(object):
     '''Base class for problem connection ratings
 
@@ -61,7 +64,34 @@ class ProblemConnectionRating(object):
     for the same user to provide a different rating of A -> B from
     the context of problem A vs. problem B because the perceived
     importance of B as an impact of A may be quite different from
-    the perceived importance of A as a driver of B.'''
+    the perceived importance of A as a driver of B.
+    '''
+
+    def __init__(self, rating, user_id, connection,
+                 problem_scope, geo_scope=None, org_scope=None):
+        if rating<0 or rating>4:
+            raise RatingOutOfBounds(rating, connection)
+        self.rating = rating
+        # TODO: assign user based on user_id
+        self.user = user_id
+        self.connection = connection
+        self.problem_scope = problem_scope
+        # TODO: make geo and org entities rather than strings
+        self.geo_scope = geo_scope
+        self.org_scope = org_scope
+
+    def __repr__(self):
+        cname = self.__class__.__name__
+        return '''<{cname!s}: {rating!s} by {user!s}
+        on {connection!r}
+        problem_scope: {problem_scope!r}
+        geo_scope: {geo_scope!s}
+        org_scope: {org_scope!s}
+        '''.format(cname=cname, rating=self.rating, user=self.user,
+                   connection=self.connection,
+                   problem_scope=self.problem_scope,
+                   geo_scope=self.geo_scope,
+                   org_scope=self.org_scope)
 
 
 class ProblemConnection(object):
@@ -79,7 +109,8 @@ class ProblemConnection(object):
     are scope type connections. In causal connections, the driver is
     always listed first, while in scope connections, the broader is
     always listed first. A problem connection is uniquely definied by
-    its type, first problem, and second problem.'''
+    its type, first problem, and second problem.
+    '''
 
     # keeps track of all instances
     _registry = {}
@@ -116,20 +147,28 @@ class ProblemConnection(object):
             self.connection_type = connection_type
             self.problem_a = problem_a
             self.problem_b = problem_b
+            self.ratings = []
 
         del self.new
 
     def __repr__(self):
-        cname = self.__class__.__name__
-        return '<{!s}: {!s} {!r}-{!r}>'.format(cname, self.connection_type,
-                                               self.problem_a, self.problem_b)
+        return '<{cname!s}: ({conn_type!s}) {prob_a!s} -- {prob_b!s}>'.format(
+                    cname=self.__class__.__name__,
+                    conn_type=self.connection_type,
+                    prob_a=self.problem_a.name,
+                    prob_b=self.problem_b.name)
 
     def __str__(self):
         if self.connection_type == 'causal':
-            s = '<{!s} -> {!s}>'.format(self.problem_a.name, self.problem_b.name)
+            s = '<{prob_a!s} -> {prob_b!s}>'.format(
+                    prob_a=self.problem_a.name, prob_b=self.problem_b.name)
         elif self.connection_type == 'scope':
-            indent = ' ' * (len(self.problem_a.name)/2 + 1)
-            s = '<{!s}\n{!s}|\n{!s}>'.format(self.problem_a.name, indent, self.problem_b.name)
+            indent = ' ' * (min(len(self.problem_a.name),
+                                len(self.problem_b.name))/2 + 1)
+            s = '<{prob_a!s}\n{indent!s}|\n{prob_b!s}>'.format(
+                    prob_a=self.problem_a.name,
+                    indent=indent,
+                    prob_b=self.problem_b.name)
         return s
 
 
@@ -138,7 +177,8 @@ class Problem(object):
 
     Problems and the connections between them are global in that they
     don't vary by region or organization. However, the ratings of the
-    connections DO vary by geo, organization, and problem context.'''
+    connections DO vary by geo, organization, and problem context.
+    '''
     # TODO: add db support
 
     # keeps track of all instances
@@ -161,7 +201,8 @@ class Problem(object):
             return problem
         else:
             # TODO?: instead of calling object's __new__, call parent's __new__
-            problem = object.__new__(cls, name, definition=None, definition_url=None, images=[])
+            problem = object.__new__(cls, name, definition=None,
+                                     definition_url=None, images=[])
             problem.new = True
             Problem._registry[key] = problem
             return problem
@@ -175,7 +216,8 @@ class Problem(object):
         the problem already exists in the _registry, each field is set
         only if the corresponding input value is None or [] for lists. A
         FieldCollision exception is raised if the existing field and
-        the input both have values (or len>0 for lists).'''
+        the input both have values (or len>0 for lists).
+        '''
 
         if self.new:
             self.name = titlecase(name.strip())
@@ -213,7 +255,13 @@ class Problem(object):
             if problem_connection not in self.drivers:
                 self.drivers.append(problem_connection)
                 adjacent_problem.impacts.append(problem_connection)
-            # TODO: add problem connection ratings
+            # Set the ratings, whether or not the connection is new
+            ratings_data = problem_connection_data.get('problem_connection_ratings', [])
+            for rating_data in ratings_data:
+                problem_connection.ratings.append(
+                        ProblemConnectionRating(connection=problem_connection,
+                                                problem_scope=self,
+                                                **rating_data))
 
         for problem_connection_data in impacts:
             adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
@@ -224,7 +272,13 @@ class Problem(object):
             if problem_connection not in self.impacts:
                 self.impacts.append(problem_connection)
                 adjacent_problem.drivers.append(problem_connection)
-            # TODO: add problem connection ratings
+            # Set the ratings, whether or not the connection is new
+            ratings_data = problem_connection_data.get('problem_connection_ratings', [])
+            for rating_data in ratings_data:
+                problem_connection.ratings.append(
+                        ProblemConnectionRating(connection=problem_connection,
+                                                problem_scope=self,
+                                                **rating_data))
 
         # TODO: add broader connections
         # TODO: add narrower connections
