@@ -82,16 +82,15 @@ class ProblemConnectionRating(object):
 
     def __repr__(self):
         cname = self.__class__.__name__
-        return '''<{cname!s}: {rating!s} by {user!s}
-        on {connection!r}
-        problem_scope: {problem_scope!r}
-        geo_scope: {geo_scope!s}
-        org_scope: {org_scope!s}
-        '''.format(cname=cname, rating=self.rating, user=self.user,
-                   connection=self.connection,
-                   problem_scope=self.problem_scope,
-                   geo_scope=self.geo_scope,
-                   org_scope=self.org_scope)
+        s = '<{cname!s}: {rating!s} by {user!s}\n'.format(
+                cname=cname, rating=self.rating, user=self.user)
+        s += '  on {connection!s}\n'.format(connection=self.connection)
+        s += '  problem_scope: {problem_scope!s}\n'.format(
+                problem_scope=self.problem_scope.name)
+        s += '  geo_scope: {geo_scope!s}\n'.format(geo_scope=self.geo_scope)
+        s += '  org_scope: {org_scope!s}\n'.format(org_scope=self.org_scope)
+        s += '>'
+        return s
 
 
 class ProblemConnection(object):
@@ -159,16 +158,9 @@ class ProblemConnection(object):
                     prob_b=self.problem_b.name)
 
     def __str__(self):
-        if self.connection_type == 'causal':
-            s = '<{prob_a!s} -> {prob_b!s}>'.format(
-                    prob_a=self.problem_a.name, prob_b=self.problem_b.name)
-        elif self.connection_type == 'scope':
-            indent = ' ' * (min(len(self.problem_a.name),
-                                len(self.problem_b.name))/2 + 1)
-            s = '<{prob_a!s}\n{indent!s}|\n{prob_b!s}>'.format(
-                    prob_a=self.problem_a.name,
-                    indent=indent,
-                    prob_b=self.problem_b.name)
+        ct = '->' if self.connection_type == 'causal' else '::'
+        s = '{prob_a!s} {ct!s} {prob_b!s}'.format(
+                prob_a=self.problem_a.name, ct=ct, prob_b=self.problem_b.name)
         return s
 
 
@@ -280,8 +272,39 @@ class Problem(object):
                                                 problem_scope=self,
                                                 **rating_data))
 
-        # TODO: add broader connections
-        # TODO: add narrower connections
+        for problem_connection_data in broader:
+            adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
+            if adjacent_problem_name is None:
+                raise MissingRequiredField(field='adjacent_problem_name', classname='Problem')
+            adjacent_problem = Problem(name=adjacent_problem_name)
+            problem_connection = ProblemConnection('scope', adjacent_problem, self)
+            if problem_connection not in self.broader:
+                self.broader.append(problem_connection)
+                adjacent_problem.narrower.append(problem_connection)
+            # Set the ratings, whether or not the connection is new
+            ratings_data = problem_connection_data.get('problem_connection_ratings', [])
+            for rating_data in ratings_data:
+                problem_connection.ratings.append(
+                        ProblemConnectionRating(connection=problem_connection,
+                                                problem_scope=self,
+                                                **rating_data))
+
+        for problem_connection_data in narrower:
+            adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
+            if adjacent_problem_name is None:
+                raise MissingRequiredField(field='adjacent_problem_name', classname='Problem')
+            adjacent_problem = Problem(name=adjacent_problem_name)
+            problem_connection = ProblemConnection('scope', self, adjacent_problem)
+            if problem_connection not in self.narrower:
+                self.narrower.append(problem_connection)
+                adjacent_problem.broader.append(problem_connection)
+            # Set the ratings, whether or not the connection is new
+            ratings_data = problem_connection_data.get('problem_connection_ratings', [])
+            for rating_data in ratings_data:
+                problem_connection.ratings.append(
+                        ProblemConnectionRating(connection=problem_connection,
+                                                problem_scope=self,
+                                                **rating_data))
 
     def __repr__(self):
         cname = self.__class__.__name__
@@ -294,10 +317,10 @@ class Problem(object):
             definition=self.definition,
             url=self.definition_url,
             images=self.images,
-            drivers=[d.problem_a.name for d in self.drivers],
-            impacts=[d.problem_b.name for d in self.impacts],
-            broader=[d.problem_a.name for d in self.broader],
-            narrower='\n'.join(indent+'{}'.format(d.problem_b.name) for d in self.narrower),
+            drivers=[c.problem_a.name for c in self.drivers],
+            impacts=[c.problem_b.name for c in self.impacts],
+            broader=[c.problem_a.name for c in self.broader],
+            narrower=[c.problem_b.name for c in self.narrower],
         )
         field_order = ['name', 'definition', 'url', 'images', 'drivers', 'impacts', 'broader', 'narrower']
         string = []
