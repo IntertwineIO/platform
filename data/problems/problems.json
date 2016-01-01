@@ -640,6 +640,157 @@
     "Domestic Violence": {
         "definition": "We define domestic violence as a pattern of abusive behavior in any relationship that is used by one partner to gain or maintain power and control over another intimate partner.  Domestic violence can be physical, sexual, emotional, economic, or psychological actions or threats of actions that influence another person. This includes any behaviors that intimidate, manipulate, humiliate, isolate, frighten, terrorize, coerce, threaten, blame, hurt, injure, or wound someone.",
         "definition_url": "http://www.justice.gov/ovw/domestic-violence",
+        "drivers": [
+            {
+                "adjacent_problem": "Controlling Nature",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }                ]
+            },
+            {
+                "adjacent_problem": "Feeling Out of Control",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Child Abuse",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Financial Stress",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Substance Abuse",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 2,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Fear of Abandonment",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 1,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            }
+        ],
         "impacts": [
             {
                 "adjacent_problem": "Trauma",
@@ -780,6 +931,308 @@
                     },
                     {
                         "rating": 2,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            }
+        ],
+        "broader": [
+            {
+                "adjacent_problem": "Abuse",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }                ]
+            },
+            {
+                "adjacent_problem": "Violence",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Conflict",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Family Dysfunction",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Human Suffering",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 2,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States/Texas/Austin"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Cyclical Issues",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 1,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            }
+        ],
+        "narrower": [
+            {
+                "adjacent_problem": "Domestic Physical Abuse",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }                ]
+            },
+            {
+                "adjacent_problem": "Domestic Sexual Abuse",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Domestic Psychological Abuse",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Domestic Social Isolation",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 2,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Domestic Economic Abuse",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 2,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Domestic Technological Abuse",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 1,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 1,
                         "user_id": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
