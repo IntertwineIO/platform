@@ -82,16 +82,31 @@ class ProblemConnectionRating(object):
 
     def __repr__(self):
         cname = self.__class__.__name__
-        s = '<{cname!s}: {rating!s} by {user!s}\n'.format(
-                cname=cname, rating=self.rating, user=self.user)
-        s += '  on {connection!s}\n'.format(connection=self.connection)
-        s += '  problem_scope: {problem_scope!s}\n'.format(
-                problem_scope=self.problem_scope.name)
-        s += '  geo_scope: {geo_scope!s}\n'.format(geo_scope=self.geo_scope)
-        s += '  org_scope: {org_scope!s}\n'.format(org_scope=self.org_scope)
+        s = '<{cname!s}: {rating!r}\n'.format(cname=cname, rating=self.rating)
+        s += '  user: {user!r}\n'.format(user=self.user)
+        s += '  connection: {conn!r}\n'.format(conn=self.connection)
+        s += '  problem_scope: {prob!r}\n'.format(prob=self.problem_scope)
+        s += '  geo_scope: {geo!r}\n'.format(geo=self.geo_scope)
+        s += '  org_scope: {org!r}\n'.format(org=self.org_scope)
         s += '>'
         return s
 
+    def __str__(self):
+        cname = self.__class__.__name__
+        prob = self.problem_scope.name
+        if prob == self.connection.problem_a:
+            conn = str(self.connection).replace(prob, '*'+prob+'*', 1)
+        else:
+            conn = ('*'+prob+'*').join(str(self.connection).rsplit(prob, 1))
+        org = self.org_scope
+        geo = self.geo_scope
+        s = '{cname!s}: {rating!s} by {user!s}\n'.format(
+                cname=cname, rating=self.rating, user=self.user)
+        s += '  on {conn!s}\n'.format(conn=conn)
+        s += '  at {org!s} '.format(org=org) if org is not None else '  '
+        # TODO: convert to more friendly geo
+        s += 'in {geo!s}'.format(geo=geo) if geo is not None else '(globally)'
+        return s
 
 class ProblemConnection(object):
     '''Base class for problem connections
@@ -147,21 +162,19 @@ class ProblemConnection(object):
             self.problem_a = problem_a
             self.problem_b = problem_b
             self.ratings = []
-
         del self.new
 
     def __repr__(self):
-        return '<{cname!s}: ({conn_type!s}) {prob_a!s} -- {prob_b!s}>'.format(
+        ct = '->' if self.connection_type == 'causal' else '::'
+        return '<{cname!s}: ({conn_type!s}) {p_a!r} {ct!s} {p_b!r}>'.format(
                     cname=self.__class__.__name__,
                     conn_type=self.connection_type,
-                    prob_a=self.problem_a.name,
-                    prob_b=self.problem_b.name)
+                    p_a=self.problem_a.name, ct=ct, p_b=self.problem_b.name)
 
     def __str__(self):
         ct = '->' if self.connection_type == 'causal' else '::'
-        s = '{prob_a!s} {ct!s} {prob_b!s}'.format(
-                prob_a=self.problem_a.name, ct=ct, prob_b=self.problem_b.name)
-        return s
+        return '{p_a!s} {ct!s} {p_b!s}'.format(
+                    p_a=self.problem_a.name, ct=ct, p_b=self.problem_b.name)
 
 
 class Problem(object):
