@@ -251,20 +251,20 @@ class Problem(object):
                     raise FieldCollision('images', self)
         del self.new
 
-        self.load_connections(related_problem_type='drivers', connections_data=drivers)
-        self.load_connections(related_problem_type='impacts', connections_data=impacts)
-        self.load_connections(related_problem_type='broader', connections_data=broader)
-        self.load_connections(related_problem_type='narrower', connections_data=narrower)
+        self.load_connections(connections_name='drivers', connections_data=drivers)
+        self.load_connections(connections_name='impacts', connections_data=impacts)
+        self.load_connections(connections_name='broader', connections_data=broader)
+        self.load_connections(connections_name='narrower', connections_data=narrower)
 
-    def load_connections(self, related_problem_type, connections_data):
+    def load_connections(self, connections_name, connections_data):
         values = {
             'drivers': ('causal', 'adjacent_problem', 'self', 'impacts'),
             'impacts': ('causal', 'self', 'adjacent_problem', 'drivers'),
             'broader': ('scope', 'adjacent_problem', 'self', 'narrower'),
             'narrower': ('scope', 'self', 'adjacent_problem', 'broader'),
         }
-        conn_type, p_a, p_b, inverse_type = values[related_problem_type]
-        connections = getattr(self, related_problem_type)
+        conn_type, p_a, p_b, inverse_type = values[connections_name]
+        connections = getattr(self, connections_name)
 
         for connection_data in connections_data:
             adjacent_problem_name = connection_data.get('adjacent_problem', None)
