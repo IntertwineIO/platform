@@ -251,71 +251,36 @@ class Problem(object):
                     raise FieldCollision('images', self)
         del self.new
 
-        for problem_connection_data in drivers:
-            adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
-            if adjacent_problem_name is None:
-                raise MissingRequiredField(field='adjacent_problem_name', classname='Problem')
-            adjacent_problem = Problem(name=adjacent_problem_name)
-            problem_connection = ProblemConnection('causal', adjacent_problem, self)
-            if problem_connection not in self.drivers:
-                self.drivers.append(problem_connection)
-                adjacent_problem.impacts.append(problem_connection)
-            # Set the ratings, whether or not the connection is new
-            ratings_data = problem_connection_data.get('problem_connection_ratings', [])
-            for rating_data in ratings_data:
-                problem_connection.ratings.append(
-                        ProblemConnectionRating(connection=problem_connection,
-                                                problem_scope=self,
-                                                **rating_data))
+        self.load_connections(related_problem_type='drivers', connections_data=drivers)
+        self.load_connections(related_problem_type='impacts', connections_data=impacts)
+        self.load_connections(related_problem_type='broader', connections_data=broader)
+        self.load_connections(related_problem_type='narrower', connections_data=narrower)
 
-        for problem_connection_data in impacts:
-            adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
-            if adjacent_problem_name is None:
-                raise MissingRequiredField(field='adjacent_problem_name', classname='Problem')
-            adjacent_problem = Problem(name=adjacent_problem_name)
-            problem_connection = ProblemConnection('causal', self, adjacent_problem)
-            if problem_connection not in self.impacts:
-                self.impacts.append(problem_connection)
-                adjacent_problem.drivers.append(problem_connection)
-            # Set the ratings, whether or not the connection is new
-            ratings_data = problem_connection_data.get('problem_connection_ratings', [])
-            for rating_data in ratings_data:
-                problem_connection.ratings.append(
-                        ProblemConnectionRating(connection=problem_connection,
-                                                problem_scope=self,
-                                                **rating_data))
+    def load_connections(self, related_problem_type, connections_data):
+        values = {
+            'drivers': ('causal', 'adjacent_problem', 'self', 'impacts'),
+            'impacts': ('causal', 'self', 'adjacent_problem', 'drivers'),
+            'broader': ('scope', 'adjacent_problem', 'self', 'narrower'),
+            'narrower': ('scope', 'self', 'adjacent_problem', 'broader'),
+        }
+        conn_type, p_a, p_b, inverse_type = values[related_problem_type]
+        connections = getattr(self, related_problem_type)
 
-        for problem_connection_data in broader:
-            adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
+        for connection_data in connections_data:
+            adjacent_problem_name = connection_data.get('adjacent_problem', None)
             if adjacent_problem_name is None:
-                raise MissingRequiredField(field='adjacent_problem_name', classname='Problem')
+                raise MissingRequiredField(field='adjacent_problem_name',
+                                           classname='Problem')
             adjacent_problem = Problem(name=adjacent_problem_name)
-            problem_connection = ProblemConnection('scope', adjacent_problem, self)
-            if problem_connection not in self.broader:
-                self.broader.append(problem_connection)
-                adjacent_problem.narrower.append(problem_connection)
+            connection = ProblemConnection(conn_type, locals()[p_a], locals()[p_b])
+            if connection not in connections:
+                connections.append(connection)
+                getattr(adjacent_problem, inverse_type).append(connection)
             # Set the ratings, whether or not the connection is new
-            ratings_data = problem_connection_data.get('problem_connection_ratings', [])
+            ratings_data = connection_data.get('problem_connection_ratings', [])
             for rating_data in ratings_data:
-                problem_connection.ratings.append(
-                        ProblemConnectionRating(connection=problem_connection,
-                                                problem_scope=self,
-                                                **rating_data))
-
-        for problem_connection_data in narrower:
-            adjacent_problem_name = problem_connection_data.get('adjacent_problem', None)
-            if adjacent_problem_name is None:
-                raise MissingRequiredField(field='adjacent_problem_name', classname='Problem')
-            adjacent_problem = Problem(name=adjacent_problem_name)
-            problem_connection = ProblemConnection('scope', self, adjacent_problem)
-            if problem_connection not in self.narrower:
-                self.narrower.append(problem_connection)
-                adjacent_problem.broader.append(problem_connection)
-            # Set the ratings, whether or not the connection is new
-            ratings_data = problem_connection_data.get('problem_connection_ratings', [])
-            for rating_data in ratings_data:
-                problem_connection.ratings.append(
-                        ProblemConnectionRating(connection=problem_connection,
+                connection.ratings.append(
+                        ProblemConnectionRating(connection=connection,
                                                 problem_scope=self,
                                                 **rating_data))
 
