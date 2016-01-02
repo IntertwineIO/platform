@@ -663,7 +663,8 @@
                         "rating": 4,
                         "user_id": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
-                    }                ]
+                    }
+                ]
             },
             {
                 "adjacent_problem": "Feeling Out of Control",
@@ -814,7 +815,8 @@
                         "rating": 4,
                         "user_id": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
-                    }                ]
+                    }
+                ]
             },
             {
                 "adjacent_problem": "Child Abuse",
@@ -965,7 +967,8 @@
                         "rating": 4,
                         "user_id": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
-                    }                ]
+                    }
+                ]
             },
             {
                 "adjacent_problem": "Violence",
@@ -1116,7 +1119,8 @@
                         "rating": 4,
                         "user_id": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
-                    }                ]
+                    }
+                ]
             },
             {
                 "adjacent_problem": "Domestic Sexual Abuse",

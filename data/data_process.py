@@ -12,6 +12,7 @@ Options:
 '''
 from __future__ import print_function
 
+import sys
 import json
 import logging
 import os
@@ -199,8 +200,8 @@ class Problem(object):
         used by __init__ to distinguish between new vs. existing
         problems.
         '''
-        key = name.strip().lower().replace(' ', '_')
-        problem = Problem._registry.get(key, None)
+        human_id = name.strip().lower().replace(' ', '_')
+        problem = Problem._registry.get(human_id, None)
         if problem:
             problem.new = False
             return problem
@@ -208,8 +209,9 @@ class Problem(object):
             # TODO?: instead of calling object's __new__, call parent's __new__
             problem = object.__new__(cls, name, definition=None,
                                      definition_url=None, images=[])
+            problem.human_id = human_id
             problem.new = True
-            Problem._registry[key] = problem
+            Problem._registry[human_id] = problem
             return problem
 
     def __init__(self, name, definition=None, definition_url=None, images=[],
@@ -330,10 +332,6 @@ class Problem(object):
         return '\n'.join(string)
 
 
-def decode_problems(problem_name, problem_data):
-    pass
-
-
 def decode(json_data_path, *args, **options):
     '''Loads JSON files within a path and returns data structures
 
@@ -343,10 +341,10 @@ def decode(json_data_path, *args, **options):
 
     Usage:
     >>> json_path = '/data/problems/problems.json'
-    >>> data = decode(json_path)
-    >>> problems = data['problems']
-    >>> p = problems['Homelessness']
-    >>> connections = data['connections']
+    >>> problems = decode(json_path)
+    >>> p0 = problems['poverty']
+    >>> p1 = problems['homelessness']
+    >>> p2 = problems['domestic_violence']
     '''
 
     # TODO: ability to read in all json files in a directory
@@ -357,16 +355,20 @@ def decode(json_data_path, *args, **options):
         data = json.load(json_file)
 
     # TODO: determine object type to be decoded, based on directory name
-    entities = {
-        'problems': {},
-        'connections': {}
-    }
+    # module = importlib.import_module('data_process')
+    module = sys.modules[__name__]
+    classname = os.path.abspath(json_data_path).rsplit('/', 2)[-2]
+    entity_class = getattr(module, classname)
 
-    for problem_name, problem_data in data.items():
-        problem = Problem(name=problem_name, **problem_data)
+    entities = {}
 
-    entities['problems'] = Problem._registry
-    entities['connections'] = ProblemConnection._registry
+    for data_key, data_value in data.items():
+        entity = entity_class(name=data_key, **data_value)
+        entities[entity.human_id] = entity
+
+    if hasattr(entity_class, '_registry'):
+        entities = getattr(entity_class, '_registry')
+
     return entities
 
 
