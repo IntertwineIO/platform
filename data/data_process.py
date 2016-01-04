@@ -3,7 +3,7 @@
 '''Decodes data
 
 Usage:
-    data_process.py [options] <json_data_path>
+    data_process.py [options] <json_path>
 
 Options:
     -h --help       This message
@@ -12,10 +12,12 @@ Options:
 '''
 from __future__ import print_function
 
-import sys
 import json
 import logging
 import os
+from os import listdir
+from os.path import isdir, isfile, join, abspath
+import sys
 from titlecase import titlecase
 
 log = logging.getLogger('data_process')
@@ -32,6 +34,9 @@ class DataProcessException(Exception):
         log.error(message)
         Exception.__init__(self, message)
 
+
+class InvalidJSONPath(DataProcessException):
+    '''No JSON files found in path {path!s}.'''
 
 class MissingRequiredField(DataProcessException):
     '''Required field "{field}" on {classname!r} is missing.'''
@@ -333,12 +338,31 @@ class Problem(object):
         return '\n'.join(string)
 
 
-def decode(json_data_path, *args, **options):
+def decode_problems(json_data):
+    '''Returns problems created from the json_data
+    '''
+    problems = {}
+    for json_data_load in json_data:
+        for data_key, data_value in json_data_load.items():
+            problem = Problem(name=data_key, **data_value)
+            problems[problem.human_id] = problem
+    # TODO: change this to only return problems that were loaded since
+    # there may already be problems in the registry before loading more.
+    # This is non-trivial because problems can be created based on the
+    # connection references.
+    return Problem._registry
+
+
+def decode(json_path, *args, **options):
     '''Loads JSON files within a path and returns data structures
 
-    Returns a dictionary in which the keys are plural forms of the
-    objects defined by the JSON problem schema, and the values are
-    dictionaries containing each object type.
+    Given a path to a JSON file or a directory containing JSON files,
+    returns a dictionary of the objects loaded from the JSON file(s).
+    Calls other functions to actually decode the json_data. This
+    other function's name begins with 'decode_' and ends with the
+    innermost directory in the json_path:
+
+        decode_<directory>(json_data)
 
     Usage:
     >>> json_path = '/data/problems/problems.json'
@@ -348,29 +372,31 @@ def decode(json_data_path, *args, **options):
     >>> p2 = problems['domestic_violence']
     '''
 
-    # TODO: ability to read in all json files in a directory
-    if os.path.isdir(json_data_path):
-        raise TypeError('"{}" is a folder and must be file'.format(json_data_path))
-    with open(json_data_path) as json_file:
-        # May need to change this to load incrementally in the future
-        data = json.load(json_file)
+    if isfile(json_path) and json_path.rsplit('.', 1)[-1].lower() == 'json':
+        json_paths = [json_path]
+    elif isdir(json_path):
+        json_paths = [join(json_path, f) for f in listdir(json_path)
+                      if (isfile(join(json_path, f)) and
+                          f.rsplit('.', 1)[-1].lower() == 'json' and
+                          'schema' not in f)]
+    if len(json_paths) == 0:
+        raise InvalidJSONPath(path=json_path)
 
-    # TODO: determine object type to be decoded, based on directory name
-    # module = importlib.import_module('data_process')
+    json_data = []
+    for path in json_paths:
+        with open(path) as json_file:
+            # May need to change this to load incrementally in the future
+            json_data.append(json.load(json_file))
+
+    # Determine decode function based on directory name
+    if isfile(json_path):
+        dir_name = abspath(json_path).rsplit('/', 2)[-2]
+    else:
+        dir_name = abspath(json_path).rsplit('/', 1)[-1]
+    function_name = 'decode_' + dir_name
     module = sys.modules[__name__]
-    classname = os.path.abspath(json_data_path).rsplit('/', 2)[-2]
-    entity_class = getattr(module, classname)
-
-    entities = {}
-
-    for data_key, data_value in data.items():
-        entity = entity_class(name=data_key, **data_value)
-        entities[entity.human_id] = entity
-
-    if hasattr(entity_class, '_registry'):
-        entities = getattr(entity_class, '_registry')
-
-    return entities
+    decode_function = getattr(module, function_name)
+    return decode_function(json_data)
 
 
 if __name__ == '__main__':
