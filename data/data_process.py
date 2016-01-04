@@ -14,7 +14,6 @@ from __future__ import print_function
 
 import json
 import logging
-import os
 from os import listdir
 from os.path import isdir, isfile, join, abspath
 import sys
@@ -37,6 +36,7 @@ class DataProcessException(Exception):
 
 class InvalidJSONPath(DataProcessException):
     '''No JSON files found in path {path!s}.'''
+
 
 class MissingRequiredField(DataProcessException):
     '''Required field "{field}" on {classname!r} is missing.'''
@@ -385,7 +385,7 @@ def decode(json_path, *args, **options):
     json_data = []
     for path in json_paths:
         with open(path) as json_file:
-            # May need to change this to load incrementally in the future
+            # TODO: May need to change this to load incrementally in the future
             json_data.append(json.load(json_file))
 
     # Determine decode function based on directory name
