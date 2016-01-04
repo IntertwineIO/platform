@@ -23,6 +23,7 @@ log = logging.getLogger('data_process')
 
 class DataProcessException(Exception):
     '''Data Process exception'''
+
     def __init__(self, message=None, *args, **kwds):
         if message is not None:
             message = message.format(**kwds) if kwds else message
@@ -33,20 +34,20 @@ class DataProcessException(Exception):
 
 
 class MissingRequiredField(DataProcessException):
-    '''Required field "{field!s}" on {classname!r} is missing.'''
+    '''Required field "{field}" on {classname!r} is missing.'''
 
 
 class FieldCollision(DataProcessException):
-    '''Field "{field!s}" on {entity!r} has already been set.'''
+    '''Field "{field}" on {entity!r} has already been set.'''
 
 
 class AsymmetricConnection(DataProcessException):
-    '''{problem_a!r} defines {problem_b!r} as {connected_type_a!s}, but
-    {problem_b!r} does not define {problem_a!r} as {not_connected_type_b!s}.'''
+    '''{problem_a!r} defines {problem_b!r} as {connected_type_a}, but
+    {problem_b!r} does not define {problem_a!r} as {not_connected_type_b}.'''
 
 
 class InvalidConnectionType(DataProcessException):
-    '''Connection type "{connection_type!s}" is not valid.'''
+    '''Connection type "{connection_type}" is not valid.'''
 
 
 class CircularConnection(DataProcessException):
@@ -54,7 +55,7 @@ class CircularConnection(DataProcessException):
 
 
 class RatingOutOfBounds(DataProcessException):
-    '''Rating of {rating!s} is out of bounds on {connection!r}.'''
+    '''Rating of {rating} is out of bounds on {connection!r}.'''
 
 
 class ProblemConnectionRating(object):
@@ -70,7 +71,7 @@ class ProblemConnectionRating(object):
 
     def __init__(self, rating, user_id, connection,
                  problem_scope, geo_scope=None, org_scope=None):
-        if rating<0 or rating>4:
+        if rating < 0 or rating > 4:
             raise RatingOutOfBounds(rating, connection)
         self.rating = rating
         # TODO: assign user based on user_id
@@ -83,7 +84,7 @@ class ProblemConnectionRating(object):
 
     def __repr__(self):
         cname = self.__class__.__name__
-        s = '<{cname!s}: {rating!r}\n'.format(cname=cname, rating=self.rating)
+        s = '<{cname}: {rating!r}\n'.format(cname=cname, rating=self.rating)
         s += '  user: {user!r}\n'.format(user=self.user)
         s += '  connection: {conn!r}\n'.format(conn=self.connection)
         s += '  problem_scope: {prob!r}\n'.format(prob=self.problem_scope)
@@ -101,13 +102,13 @@ class ProblemConnectionRating(object):
             conn = ('*'+prob+'*').join(str(self.connection).rsplit(prob, 1))
         org = self.org_scope
         geo = self.geo_scope
-        s = '{cname!s}: {rating!s} by {user!s}\n'.format(
-                cname=cname, rating=self.rating, user=self.user)
-        s += '  on {conn!s}\n'.format(conn=conn)
-        s += '  at {org!s} '.format(org=org) if org is not None else '  '
+        s = '{cname}: {rating} by {user}\n'.format(cname=cname, rating=self.rating, user=self.user)
+        s += '  on {conn}\n'.format(conn=conn)
+        s += '  at {org} '.format(org=org) if org is not None else '  '
         # TODO: convert to more friendly geo
-        s += 'in {geo!s}'.format(geo=geo) if geo is not None else '(globally)'
+        s += 'in {geo}'.format(geo=geo) if geo is not None else '(globally)'
         return s
+
 
 class ProblemConnection(object):
     '''Base class for problem connections
@@ -150,7 +151,7 @@ class ProblemConnection(object):
             problem_connection.new = False
             return problem_connection
         else:
-            # TODO?: instead of calling object's __new__, call parent's __new__
+            # TODO: ? instead of calling object's __new__, call parent's __new__
             problem_connection = object.__new__(cls, connection_type,
                                                 problem_a, problem_b)
             problem_connection.new = True
@@ -167,15 +168,18 @@ class ProblemConnection(object):
 
     def __repr__(self):
         ct = '->' if self.connection_type == 'causal' else '::'
-        return '<{cname!s}: ({conn_type!s}) {p_a!r} {ct!s} {p_b!r}>'.format(
-                    cname=self.__class__.__name__,
-                    conn_type=self.connection_type,
-                    p_a=self.problem_a.name, ct=ct, p_b=self.problem_b.name)
+        return '<{cname}: ({conn_type}) {p_a!r} {ct} {p_b!r}>'.format(
+            cname=self.__class__.__name__,
+            conn_type=self.connection_type,
+            p_a=self.problem_a.name, ct=ct, p_b=self.problem_b.name)
 
     def __str__(self):
         ct = '->' if self.connection_type == 'causal' else '::'
-        return '{p_a!s} {ct!s} {p_b!s}'.format(
-                    p_a=self.problem_a.name, ct=ct, p_b=self.problem_b.name)
+        return '{p_a} {ct} {p_b}'.format(
+            p_a=self.problem_a.name,
+            ct=ct,
+            p_b=self.problem_b.name
+        )
 
 
 class Problem(object):
@@ -206,7 +210,7 @@ class Problem(object):
             problem.new = False
             return problem
         else:
-            # TODO?: instead of calling object's __new__, call parent's __new__
+            # TODO:? instead of calling object's __new__, call parent's __new__
             problem = object.__new__(cls, name, definition=None,
                                      definition_url=None, images=[])
             problem.human_id = human_id
@@ -281,10 +285,12 @@ class Problem(object):
             # Set the ratings, whether or not the connection is new
             ratings_data = connection_data.get('problem_connection_ratings', [])
             for rating_data in ratings_data:
-                connection.ratings.append(
-                        ProblemConnectionRating(connection=connection,
-                                                problem_scope=self,
-                                                **rating_data))
+                connection_rating = ProblemConnectionRating(
+                    connection=connection,
+                    problem_scope=self,
+                    **rating_data
+                )
+                connection.ratings.append(connection_rating)
 
     def __repr__(self):
         cname = self.__class__.__name__
@@ -322,13 +328,8 @@ class Problem(object):
                 else:
                     data_str = '  {field}: '.format(field=field)
                 data_str += '{' + field + '}'
-            try:
-                data_str = data_str.format(**fields)
-                string.append(data_str)
-            except KeyError:
-                print(data_str)
-                print(fields)
-                import pdb; pdb.set_trace()
+            data_str = data_str.format(**fields)
+            string.append(data_str)
         return '\n'.join(string)
 
 
