@@ -25,11 +25,13 @@ log = logging.getLogger('data_process')
 class DataProcessException(Exception):
     '''Data Process exception'''
 
+    # TODO: make this work with *args
     def __init__(self, message=None, *args, **kwds):
         if message is not None:
             message = message.format(**kwds) if kwds else message
         else:
-            message = self.__doc__.format(**kwds) if kwds else self.__doc__
+            normalized_doc = ' '.join(self.__doc__.split())
+            message = normalized_doc.format(**kwds) if kwds else normalized_doc
         log.error(message)
         Exception.__init__(self, message)
 
@@ -42,12 +44,6 @@ class MissingRequiredField(DataProcessException):
     '''Required field '{field}' on {classname!r} is missing.'''
 
 
-# TODO: implement check for this
-class AsymmetricConnection(DataProcessException):
-    '''{problem_a!r} defines {problem_b!r} as {connected_type_a}, but
-    {problem_b!r} does not define {problem_a!r} as {not_connected_type_b}.'''
-
-
 class InvalidConnectionType(DataProcessException):
     '''Connection type '{connection_type}' is not valid. Must be
     'causal' or 'scope'.'''
@@ -57,8 +53,21 @@ class CircularConnection(DataProcessException):
     '''{problem!r} cannot be connected to itself.'''
 
 
-class RatingOutOfBounds(DataProcessException):
-    '''Rating of {rating} is out of bounds on {connection!r}.'''
+class InvalidEntity(DataProcessException):
+    ''''{variable}' value of {value!r} is not a valid {classname}.'''
+
+
+class InvalidProblemConnectionRating(DataProcessException):
+    '''Rating of {rating} on {connection!r} is not valid. Must be an int
+    between 0 and 4 (inclusive).'''
+
+
+class InvalidUser(DataProcessException):
+    '''User {user!r} on rating of {connection!r} is not a valid.'''
+
+
+class InvalidProblemScope(DataProcessException):
+    '''{problem_scope!r} must be a problem on one end of {connection!r}.'''
 
 
 class ProblemConnectionRating(object):
@@ -72,18 +81,67 @@ class ProblemConnectionRating(object):
     the perceived importance of A as a driver of B.
     '''
 
+    # keeps track of all instances
+    _registry = {}
+
+    def __new__(cls, rating, user_id, connection,
+                 problem_scope, geo_scope=None, org_scope=None):
+        '''Create a problem connection rating if it doesn't already exist
+
+        Checks if a problem connection rating already exists in the
+        _registry. If it does, returns it with new=False. If it doesn't,
+        creates and returns it with new=True. The 'new' attribute is
+        used by __init__ to distinguish between new vs. existing problem
+        connection ratings.
+        '''
+        if not isinstance(connection, ProblemConnection):
+            raise InvalidEntity(variable='connection', value=connection,
+                                classname='ProblemConnection')
+        if not isinstance(rating, int) or rating < 0 or rating > 4:
+            raise InvalidProblemConnectionRating(rating=rating,
+                                                 connection=connection)
+        if user_id is None or user_id is '':
+            raise InvalidUser(user=user_id, connection=connection)
+        if problem_scope not in (connection.problem_a, connection.problem_b):
+            raise InvalidProblemScope(problem_scope=problem_scope,
+                                      connection=connection)
+
+
+        key = (user_id, connection, problem_scope, geo_scope, org_scope)
+        connection_rating = ProblemConnectionRating._registry.get(key, None)
+        if connection_rating:
+            connection_rating.new = False
+        else:
+            # TODO: ? instead of calling object's __new__, call parent's __new__
+            connection_rating = object.__new__(cls, rating, user_id,
+                                               connection, problem_scope,
+                                               geo_scope, org_scope)
+            connection_rating.new = True
+            ProblemConnectionRating._registry[key] = connection_rating
+        return connection_rating
+
     def __init__(self, rating, user_id, connection,
                  problem_scope, geo_scope=None, org_scope=None):
-        if rating < 0 or rating > 4:
-            raise RatingOutOfBounds(rating, connection)
-        self.rating = rating
-        # TODO: assign user based on user_id
-        self.user = user_id
-        self.connection = connection
-        self.problem_scope = problem_scope
-        # TODO: make geo and org entities rather than strings
-        self.geo_scope = geo_scope
-        self.org_scope = org_scope
+        '''Initialize new problem connection rating or update existing
+
+        Inputs are key-value pairs based on the JSON problem connection
+        rating schema. If the problem connection rating is new,
+        initialize all the fields. If it already exists in the
+        _registry, the rating field is updated only if different.
+        '''
+        if self.new:
+            self.rating = rating
+            # TODO: assign user based on user_id
+            self.user = user_id
+            self.connection = connection
+            self.problem_scope = problem_scope
+            # TODO: make geo and org entities rather than strings
+            self.geo_scope = geo_scope
+            self.org_scope = org_scope
+        else:
+            if rating is not self.rating:
+                self.rating = rating
+        del self.new
 
     def __repr__(self):
         cname = self.__class__.__name__
@@ -103,7 +161,7 @@ class ProblemConnectionRating(object):
             conn = str(self.connection).replace(prob, '*'+prob+'*', 1)
         else:
             conn = ('*'+prob+'*').join(str(self.connection).rsplit(prob, 1))
-        rating = self.rating_data
+        rating = self.rating
         user = self.user
         org = self.org_scope
         geo = self.geo_scope
@@ -137,33 +195,37 @@ class ProblemConnection(object):
     _registry = {}
 
     def __new__(cls, connection_type, problem_a, problem_b):
-        '''Create a new problem connection if it doesn't already exist
+        '''Create a problem connection if it doesn't already exist
 
         Checks if a problem connection already exists in the _registry.
-        If it does, return it with new=False. If it doesn't, create it
-        and return it with new=True. The 'new' attribute is used by
+        If it does, returns it with new=False. If it doesn't, creates
+        and returns it with new=True. The 'new' attribute is used by
         __init__ to distinguish between new vs. existing connections.
         '''
         # TODO: make connection_type an Enum
         if connection_type not in ('causal', 'scope'):
-            raise InvalidConnectionType(connection_type)
+            raise InvalidConnectionType(connection_type=connection_type)
         if problem_a == problem_b:
-            raise CircularConnection(problem_a)
+            raise CircularConnection(problem=problem_a)
 
         key = (connection_type, problem_a, problem_b)
         problem_connection = ProblemConnection._registry.get(key, None)
         if problem_connection:
             problem_connection.new = False
-            return problem_connection
         else:
             # TODO: ? instead of calling object's __new__, call parent's __new__
             problem_connection = object.__new__(cls, connection_type,
                                                 problem_a, problem_b)
             problem_connection.new = True
             ProblemConnection._registry[key] = problem_connection
-            return problem_connection
+        return problem_connection
 
     def __init__(self, connection_type, problem_a, problem_b):
+        '''Initialize problem connection if new
+
+        Inputs are key-value pairs based on the JSON problem connection
+        schema. If the problem connection is new, initialize all fields.
+        '''
         if self.new:
             self.connection_type = connection_type
             self.problem_a = problem_a
@@ -201,19 +263,20 @@ class Problem(object):
 
     def __new__(cls, name, definition=None, definition_url=None, images=[],
                 drivers=[], impacts=[], broader=[], narrower=[]):
-        '''Create a new problem if it doesn't already exist
+        '''Create a problem if it doesn't already exist
 
         Checks if a problem already exists with the given name in the
-        _registry. If it does, return it with new=False. If it doesn't,
-        create it and return it with new=True. The 'new' attribute is
+        _registry. If it does, returns it with new=False. If it doesn't,
+        creates and returns it with new=True. The 'new' attribute is
         used by __init__ to distinguish between new vs. existing
         problems.
         '''
+        if name is None or name is '':
+            raise MissingRequiredField(field='name', classname='Problem')
         human_id = name.strip().lower().replace(' ', '_')
         problem = Problem._registry.get(human_id, None)
         if problem:
             problem.new = False
-            return problem
         else:
             # TODO:? instead of calling object's __new__, call parent's __new__
             problem = object.__new__(cls, name, definition=None,
@@ -221,7 +284,7 @@ class Problem(object):
             problem.human_id = human_id
             problem.new = True
             Problem._registry[human_id] = problem
-            return problem
+        return problem
 
     def __init__(self, name, definition=None, definition_url=None, images=[],
                  drivers=[], impacts=[], broader=[], narrower=[]):
@@ -230,9 +293,8 @@ class Problem(object):
         Inputs are key-value pairs based on the JSON problem schema. If
         the problem is new, initialize the name and the other fields. If
         the problem already exists in the _registry, each field is
-        updated if different.
+        updated only if different.
         '''
-
         if self.new:
             self.name = titlecase(name.strip())
             self.definition = definition
@@ -272,16 +334,12 @@ class Problem(object):
 
         for connection_data in connections_data:
             adjacent_problem_name = connection_data.get('adjacent_problem', None)
-            if adjacent_problem_name is None:
-                raise MissingRequiredField(field='adjacent_problem_name',
-                                           classname='Problem')
             adjacent_problem = Problem(name=adjacent_problem_name)
             connection = ProblemConnection(conn_type, locals()[p_a], locals()[p_b])
             if connection not in connections:
                 connections.append(connection)
                 getattr(adjacent_problem, inverse_type).append(connection)
             # Set the ratings, whether or not the connection is new
-            # TODO: check if rating already exists; if so and value is different, update it
             ratings_data = connection_data.get('problem_connection_ratings', [])
             for rating_data in ratings_data:
                 connection_rating = ProblemConnectionRating(
@@ -289,7 +347,8 @@ class Problem(object):
                     problem_scope=self,
                     **rating_data
                 )
-                connection.ratings.append(connection_rating)
+                if connection_rating not in connection.ratings:
+                    connection.ratings.append(connection_rating)
 
     def __repr__(self):
         cname = self.__class__.__name__
@@ -339,7 +398,6 @@ def decode_problems(json_data):
     Takes as input a list of json data loads, each from a separate JSON
     file and returns a dictionary of problems keyed by human_id's.
     '''
-
     problems = {}
     for json_data_load in json_data:
         for data_key, data_value in json_data_load.items():
@@ -368,7 +426,6 @@ def decode(json_path, *args, **options):
     >>> p1 = problems['homelessness']
     >>> p2 = problems['domestic_violence']
     '''
-
     # Gather valid json_paths based on the given file or directory
     if isfile(json_path) and json_path.rsplit('.', 1)[-1].lower() == 'json':
         json_paths = [json_path]
