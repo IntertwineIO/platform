@@ -42,10 +42,6 @@ class MissingRequiredField(DataProcessException):
     '''Required field '{field}' on {classname!r} is missing.'''
 
 
-class FieldCollision(DataProcessException):
-    '''Field '{field}' on {entity!r} has already been set.'''
-
-
 # TODO: implement check for this
 class AsymmetricConnection(DataProcessException):
     '''{problem_a!r} defines {problem_b!r} as {connected_type_a}, but
@@ -55,11 +51,6 @@ class AsymmetricConnection(DataProcessException):
 class InvalidConnectionType(DataProcessException):
     '''Connection type '{connection_type}' is not valid. Must be
     'causal' or 'scope'.'''
-
-
-class InvalidConnectionsName(DataProcessException):
-    '''Connections name '{connections_name}' is not valid. Must be
-    'drivers', 'impacts', 'broader', or 'narrower'.'''
 
 
 class CircularConnection(DataProcessException):
@@ -238,10 +229,8 @@ class Problem(object):
 
         Inputs are key-value pairs based on the JSON problem schema. If
         the problem is new, initialize the name and the other fields. If
-        the problem already exists in the _registry, each field is set
-        only if the corresponding input value is None or [] for lists. A
-        FieldCollision exception is raised if the existing field and
-        the input both have values (or len>0 for lists).
+        the problem already exists in the _registry, each field is
+        updated if different.
         '''
 
         if self.new:
@@ -254,21 +243,15 @@ class Problem(object):
             self.broader = []
             self.narrower = []
         else:
-            if definition:
-                if not self.definition:
-                    self.definition = definition
-                else:
-                    raise FieldCollision(field='definition', entity=self)
-            if definition_url:
-                if not self.definition_url:
-                    self.definition_url = definition_url
-                else:
-                    raise FieldCollision(field='definition_url', entity=self)
-            if len(images) > 0:
-                if len(self.images) == 0:
-                    self.images = images
-                else:
-                    raise FieldCollision('images', self)
+            if definition is not self.definition:
+                # TODO: issue warning if definition is None
+                self.definition = definition
+            if definition_url is not self.definition_url:
+                # TODO: issue warning if definition_url is None
+                self.definition_url = definition_url
+            if images != self.images:
+                # TODO: issue warning if any image is missing
+                self.images = images
         del self.new
 
         self.load_connections(connections_name='drivers', connections_data=drivers)
@@ -283,8 +266,7 @@ class Problem(object):
             'broader': ('scope', 'adjacent_problem', 'self', 'narrower'),
             'narrower': ('scope', 'self', 'adjacent_problem', 'broader'),
         }
-        if connections_name not in derived_from.keys():
-            raise InvalidConnectionsName(connections_name)
+        assert connections_name in derived_from
         conn_type, p_a, p_b, inverse_type = derived_from[connections_name]
         connections = getattr(self, connections_name)
 
@@ -299,6 +281,7 @@ class Problem(object):
                 connections.append(connection)
                 getattr(adjacent_problem, inverse_type).append(connection)
             # Set the ratings, whether or not the connection is new
+            # TODO: check if rating already exists; if so and value is different, update it
             ratings_data = connection_data.get('problem_connection_ratings', [])
             for rating_data in ratings_data:
                 connection_rating = ProblemConnectionRating(
