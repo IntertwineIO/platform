@@ -385,7 +385,7 @@ def decode(json_path, *args, **options):
         json_paths = [join(json_path, f) for f in listdir(json_path)
                       if (isfile(join(json_path, f)) and
                           f.rsplit('.', 1)[-1].lower() == 'json' and
-                          'schema' not in f.lower()]
+                          'schema' not in f.lower())]
     if len(json_paths) == 0:
         raise InvalidJSONPath(path=json_path)
 
