@@ -46,6 +46,7 @@ class FieldCollision(DataProcessException):
     '''Field "{field}" on {entity!r} has already been set.'''
 
 
+# TODO: implement check for this
 class AsymmetricConnection(DataProcessException):
     '''{problem_a!r} defines {problem_b!r} as {connected_type_a}, but
     {problem_b!r} does not define {problem_a!r} as {not_connected_type_b}.'''
@@ -105,9 +106,11 @@ class ProblemConnectionRating(object):
             conn = str(self.connection).replace(prob, '*'+prob+'*', 1)
         else:
             conn = ('*'+prob+'*').join(str(self.connection).rsplit(prob, 1))
+        rating = self.rating_data
+        user = self.user
         org = self.org_scope
         geo = self.geo_scope
-        s = '{cname}: {rating} by {user}\n'.format(cname=cname, rating=self.rating, user=self.user)
+        s = '{cname}: {rating} by {user}\n'.format(cname=cname, rating=rating, user=user)
         s += '  on {conn}\n'.format(conn=conn)
         s += '  at {org} '.format(org=org) if org is not None else '  '
         # TODO: convert to more friendly geo
@@ -313,7 +316,8 @@ class Problem(object):
             broader=[c.problem_a.name for c in self.broader],
             narrower=[c.problem_b.name for c in self.narrower],
         )
-        field_order = ['name', 'definition', 'url', 'images', 'drivers', 'impacts', 'broader', 'narrower']
+        field_order = ['name', 'definition', 'url', 'images',
+                       'drivers', 'impacts', 'broader', 'narrower']
         string = []
         for field in field_order:
             data = fields[field]
@@ -340,7 +344,11 @@ class Problem(object):
 
 def decode_problems(json_data):
     '''Returns problems created from the json_data
+
+    Takes as input a list of json data loads, each from a separate JSON
+    file and returns a dictionary of problems keyed by human_id's.
     '''
+
     problems = {}
     for json_data_load in json_data:
         for data_key, data_value in json_data_load.items():
@@ -358,11 +366,9 @@ def decode(json_path, *args, **options):
 
     Given a path to a JSON file or a directory containing JSON files,
     returns a dictionary of the objects loaded from the JSON file(s).
-    Calls other functions to actually decode the json_data. This
+    Calls another function to actually decode the json_data. This
     other function's name begins with 'decode_' and ends with the
-    innermost directory in the json_path:
-
-        decode_<directory>(json_data)
+    innermost directory in the json_path: decode_<directory>(json_data)
 
     Usage:
     >>> json_path = '/data/problems/problems.json'
@@ -372,23 +378,25 @@ def decode(json_path, *args, **options):
     >>> p2 = problems['domestic_violence']
     '''
 
+    # Gather valid json_paths based on the given file or directory
     if isfile(json_path) and json_path.rsplit('.', 1)[-1].lower() == 'json':
         json_paths = [json_path]
     elif isdir(json_path):
         json_paths = [join(json_path, f) for f in listdir(json_path)
                       if (isfile(join(json_path, f)) and
                           f.rsplit('.', 1)[-1].lower() == 'json' and
-                          'schema' not in f)]
+                          'schema' not in f.lower()]
     if len(json_paths) == 0:
         raise InvalidJSONPath(path=json_path)
 
+    # Load raw json_data from each of the json_paths
     json_data = []
     for path in json_paths:
         with open(path) as json_file:
             # TODO: May need to change this to load incrementally in the future
             json_data.append(json.load(json_file))
 
-    # Determine decode function based on directory name
+    # Determine the decode function based on directory name and then call it
     if isfile(json_path):
         dir_name = abspath(json_path).rsplit('/', 2)[-2]
     else:
