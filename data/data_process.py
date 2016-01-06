@@ -39,11 +39,11 @@ class InvalidJSONPath(DataProcessException):
 
 
 class MissingRequiredField(DataProcessException):
-    '''Required field "{field}" on {classname!r} is missing.'''
+    '''Required field '{field}' on {classname!r} is missing.'''
 
 
 class FieldCollision(DataProcessException):
-    '''Field "{field}" on {entity!r} has already been set.'''
+    '''Field '{field}' on {entity!r} has already been set.'''
 
 
 # TODO: implement check for this
@@ -53,11 +53,17 @@ class AsymmetricConnection(DataProcessException):
 
 
 class InvalidConnectionType(DataProcessException):
-    '''Connection type "{connection_type}" is not valid.'''
+    '''Connection type '{connection_type}' is not valid. Must be
+    'causal' or 'scope'.'''
+
+
+class InvalidConnectionsName(DataProcessException):
+    '''Connections name '{connections_name}' is not valid. Must be
+    'drivers', 'impacts', 'broader', or 'narrower'.'''
 
 
 class CircularConnection(DataProcessException):
-    '''"{problem!r}" cannot be connected to itself.'''
+    '''{problem!r} cannot be connected to itself.'''
 
 
 class RatingOutOfBounds(DataProcessException):
@@ -144,7 +150,7 @@ class ProblemConnection(object):
 
         Checks if a problem connection already exists in the _registry.
         If it does, return it with new=False. If it doesn't, create it
-        and return it with new=True. The "new" attribute is used by
+        and return it with new=True. The 'new' attribute is used by
         __init__ to distinguish between new vs. existing connections.
         '''
         # TODO: make connection_type an Enum
@@ -208,7 +214,7 @@ class Problem(object):
 
         Checks if a problem already exists with the given name in the
         _registry. If it does, return it with new=False. If it doesn't,
-        create it and return it with new=True. The "new" attribute is
+        create it and return it with new=True. The 'new' attribute is
         used by __init__ to distinguish between new vs. existing
         problems.
         '''
@@ -271,13 +277,15 @@ class Problem(object):
         self.load_connections(connections_name='narrower', connections_data=narrower)
 
     def load_connections(self, connections_name, connections_data):
-        values = {
+        derived_from = {
             'drivers': ('causal', 'adjacent_problem', 'self', 'impacts'),
             'impacts': ('causal', 'self', 'adjacent_problem', 'drivers'),
             'broader': ('scope', 'adjacent_problem', 'self', 'narrower'),
             'narrower': ('scope', 'self', 'adjacent_problem', 'broader'),
         }
-        conn_type, p_a, p_b, inverse_type = values[connections_name]
+        if connections_name not in derived_from.keys():
+            raise InvalidConnectionsName(connections_name)
+        conn_type, p_a, p_b, inverse_type = derived_from[connections_name]
         connections = getattr(self, connections_name)
 
         for connection_data in connections_data:
@@ -367,11 +375,11 @@ def decode(json_path, *args, **options):
     Given a path to a JSON file or a directory containing JSON files,
     returns a dictionary of the objects loaded from the JSON file(s).
     Calls another function to actually decode the json_data. This
-    other function's name begins with 'decode_' and ends with the
-    innermost directory in the json_path: decode_<directory>(json_data)
+    other function's name begins with 'decode_' and ends with the last
+    directory in the absolute json_path: decode_<dir_name>(json_data)
 
     Usage:
-    >>> json_path = '/data/problems/problems.json'
+    >>> json_path = '/data/problems/'
     >>> problems = decode(json_path)
     >>> p0 = problems['poverty']
     >>> p1 = problems['homelessness']
