@@ -288,12 +288,14 @@ class Problem(object):
 
     def __init__(self, name, definition=None, definition_url=None, images=[],
                  drivers=[], impacts=[], broader=[], narrower=[]):
-        '''Initialize a new problem or set fields on an existing problem
+        '''Initialize a new problem or update an existing problem
 
         Inputs are key-value pairs based on the JSON problem schema. If
-        the problem is new, initialize the name and the other fields. If
-        the problem already exists in the _registry, each field is
-        updated only if different.
+        the problem is new, initialize all fields. Otherwise, update the
+        definition, definition_url, and images and append any new
+        problem connections in Drivers, impacts, broader, and narrower.
+        New problem connection ratings are added while existing ones are
+        updated.
         '''
         if self.new:
             self.name = titlecase(name.strip())
