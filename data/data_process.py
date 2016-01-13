@@ -14,8 +14,8 @@ from __future__ import print_function
 
 import json
 import logging
-from os import listdir
-from os.path import isdir, isfile, join, abspath
+import os
+import os.path
 import sys
 from titlecase import titlecase
 
@@ -429,11 +429,11 @@ def decode(json_path, *args, **options):
     >>> p2 = problems['domestic_violence']
     '''
     # Gather valid json_paths based on the given file or directory
-    if isfile(json_path) and json_path.rsplit('.', 1)[-1].lower() == 'json':
+    if os.path.isfile(json_path) and json_path.rsplit('.', 1)[-1].lower() == 'json':
         json_paths = [json_path]
-    elif isdir(json_path):
-        json_paths = [join(json_path, f) for f in listdir(json_path)
-                      if (isfile(join(json_path, f)) and
+    elif os.path.isdir(json_path):
+        json_paths = [os.path.join(json_path, f) for f in os.listdir(json_path)
+                      if (os.path.isfile(os.path.join(json_path, f)) and
                           f.rsplit('.', 1)[-1].lower() == 'json' and
                           'schema' not in f.lower())]
     if len(json_paths) == 0:
@@ -447,10 +447,10 @@ def decode(json_path, *args, **options):
             json_data.append(json.load(json_file))
 
     # Determine the decode function based on directory name and then call it
-    if isfile(json_path):
-        dir_name = abspath(json_path).rsplit('/', 2)[-2]
+    if os.path.isfile(json_path):
+        dir_name = os.path.abspath(json_path).rsplit('/', 2)[-2]
     else:
-        dir_name = abspath(json_path).rsplit('/', 1)[-1]
+        dir_name = os.path.abspath(json_path).rsplit('/', 1)[-1]
     function_name = 'decode_' + dir_name
     module = sys.modules[__name__]
     decode_function = getattr(module, function_name)
