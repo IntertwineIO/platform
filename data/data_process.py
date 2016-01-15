@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import os.path
+import six
 import sys
 from titlecase import titlecase
 
@@ -53,6 +54,9 @@ class CircularConnection(DataProcessException):
     '''{problem!r} cannot be connected to itself.'''
 
 
+class InvalidRegistryKey(DataProcessException):
+    '''{key!r} is not a valid registry key for class {classname}'''
+
 class InvalidEntity(DataProcessException):
     ''''{variable}' value of {value!r} is not a valid {classname}.'''
 
@@ -70,6 +74,55 @@ class InvalidProblemScope(DataProcessException):
     '''{problem_scope!r} must be a problem on one end of {connection!r}.'''
 
 
+class Trackable(type):
+    '''Metaclass providing ability to track instances
+
+    Each class of type Trackable maintains a registry of instances and
+    only creates a new instance if it does not already exist. Existing
+    instances can be updated with new data if a 'modify' method has been
+    defined. The instance, whether new or existing, is returned.
+
+    The registry key for an instance can either be explicitly provided
+    by passing it in the 'key' parameter or constructed using the
+    'create_key' method on the class (if 'key' is None).
+
+    A class of type Trackable is subscriptable (indexed by key) and
+    iterable.
+    '''
+
+    def __new__(meta, name, bases, attr):
+        # track instances for each class of type Trackable
+        attr['_instances'] = {}
+        # track any new or modified instances
+        # attr['_updates'] = {}
+        return super(Trackable, meta).__new__(meta, name, bases, attr)
+
+    def __call__(cls, key=None, *args, **kwds):
+        if key is None:
+            key = cls.create_key(*args, **kwds)
+            if key is None or key is '':
+                raise InvalidRegistryKey(key=key, classname=cls.__name__)
+        inst = cls._instances.get(key, None)
+        if inst is None:
+            inst = super(Trackable, cls).__call__(*args, **kwds)
+            inst._key = key
+            cls._instances[key] = inst
+            # cls._updates[key] = inst
+        else:
+            # updated = cls.update(inst, **kwds) if kwds else False
+            if hasattr(cls, 'modify') and (args or kwds):
+                cls.modify(inst, *args, **kwds)
+
+        return inst
+
+    def __getitem__(cls, key):
+        return cls._instances[key]
+
+    def __iter__(cls):
+        return iter(cls._instances)
+
+
+@six.add_metaclass(Trackable)
 class ProblemConnectionRating(object):
     '''Base class for problem connection ratings
 
@@ -81,19 +134,23 @@ class ProblemConnectionRating(object):
     the perceived importance of A as a driver of B.
     '''
 
-    # keeps track of all instances
-    _registry = {}
+    @classmethod
+    def create_key(cls, user_id, connection, problem_scope,
+                   geo_scope=None, org_scope=None, *args, **kwds):
+        '''Create key for problem connection rating instance
 
-    def __new__(cls, rating, user_id, connection,
-                 problem_scope, geo_scope=None, org_scope=None):
-        '''Create a problem connection rating if it doesn't already exist
-
-        Checks if a problem connection rating already exists in the
-        _registry. If it does, returns it with new=False. If it doesn't,
-        creates and returns it with new=True. The 'new' attribute is
-        used by __init__ to distinguish between new vs. existing problem
-        connection ratings.
+        Create a registry key for use by the Trackable metaclass.
         '''
+        return (user_id, connection, problem_scope, geo_scope, org_scope)
+
+    def __init__(self, rating, user_id, connection,
+                 problem_scope, geo_scope=None, org_scope=None):
+        '''Initialize a new problem connection rating
+
+        Inputs connection and problem_scope are instances while the rest
+        are literals based on the JSON problem connection rating schema.
+        The rating parameter must be an integer between 0 and 4
+        inclusive.'''
         if not isinstance(connection, ProblemConnection):
             raise InvalidEntity(variable='connection', value=connection,
                                 classname='ProblemConnection')
@@ -105,43 +162,29 @@ class ProblemConnectionRating(object):
         if problem_scope not in (connection.problem_a, connection.problem_b):
             raise InvalidProblemScope(problem_scope=problem_scope,
                                       connection=connection)
+        self.rating = rating
+        # TODO: assign user based on user_id
+        self.user = user_id
+        self.connection = connection
+        self.problem_scope = problem_scope
+        # TODO: make geo and org entities rather than strings
+        self.geo_scope = geo_scope
+        self.org_scope = org_scope
 
+    def modify(self, *args, **kwds):
+        '''Modify an existing problem connection rating
 
-        key = (user_id, connection, problem_scope, geo_scope, org_scope)
-        connection_rating = ProblemConnectionRating._registry.get(key, None)
-        if connection_rating:
-            connection_rating.new = False
-        else:
-            # TODO: ? instead of calling object's __new__, call parent's __new__
-            connection_rating = object.__new__(cls, rating, user_id,
-                                               connection, problem_scope,
-                                               geo_scope, org_scope)
-            connection_rating.new = True
-            ProblemConnectionRating._registry[key] = connection_rating
-        return connection_rating
-
-    def __init__(self, rating, user_id, connection,
-                 problem_scope, geo_scope=None, org_scope=None):
-        '''Initialize new problem connection rating or update existing
-
-        Inputs are key-value pairs based on the JSON problem connection
-        rating schema. If the problem connection rating is new,
-        initialize all the fields. If it already exists in the
-        _registry, the rating field is updated only if different.
+        Modify the rating field if a new value is provided. Required by
+        the Trackable metaclass.
         '''
-        if self.new:
+        rating = kwds.get('rating', None)
+        if not isinstance(rating, int) or rating < 0 or rating > 4:
+            raise InvalidProblemConnectionRating(rating=rating,
+                                                 connection=connection)
+        # updated = False
+        if rating is not self.rating:
             self.rating = rating
-            # TODO: assign user based on user_id
-            self.user = user_id
-            self.connection = connection
-            self.problem_scope = problem_scope
-            # TODO: make geo and org entities rather than strings
-            self.geo_scope = geo_scope
-            self.org_scope = org_scope
-        else:
-            if rating is not self.rating:
-                self.rating = rating
-        del self.new
+            # updated = True
 
     def __repr__(self):
         cname = self.__class__.__name__
@@ -157,7 +200,7 @@ class ProblemConnectionRating(object):
     def __str__(self):
         cname = self.__class__.__name__
         prob = self.problem_scope.name
-        if prob == self.connection.problem_a:
+        if prob == self.connection.problem_a.name:
             conn = str(self.connection).replace(prob, '*'+prob+'*', 1)
         else:
             conn = ('*'+prob+'*').join(str(self.connection).rsplit(prob, 1))
@@ -173,6 +216,7 @@ class ProblemConnectionRating(object):
         return s
 
 
+@six.add_metaclass(Trackable)
 class ProblemConnection(object):
     '''Base class for problem connections
 
@@ -187,51 +231,65 @@ class ProblemConnection(object):
     Drivers/impacts are causal type connections while broader/narrower
     are scope type connections. In causal connections, the driver is
     always listed first, while in scope connections, the broader is
-    always listed first. A problem connection is uniquely definied by
+    always listed first. A problem connection is uniquely defined by
     its type, first problem, and second problem.
     '''
 
-    # keeps track of all instances
-    _registry = {}
+    @classmethod
+    def create_key(cls, connection_type, problem_a, problem_b, *args, **kwds):
+        '''Create key for problem connection instance
 
-    def __new__(cls, connection_type, problem_a, problem_b):
-        '''Create a problem connection if it doesn't already exist
+        Create a registry key for use by the Trackable metaclass.
+        '''
+        return (connection_type, problem_a, problem_b)
 
-        Checks if a problem connection already exists in the _registry.
-        If it does, returns it with new=False. If it doesn't, creates
-        and returns it with new=True. The 'new' attribute is used by
-        __init__ to distinguish between new vs. existing connections.
+    def __init__(self, connection_type, problem_a, problem_b,
+                 ratings_data=None, problem_scope=None):
+        '''Initialize a new problem connection
+
+        Required inputs include connection_type, a string with value
+        'causal' or 'scope' and two problem instances. A connection_type
+        of 'causal' means problem_a is a driver of problem_b, while a
+        connection_type of 'scope' mens problem_a is broader than
+        problem_b.
+
+        The optional ratings_data parameter is a list of ratings based
+        on the JSON problem connection rating schema. The problem_scope
+        parameter must be provided if ratings_data is specified, as it
+        is required to define a problem connection rating.
         '''
         # TODO: make connection_type an Enum
         if connection_type not in ('causal', 'scope'):
             raise InvalidConnectionType(connection_type=connection_type)
-        if problem_a == problem_b:
+        if problem_a is problem_b:
             raise CircularConnection(problem=problem_a)
+        self.connection_type = connection_type
+        self.problem_a = problem_a
+        self.problem_b = problem_b
+        self.ratings = []
+        if ratings_data and problem_scope:
+            self.load_ratings(ratings_data, problem_scope)
 
-        key = (connection_type, problem_a, problem_b)
-        problem_connection = ProblemConnection._registry.get(key, None)
-        if problem_connection:
-            problem_connection.new = False
-        else:
-            # TODO: ? instead of calling object's __new__, call parent's __new__
-            problem_connection = object.__new__(cls, connection_type,
-                                                problem_a, problem_b)
-            problem_connection.new = True
-            ProblemConnection._registry[key] = problem_connection
-        return problem_connection
+    def modify(self, *args, **kwds):
+        '''Modify an existing problem connection
 
-    def __init__(self, connection_type, problem_a, problem_b):
-        '''Initialize problem connection if new
-
-        Inputs are key-value pairs based on the JSON problem connection
-        schema. If the problem connection is new, initialize all fields.
+        Append any new problem connection ratings to the ratings field
+        if ratings_data and problem_scope are specified. No other fields
+        may be modified. Required by the Trackable metaclass.
         '''
-        if self.new:
-            self.connection_type = connection_type
-            self.problem_a = problem_a
-            self.problem_b = problem_b
-            self.ratings = []
-        del self.new
+        ratings_data = kwds.get('ratings_data', None)
+        problem_scope = kwds.get('problem_scope', None)
+        if ratings_data and problem_scope:
+            self.load_ratings(ratings_data, problem_scope)
+
+    def load_ratings(self, ratings_data, problem_scope):
+        for rating_data in ratings_data:
+            connection_rating = ProblemConnectionRating(
+                connection=self,
+                problem_scope=problem_scope,
+                **rating_data)
+            if connection_rating not in self.ratings:
+                self.ratings.append(connection_rating)
 
     def __repr__(self):
         ct = '->' if self.connection_type == 'causal' else '::'
@@ -245,85 +303,90 @@ class ProblemConnection(object):
         return '{p_a} {ct} {p_b}'.format(
             p_a=self.problem_a.name,
             ct=ct,
-            p_b=self.problem_b.name
-        )
+            p_b=self.problem_b.name)
 
 
+@six.add_metaclass(Trackable)
 class Problem(object):
     '''Base class for problems
 
     Problems and the connections between them are global in that they
     don't vary by region or organization. However, the ratings of the
     connections DO vary by geo, organization, and problem context.
+
+    Problem instances are Trackable (metaclass), where the registry
+    keys are the problem names in lowercase with underscores instead of
+    spaces.
     '''
     # TODO: add db support
 
-    # keeps track of all instances
-    _registry = {}
+    @classmethod
+    def create_key(cls, name, *args, **kwds):
+        '''Create key for problem instance
 
-    def __new__(cls, name, definition=None, definition_url=None, images=[],
-                drivers=[], impacts=[], broader=[], narrower=[]):
-        '''Create a problem if it doesn't already exist
-
-        Checks if a problem already exists with the given name in the
-        _registry. If it does, returns it with new=False. If it doesn't,
-        creates and returns it with new=True. The 'new' attribute is
-        used by __init__ to distinguish between new vs. existing
-        problems.
+        Create a registry key for use by the Trackable metaclass.
         '''
-        if name is None or name is '':
-            raise MissingRequiredField(field='name', classname='Problem')
-        human_id = name.strip().lower().replace(' ', '_')
-        problem = Problem._registry.get(human_id, None)
-        if problem:
-            problem.new = False
-        else:
-            # TODO:? instead of calling object's __new__, call parent's __new__
-            problem = object.__new__(cls, name, definition=None,
-                                     definition_url=None, images=[])
-            problem.human_id = human_id
-            problem.new = True
-            Problem._registry[human_id] = problem
-        return problem
+        return name.strip().lower().replace(' ', '_')
 
     def __init__(self, name, definition=None, definition_url=None, images=[],
                  drivers=[], impacts=[], broader=[], narrower=[]):
-        '''Initialize a new problem or update an existing problem
+        '''Initialize a new problem
 
-        Inputs are key-value pairs based on the JSON problem schema. If
-        the problem is new, initialize all fields. Otherwise, update the
-        definition, definition_url, and images and append any new
-        problem connections in Drivers, impacts, broader, and narrower.
-        New problem connection ratings are added while existing ones are
-        updated.
+        Inputs are key-value pairs based on the JSON problem schema.
         '''
-        if self.new:
-            self.name = titlecase(name.strip())
-            self.definition = definition
-            self.definition_url = definition_url
-            self.images = images
-            self.drivers = []
-            self.impacts = []
-            self.broader = []
-            self.narrower = []
-        else:
-            if definition is not self.definition:
-                # TODO: issue warning if definition is None
-                self.definition = definition
-            if definition_url is not self.definition_url:
-                # TODO: issue warning if definition_url is None
-                self.definition_url = definition_url
-            if images != self.images:
-                # TODO: issue warning if any image is missing
-                self.images = images
-        del self.new
+        self.name = titlecase(name.strip())
+        self.definition = definition.strip() if definition else None
+        self.definition_url = definition_url.strip() if definition_url else None
+        self.images = images if images else []
+        self.drivers = []
+        self.impacts = []
+        self.broader = []
+        self.narrower = []
 
-        self.load_connections(connections_name='drivers', connections_data=drivers)
-        self.load_connections(connections_name='impacts', connections_data=impacts)
-        self.load_connections(connections_name='broader', connections_data=broader)
-        self.load_connections(connections_name='narrower', connections_data=narrower)
+        problem_connections_data = {'drivers': drivers, 'impacts': impacts,
+                                    'broader': broader, 'narrower': narrower}
+        for k, v in problem_connections_data.items():
+            self.load_connections(connections_name=k, connections_data=v)
+
+    def modify(self, *args, **kwds):
+        '''Modify an existing problem
+
+        Inputs are key-value pairs based on the JSON problem schema.
+        Modify the name, definition, and definition_url if new values
+        differ from existing values. Append any new images and problem
+        connections (the latter within drivers, impacts, broader, and
+        narrower). New problem connection ratings are added while
+        existing ones are updated. Required by the Trackable metaclass.
+        '''
+        # updated = False
+        for k, v in kwds.items():
+            if k == 'name':
+                name = titlecase(v.strip())
+                if name is not self.name:
+                    self.name = name
+                    # updated = True
+            elif k == 'definition':
+                definition = v.strip()
+                if definition is not self.definition:
+                    self.definition = definition
+                    # updated = True
+            elif k == 'definition_url':
+                definition_url = v.strip()
+                if definition_url is not self.definition_url:
+                    self.definition_url = definition_url
+                    # updated = True
+            elif k == 'images':
+                images = v if v else []
+                for image in images:
+                    if image not in self.images:
+                        self.images.append(image)
+                        # updated = True
+            elif k in ['drivers', 'impacts', 'broader', 'narrower']:
+                self.load_connections(connections_name=k, connections_data=v)
 
     def load_connections(self, connections_name, connections_data):
+        '''Load a problem's drivers, impacts, broader, or narrower
+        '''
         derived_from = {
             'drivers': ('causal', 'adjacent_problem', 'self', 'impacts'),
             'impacts': ('causal', 'self', 'adjacent_problem', 'drivers'),
@@ -333,24 +396,21 @@ class Problem(object):
         assert connections_name in derived_from
         conn_type, p_a, p_b, inverse_type = derived_from[connections_name]
         connections = getattr(self, connections_name)
+        updated = False
 
         for connection_data in connections_data:
-            adjacent_problem_name = connection_data.get('adjacent_problem', None)
-            adjacent_problem = Problem(name=adjacent_problem_name)
-            connection = ProblemConnection(conn_type, locals()[p_a], locals()[p_b])
+            adjacent_name = connection_data.get('adjacent_problem', None)
+            adjacent_problem = Problem(name=adjacent_name)
+            ratings_data = connection_data.get('problem_connection_ratings', [])
+            connection = ProblemConnection(
+                connection_type=conn_type,
+                problem_a=locals()[p_a],
+                problem_b=locals()[p_b],
+                ratings_data=ratings_data,
+                problem_scope=self)
             if connection not in connections:
                 connections.append(connection)
                 getattr(adjacent_problem, inverse_type).append(connection)
-            # Set the ratings, whether or not the connection is new
-            ratings_data = connection_data.get('problem_connection_ratings', [])
-            for rating_data in ratings_data:
-                connection_rating = ProblemConnectionRating(
-                    connection=connection,
-                    problem_scope=self,
-                    **rating_data
-                )
-                if connection_rating not in connection.ratings:
-                    connection.ratings.append(connection_rating)
 
     def __repr__(self):
         cname = self.__class__.__name__
@@ -398,18 +458,17 @@ def decode_problems(json_data):
     '''Returns problems created from the json_data
 
     Takes as input a list of json data loads, each from a separate JSON
-    file and returns a dictionary of problems keyed by human_id's.
+    file and returns a dictionary of problems.
     '''
-    problems = {}
     for json_data_load in json_data:
         for data_key, data_value in json_data_load.items():
-            problem = Problem(name=data_key, **data_value)
-            problems[problem.human_id] = problem
+            Problem(name=data_key, **data_value)
+
     # TODO: change this to only return problems that were loaded since
     # there may already be problems in the registry before loading more.
     # This is non-trivial because problems can be created based on the
     # connection references.
-    return Problem._registry
+    return Problem._instances
 
 
 def decode(json_path, *args, **options):
@@ -423,10 +482,12 @@ def decode(json_path, *args, **options):
 
     Usage:
     >>> json_path = '/data/problems/'
-    >>> problems = decode(json_path)
-    >>> p0 = problems['poverty']
-    >>> p1 = problems['homelessness']
-    >>> p2 = problems['domestic_violence']
+    >>> ps = decode(json_path)
+    >>> p0 = ps['poverty']
+    >>> p1 = Problem('Homelessness')  # existing 'Homelessness' problem is returned
+    >>> p2 = Problem['domestic_violence']  # Problem is subscriptable via Trackable
+    >>> for k in Problem:  # Problem is iterable via Trackable
+    ...    print(Problem[k])
     '''
     # Gather valid json_paths based on the given file or directory
     if os.path.isfile(json_path) and json_path.rsplit('.', 1)[-1].lower() == 'json':
