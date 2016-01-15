@@ -47,7 +47,7 @@ class MissingRequiredField(DataProcessException):
 
 class InvalidConnectionType(DataProcessException):
     '''Connection type '{connection_type}' is not valid. Must be
-    'causal' or 'scope'.'''
+    'causal' or 'scoped'.'''
 
 
 class CircularConnection(DataProcessException):
@@ -94,7 +94,7 @@ class Trackable(type):
         # track instances for each class of type Trackable
         attr['_instances'] = {}
         # track any new or modified instances
-        # attr['_updates'] = {}
+        attr['_updates'] = set()
         return super(Trackable, meta).__new__(meta, name, bases, attr)
 
     def __call__(cls, key=None, *args, **kwds):
@@ -107,12 +107,13 @@ class Trackable(type):
             inst = super(Trackable, cls).__call__(*args, **kwds)
             inst._key = key
             cls._instances[key] = inst
-            # cls._updates[key] = inst
+            cls._updates.add(inst)
         else:
-            # updated = cls.update(inst, **kwds) if kwds else False
             if hasattr(cls, 'modify') and (args or kwds):
-                cls.modify(inst, *args, **kwds)
-
+                modified = cls.modify(inst, *args, **kwds)
+                if not isinstance(modified, set):
+                    modified = set([modified]) if modified is not None else set()
+                cls._updates.update(modified)
         return inst
 
     def __getitem__(cls, key):
@@ -174,17 +175,20 @@ class ProblemConnectionRating(object):
     def modify(self, *args, **kwds):
         '''Modify an existing problem connection rating
 
-        Modify the rating field if a new value is provided. Required by
-        the Trackable metaclass.
+        Modify the rating field if a new value is provided. If modified,
+        a set containing the problem connection rating is returned;
+        otherwise an empty set is returned. Required by the Trackable
+        metaclass.
         '''
+        modified = set()
         rating = kwds.get('rating', None)
         if not isinstance(rating, int) or rating < 0 or rating > 4:
             raise InvalidProblemConnectionRating(rating=rating,
                                                  connection=connection)
-        # updated = False
         if rating is not self.rating:
             self.rating = rating
-            # updated = True
+            modified.add(self)
+        return modified
 
     def __repr__(self):
         cname = self.__class__.__name__
@@ -248,9 +252,9 @@ class ProblemConnection(object):
         '''Initialize a new problem connection
 
         Required inputs include connection_type, a string with value
-        'causal' or 'scope' and two problem instances. A connection_type
+        'causal' or 'scoped' and two problem instances. A connection_type
         of 'causal' means problem_a is a driver of problem_b, while a
-        connection_type of 'scope' mens problem_a is broader than
+        connection_type of 'scoped' means problem_a is broader than
         problem_b.
 
         The optional ratings_data parameter is a list of ratings based
@@ -259,7 +263,7 @@ class ProblemConnection(object):
         is required to define a problem connection rating.
         '''
         # TODO: make connection_type an Enum
-        if connection_type not in ('causal', 'scope'):
+        if connection_type not in ('causal', 'scoped'):
             raise InvalidConnectionType(connection_type=connection_type)
         if problem_a is problem_b:
             raise CircularConnection(problem=problem_a)
@@ -275,14 +279,28 @@ class ProblemConnection(object):
 
         Append any new problem connection ratings to the ratings field
         if ratings_data and problem_scope are specified. No other fields
-        may be modified. Required by the Trackable metaclass.
+        may be modified. If a rating is added, return a set containing
+        the problem connection, else return an empty set. Required by
+        the Trackable metaclass.
         '''
+        modified = set()
         ratings_data = kwds.get('ratings_data', None)
         problem_scope = kwds.get('problem_scope', None)
         if ratings_data and problem_scope:
-            self.load_ratings(ratings_data, problem_scope)
+            modified.update(self.load_ratings(ratings_data, problem_scope))
+        return modified
 
     def load_ratings(self, ratings_data, problem_scope):
+        '''Load a problem connection's ratings
+
+        For each rating in the ratings_data, if the rating does not
+        already exist, create it, else update it. Newly created ratings
+        are appended to the 'ratings' field of the problem connection.
+        If a rating is added, return a set containing the problem
+        connection, else return an empty set.
+        '''
+        modified = set()
+        rating_added = False
         for rating_data in ratings_data:
             connection_rating = ProblemConnectionRating(
                 connection=self,
@@ -290,6 +308,10 @@ class ProblemConnection(object):
                 **rating_data)
             if connection_rating not in self.ratings:
                 self.ratings.append(connection_rating)
+                rating_added = True
+        if rating_added:
+            modified.add(self)
+        return modified
 
     def __repr__(self):
         ct = '->' if self.connection_type == 'causal' else '::'
@@ -346,7 +368,11 @@ class Problem(object):
         problem_connections_data = {'drivers': drivers, 'impacts': impacts,
                                     'broader': broader, 'narrower': narrower}
         for k, v in problem_connections_data.items():
-            self.load_connections(connections_name=k, connections_data=v)
+            # TODO: find a more elegant way to do this; solves for case
+            # where a new problem has a connection to an existing
+            # problem, so the latter needs to be added to _updates
+            self._updates.update(self.load_connections(connections_name=k,
+                                                       connections_data=v))
 
     def modify(self, *args, **kwds):
         '''Modify an existing problem
@@ -358,45 +384,53 @@ class Problem(object):
         narrower). New problem connection ratings are added while
         existing ones are updated. Required by the Trackable metaclass.
         '''
-        # updated = False
+        modified = set()
         for k, v in kwds.items():
             if k == 'name':
                 name = titlecase(v.strip())
                 if name is not self.name:
                     self.name = name
-                    # updated = True
+                    modified.add(self)
             elif k == 'definition':
                 definition = v.strip()
                 if definition is not self.definition:
                     self.definition = definition
-                    # updated = True
+                    modified.add(self)
             elif k == 'definition_url':
                 definition_url = v.strip()
                 if definition_url is not self.definition_url:
                     self.definition_url = definition_url
-                    # updated = True
+                    modified.add(self)
             elif k == 'images':
                 images = v if v else []
                 for image in images:
                     if image not in self.images:
                         self.images.append(image)
-                        # updated = True
+                        modified.add(self)
             elif k in ['drivers', 'impacts', 'broader', 'narrower']:
-                self.load_connections(connections_name=k, connections_data=v)
+                modified.update(self.load_connections(connections_name=k,
+                                                      connections_data=v))
+        return modified
 
     def load_connections(self, connections_name, connections_data):
         '''Load a problem's drivers, impacts, broader, or narrower
+
+        The connections_name is the field name for a set of connections
+        on a problem, either 'drivers', 'imapcts', 'broader', or
+        'narrower'. The connections_data is the corresponding JSON data.
+        The method loads the data and returns the set of problems
+        modified in the process (including those that are also new).
         '''
         derived_from = {
             'drivers': ('causal', 'adjacent_problem', 'self', 'impacts'),
             'impacts': ('causal', 'self', 'adjacent_problem', 'drivers'),
-            'broader': ('scope', 'adjacent_problem', 'self', 'narrower'),
-            'narrower': ('scope', 'self', 'adjacent_problem', 'broader'),
+            'broader': ('scoped', 'adjacent_problem', 'self', 'narrower'),
+            'narrower': ('scoped', 'self', 'adjacent_problem', 'broader'),
         }
         assert connections_name in derived_from
         conn_type, p_a, p_b, inverse_type = derived_from[connections_name]
         connections = getattr(self, connections_name)
-        updated = False
+        modified = set()
 
         for connection_data in connections_data:
             adjacent_name = connection_data.get('adjacent_problem', None)
@@ -411,6 +445,11 @@ class Problem(object):
             if connection not in connections:
                 connections.append(connection)
                 getattr(adjacent_problem, inverse_type).append(connection)
+                modified.add(adjacent_problem)
+
+        if len(modified) > 0:
+            modified.add(self)
+        return modified
 
     def __repr__(self):
         cname = self.__class__.__name__
@@ -455,11 +494,20 @@ class Problem(object):
 
 
 def decode_problems(json_data):
-    '''Returns problems created from the json_data
+    '''Returns entities created from problem json_data
 
     Takes as input a list of json data loads, each from a separate JSON
-    file and returns a dictionary of problems.
+    file and returns a dictionary where the keys are classes and the
+    values are corresponding sets of objects updated from the JSON
+    file(s).
+
+    Resets the tracking of updates via the Trackable metaclass for
+    problems, connections, and ratings each time it is called.
     '''
+    Problem._updates = set()
+    ProblemConnection._updates = set()
+    ProblemConnectionRating._updates = set()
+
     for json_data_load in json_data:
         for data_key, data_value in json_data_load.items():
             Problem(name=data_key, **data_value)
@@ -468,22 +516,29 @@ def decode_problems(json_data):
     # there may already be problems in the registry before loading more.
     # This is non-trivial because problems can be created based on the
     # connection references.
-    return Problem._instances
+    updates = {
+        'Problem': Problem._updates,
+        'ProblemConnection': ProblemConnection._updates,
+        'ProblemConnectionRating': ProblemConnectionRating._updates,
+    }
+    return updates
 
 
 def decode(json_path, *args, **options):
     '''Loads JSON files within a path and returns data structures
 
     Given a path to a JSON file or a directory containing JSON files,
-    returns a dictionary of the objects loaded from the JSON file(s).
+    returns a dictionary where the keys are classes and the values are
+    corresponding sets of objects updated from the JSON file(s).
+
     Calls another function to actually decode the json_data. This
     other function's name begins with 'decode_' and ends with the last
     directory in the absolute json_path: decode_<dir_name>(json_data)
 
     Usage:
     >>> json_path = '/data/problems/'
-    >>> ps = decode(json_path)
-    >>> p0 = ps['poverty']
+    >>> updates = decode(json_path)
+    >>> p0 = Problem('Poverty')  # existing 'Poverty' problem is returned
     >>> p1 = Problem('Homelessness')  # existing 'Homelessness' problem is returned
     >>> p2 = Problem['domestic_violence']  # Problem is subscriptable via Trackable
     >>> for k in Problem:  # Problem is iterable via Trackable
