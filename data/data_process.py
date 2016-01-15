@@ -512,10 +512,6 @@ def decode_problems(json_data):
         for data_key, data_value in json_data_load.items():
             Problem(name=data_key, **data_value)
 
-    # TODO: change this to only return problems that were loaded since
-    # there may already be problems in the registry before loading more.
-    # This is non-trivial because problems can be created based on the
-    # connection references.
     updates = {
         'Problem': Problem._updates,
         'ProblemConnection': ProblemConnection._updates,
