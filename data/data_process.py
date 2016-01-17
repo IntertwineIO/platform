@@ -80,11 +80,17 @@ class Trackable(type):
     Each class of type Trackable maintains a registry of instances and
     only creates a new instance if it does not already exist. Existing
     instances can be updated with new data if a 'modify' method has been
-    defined. The instance, whether new or existing, is returned.
+    defined.
 
     The registry key for an instance can either be explicitly provided
     by passing it in the 'key' parameter or constructed using the
     'create_key' method on the class (if 'key' is None).
+
+    Any updates that result from the creation or modification
+    of the instance can also be tracked. New instance creations are tracked
+    automatically. Modifications of instances must be tracked using the
+    '_modified' field on the instance, which is the set of instances of
+    the same type that were modified.
 
     A class of type Trackable is subscriptable (indexed by key) and
     iterable.
@@ -110,10 +116,11 @@ class Trackable(type):
             cls._updates.add(inst)
         else:
             if hasattr(cls, 'modify') and (args or kwds):
-                modified = cls.modify(inst, *args, **kwds)
-                if not isinstance(modified, set):
-                    modified = set([modified]) if modified is not None else set()
-                cls._updates.update(modified)
+                inst._modified = set()
+                cls.modify(inst, *args, **kwds)
+        if hasattr(inst, '_modified'):
+            cls._updates.update(inst._modified)
+            del inst._modified
         return inst
 
     def __getitem__(cls, key):
@@ -175,20 +182,17 @@ class ProblemConnectionRating(object):
     def modify(self, *args, **kwds):
         '''Modify an existing problem connection rating
 
-        Modify the rating field if a new value is provided. If modified,
-        a set containing the problem connection rating is returned;
-        otherwise an empty set is returned. Required by the Trackable
+        Modify the rating field if a new value is provided flag the
+        problem connection rating as modified. Required by the Trackable
         metaclass.
         '''
-        modified = set()
         rating = kwds.get('rating', None)
         if not isinstance(rating, int) or rating < 0 or rating > 4:
             raise InvalidProblemConnectionRating(rating=rating,
                                                  connection=connection)
         if rating != self.rating:
             self.rating = rating
-            modified.add(self)
-        return modified
+            self._modified.add(self)
 
     def __repr__(self):
         cname = self.__class__.__name__
@@ -271,6 +275,7 @@ class ProblemConnection(object):
         self.problem_a = problem_a
         self.problem_b = problem_b
         self.ratings = []
+
         if ratings_data and problem_scope:
             self.load_ratings(ratings_data, problem_scope)
 
@@ -278,17 +283,15 @@ class ProblemConnection(object):
         '''Modify an existing problem connection
 
         Append any new problem connection ratings to the ratings field
-        if ratings_data and problem_scope are specified. No other fields
-        may be modified. If a rating is added, return a set containing
-        the problem connection, else return an empty set. Required by
-        the Trackable metaclass.
+        if ratings_data and problem_scope are specified. If a rating is
+        added, flag the connection as modified (via load_ratings). No
+        other fields may be modified. Required by the Trackable
+        metaclass.
         '''
-        modified = set()
         ratings_data = kwds.get('ratings_data', None)
         problem_scope = kwds.get('problem_scope', None)
         if ratings_data and problem_scope:
-            modified.update(self.load_ratings(ratings_data, problem_scope))
-        return modified
+            self.load_ratings(ratings_data, problem_scope)
 
     def load_ratings(self, ratings_data, problem_scope):
         '''Load a problem connection's ratings
@@ -296,10 +299,8 @@ class ProblemConnection(object):
         For each rating in the ratings_data, if the rating does not
         already exist, create it, else update it. Newly created ratings
         are appended to the 'ratings' field of the problem connection.
-        If a rating is added, return a set containing the problem
-        connection, else return an empty set.
+        If a rating is added, flag the connection as modified.
         '''
-        modified = set()
         rating_added = False
         for rating_data in ratings_data:
             connection_rating = ProblemConnectionRating(
@@ -309,9 +310,8 @@ class ProblemConnection(object):
             if connection_rating not in self.ratings:
                 self.ratings.append(connection_rating)
                 rating_added = True
-        if rating_added:
-            modified.add(self)
-        return modified
+        if rating_added and hasattr(self, '_modified'):
+            self._modified.add(self)
 
     def __repr__(self):
         ct = '->' if self.connection_type == 'causal' else '::'
@@ -365,14 +365,13 @@ class Problem(object):
         self.broader = []
         self.narrower = []
 
+        # track problems modified by the creation of this problem via
+        # new connections to existing problems
+        self._modified = set()
         problem_connections_data = {'drivers': drivers, 'impacts': impacts,
                                     'broader': broader, 'narrower': narrower}
         for k, v in problem_connections_data.items():
-            # TODO: find a more elegant way to do this; solves for case
-            # where a new problem has a connection to an existing
-            # problem, so the latter needs to be added to _updates
-            self._updates.update(self.load_connections(connections_name=k,
-                                                       connections_data=v))
+            self.load_connections(connections_name=k, connections_data=v)
 
     def modify(self, *args, **kwds):
         '''Modify an existing problem
@@ -381,36 +380,37 @@ class Problem(object):
         Modify the name, definition, and definition_url if new values
         differ from existing values. Append any new images and problem
         connections (the latter within drivers, impacts, broader, and
-        narrower). New problem connection ratings are added while
-        existing ones are updated. Required by the Trackable metaclass.
+        narrower). Track all problems modified, whether directly or
+        indirectly through new connections.
+
+        New problem connections and ratings are added while existing
+        ones are updated (via load_connections). Required by the
+        Trackable metaclass.
         '''
-        modified = set()
         for k, v in kwds.items():
             if k == 'name':
                 name = titlecase(v.strip())
                 if name != self.name:
                     self.name = name
-                    modified.add(self)
+                    self._modified.add(self)
             elif k == 'definition':
                 definition = v.strip()
                 if definition != self.definition:
                     self.definition = definition
-                    modified.add(self)
+                    self._modified.add(self)
             elif k == 'definition_url':
                 definition_url = v.strip()
                 if definition_url != self.definition_url:
                     self.definition_url = definition_url
-                    modified.add(self)
+                    self._modified.add(self)
             elif k == 'images':
                 images = v if v else []
                 for image in images:
                     if image not in self.images:
                         self.images.append(image)
-                        modified.add(self)
+                        self._modified.add(self)
             elif k in ['drivers', 'impacts', 'broader', 'narrower']:
-                modified.update(self.load_connections(connections_name=k,
-                                                      connections_data=v))
-        return modified
+                self.load_connections(connections_name=k, connections_data=v)
 
     def load_connections(self, connections_name, connections_data):
         '''Load a problem's drivers, impacts, broader, or narrower
@@ -418,7 +418,7 @@ class Problem(object):
         The connections_name is the field name for a set of connections
         on a problem, either 'drivers', 'imapcts', 'broader', or
         'narrower'. The connections_data is the corresponding JSON data.
-        The method loads the data and returns the set of problems
+        The method loads the data and flags the set of problems
         modified in the process (including those that are also new).
         '''
         derived_from = {
@@ -430,7 +430,6 @@ class Problem(object):
         assert connections_name in derived_from
         conn_type, p_a, p_b, inverse_type = derived_from[connections_name]
         connections = getattr(self, connections_name)
-        modified = set()
 
         for connection_data in connections_data:
             adjacent_name = connection_data.get('adjacent_problem', None)
@@ -445,11 +444,10 @@ class Problem(object):
             if connection not in connections:
                 connections.append(connection)
                 getattr(adjacent_problem, inverse_type).append(connection)
-                modified.add(adjacent_problem)
+                self._modified.add(adjacent_problem)
 
-        if len(modified) > 0:
-            modified.add(self)
-        return modified
+        if len(self._modified) > 0:
+            self._modified.add(self)
 
     def __repr__(self):
         cname = self.__class__.__name__
