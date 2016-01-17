@@ -1,0 +1,32 @@
+{
+    "Poverty": {
+        "definition": "Poverty is the state or condition of having little or no money, goods, or means of support",
+        "definition_url": "http://dictionary.reference.com/browse/poverty",
+        "narrower": [
+            {
+                "adjacent_problem": "Homelessness",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 4,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }                ]
+            }
+        ]
+    }
+}

@@ -100,7 +100,7 @@ class Trackable(type):
     def __call__(cls, key=None, *args, **kwds):
         if key is None:
             key = cls.create_key(*args, **kwds)
-            if key is None or key is '':
+            if key is None or key == '':
                 raise InvalidRegistryKey(key=key, classname=cls.__name__)
         inst = cls._instances.get(key, None)
         if inst is None:
@@ -158,7 +158,7 @@ class ProblemConnectionRating(object):
         if not isinstance(rating, int) or rating < 0 or rating > 4:
             raise InvalidProblemConnectionRating(rating=rating,
                                                  connection=connection)
-        if user_id is None or user_id is '':
+        if user_id is None or user_id == '':
             raise InvalidUser(user=user_id, connection=connection)
         if problem_scope not in (connection.problem_a, connection.problem_b):
             raise InvalidProblemScope(problem_scope=problem_scope,
@@ -185,7 +185,7 @@ class ProblemConnectionRating(object):
         if not isinstance(rating, int) or rating < 0 or rating > 4:
             raise InvalidProblemConnectionRating(rating=rating,
                                                  connection=connection)
-        if rating is not self.rating:
+        if rating != self.rating:
             self.rating = rating
             modified.add(self)
         return modified
@@ -388,17 +388,17 @@ class Problem(object):
         for k, v in kwds.items():
             if k == 'name':
                 name = titlecase(v.strip())
-                if name is not self.name:
+                if name != self.name:
                     self.name = name
                     modified.add(self)
             elif k == 'definition':
                 definition = v.strip()
-                if definition is not self.definition:
+                if definition != self.definition:
                     self.definition = definition
                     modified.add(self)
             elif k == 'definition_url':
                 definition_url = v.strip()
-                if definition_url is not self.definition_url:
+                if definition_url != self.definition_url:
                     self.definition_url = definition_url
                     modified.add(self)
             elif k == 'images':
