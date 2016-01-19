@@ -394,7 +394,9 @@ class Problem(object):
         Trackable metaclass.
         '''
         for k, v in kwds.items():
-            if k == 'definition':
+            if k == 'name':
+                continue  # name cannot be updated via upload
+            elif k == 'definition':
                 definition = v.strip()
                 if definition != self.definition:
                     self.definition = definition
@@ -547,9 +549,10 @@ def decode(json_path, *args, **options):
     ...    print(Problem[k])
     '''
     # Gather valid json_paths based on the given file or directory
+    json_paths = []
     if os.path.isfile(json_path):
         if json_path.rsplit('.', 1)[-1].lower() == 'json':
-            json_paths = [json_path]
+            json_paths.append(json_path)
     elif os.path.isdir(json_path):
         json_paths = [os.path.join(json_path, f) for f in os.listdir(json_path)
                       if (os.path.isfile(os.path.join(json_path, f)) and
