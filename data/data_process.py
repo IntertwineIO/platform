@@ -380,8 +380,8 @@ class Problem(object):
         '''Modify an existing problem
 
         Inputs are key-value pairs based on the JSON problem schema.
-        Modify the name, definition, and definition_url if new values
-        differ from existing values. Append any new images and problem
+        Modify the definition and definition_url if new values differ
+        from existing values. Append any new images and problem
         connections (the latter within drivers, impacts, broader, and
         narrower). Track all problems modified, whether directly or
         indirectly through new connections.
@@ -391,11 +391,6 @@ class Problem(object):
         Trackable metaclass.
         '''
         for k, v in kwds.items():
-            if k == 'name':
-                name = titlecase(v.strip())
-                if name != self.name:
-                    self.name = name
-                    self._modified.add(self)
             elif k == 'definition':
                 definition = v.strip()
                 if definition != self.definition:
