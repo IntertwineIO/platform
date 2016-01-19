@@ -57,6 +57,7 @@ class CircularConnection(DataProcessException):
 class InvalidRegistryKey(DataProcessException):
     '''{key!r} is not a valid registry key for class {classname}'''
 
+
 class InvalidEntity(DataProcessException):
     ''''{variable}' value of {value!r} is not a valid {classname}.'''
 
@@ -192,7 +193,7 @@ class ProblemConnectionRating(object):
         rating = kwds.get('rating', None)
         if not isinstance(rating, int) or rating < 0 or rating > 4:
             raise InvalidProblemConnectionRating(rating=rating,
-                                                 connection=connection)
+                                                 connection=self.connection)
         if rating != self.rating:
             self.rating = rating
             self._modified.add(self)
@@ -212,14 +213,16 @@ class ProblemConnectionRating(object):
         cname = self.__class__.__name__
         prob = self.problem_scope.name
         if prob == self.connection.problem_a.name:
-            conn = str(self.connection).replace(prob, '*'+prob+'*', 1)
+            conn = str(self.connection).replace(prob, '@' + prob, 1)
         else:
-            conn = ('*'+prob+'*').join(str(self.connection).rsplit(prob, 1))
+            conn = ('@' + prob).join(str(self.connection).rsplit(prob, 1))
         rating = self.rating
         user = self.user
         org = self.org_scope
         geo = self.geo_scope
-        s = '{cname}: {rating} by {user}\n'.format(cname=cname, rating=rating, user=user)
+        s = '{cname}: {rating} by {user}\n'.format(cname=cname,
+                                                   rating=rating,
+                                                   user=user)
         s += '  on {conn}\n'.format(conn=conn)
         s += '  at {org} '.format(org=org) if org is not None else '  '
         # TODO: convert to more friendly geo
@@ -391,7 +394,7 @@ class Problem(object):
         Trackable metaclass.
         '''
         for k, v in kwds.items():
-            elif k == 'definition':
+            if k == 'definition':
                 definition = v.strip()
                 if definition != self.definition:
                     self.definition = definition
@@ -454,7 +457,7 @@ class Problem(object):
         return '<{cname}: {name!r}>'.format(cname=cname, name=self.name)
 
     def __str__(self):
-        indent = ' '*4
+        indent = ' ' * 4
         fields = dict(
             name=self.name,
             definition=self.definition,
@@ -481,7 +484,7 @@ class Problem(object):
             else:
                 if isinstance(data, (list, type(iter(list())))):
                     data_str = '  {field}:\n'.format(field=field)
-                    data = '\n'.join(indent+'{}'.format(v) for v in data)
+                    data = '\n'.join(indent + '{}'.format(v) for v in data)
                     fields[field] = data
                 else:
                     data_str = '  {field}: '.format(field=field)
@@ -530,17 +533,23 @@ def decode(json_path, *args, **options):
     directory in the absolute json_path: decode_<dir_name>(json_data)
 
     Usage:
-    >>> json_path = '/data/problems/'
-    >>> updates = decode(json_path)
-    >>> p0 = Problem('Poverty')  # existing 'Poverty' problem is returned
-    >>> p1 = Problem('Homelessness')  # existing 'Homelessness' problem is returned
-    >>> p2 = Problem['domestic_violence']  # Problem is subscriptable via Trackable
-    >>> for k in Problem:  # Problem is iterable via Trackable
+    >>> json_path = '/data/problems/problems00.json'  # load a JSON file
+    >>> u0 = decode(json_path)  # get updates from data load
+    >>> json_path = '/data/problems/'  # load all JSON files in a directory
+    >>> u1 = decode(json_path)  # get updates from next data load
+    >>> u1_problems = u1['Problem']  # get set of updated problems
+    >>> u1_connections = u1['ProblemConnection']  # set of updated connections
+    >>> u1_ratings = u1['ProblemConnectionRating']  # set of updated ratings
+    >>> p0 = Problem('Poverty')  # get existing 'Poverty' problem
+    >>> p1 = Problem('Homelessness')  # get existing 'Homelessness' problem
+    >>> p2 = Problem['domestic_violence']  # Problem is subscriptable
+    >>> for k in Problem:  # Problem is iterable
     ...    print(Problem[k])
     '''
     # Gather valid json_paths based on the given file or directory
-    if os.path.isfile(json_path) and json_path.rsplit('.', 1)[-1].lower() == 'json':
-        json_paths = [json_path]
+    if os.path.isfile(json_path):
+        if json_path.rsplit('.', 1)[-1].lower() == 'json':
+            json_paths = [json_path]
     elif os.path.isdir(json_path):
         json_paths = [os.path.join(json_path, f) for f in os.listdir(json_path)
                       if (os.path.isfile(os.path.join(json_path, f)) and
