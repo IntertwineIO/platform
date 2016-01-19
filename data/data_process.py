@@ -126,6 +126,9 @@ class Trackable(type):
     def __getitem__(cls, key):
         return cls._instances[key]
 
+    def __setitem__(cls, key, value):
+        cls._instances[key] = value
+
     def __iter__(cls):
         return iter(cls._instances)
 
@@ -142,8 +145,8 @@ class ProblemConnectionRating(object):
     the perceived importance of A as a driver of B.
     '''
 
-    @classmethod
-    def create_key(cls, user_id, connection, problem_scope,
+    @staticmethod
+    def create_key(user_id, connection, problem_scope,
                    geo_scope=None, org_scope=None, *args, **kwds):
         '''Create key for problem connection rating instance
 
@@ -243,8 +246,8 @@ class ProblemConnection(object):
     its type, first problem, and second problem.
     '''
 
-    @classmethod
-    def create_key(cls, connection_type, problem_a, problem_b, *args, **kwds):
+    @staticmethod
+    def create_key(connection_type, problem_a, problem_b, *args, **kwds):
         '''Create key for problem connection instance
 
         Create a registry key for use by the Trackable metaclass.
@@ -342,8 +345,8 @@ class Problem(object):
     '''
     # TODO: add db support
 
-    @classmethod
-    def create_key(cls, name, *args, **kwds):
+    @staticmethod
+    def create_key(name, *args, **kwds):
         '''Create key for problem instance
 
         Create a registry key for use by the Trackable metaclass.
@@ -411,6 +414,8 @@ class Problem(object):
                         self._modified.add(self)
             elif k in ['drivers', 'impacts', 'broader', 'narrower']:
                 self.load_connections(connections_name=k, connections_data=v)
+            else:
+                raise NameError('{} not found.'.format(k))
 
     def load_connections(self, connections_name, connections_data):
         '''Load a problem's drivers, impacts, broader, or narrower
