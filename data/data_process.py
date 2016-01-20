@@ -112,7 +112,6 @@ class Trackable(type):
         inst = cls._instances.get(key, None)
         if inst is None:
             inst = super(Trackable, cls).__call__(*args, **kwds)
-            inst._key = key
             cls._instances[key] = inst
             cls._updates.add(inst)
         else:
@@ -149,11 +148,24 @@ class ProblemConnectionRating(object):
     @staticmethod
     def create_key(user_id, connection, problem_scope,
                    geo_scope=None, org_scope=None, *args, **kwds):
-        '''Create key for problem connection rating instance
+        '''Create key for a problem connection rating
 
-        Create a registry key for use by the Trackable metaclass.
+        Return a registry key allowing the Trackable metaclass to look
+        up a problem connection rating instance. The key is created from
+        the explicit parameters.
         '''
         return (user_id, connection, problem_scope, geo_scope, org_scope)
+
+    def derive_key(self):
+        '''Derive key from a problem connection rating instance
+
+        Return the registry key used by the Trackable metaclass from a
+        problem connection rating instance. The key is derived from the
+        user, connection, problem_scope, geo_scope, and org_scope
+        fields.
+        '''
+        return (self.user, self.connection, self.problem_scope,
+                self.geo_scope, self.org_scope)
 
     def __init__(self, rating, user_id, connection,
                  problem_scope, geo_scope=None, org_scope=None):
@@ -242,20 +254,34 @@ class ProblemConnection(object):
                                   |
                                narrower
 
-    Drivers/impacts are causal type connections while broader/narrower
-    are scope type connections. In causal connections, the driver is
-    always listed first, while in scope connections, the broader is
-    always listed first. A problem connection is uniquely defined by
-    its type, first problem, and second problem.
+    Drivers/impacts are 'causal' connections while broader/narrower are
+    'scoped' connections.
+
+    A problem connection is uniquely defined by its connection_type
+    ('causal' or 'scoped') and the two problems it connects: problem_a
+    and problem_b. In causal connections, problem_a drives problem_b,
+    while in scoped connections, problem_a is broader than problem_b.
     '''
 
     @staticmethod
     def create_key(connection_type, problem_a, problem_b, *args, **kwds):
-        '''Create key for problem connection instance
+        '''Create key for a problem connection
 
-        Create a registry key for use by the Trackable metaclass.
+        Return a registry key allowing the Trackable metaclass to look
+        up a problem connection instance. The key is created from
+        the explicit parameters.
         '''
         return (connection_type, problem_a, problem_b)
+
+    def derive_key(self):
+        '''Derive key from a problem connection instance
+
+        Return the registry key used by the Trackable metaclass from a
+        problem connection instance. The key is derived from the
+        connection_type, problem_a, and problem_b fields on the problem
+        connection instance.
+        '''
+        return (self.connection_type, self.problem_a, self.problem_b)
 
     def __init__(self, connection_type, problem_a, problem_b,
                  ratings_data=None, problem_scope=None):
@@ -350,11 +376,22 @@ class Problem(object):
 
     @staticmethod
     def create_key(name, *args, **kwds):
-        '''Create key for problem instance
+        '''Create key for a problem
 
-        Create a registry key for use by the Trackable metaclass.
+        Return a registry key allowing the Trackable metaclass to look
+        up a problem instance. The key is created from the given name
+        parameter.
         '''
         return name.strip().lower().replace(' ', '_')
+
+    def derive_key(self):
+        '''Derive key from a problem instance
+
+        Return the registry key used by the Trackable metaclass from a
+        problem instance. The key is derived from the name field on the
+        problem instance.
+        '''
+        return self.name.strip().lower().replace(' ', '_')
 
     def __init__(self, name, definition=None, definition_url=None, images=[],
                  drivers=[], impacts=[], broader=[], narrower=[]):
@@ -426,14 +463,14 @@ class Problem(object):
         The method loads the data and flags the set of problems
         modified in the process (including those that are also new).
         '''
-        derived_from = {
+        derived_vars = {
             'drivers': ('causal', 'adjacent_problem', 'self', 'impacts'),
             'impacts': ('causal', 'self', 'adjacent_problem', 'drivers'),
             'broader': ('scoped', 'adjacent_problem', 'self', 'narrower'),
             'narrower': ('scoped', 'self', 'adjacent_problem', 'broader'),
         }
-        assert connections_name in derived_from
-        conn_type, p_a, p_b, inverse_type = derived_from[connections_name]
+        assert connections_name in derived_vars
+        conn_type, p_a, p_b, inverse_type = derived_vars[connections_name]
         connections = getattr(self, connections_name)
 
         for connection_data in connections_data:
