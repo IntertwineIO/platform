@@ -130,7 +130,8 @@ class Trackable(type):
         cls._instances[key] = value
 
     def __iter__(cls):
-        return iter(cls._instances)
+        for inst in cls._instances:
+            yield inst
 
 
 @six.add_metaclass(Trackable)
@@ -579,8 +580,8 @@ def decode(json_path, *args, **options):
     >>> u1_problems = u1['Problem']  # get set of updated problems
     >>> u1_connections = u1['ProblemConnection']  # set of updated connections
     >>> u1_ratings = u1['ProblemConnectionRating']  # set of updated ratings
-    >>> p0 = Problem('Poverty')  # get existing 'Poverty' problem
-    >>> p1 = Problem('Homelessness')  # get existing 'Homelessness' problem
+    >>> p0 = Problem('poverty')  # get existing 'Poverty' problem
+    >>> p1 = Problem('homelessness')  # get existing 'Homelessness' problem
     >>> p2 = Problem['domestic_violence']  # Problem is subscriptable
     >>> for k in Problem:  # Problem is iterable
     ...    print(Problem[k])
@@ -588,7 +589,8 @@ def decode(json_path, *args, **options):
     # Gather valid json_paths based on the given file or directory
     json_paths = []
     if os.path.isfile(json_path):
-        if json_path.rsplit('.', 1)[-1].lower() == 'json':
+        if (json_path.rsplit('.', 1)[-1].lower() == 'json' and
+                'schema' not in os.path.basename(json_path).lower()):
             json_paths.append(json_path)
     elif os.path.isdir(json_path):
         json_paths = [os.path.join(json_path, f) for f in os.listdir(json_path)
