@@ -58,7 +58,8 @@ install_requires = [
     'flask-sqlalchemy',
     'flask-security',
     'flask-wtf',
-    'future'
+    'future',
+    'titlecase'
 ]
 
 # Identifies what is needed to run this package as a developer

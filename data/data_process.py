@@ -16,10 +16,16 @@ import json
 import logging
 import os
 import os.path
-import six
 import sys
+
+# from app import db  # borrow the microblog app to test
+from flask.ext.sqlalchemy import SQLAlchemy
+import six
 from titlecase import titlecase
 
+# from intertwine.problems import models
+
+auth_db = SQLAlchemy()
 log = logging.getLogger('data_process')
 
 
@@ -362,7 +368,7 @@ class ProblemConnection(object):
 
 
 @six.add_metaclass(Trackable)
-class Problem(object):
+class Problem(db.Model):
     '''Base class for problems
 
     Problems and the connections between them are global in that they
@@ -373,7 +379,28 @@ class Problem(object):
     keys are the problem names in lowercase with underscores instead of
     spaces.
     '''
-    # TODO: add db support
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), index=True, unique=True)
+    definition = db.Column(db.String(200))
+    definition_url = db.Column(db.String(2048))
+
+    # TODO: define Image class
+    images = db.relationship('Image', backref='problem', lazy='dynamic')
+
+    # TODO: define subclasses for Causal vs. Scoped ProblemConnection
+    # multi-foreign key
+    drivers = db.relationship('ProblemConnection',
+                              backref='problem_b',
+                              lazy='dynamic')
+    impacts = db.relationship('ProblemConnection',
+                              backref='problem_a',
+                              lazy='dynamic')
+    broader = db.relationship('ProblemConnection',
+                              backref='problem_b',
+                              lazy='dynamic')
+    narrower = db.relationship('ProblemConnection',
+                               backref='problem_a',
+                               lazy='dynamic')
 
     @staticmethod
     def create_key(name, *args, **kwds):
