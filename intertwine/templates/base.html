@@ -1,0 +1,52 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block html_attribs %} lang="en"{% endblock %}
+
+{% block title %}Intertwine{% if title %} | {{ title }}{% endif %}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link href="{{ url_for('static', filename='css/intertwine.sass.css') }}"
+      rel="stylesheet" type="text/css">
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="http://code.jquery.com/jquery-latest.js"></script>
+
+<script>
+$(".nav a").on("click",
+    function() {
+        $(".nav").find(".active").removeClass("active");
+        $(this).parent().addClass("active");
+    }
+);
+</script>
+{% endblock %}
+
+{% block navbar %}
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  {% block navbar_content %}
+    <div class="container-fluid">
+        <div class="navbar-header"><a class="navbar-brand" href="/">Intertwine</a></div>
+        <div class="collapse navbar-collapse navbarCollapse ">
+            <ul class="nav navbar-nav navbar-right">
+            {% for bp in current_app.blueprints %}
+                {% if bp in ['main', 'auth', 'signup'] %}
+                <li><a class="navbar-brand" href="{{url_for(bp+'.render')}}">{{ bp }}</a></li>
+                {% endif %}
+            {% endfor %}
+            </ul>
+        </div>
+    </div>
+  {% endblock %}
+</nav>
+<div class="container">
+{% block container %}{% endblock %}
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% endblock %}
