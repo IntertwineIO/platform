@@ -10,6 +10,7 @@ from flask.ext.debugtoolbar import DebugToolbarExtension
 
 import intertwine.auth
 import intertwine.main
+import intertwine.problems
 import intertwine.signup
 
 ###############################################################################
