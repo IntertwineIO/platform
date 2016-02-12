@@ -59,7 +59,8 @@ install_requires = [
     'flask-security',
     'flask-wtf',
     'future',
-    'titlecase'
+    'titlecase',
+    'urlnorm'
 ]
 
 # Identifies what is needed to run this package as a developer
