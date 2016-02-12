@@ -18,7 +18,8 @@ import os
 import os.path
 import sys
 
-from intertwine.problems.models import Problem, ProblemConnection, ProblemConnectionRating
+from intertwine.problems.models import (
+    Problem, ProblemConnection, ProblemConnectionRating, Image)
 from intertwine.problems.exceptions import InvalidJSONPath
 
 
@@ -33,18 +34,23 @@ def decode_problems(json_data):
     Resets the tracking of updates via the Trackable metaclass for
     problems, connections, and ratings each time it is called.
     '''
+    # TODO: move reset to Trackable metaclass
     Problem._updates = set()
     ProblemConnection._updates = set()
     ProblemConnectionRating._updates = set()
+    Image._updates = set()
 
     for json_data_load in json_data:
         for data_key, data_value in json_data_load.items():
             Problem(name=data_key, **data_value)
 
+    # TODO: make Trackable metaclass track classes and construct
+    # dictionary of all updates automatically
     updates = {
         'Problem': Problem._updates,
         'ProblemConnection': ProblemConnection._updates,
         'ProblemConnectionRating': ProblemConnectionRating._updates,
+        'Image': Image._updates,
     }
     return updates
 

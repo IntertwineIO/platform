@@ -6,6 +6,7 @@ from sqlalchemy.ext.declarative import (
     declared_attr,
 )
 from titlecase import titlecase
+import urlnorm
 
 from ..utils import camelCaseTo_snake_case
 from . import problems_db as db
@@ -87,9 +88,80 @@ class AutoTableMixin(object):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    @declared_attr
-    def __tablename__(self):
-        return camelCaseTo_snake_case(self.__class__.__name__)
+    # @declared_attr
+    # def __tablename__(self):
+    #     return camelCaseTo_snake_case(self.__class__.__name__)
+
+
+class Image(AutoTableMixin, BaseProblemModel):
+    '''Base class for images'''
+
+    __tablename__ = 'image'
+    url = db.Column(db.String(2048))
+    problem_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
+    problem = db.relationship('Problem', back_populates='images')
+
+    # TODO: add following:
+    #
+    # attribution:
+    # title         # title of the work
+    # author        # name or username (on source site) who owns the material
+    # org           # organization that owns the material
+    # source        # same as url? consider renaming url as source?
+    # license       # name of license; mapped to license_url
+    #               # acceptable licenses on Intertwine:
+    #               # NONE:      PUBLIC DOMAIN
+    #               # CC BY:     ATTRIBUTION
+    #               # CC BY-SA:  ATTRIBUTION-SHAREALIKE
+    #               # CC BY-ND:  ATTRIBUTION-NODERIVS
+    #               # foter.com/blog/how-to-attribute-creative-commons-photos/
+    #
+    # users:
+    # authored_by   # user who is author
+    # added_by      # user who added
+    # modified_by   # users who modified
+    #
+    # image-specific:
+    # caption       # additional text beyond title
+    # date          # date original was made
+    # location      # where the photo was captured, if applicable
+    # file          # local copy of image
+    # dimensions    # in pixels
+
+    @staticmethod
+    def create_key(url, *args, **kwds):
+        '''Create key for an image
+
+        Return a registry key allowing the Trackable metaclass to look
+        up an image. The key is created from the given url
+        parameter.
+        '''
+        return urlnorm.norm(url)
+
+    def derive_key(self):
+        '''Derive key from an image instance
+
+        Return the registry key used by the Trackable metaclass from an
+        image instance. The key is derived from the url field on the
+        image instance.
+        '''
+        return self.url
+
+    def __init__(self, url, problem):
+        '''Initialize a new image from a url
+
+        Inputs are key-value pairs based on the JSON problem schema.
+        '''
+        self.url = urlnorm.norm(url)
+        self.problem = problem
+
+    def __repr__(self):
+        cname = self.__class__.__name__
+        form_str = '<{cname}: ({problem!r}) {url!r}>'
+        return form_str.format(cname=cname, problem=self.problem, url=self.url)
+
+    def __str__(self):
+        return '{url}'.format(url=self.url)
 
 
 class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
@@ -103,7 +175,23 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
     the perceived importance of A as a driver of B.
     '''
 
-    __tablename__ = 'problem_connection_ratings'
+    __tablename__ = 'problem_connection_rating'
+    rating = db.Column(db.Integer)
+    # TODO: make user_id a foreign key
+    user_id = db.Column(db.String(60))
+    connection_id = db.Column(db.Integer, db.ForeignKey('problem_connection.id'))
+    problem_scope_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
+    # TODO: make geo_scope_id a foreign key
+    geo_scope_id = db.Column(db.String(256))
+    # TODO: make org_scope_id a foreign key
+    org_scope_id = db.Column(db.String(256))
+    connection = db.relationship('ProblemConnection', back_populates='ratings')
+    problem_scope = db.relationship('Problem')
+    __table_args__ = (db.UniqueConstraint('user_id',
+                                          'connection_id',
+                                          'problem_scope_id',
+                                          'geo_scope_id',
+                                          'org_scope_id'),)
 
     @staticmethod
     def create_key(user_id, connection, problem_scope,
@@ -205,24 +293,42 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
 class ProblemConnection(AutoTableMixin, BaseProblemModel):
     '''Base class for problem connections
 
-    There are four ways in which problems can be connected:
-
-                               broader
-                                  |
-                    drivers -> problem -> impacts
-                                  |
-                               narrower
-
-    Drivers/impacts are 'causal' connections while broader/narrower are
-    'scoped' connections.
-
     A problem connection is uniquely defined by its connection_type
     ('causal' or 'scoped') and the two problems it connects: problem_a
-    and problem_b. In causal connections, problem_a drives problem_b,
-    while in scoped connections, problem_a is broader than problem_b.
+    and problem_b.
+
+    In causal connections, problem_a drives problem_b, so problem_a is
+    the 'driving_problem' and problem_b is the 'impacted_problem' in the
+    database relationships. (Of course, this means from the perspective
+    of the driving_problem, the given connection is in the 'impacts'
+    field.)
+
+    In scoped connections, problem_a is broader than problem_b, so
+    problem_a is the 'broader_problem' and problem_b is the
+    'narrower_problem' in the database relationships. (Again, this means
+    from the perspective of the broader_problem, the given connection is
+    in the 'narrower' field.)
+
+                  'causal'                          'scoped'
+
+                                                    problem_a
+        problem_a    ->    problem_b            (broader_problem)
+    (driving_problem)  (impacted_problem)               ::
+                                                    problem_b
+                                                (narrower_problem)
+
     '''
 
-    __tablename__ = 'problem_connections'
+    __tablename__ = 'problem_connection'
+    connection_type = db.Column(db.String(6))
+    problem_a_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
+    problem_b_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
+    ratings = db.relationship('ProblemConnectionRating',
+                              back_populates='connection',
+                              lazy='dynamic')
+    __table_args__ = (db.UniqueConstraint('problem_a_id',
+                                          'problem_b_id',
+                                          'connection_type'),)
 
     @staticmethod
     def create_key(connection_type, problem_a, problem_b, *args, **kwds):
@@ -331,30 +437,52 @@ class Problem(AutoTableMixin, BaseProblemModel):
     Problem instances are Trackable (metaclass), where the registry
     keys are the problem names in lowercase with underscores instead of
     spaces.
-    '''
-    __tablename__ = 'problems'
 
-    name = db.Column(db.String(64), index=True, unique=True)
+    Problems can connect to other problems in four ways:
+
+                               broader
+                                  ::
+                    drivers -> problem -> impacts
+                                  ::
+                               narrower
+
+    Drivers/impacts are 'causal' connections while broader/narrower are
+    'scoped' connections.
+    '''
+    __tablename__ = 'problem'
+    name = db.Column(db.String(60), index=True, unique=True)
     definition = db.Column(db.String(200))
     definition_url = db.Column(db.String(2048))
+    images = db.relationship('Image', back_populates='problem', lazy='dynamic')
 
-    # TODO: define Image class
-    images = db.relationship('Image', backref='problem', lazy='dynamic')
-
-    # TODO: define subclasses for Causal vs. Scoped ProblemConnection
-    # multi-foreign key
-    drivers = db.relationship('ProblemConnection',
-                              backref='problem_b',
-                              lazy='dynamic')
-    impacts = db.relationship('ProblemConnection',
-                              backref='problem_a',
-                              lazy='dynamic')
-    broader = db.relationship('ProblemConnection',
-                              backref='problem_b',
-                              lazy='dynamic')
-    narrower = db.relationship('ProblemConnection',
-                               backref='problem_a',
-                               lazy='dynamic')
+    drivers = db.relationship(
+                'ProblemConnection',
+                primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
+                            "ProblemConnection.connection_type=='causal')",
+                # backref='problem_b',
+                backref='impacted_problem',
+                lazy='dynamic')
+    impacts = db.relationship(
+                'ProblemConnection',
+                primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
+                            "ProblemConnection.connection_type=='causal')",
+                # backref='problem_a',
+                backref='driving_problem',
+                lazy='dynamic')
+    broader = db.relationship(
+                'ProblemConnection',
+                primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
+                            "ProblemConnection.connection_type=='scoped')",
+                # backref='problem_b',
+                backref='narrower_problem',
+                lazy='dynamic')
+    narrower = db.relationship(
+                'ProblemConnection',
+                primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
+                            "ProblemConnection.connection_type=='scoped')",
+                # backref='problem_a',
+                backref='broader_problem',
+                lazy='dynamic')
 
     @staticmethod
     def create_key(name, *args, **kwds):
@@ -426,8 +554,9 @@ class Problem(AutoTableMixin, BaseProblemModel):
                     self.definition_url = definition_url
                     self._modified.add(self)
             elif k == 'images':
-                images = v if v else []
-                for image in images:
+                image_urls = v if v else []
+                for image_url in image_urls:
+                    image = Image(url=image_url, problem=self)
                     if image not in self.images:
                         self.images.append(image)
                         self._modified.add(self)
@@ -482,14 +611,14 @@ class Problem(AutoTableMixin, BaseProblemModel):
         fields = dict(
             name=self.name,
             definition=self.definition,
-            url=self.definition_url,
-            images=self.images,
+            definition_url=self.definition_url,
+            images=[i.url for i in self.images],
             drivers=[c.problem_a.name for c in self.drivers],
             impacts=[c.problem_b.name for c in self.impacts],
             broader=[c.problem_a.name for c in self.broader],
             narrower=[c.problem_b.name for c in self.narrower],
         )
-        field_order = ['name', 'definition', 'url', 'images',
+        field_order = ['name', 'definition', 'definition_url', 'images',
                        'drivers', 'impacts', 'broader', 'narrower']
         string = []
         for field in field_order:
