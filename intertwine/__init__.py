@@ -34,7 +34,8 @@ def create_app(config):
     '''Creates an app
 
     >>> from intertwine import create_app
-    >>> app = create_app()
+    >>> from config import DevConfig
+    >>> app = create_app(DevConfig)
     >>> app.run()
     '''
     app = flask.Flask(__name__, static_folder='static', static_url_path='')
