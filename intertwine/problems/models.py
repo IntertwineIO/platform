@@ -88,15 +88,14 @@ class AutoTableMixin(object):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # @declared_attr
-    # def __tablename__(self):
-    #     return camelCaseTo_snake_case(self.__class__.__name__)
+    @declared_attr
+    def __tablename__(cls):
+        return camelCaseTo_snake_case(cls.__name__)
 
 
 class Image(AutoTableMixin, BaseProblemModel):
     '''Base class for images'''
 
-    __tablename__ = 'image'
     url = db.Column(db.String(2048))
     problem_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
     problem = db.relationship('Problem', back_populates='images')
@@ -175,7 +174,6 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
     the perceived importance of A as a driver of B.
     '''
 
-    __tablename__ = 'problem_connection_rating'
     rating = db.Column(db.Integer)
     # TODO: make user_id a foreign key
     user_id = db.Column(db.String(60))
@@ -319,7 +317,6 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
 
     '''
 
-    __tablename__ = 'problem_connection'
     connection_type = db.Column(db.String(6))
     problem_a_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
     problem_b_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
@@ -449,7 +446,6 @@ class Problem(AutoTableMixin, BaseProblemModel):
     Drivers/impacts are 'causal' connections while broader/narrower are
     'scoped' connections.
     '''
-    __tablename__ = 'problem'
     name = db.Column(db.String(60), index=True, unique=True)
     definition = db.Column(db.String(200))
     definition_url = db.Column(db.String(2048))
