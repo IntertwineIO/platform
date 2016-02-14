@@ -43,12 +43,17 @@ class Trackable(DeclarativeMeta):
     iterable.
     '''
 
+    # keep track of all classes that are Trackable
+    _classes = {}
+
     def __new__(meta, name, bases, attr):
         # track instances for each class of type Trackable
         attr['_instances'] = {}
         # track any new or modified instances
         attr['_updates'] = set()
-        return super(Trackable, meta).__new__(meta, name, bases, attr)
+        new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
+        meta._classes[name] = new_cls
+        return new_cls
 
     def __call__(cls, key=None, *args, **kwds):
         if key is None:
@@ -78,6 +83,30 @@ class Trackable(DeclarativeMeta):
     def __iter__(cls):
         for inst in cls._instances:
             yield inst
+
+    @classmethod
+    def clear_updates(meta, *args):
+        if len(args) == 0:
+            for cname, cls in meta._classes.items():
+                cls._updates = set()
+        else:
+            for cls in args:
+                if cls.__name__ not in meta._classes:
+                    raise NameError('{} not Trackable.'.format(cls.__name__))
+                cls._updates = set()
+
+    @classmethod
+    def catalog_updates(meta, *args):
+        updates = {}
+        if len(args) == 0:
+            for cname, cls in meta._classes.items():
+                updates[cname] = cls._updates
+        else:
+            for cls in args:
+                if cls.__name__ not in meta._classes:
+                    raise NameError('{} not Trackable.'.format(cls.__name__))
+                updates[cls.__name__] = cls._updates
+        return updates
 
 
 BaseProblemModel = declarative_base(metaclass=Trackable)
@@ -508,11 +537,16 @@ class Problem(AutoTableMixin, BaseProblemModel):
         self.name = titlecase(name.strip())
         self.definition = definition.strip() if definition else None
         self.definition_url = definition_url.strip() if definition_url else None
-        self.images = images if images else []
+        self.images = []
         self.drivers = []
         self.impacts = []
         self.broader = []
         self.narrower = []
+
+        for image_url in images:
+            image = Image(url=image_url, problem=self)
+            if image not in self.images:
+                self.images.append(image)
 
         # track problems modified by the creation of this problem via
         # new connections to existing problems
