@@ -86,17 +86,34 @@ class Trackable(DeclarativeMeta):
 
     @classmethod
     def clear_updates(meta, *args):
+        '''Clear updates tracked by Trackable classes
+
+        If no arguments are provided, all Trackable classes will have
+        updates cleared (i.e. reset). If one or more classes are passed
+        as input, only these classes will have updates cleared. If a
+        class is not Trackable, a TypeError is raised.
+        '''
         if len(args) == 0:
             for cname, cls in meta._classes.items():
                 cls._updates = set()
         else:
             for cls in args:
                 if cls.__name__ not in meta._classes:
-                    raise NameError('{} not Trackable.'.format(cls.__name__))
+                    raise TypeError('{} not Trackable.'.format(cls.__name__))
                 cls._updates = set()
 
     @classmethod
     def catalog_updates(meta, *args):
+        '''Catalog updates tracked by Trackable classes
+
+        Returns a dictionary keyed by class name, where the values are
+        the corresponding sets of updated instances.
+
+        If no arguments are provided, updates for all Trackable classes
+        will be included. If one or more classes are passed as input,
+        only updates from these classes will be included. If a class is
+        not Trackable, a TypeError is raised.
+        '''
         updates = {}
         if len(args) == 0:
             for cname, cls in meta._classes.items():
@@ -104,7 +121,7 @@ class Trackable(DeclarativeMeta):
         else:
             for cls in args:
                 if cls.__name__ not in meta._classes:
-                    raise NameError('{} not Trackable.'.format(cls.__name__))
+                    raise TypeError('{} not Trackable.'.format(cls.__name__))
                 updates[cls.__name__] = cls._updates
         return updates
 
@@ -340,7 +357,7 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
 
                                                     problem_a
         problem_a    ->    problem_b            (broader_problem)
-    (driving_problem)  (impacted_problem)               ::
+    (driving_problem)  (impacted_problem)              ::
                                                     problem_b
                                                 (narrower_problem)
 
