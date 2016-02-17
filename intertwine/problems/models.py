@@ -231,6 +231,7 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
     org_scope_id = db.Column(db.String(256))
     connection = db.relationship('ProblemConnection', back_populates='ratings')
     problem_scope = db.relationship('Problem')
+    # TODO: add an index to the unique constraint
     __table_args__ = (db.UniqueConstraint('user_id',
                                           'connection_id',
                                           'problem_scope_id',
@@ -372,6 +373,8 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
     __table_args__ = (db.UniqueConstraint('problem_a_id',
                                           'problem_b_id',
                                           'connection_type'),)
+    # TODO: Add index for (problem_a_id, connection_type)
+    # TODO: Add index for (problem_b_id, connection_type)
 
     @staticmethod
     def create_key(connection_type, problem_a, problem_b, *args, **kwds):
@@ -501,28 +504,24 @@ class Problem(AutoTableMixin, BaseProblemModel):
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
                             "ProblemConnection.connection_type=='causal')",
-                # backref='problem_b',
                 backref='impacted_problem',
                 lazy='dynamic')
     impacts = db.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
                             "ProblemConnection.connection_type=='causal')",
-                # backref='problem_a',
                 backref='driving_problem',
                 lazy='dynamic')
     broader = db.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
                             "ProblemConnection.connection_type=='scoped')",
-                # backref='problem_b',
                 backref='narrower_problem',
                 lazy='dynamic')
     narrower = db.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
                             "ProblemConnection.connection_type=='scoped')",
-                # backref='problem_a',
                 backref='broader_problem',
                 lazy='dynamic')
 
