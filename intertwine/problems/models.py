@@ -221,22 +221,36 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
     '''
 
     rating = db.Column(db.Integer)
-    # TODO: make user_id a foreign key
-    user_id = db.Column(db.String(60))
+
+    # TODO: rename user to user_id, make it a foreign key, and create a
+    #       user relationship
+    user = db.Column(db.String(60))
+
     connection_id = db.Column(db.Integer, db.ForeignKey('problem_connection.id'))
     problem_scope_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
-    # TODO: make geo_scope_id a foreign key
-    geo_scope_id = db.Column(db.String(256))
-    # TODO: make org_scope_id a foreign key
-    org_scope_id = db.Column(db.String(256))
+
+    # TODO: rename geo_scope to geo_scope_id, make it a foreign key, and
+    #       create a geo_scope relationship
+    geo_scope = db.Column(db.String(256))
+
+    # TODO: rename org_scope to org_scope_id, make it a foreign key, and
+    #       create an org_scope relationship
+    org_scope = db.Column(db.String(256))
+
     connection = db.relationship('ProblemConnection', back_populates='ratings')
     problem_scope = db.relationship('Problem')
-    # TODO: add an index to the unique constraint
-    __table_args__ = (db.UniqueConstraint('user_id',
+
+    __table_args__ = (db.UniqueConstraint('user',
                                           'connection_id',
                                           'problem_scope_id',
-                                          'geo_scope_id',
-                                          'org_scope_id'),)
+                                          'geo_scope',
+                                          'org_scope',
+                                          name='uq_problem_connection_rating'),
+                      db.Index('ix_problem_connection_rating_across_users',
+                               'connection_id',
+                               'problem_scope_id',
+                               'geo_scope',
+                               'org_scope'),)
 
     @staticmethod
     def create_key(user_id, connection, problem_scope,
@@ -372,7 +386,9 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
                               lazy='dynamic')
     __table_args__ = (db.UniqueConstraint('problem_a_id',
                                           'problem_b_id',
-                                          'connection_type'),)
+                                          'connection_type',
+                                          name='uq_problem_connection'),)
+
     # TODO: Add index for (problem_a_id, connection_type)
     # TODO: Add index for (problem_b_id, connection_type)
 
