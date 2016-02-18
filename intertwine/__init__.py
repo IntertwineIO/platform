@@ -21,7 +21,7 @@ __email__ = 'engineering@intertwine.io'
 __license__ = 'Proprietary:  All rights reserved'
 __copyright__ = 'Copyright 2015, 2016 - Intertwine'
 __url__ = 'https://github.com/IntertwineIO/platform.git'
-__shortdesc__ = 'Intertwine connects people to problems'
+__shortdesc__ = "Untangle the world's problems"
 
 
 ###############################################################################
