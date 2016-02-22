@@ -81,8 +81,8 @@ class Trackable(DeclarativeMeta):
         cls._instances[key] = value
 
     def __iter__(cls):
-        for inst in cls._instances:
-            yield inst
+        for k, v in cls._instances.items():
+            yield v
 
     @classmethod
     def clear_updates(meta, *args):
@@ -166,6 +166,8 @@ class Image(AutoTableMixin, BaseProblemModel):
     # added_by      # user who added
     # modified_by   # users who modified
     #
+    # ratings       # common Base for ContentRating and ProblemConnectionRating?
+    #
     # image-specific:
     # caption       # additional text beyond title
     # date          # date original was made
@@ -240,17 +242,44 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
     connection = db.relationship('ProblemConnection', back_populates='ratings')
     problem_scope = db.relationship('Problem')
 
-    __table_args__ = (db.UniqueConstraint('user',
-                                          'connection_id',
-                                          'problem_scope_id',
-                                          'geo_scope',
-                                          'org_scope',
-                                          name='uq_problem_connection_rating'),
-                      db.Index('ix_problem_connection_rating_across_users',
-                               'connection_id',
+    # Querying use cases:
+    #
+    # 1. The Problem Page needs weighted average ratings on each connection
+    #    to order them and modulate how they are displayed. This may end
+    #    up being pre-processed, but it must be queried when calculated.
+    #    cols: problem_scope_id, connection_id, org_scope, geo_scope
+    #       where most commonly org_scope == None
+    #    cols: problem_scope_id, connection_id, org_scope
+    #    cols: problem_scope_id, connection_id
+    #    cols: problem_scope_id (if faster to query all together)
+    #
+    # 2. The Problem Page needs to ask the user to rate connections that
+    #    the user has not yet rated).
+    #    cols: user, problem_scope_id
+    #
+    # 3. The Personal Dashboard needs to track history of all the user's
+    #    inputs including connection ratings.
+    #    cols: user
+    #
+    # __table_args__ = (db.UniqueConstraint('problem_scope_id',
+    #                                       'connection_id',
+    #                                       'org_scope',
+    #                                       'geo_scope',
+    #                                       'user',
+    #                                       name='uq_problem_connection_rating'),)
+    #
+    __table_args__ = (db.Index('ux_problem_connection_rating',
+                               # ux for unique index
                                'problem_scope_id',
+                               'connection_id',
+                               'org_scope',
                                'geo_scope',
-                               'org_scope'),)
+                               'user',
+                               unique=True),
+                      db.Index('ix_problem_connection_rating:user+problem_scope_id',
+                               # ix for index
+                               'user',
+                               'problem_scope_id'),)
 
     @staticmethod
     def create_key(user_id, connection, problem_scope,
@@ -389,8 +418,8 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
                                           'connection_type',
                                           name='uq_problem_connection'),)
 
-    # TODO: Add index for (problem_a_id, connection_type)
-    # TODO: Add index for (problem_b_id, connection_type)
+    # TODO: Add index for (connection_type, problem_a_id)
+    # TODO: Add index for (connection_type, problem_b_id)
 
     @staticmethod
     def create_key(connection_type, problem_a, problem_b, *args, **kwds):
