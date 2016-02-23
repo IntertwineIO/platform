@@ -16,7 +16,7 @@ Options:
 from __future__ import print_function
 
 from intertwine import create_app
-from config import DevConfig, DemoConfig, LocalDemoConfig
+from intertwine.config import DevConfig, DemoConfig, LocalDemoConfig
 
 
 def main(**options):

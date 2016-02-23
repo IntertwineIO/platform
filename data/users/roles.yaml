@@ -1,0 +1,7 @@
+roles:
+  - name: admin
+    permissions: TODO
+  - name: user
+    permissions: TODO
+  - name: guest
+    permissions: TODO

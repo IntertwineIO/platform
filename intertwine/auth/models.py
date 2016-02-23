@@ -18,11 +18,13 @@ class Role(auth_db.Model, RoleMixin):
 
     __tablename__ = 'roles'
 
+    roles_database = ['admin', 'guest', 'user']
+
     id = auth_db.Column(auth_db.Integer, primary_key=True)
     name = auth_db.Column(auth_db.String, unique=True)
     description = auth_db.Column(auth_db.String)
 
-    def __init__(self, name, description=''):
+    def __init__(self, name, description='', permissions=None):
         self.name = name
         self.description = description
 
@@ -47,6 +49,7 @@ class User(auth_db.Model, UserMixin):
     }
 
     id = auth_db.Column(auth_db.Integer, primary_key=True)
+    display_name = auth_db.Column(auth_db.String)
     email = auth_db.Column(auth_db.String, unique=True)
     username = auth_db.Column(auth_db.String, unique=True)
     password = auth_db.Column(auth_db.String)
@@ -58,21 +61,16 @@ class User(auth_db.Model, UserMixin):
         backref=auth_db.backref('users', lazy='dynamic')
     )
 
-    def __init__(self, username, password, email):
-        self.password = password
-        self.email = email
-        self.username = username
-
     @classmethod
     def get(cls, id):
         return cls.user_database.get(id)
 
     def __repr__(self):
         cname = self.__class__.__name__
-        string = '<{cname} {username} {email}>'.format(
+        name = ':{} "{}"'.format(self.username, self.display_name)
+        string = '<{cname}{name}>'.format(
             cname=cname,
-            username=self.username,
-            email=self.email
+            name=name
             )
         return string
 

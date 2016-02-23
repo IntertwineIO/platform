@@ -1,0 +1,32 @@
+users:
+  - display_name: Eli Chan
+    email: eli@intertwine.io
+    username: eli
+    password: eli
+    active: true
+    # roles: ['admin', 'user']
+
+  - display_name: Brian Bruggeman
+    email: brian@intertwine.io
+    username: brian
+    password: brian
+    active: true
+    # roles: ['admin', 'user']
+
+  - display_name: Guest
+    username: guest
+    password: guest
+    active: true
+    # roles: ['guest']
+
+  - display_name: User
+    username: user
+    password: user
+    active: true
+    # roles: ['user']
+
+  - display_name: Administrator
+    username: admin
+    password: admin
+    active: true
+    # roles: ['admin']

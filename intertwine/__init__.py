@@ -33,6 +33,8 @@ def create_app(config):
     app.register_blueprint(intertwine.auth.blueprint, url_prefix='/auth')
     app.register_blueprint(intertwine.signup.blueprint, url_prefix='/signup')
 
+    intertwine.auth.auth_db.init_app(app)
+
     if app.config['DEBUG']:
         toolbar.init_app(app)
 
