@@ -3,7 +3,7 @@
 '''
 Platform: Intertwine.io's website
 
-A platform for tackling big problems
+Untangle the world's problems
 
 Created by Intertwine
 Copyright (c) 2015, 2016
@@ -81,7 +81,13 @@ script_requires = [
 
 # Identifies what is needed for tests to run
 testing_requires = [
+    'coverage',             # Apache
+    'flake8',               # MIT
+    'mccabe',               # Expat
+    'pep8',                 # Expat
+    'pyflakes',             # MIT
     'pytest',               # MIT
+    'pytest-cache',         # MIT
     'pytest-cov',           # MIT
     'pytest-flake8',        # BSD
     'pytest-xdist',         # MIT
@@ -95,8 +101,10 @@ deploy_requires = [
 
 # Identifies what is needed for generating documentation
 doc_requires = [
+    'alabaster',            # BSD
     'pypandoc',             # MIT
     'sphinx',               # BSD
+    'sphinx-rtd-theme',     # MIT
 ]
 
 extras_requires = {
@@ -111,33 +119,24 @@ extras_requires = {
     'testing': testing_requires,
 }
 
-# In requirements.txt, but not categorized:
-# alabaster
-# apipkg
-# Babel
-# blinker
-# coverage
-# docutils
-# dominate
-# execnet
-# flake8
-# Flask-Mail
-# Flask-Principal
-# itsdangerous
-# MarkupSafe
-# mccabe
-# passlib
-# pep8
-# platform
-# py
-# pyflakes
-# Pygments
-# pytest-cache
-# pytz
-# snowballstemmer
-# sphinx-rtd-theme
-# visitor
-# wheel
+# In requirements.txt, but not categorized above:
+#     'apipkg',               # MIT
+#     'Babel',                # BSD
+#     'blinker',              # MIT
+#     'docutils',             # GPL3 for tools/editors/emacs/rst.el; rest is public domain, Python, 2-Clause BSD
+#     'dominate',             # GPL3 variant - remove from intertwine?
+#     'execnet',              # MIT
+#     'Flask-Mail',           # BSD
+#     'Flask-Principal',      # MIT
+#     'itsdangerous',         # BSD
+#     'MarkupSafe',           # BSD
+#     'passlib',              # BSD
+#     'py',                   # ?
+#     'Pygments',             # BSD
+#     'pytz',                 # MIT
+#     'snowballstemmer',      # BSD
+#     'visitor',              # MIT
+#     'wheel',                # MIT
 
 ###############################################################################
 #  Commands
