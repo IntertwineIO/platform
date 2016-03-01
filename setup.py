@@ -54,18 +54,18 @@ setup_requires = [
 install_requires = [
     'flask',                # BSD
     'flask-bootstrap',      # BSD
-    'flask-login',          # MIT
     'flask-security',       # MIT
     'flask-sqlalchemy',     # BSD
     'flask-wtf',            # BSD
     'future',               # MIT
-    'Jinja2',               # BSD
-    'six',                  # MIT
-    'SQLAlchemy',           # MIT
-    'titlecase',            # MIT
-    'urlnorm',              # MIT
-    'Werkzeug',             # BSD
-    'WTForms',              # BSD
+    # 'flask-login',          # MIT
+    # 'Jinja2',               # BSD
+    # 'six',                  # MIT
+    # 'SQLAlchemy',           # MIT
+    # 'titlecase',            # MIT
+    # 'urlnorm',              # MIT
+    # 'Werkzeug',             # BSD
+    # 'WTForms',              # BSD
 ]
 
 # Identifies what is needed to run this package as a developer
@@ -81,13 +81,13 @@ script_requires = [
 
 # Identifies what is needed for tests to run
 testing_requires = [
-    'coverage',             # Apache
-    'flake8',               # MIT
-    'mccabe',               # Expat
-    'pep8',                 # Expat
-    'pyflakes',             # MIT
+    # 'coverage',             # Apache
+    # 'flake8',               # MIT
+    # 'mccabe',               # Expat
+    # 'pep8',                 # Expat
+    # 'pyflakes',             # MIT
+    'flask-debugtoolbar',   # BSD
     'pytest',               # MIT
-    'pytest-cache',         # MIT
     'pytest-cov',           # MIT
     'pytest-flake8',        # BSD
     'pytest-xdist',         # MIT
@@ -101,10 +101,10 @@ deploy_requires = [
 
 # Identifies what is needed for generating documentation
 doc_requires = [
-    'alabaster',            # BSD
-    'pypandoc',             # MIT
+    # 'alabaster',            # BSD
+    # 'pypandoc',             # MIT
     'sphinx',               # BSD
-    'sphinx-rtd-theme',     # MIT
+    # 'sphinx-rtd-theme',     # MIT
 ]
 
 extras_requires = {
@@ -116,7 +116,7 @@ extras_requires = {
     'docs': doc_requires,
     'deploy': deploy_requires,
     'script': script_requires,
-    'testing': testing_requires,
+    'tests': testing_requires,
 }
 
 # In requirements.txt, but not categorized above:

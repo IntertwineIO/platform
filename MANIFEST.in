@@ -1,0 +1,6 @@
+include requirements.txt
+include README.*
+include *.ini
+include *.cfg
+recursive-include intertwine *
+recursive-include examples *

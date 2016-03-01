@@ -1,0 +1,43 @@
+sudo: required
+language: python
+dist: trusty
+python:
+    - "pypy"
+    - "2.7"
+    - "3.5"
+    - "3.5-dev" # 3.5 development branch
+    - "nightly" # currently points to 3.6-dev
+
+branches:
+    only:
+        - master
+        - develop
+os:
+  - linux
+matrix:
+  fast_finish: true
+  allow_failures:
+      - python: "3.5-dev"
+      - python: "nightly"
+
+# Install system dependencies
+before_install:
+  # Update System
+  - sudo apt-get update -qq
+
+  # Install dependencies
+
+
+install:
+   - pip install .
+
+before_script:
+  # Required for running a test
+  - pip install .[test]
+
+# command to run tests
+script:
+   - py.test
+
+after_success:
+   - coveralls
