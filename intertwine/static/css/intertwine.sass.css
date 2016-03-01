@@ -1,3 +1,4 @@
+body {padding-top: 35px;}
 .navbar-default {
   background-color: #1c88f6;
   border-color: #a96b00; }
@@ -40,7 +41,8 @@
     .navbar-default .navbar-link:hover {
       color: #ffe2b2; }
 
-@media (max-width: 767px) {
+@media (max-width: 979px) {
+  body {padding-top: 0px;}
   .navbar-default .navbar-nav .open .dropdown-menu > li > a {
     color: #ffffff; }
     .navbar-default .navbar-nav .open .dropdown-menu > li > a:hover, .navbar-default .navbar-nav .open .dropdown-menu > li > a:focus {

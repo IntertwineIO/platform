@@ -4,6 +4,8 @@ $bgHighlight    : #a96b00
 $colDefault     : #ffffff
 $colHighlight   : #ffe2b2
 $dropDown       : true
+body
+  padding-top: 60px;
 .navbar-default
   background-color: $bgDefault
   border-color: $bgHighlight
@@ -50,7 +52,9 @@ $dropDown       : true
     color: $colDefault
     &:hover
       color: $colHighlight
-@media (max-width: 767px)
+@media (max-width: 979px)
+  body
+    padding-top: 0px;
   .navbar-default .navbar-nav .open .dropdown-menu
     > li > a
       color: $colDefault

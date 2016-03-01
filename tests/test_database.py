@@ -55,4 +55,3 @@ def test_database_created(options):
 @pytest.mark.smoke
 def test_table_generation(options):
     '''Tests decoding incrementally'''
-

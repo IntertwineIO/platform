@@ -10,16 +10,25 @@ Options:
     -h --help           This message
     -d --debug          Turn on debug
     -H --host HOST      Set host [default: 0.0.0.0]
-    -p --port PORT      Set port [default: 8000]
+    -p --port PORT      Set port [default: 5000]
     -c --config CONFIG  Set config [default: demo] (options: dev, demo, local)
+    -r --rebuild        Rebuilds local database
 '''
 from __future__ import print_function
 
+import os
+
 from intertwine import create_app
-from intertwine.config import DevConfig, DemoConfig, LocalDemoConfig
+from config import DevConfig, DemoConfig, LocalDemoConfig
 
 
 def main(**options):
+    if options.get('rebuild'):
+        # destroy old database
+        fp = 'sqlite.db'
+        fp = os.path.realpath(os.path.join(os.path.dirname(__file__), fp))
+        os.system('rm {}'.format(fp))
+        print('Removed file: {}'.format(fp))
     app = create_app(options.get('config'))
     host = app.config.get('HOST') or options.get('host')
     port = app.config.get('PORT') or options.get('port')

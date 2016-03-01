@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+'''
+Base platform for intertwine.
+
+'''
 import flask
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.debugtoolbar import DebugToolbarExtension
@@ -8,6 +12,18 @@ import intertwine.auth
 import intertwine.main
 import intertwine.signup
 
+###############################################################################
+__title__ = 'intertwine'
+__version__ = '0.1.0-dev'
+__author__ = 'Intertwine'
+__email__ = 'engineering@intertwine.io'
+__license__ = 'Proprietary:  All rights reserved'
+__copyright__ = 'Copyright 2015, 2016 - Intertwine'
+__url__ = 'https://github.com/IntertwineIO/platform.git'
+__shortdesc__ = 'Intertwine connects people to problems'
+
+
+###############################################################################
 
 toolbar = DebugToolbarExtension()
 

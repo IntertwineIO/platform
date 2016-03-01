@@ -61,6 +61,11 @@ class User(auth_db.Model, UserMixin):
         backref=auth_db.backref('users', lazy='dynamic')
     )
 
+    def __init__(self, username, password, email):
+        self.password = password
+        self.email = email
+        self.username = username
+
     @classmethod
     def get(cls, id):
         return cls.user_database.get(id)
