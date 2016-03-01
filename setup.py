@@ -58,12 +58,12 @@ install_requires = [
     'flask-sqlalchemy',     # BSD
     'flask-wtf',            # BSD
     'future',               # MIT
+    'titlecase',            # MIT
+    'urlnorm',              # MIT
     # 'flask-login',          # MIT
     # 'Jinja2',               # BSD
     # 'six',                  # MIT
     # 'SQLAlchemy',           # MIT
-    # 'titlecase',            # MIT
-    # 'urlnorm',              # MIT
     # 'Werkzeug',             # BSD
     # 'WTForms',              # BSD
 ]
