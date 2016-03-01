@@ -74,6 +74,7 @@ script_requires = [
 
 # Identifies what is needed for tests to run
 testing_requires = [
+    'flask-debugtoolbar',
     'pytest',
     'pytest-cov',
     'pytest-flake8',
@@ -101,7 +102,7 @@ extras_requires = {
     'docs': doc_requires,
     'deploy': deploy_requires,
     'script': script_requires,
-    'testing': testing_requires,
+    'tests': testing_requires,
 }
 
 
