@@ -81,16 +81,16 @@ script_requires = [
 
 # Identifies what is needed for tests to run
 testing_requires = [
-    # 'coverage',             # Apache
-    # 'flake8',               # MIT
-    # 'mccabe',               # Expat
-    # 'pep8',                 # Expat
-    # 'pyflakes',             # MIT
     'flask-debugtoolbar',   # BSD
     'pytest',               # MIT
     'pytest-cov',           # MIT
     'pytest-flake8',        # BSD
     'pytest-xdist',         # MIT
+    # 'coverage',             # Apache
+    # 'flake8',               # MIT
+    # 'mccabe',               # Expat
+    # 'pep8',                 # Expat
+    # 'pyflakes',             # MIT
 ]
 
 
@@ -101,9 +101,9 @@ deploy_requires = [
 
 # Identifies what is needed for generating documentation
 doc_requires = [
+    'sphinx',               # BSD
     # 'alabaster',            # BSD
     # 'pypandoc',             # MIT
-    'sphinx',               # BSD
     # 'sphinx-rtd-theme',     # MIT
 ]
 
@@ -123,15 +123,15 @@ extras_requires = {
 #     'apipkg',               # MIT
 #     'Babel',                # BSD
 #     'blinker',              # MIT
-#     'docutils',             # GPL3 for tools/editors/emacs/rst.el; rest is public domain, Python, 2-Clause BSD
-#     'dominate',             # GPL3 variant - remove from intertwine?
+#     'docutils',             # GPL3 for tools/editors/emacs/rst.el; rest is public domain, Python, BSD
+#     'dominate',             # GPL3 variant - remove from Intertwine?
 #     'execnet',              # MIT
 #     'Flask-Mail',           # BSD
 #     'Flask-Principal',      # MIT
 #     'itsdangerous',         # BSD
 #     'MarkupSafe',           # BSD
 #     'passlib',              # BSD
-#     'py',                   # ?
+#     'py',                   # MIT
 #     'Pygments',             # BSD
 #     'pytz',                 # MIT
 #     'snowballstemmer',      # BSD
