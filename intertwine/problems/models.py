@@ -672,7 +672,7 @@ class Problem(AutoTableMixin, BaseProblemModel):
             'narrower': ('scoped', 'self', 'adjacent_problem', 'broader'),
         }
         assert connections_name in derived_vars
-        conn_type, p_a, p_b, inverse_type = derived_vars[connections_name]
+        conn_type, p_a, p_b, inverse_name = derived_vars[connections_name]
         connections = getattr(self, connections_name)
 
         for connection_data in connections_data:
@@ -687,7 +687,7 @@ class Problem(AutoTableMixin, BaseProblemModel):
                 problem_scope=self)
             if connection not in connections:
                 connections.append(connection)
-                getattr(adjacent_problem, inverse_type).append(connection)
+                getattr(adjacent_problem, inverse_name).append(connection)
                 self._modified.add(adjacent_problem)
 
         if len(self._modified) > 0:
