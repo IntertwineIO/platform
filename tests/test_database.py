@@ -12,11 +12,10 @@ def test_app_created(options):
 
     config = options['config']
     app = create_app(config)
-    assert 'HOST' in app.config
-    assert 'PORT' in app.config
-    host = app.config['HOST']
-    port = app.config['PORT']
     assert 'SERVER_NAME' in app.config
+    server = '{}:{}'.format(options['host'], options['port'])
+    host = (app.config.get('SERVER_NAME') or server).split(':')[0]
+    port = (app.config.get('SERVER_NAME') or server).split(':')[-1]
     app.config['SERVER_NAME'] = '{}:{}'.format(host, port)
 
     with app.app_context():
@@ -29,26 +28,22 @@ def test_app_created(options):
 def test_database_created(options):
     '''Tests that database is created'''
     import os
-    import flask
     from intertwine import create_app
 
     config = options['config']
-    filepath = config['DATABASE'].split('///')[-1]
+    app = create_app(config)
+    filepath = app.config['DATABASE'].split('///')[-1]
     if os.path.exists(filepath):
         os.remove(filepath)
-    app = create_app(config)
-    assert 'HOST' in app.config
-    assert 'PORT' in app.config
-    host = app.config['HOST']
-    port = app.config['PORT']
     assert 'SERVER_NAME' in app.config
+    server = '{}:{}'.format(options['host'], options['port'])
+    host = (app.config.get('SERVER_NAME') or server).split(':')[0]
+    port = (app.config.get('SERVER_NAME') or server).split(':')[-1]
     app.config['SERVER_NAME'] = '{}:{}'.format(host, port)
 
     with app.app_context():
-        rv = flask.url_for('index')
-        assert rv == 'http://{}:{}/'.format(host, port)
+        assert os.path.exists(filepath)
 
-    assert os.path.exists(filepath)
 
 
 @pytest.mark.unit

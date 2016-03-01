@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import pytest
-from intertwine import TestingConfig
+from intertwine.config import ToxConfig
 
 collect_ignore = ["setup.py"]
 
@@ -14,7 +14,7 @@ def options():
     options = {
         'host': '127.0.0.1',
         'port': 5000,
-        'config': TestingConfig(),
+        'config': ToxConfig(),
     }
 
     return options

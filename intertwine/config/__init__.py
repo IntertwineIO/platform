@@ -4,7 +4,7 @@ from .Default import DefaultConfig, DevelopmentConfig, TestingConfig, Production
 from .Environment import LocalConfig, HerokuConfig, VagrantConfig, AWSConfig
 from .Database import InMemoryConfig, SqlLiteConfig, PostgresConfig
 
-__all__ = ['DemoConfig', 'LocalDemoConfig', 'DevConfig']
+__all__ = ['DemoConfig', 'LocalDemoConfig', 'DevConfig', 'ToxConfig']
 
 
 class DemoConfig(DeployableConfig, HerokuConfig, SqlLiteConfig):
@@ -17,3 +17,7 @@ class LocalDemoConfig(DeployableConfig, LocalConfig, SqlLiteConfig):
 
 class DevConfig(DevelopmentConfig, LocalConfig, SqlLiteConfig):
     '''Standard development environment configuration'''
+
+
+class ToxConfig(TestingConfig, LocalConfig, SqlLiteConfig):
+    '''Standard development for tox testing'''
