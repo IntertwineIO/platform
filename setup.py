@@ -3,7 +3,7 @@
 '''
 Platform: Intertwine.io's website
 
-A platform to create a community
+Untangle the world's problems
 
 Created by Intertwine
 Copyright (c) 2015, 2016
@@ -46,39 +46,51 @@ except ImportError:
 ###############################################################################
 # Identifies what is needed to prior to running setup
 setup_requires = [
-    'pip',
-    'pytest-runner',
+    'pip',                  # MIT
+    'pytest-runner',        # MIT
 ]
 
 # Identifies what is needed to run this package
 install_requires = [
-    'flask',
-    'flask-bootstrap',
-    'flask-login',
-    'flask-sqlalchemy',
-    'flask-security',
-    'flask-wtf',
-    'future'
+    'flask',                # BSD
+    'flask-bootstrap',      # BSD
+    'flask-security',       # MIT
+    'flask-sqlalchemy',     # BSD
+    'flask-wtf',            # BSD
+    'future',               # MIT
+    # 'flask-login',          # MIT
+    # 'Jinja2',               # BSD
+    # 'six',                  # MIT
+    # 'SQLAlchemy',           # MIT
+    # 'titlecase',            # MIT
+    # 'urlnorm',              # MIT
+    # 'Werkzeug',             # BSD
+    # 'WTForms',              # BSD
 ]
 
 # Identifies what is needed to run this package as a developer
 dev_requires = [
-    'flask-debugtoolbar',
+    'flask-debugtoolbar',   # BSD
 ]
 
 # Identifies what is needed to run the scripts included
 script_requires = [
-    'docopt',
-    'pyyaml',
+    'docopt',               # MIT
+    'pyyaml',               # MIT
 ]
 
 # Identifies what is needed for tests to run
 testing_requires = [
-    'flask-debugtoolbar',
-    'pytest',
-    'pytest-cov',
-    'pytest-flake8',
-    'pytest-xdist',
+    # 'coverage',             # Apache
+    # 'flake8',               # MIT
+    # 'mccabe',               # Expat
+    # 'pep8',                 # Expat
+    # 'pyflakes',             # MIT
+    'flask-debugtoolbar',   # BSD
+    'pytest',               # MIT
+    'pytest-cov',           # MIT
+    'pytest-flake8',        # BSD
+    'pytest-xdist',         # MIT
 ]
 
 
@@ -89,8 +101,10 @@ deploy_requires = [
 
 # Identifies what is needed for generating documentation
 doc_requires = [
-    'pypandoc',
-    'sphinx'
+    # 'alabaster',            # BSD
+    # 'pypandoc',             # MIT
+    'sphinx',               # BSD
+    # 'sphinx-rtd-theme',     # MIT
 ]
 
 extras_requires = {
@@ -105,6 +119,24 @@ extras_requires = {
     'tests': testing_requires,
 }
 
+# In requirements.txt, but not categorized above:
+#     'apipkg',               # MIT
+#     'Babel',                # BSD
+#     'blinker',              # MIT
+#     'docutils',             # GPL3 for tools/editors/emacs/rst.el; rest is public domain, Python, 2-Clause BSD
+#     'dominate',             # GPL3 variant - remove from intertwine?
+#     'execnet',              # MIT
+#     'Flask-Mail',           # BSD
+#     'Flask-Principal',      # MIT
+#     'itsdangerous',         # BSD
+#     'MarkupSafe',           # BSD
+#     'passlib',              # BSD
+#     'py',                   # ?
+#     'Pygments',             # BSD
+#     'pytz',                 # MIT
+#     'snowballstemmer',      # BSD
+#     'visitor',              # MIT
+#     'wheel',                # MIT
 
 ###############################################################################
 #  Commands

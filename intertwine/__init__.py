@@ -10,6 +10,7 @@ from flask.ext.debugtoolbar import DebugToolbarExtension
 
 import intertwine.auth
 import intertwine.main
+import intertwine.problems
 import intertwine.signup
 
 ###############################################################################
@@ -20,7 +21,7 @@ __email__ = 'engineering@intertwine.io'
 __license__ = 'Proprietary:  All rights reserved'
 __copyright__ = 'Copyright 2015, 2016 - Intertwine'
 __url__ = 'https://github.com/IntertwineIO/platform.git'
-__shortdesc__ = 'Intertwine connects people to problems'
+__shortdesc__ = "Untangle the world's problems"
 
 
 ###############################################################################
@@ -33,7 +34,8 @@ def create_app(config):
     '''Creates an app
 
     >>> from intertwine import create_app
-    >>> app = create_app()
+    >>> from config import DevConfig
+    >>> app = create_app(DevConfig)
     >>> app.run()
     '''
     app = flask.Flask(__name__, static_folder='static', static_url_path='')
