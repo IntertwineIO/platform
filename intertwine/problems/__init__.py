@@ -17,6 +17,7 @@ from . import models
 
 @blueprint.record_once
 def on_load(state):
+    # Sets up problems database tables
     problems_db.init_app(state.app)
     with state.app.app_context():
         models.BaseProblemModel.metadata.create_all(bind=problems_db.engine)
