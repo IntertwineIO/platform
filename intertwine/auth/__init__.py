@@ -25,7 +25,7 @@ security = Security()
 def on_load(state):
     login_manager.init_app(state.app)
     auth_db.init_app(state.app)
-    with state.app.test_request_context():
+    with state.app.app_context():
         auth_db.create_all()
         auth_db.session.commit()
     security.init_app(app=state.app, datastore=auth_users)

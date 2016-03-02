@@ -139,7 +139,7 @@ class AutoTableMixin(object):
         return camelCaseTo_snake_case(cls.__name__)
 
 
-class Image(AutoTableMixin, BaseProblemModel):
+class Image(BaseProblemModel, AutoTableMixin):
     '''Base class for images'''
 
     url = db.Column(db.String(2048))
@@ -211,7 +211,7 @@ class Image(AutoTableMixin, BaseProblemModel):
         return '{url}'.format(url=self.url)
 
 
-class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
+class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
     '''Base class for problem connection ratings
 
     Problem connection ratings are input by users and are scoped by
@@ -378,7 +378,7 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
         return s
 
 
-class ProblemConnection(AutoTableMixin, BaseProblemModel):
+class ProblemConnection(BaseProblemModel, AutoTableMixin):
     '''Base class for problem connections
 
     A problem connection is uniquely defined by its connection_type
@@ -518,7 +518,7 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
             p_b=self.problem_b.name)
 
 
-class Problem(AutoTableMixin, BaseProblemModel):
+class Problem(BaseProblemModel, AutoTableMixin):
     '''Base class for problems
 
     Problems and the connections between them are global in that they

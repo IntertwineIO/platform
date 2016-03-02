@@ -15,7 +15,7 @@ import intertwine.signup
 
 ###############################################################################
 __title__ = 'intertwine'
-__version__ = '0.1.0-dev'
+__version__ = '0.3.0-dev'
 __author__ = 'Intertwine'
 __email__ = 'engineering@intertwine.io'
 __license__ = 'Proprietary:  All rights reserved'
@@ -51,6 +51,7 @@ def create_app(config):
     app.register_blueprint(intertwine.main.blueprint, url_prefix='/')
     app.register_blueprint(intertwine.auth.blueprint, url_prefix='/auth')
     app.register_blueprint(intertwine.signup.blueprint, url_prefix='/signup')
+    app.register_blueprint(intertwine.problems.blueprint, url_prefix='/problems')
 
     if app.config['DEBUG']:
         toolbar.init_app(app)

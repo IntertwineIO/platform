@@ -18,6 +18,6 @@ from . import models
 @blueprint.record_once
 def on_load(state):
     problems_db.init_app(state.app)
-    with state.app.test_request_context():
-        problems_db.create_all()
+    with state.app.app_context():
+        models.BaseProblemModel.metadata.create_all(bind=problems_db.engine)
         problems_db.session.commit()
