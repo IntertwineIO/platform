@@ -40,6 +40,7 @@ if __name__ == '__main__':
     import sys
     from textwrap import dedent as dd
 
+    # Catch if local system doesn't have docopt installed
     try:
         from docopt import docopt
     except ImportError as e:

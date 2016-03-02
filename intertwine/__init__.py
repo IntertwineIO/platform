@@ -5,12 +5,13 @@ Base platform for intertwine.
 
 '''
 import flask
-from flask.ext.bootstrap import Bootstrap
-from flask.ext.debugtoolbar import DebugToolbarExtension
+from flask_bootstrap import Bootstrap
+from flask_debugtoolbar import DebugToolbarExtension
+from flask_mail import Mail
+from flask_admin import Admin
 
-import intertwine.auth
-import intertwine.main
-import intertwine.signup
+from . import auth
+from . import main
 
 ###############################################################################
 __title__ = 'intertwine'
@@ -20,12 +21,13 @@ __email__ = 'engineering@intertwine.io'
 __license__ = 'Proprietary:  All rights reserved'
 __copyright__ = 'Copyright 2015, 2016 - Intertwine'
 __url__ = 'https://github.com/IntertwineIO/platform.git'
-__shortdesc__ = 'Intertwine connects people to problems'
+__shortdesc__ = "Untangle the world's problems"
 
 
 ###############################################################################
 
 toolbar = DebugToolbarExtension()
+admin = Admin()
 
 
 def create_app(config):
@@ -44,12 +46,15 @@ def create_app(config):
     # We are using bootstrap for now
     Bootstrap(app)
 
-    # Register all of the blueprints
-    app.register_blueprint(intertwine.main.blueprint, url_prefix='/')
-    app.register_blueprint(intertwine.auth.blueprint, url_prefix='/auth')
-    app.register_blueprint(intertwine.signup.blueprint, url_prefix='/signup')
+    # Setup Mail
+    Mail(app)
 
-    intertwine.auth.auth_db.init_app(app)
+    # Register all of the blueprints
+    app.register_blueprint(main.blueprint, url_prefix='/')
+    app.register_blueprint(auth.blueprint, url_prefix='/auth')
+
+    # Setup Admin
+    admin.init_app(app)
 
     if app.config['DEBUG']:
         toolbar.init_app(app)

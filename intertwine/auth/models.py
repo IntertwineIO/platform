@@ -18,8 +18,6 @@ class Role(auth_db.Model, RoleMixin):
 
     __tablename__ = 'roles'
 
-    roles_database = ['admin', 'guest', 'user']
-
     id = auth_db.Column(auth_db.Integer, primary_key=True)
     name = auth_db.Column(auth_db.String, unique=True)
     description = auth_db.Column(auth_db.String)
