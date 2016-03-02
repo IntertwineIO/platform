@@ -13,7 +13,10 @@
 
 {% block scripts %}
 {{ super() }}
+<!-- Jquery -->
 <script src="http://code.jquery.com/jquery-latest.js"></script>
+<!-- React JS -->
+<script src="http://fb.me/react-0.10.0.min.js"></script>
 
 <script>
 $(".nav a").on("click",
@@ -33,7 +36,7 @@ $(".nav a").on("click",
         <div class="collapse navbar-collapse navbarCollapse ">
             <ul class="nav navbar-nav navbar-right">
             {% for bp in current_app.blueprints %}
-                {% if bp in ['main', 'auth', 'signup'] %}
+                {% if bp not in ['bootstrap', 'security'] %}
                 <li><a class="navbar-brand" href="{{url_for(bp+'.render')}}">{{ bp }}</a></li>
                 {% endif %}
             {% endfor %}

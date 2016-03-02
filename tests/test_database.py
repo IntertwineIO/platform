@@ -19,8 +19,8 @@ def test_app_created(options):
     app.config['SERVER_NAME'] = '{}:{}'.format(host, port)
 
     with app.app_context():
-        rv = flask.url_for('index')
-        assert rv == 'http://{}:{}/'.format(host, port)
+        rv = flask.url_for('main.render')
+        assert rv == 'https://{}:{}/'.format(host, port)
 
 
 @pytest.mark.unit
@@ -30,11 +30,14 @@ def test_database_created(options):
     import os
     from intertwine import create_app
 
+    # Find the database file
     config = options['config']
     app = create_app(config)
     filepath = app.config['DATABASE'].split('///')[-1]
     if os.path.exists(filepath):
         os.remove(filepath)
+    # Start over -- this should recreate the database
+    app = create_app(config)
     assert 'SERVER_NAME' in app.config
     server = '{}:{}'.format(options['host'], options['port'])
     host = (app.config.get('SERVER_NAME') or server).split(':')[0]
@@ -43,10 +46,3 @@ def test_database_created(options):
 
     with app.app_context():
         assert os.path.exists(filepath)
-
-
-
-@pytest.mark.unit
-@pytest.mark.smoke
-def test_table_generation(options):
-    '''Tests decoding incrementally'''

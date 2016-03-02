@@ -8,10 +8,7 @@ import flask
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.debugtoolbar import DebugToolbarExtension
 
-import intertwine.auth
-import intertwine.main
-import intertwine.problems
-import intertwine.signup
+from . import auth, main, problems, signup
 
 ###############################################################################
 __title__ = 'intertwine'
@@ -48,10 +45,10 @@ def create_app(config):
     Bootstrap(app)
 
     # Register all of the blueprints
-    app.register_blueprint(intertwine.main.blueprint, url_prefix='/')
-    app.register_blueprint(intertwine.auth.blueprint, url_prefix='/auth')
-    app.register_blueprint(intertwine.signup.blueprint, url_prefix='/signup')
-    app.register_blueprint(intertwine.problems.blueprint, url_prefix='/problems')
+    app.register_blueprint(main.blueprint, url_prefix='/')
+    app.register_blueprint(auth.blueprint, url_prefix='/auth')
+    app.register_blueprint(signup.blueprint, url_prefix='/signup')
+    app.register_blueprint(problems.blueprint, url_prefix='/problems')
 
     if app.config['DEBUG']:
         toolbar.init_app(app)

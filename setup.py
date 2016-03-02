@@ -48,6 +48,7 @@ except ImportError:
 setup_requires = [
     'pip',                  # MIT
     'pytest-runner',        # MIT
+    'libsass >= 0.6.0',     # MIT
 ]
 
 # Identifies what is needed to run this package
@@ -99,6 +100,13 @@ deploy_requires = [
 ]
 
 
+# Identifies what is used for debugging
+debug_requires = [
+    'ipython',
+    'ipdb',
+    'pdbpp'
+]
+
 # Identifies what is needed for generating documentation
 doc_requires = [
     'sphinx',               # BSD
@@ -112,6 +120,7 @@ extras_requires = {
             script_requires +
             dev_requires +
             testing_requires +
+            debug_requires +
             deploy_requires),
     'docs': doc_requires,
     'deploy': deploy_requires,
@@ -138,36 +147,6 @@ extras_requires = {
 #     'visitor',              # MIT
 #     'wheel',                # MIT
 
-###############################################################################
-#  Commands
-###############################################################################
-# Setup test installation
-class PyTest(TestCommand):
-    test_package_name = package_name
-
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        _test_args = [
-            '--verbose',
-            '--ignore=build',
-            '--cov={0}'.format(self.test_package_name),
-            '--cov-report=term-missing',
-            '--pep8',
-            '--flake8',
-            '--norecursedirs'
-        ]
-        extra_args = os.environ.get('PYTEST_EXTRA_ARGS')
-        if extra_args is not None:
-            _test_args.extend(extra_args.split())
-        self.test_args = _test_args
-        self.test_suite = True
-
-    def run_tests(self):
-        import pytest
-        errno = pytest.main(self.test_args)
-        sys.exit(errno)
-
-
 setup(
     name=data.get('title'),
     version=data.get('version'),
@@ -193,5 +172,4 @@ setup(
     extras_require=extras_requires,
     tests_require=testing_requires,
     test_suite='tests',
-    cmdclass={'test': PyTest},
 )
