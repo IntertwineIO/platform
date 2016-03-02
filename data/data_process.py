@@ -12,6 +12,7 @@ Options:
 '''
 from __future__ import print_function
 
+import io
 import json
 import logging
 import os
@@ -84,7 +85,7 @@ def decode(json_path, *args, **options):
     # Load raw json_data from each of the json_paths
     json_data = []
     for path in json_paths:
-        with open(path) as json_file:
+        with io.open(path) as json_file:
             # TODO: May need to change this to load incrementally in the future
             json_data.append(json.load(json_file))
 
