@@ -1,18 +1,48 @@
-// Just a starting point
 {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+
     "definitions": {
+
         "problem": {
             "type": "object",
             "properties": {
-                "title": {"type": "string"},
-                "description": {"type": "string", "default": ""},
-                "summary": {"type": "string", "default": ""},
-                "drivers": {"type": "array", "default": []},
-                "broad": {"type": "array", "default": []},
-                "narrow": {"type": "array", "default": []},
-                "impacts": {"type": "array", "default": []}
+                "definition": {"type": "string", "default": ""},
+                "definition_url": {"type": "string", "default": ""},
+                "images": {"type": "array", "default": [], "items": {"type": "string"}},
+                "drivers": {"type": "array", "default": [],
+                    "items": {"$ref": "#/definitions/problem_connection"}},
+                "impacts": {"type": "array", "default": [],
+                    "items": {"$ref": "#/definitions/problem_connection"}},
+                "broader": {"type": "array", "default": [],
+                    "items": {"$ref": "#/definitions/problem_connection"}},
+                "narrower": {"type": "array", "default": [],
+                    "items": {"$ref": "#/definitions/problem_connection"}}
             },
-            "required": ["title"]
+            "required": ["name"],
+            "additionalProperties": false
+        },
+
+        "problem_connection": {
+            "type": "object",
+            "properties": {
+                "adjacent_problem": {"type": "string"},
+                "problem_connection_ratings": {"type": "array", "default": [],
+                    "items": {"$ref": "#/definitions/problem_connection_rating"}}
+            },
+            "required": ["adjacent_problem"],
+            "additionalProperties": false
+        },
+
+        "problem_connection_rating": {
+            "type": "object",
+            "properties": {
+                "rating": {"type": "integer", "minimum": 0, "maximum": 4},
+                "user_id": {"type": "string", "default": ""},
+                "geo_scope": {"type": "string", "default": "global"},
+                "org_scope": {"type": "string", "default": ""}
+            },
+            "required": ["rating", "user_id", "geo_scope", "org_scope"],
+            "additionalProperties": false
         }
     }
 }

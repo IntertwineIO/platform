@@ -53,9 +53,7 @@ setup_requires = [
 # Identifies what is needed to run this package
 install_requires = [
     'flask',                # BSD
-    'flask-admin',          # BSD
     'flask-bootstrap',      # BSD
-    'flask-restless',       # BSD
     'flask-security',       # MIT
     'flask-sqlalchemy',     # BSD
     'flask-wtf',            # BSD
@@ -64,13 +62,10 @@ install_requires = [
     'urlnorm',              # MIT
     # 'flask-login',          # MIT
     # 'Jinja2',               # BSD
-    # 'python-dateutil',      # PSF
-    # 'mimerender',           # MIT
     # 'six',                  # MIT
     # 'SQLAlchemy',           # MIT
     # 'Werkzeug',             # BSD
     # 'WTForms',              # BSD
-    # 'dominate',             # GPL3 variant - remove from Intertwine?
 ]
 
 # Identifies what is needed to run this package as a developer
@@ -129,6 +124,7 @@ extras_requires = {
 #     'Babel',                # BSD
 #     'blinker',              # MIT
 #     'docutils',             # GPL3 for tools/editors/emacs/rst.el; rest is public domain, Python, BSD
+#     'dominate',             # GPL3 variant - remove from Intertwine?
 #     'execnet',              # MIT
 #     'Flask-Mail',           # BSD
 #     'Flask-Principal',      # MIT
@@ -184,7 +180,6 @@ setup(
     packages=[package_name],
     package_data={},
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
         'License :: Other/Proprietary License',
         'Operating System :: OS Independent',

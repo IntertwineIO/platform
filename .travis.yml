@@ -33,7 +33,7 @@ install:
 
 before_script:
   # Required for running a test
-  - pip install .[test]
+  - pip install .[tests]
 
 # command to run tests
 script:

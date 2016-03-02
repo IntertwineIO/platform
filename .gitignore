@@ -43,6 +43,9 @@ nosetests.xml
 coverage.xml
 *,cover
 
+# Directory of test files such as input history %saved from ipython
+test/
+
 # Translations
 *.mo
 *.pot
@@ -66,7 +69,6 @@ venv*/
 
 # Icon must end with two \r
 Icon
-
 
 # Thumbnails
 ._*
