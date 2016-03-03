@@ -8,14 +8,11 @@ Untangle the world's problems
 Created by Intertwine
 Copyright (c) 2015, 2016
 
-License:  Proprietary.  All rights reserved.
+License:  Proprietary.
 '''
-import os
 import re
-import sys
 
 from setuptools import setup
-from setuptools.command.test import test as TestCommand
 
 package_name = 'intertwine'
 # Grab package information without importing
@@ -46,52 +43,43 @@ except ImportError:
 ###############################################################################
 # Identifies what is needed to prior to running setup
 setup_requires = [
-    'pip',                  # MIT
-    'pytest-runner',        # MIT
-    'libsass >= 0.6.0',     # MIT
+    'pip',
+    'pytest-runner',
+    'libsass >= 0.6.0',
 ]
 
 # Identifies what is needed to run this package
 install_requires = [
-    'flask',                # BSD
-    'flask-bootstrap',      # BSD
-    'flask-security',       # MIT
-    'flask-sqlalchemy',     # BSD
-    'flask-wtf',            # BSD
-    'future',               # MIT
-    'titlecase',            # MIT
-    'urlnorm',              # MIT
-    # 'flask-login',          # MIT
-    # 'Jinja2',               # BSD
-    # 'six',                  # MIT
-    # 'SQLAlchemy',           # MIT
-    # 'Werkzeug',             # BSD
-    # 'WTForms',              # BSD
+    'flask',
+    'flask-bootstrap',
+    'flask-security',
+    'flask-sqlalchemy',
+    'flask-wtf',
+    'future',
+    'titlecase',
+    'urlnorm',
 ]
 
 # Identifies what is needed to run this package as a developer
 dev_requires = [
-    'flask-debugtoolbar',   # BSD
+    'flask-debugtoolbar',
 ]
 
 # Identifies what is needed to run the scripts included
 script_requires = [
-    'docopt',               # MIT
-    'pyyaml',               # MIT
+    'docopt',
+    'pyyaml',
 ]
 
 # Identifies what is needed for tests to run
 testing_requires = [
-    'flask-debugtoolbar',   # BSD
-    'pytest',               # MIT
-    'pytest-cov',           # MIT
-    'pytest-flake8',        # BSD
-    'pytest-xdist',         # MIT
-    # 'coverage',             # Apache
-    # 'flake8',               # MIT
-    # 'mccabe',               # Expat
-    # 'pep8',                 # Expat
-    # 'pyflakes',             # MIT
+    'detox',
+    'flask-debugtoolbar',
+    'pytest',
+    'pytest-cov',
+    'pytest-flake8',
+    'pytest-xdist',
+    'tox',
 ]
 
 
@@ -109,10 +97,7 @@ debug_requires = [
 
 # Identifies what is needed for generating documentation
 doc_requires = [
-    'sphinx',               # BSD
-    # 'alabaster',            # BSD
-    # 'pypandoc',             # MIT
-    # 'sphinx-rtd-theme',     # MIT
+    'sphinx',
 ]
 
 extras_requires = {
@@ -127,25 +112,6 @@ extras_requires = {
     'script': script_requires,
     'tests': testing_requires,
 }
-
-# In requirements.txt, but not categorized above:
-#     'apipkg',               # MIT
-#     'Babel',                # BSD
-#     'blinker',              # MIT
-#     'docutils',             # GPL3 for tools/editors/emacs/rst.el; rest is public domain, Python, BSD
-#     'dominate',             # GPL3 variant - remove from Intertwine?
-#     'execnet',              # MIT
-#     'Flask-Mail',           # BSD
-#     'Flask-Principal',      # MIT
-#     'itsdangerous',         # BSD
-#     'MarkupSafe',           # BSD
-#     'passlib',              # BSD
-#     'py',                   # MIT
-#     'Pygments',             # BSD
-#     'pytz',                 # MIT
-#     'snowballstemmer',      # BSD
-#     'visitor',              # MIT
-#     'wheel',                # MIT
 
 setup(
     name=data.get('title'),

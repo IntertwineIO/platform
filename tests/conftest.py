@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import pytest
+
 from intertwine.config import ToxConfig
 
 collect_ignore = ["setup.py"]
+
+
+def pytest_addoption(parser):
+    parser.addoption('--license', action='store_true', help='setup license test')
 
 
 @pytest.fixture(scope="module")
