@@ -47,6 +47,3 @@ def test_table_generation(options):
 
     with app.app_context():
         assert os.path.exists(filepath)
-
-
-
