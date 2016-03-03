@@ -26,7 +26,7 @@ before_install:
   - sudo apt-get update -qq
 
   # Install dependencies
-  - sudo apt-get install automake libtool git
+  - sudo apt-get install -qq automake libtool git
 
   # Fetch sources
   - git clone https://github.com/sass/libsass.git
