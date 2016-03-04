@@ -34,6 +34,7 @@ def decode_problems(json_data):
     Resets tracking of updates via the Trackable metaclass each time it
     is called.
     '''
+    Trackable.register_existing()
     Trackable.clear_updates()
 
     for json_data_load in json_data:

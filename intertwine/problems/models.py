@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import (
     declarative_base,
     DeclarativeMeta,
     declared_attr,
 )
+
 from titlecase import titlecase
 import urlnorm
 
@@ -19,6 +22,8 @@ from .exceptions import (
     InvalidConnectionType,
     CircularConnection,
 )
+
+from intertwine.config import DevConfig  # Used to get db config
 
 
 class Trackable(DeclarativeMeta):
@@ -52,14 +57,14 @@ class Trackable(DeclarativeMeta):
         # track any new or modified instances
         attr['_updates'] = set()
         new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
-        meta._classes[name] = new_cls
+        if new_cls.__name__ != 'Base':
+            meta._classes[name] = new_cls
         return new_cls
 
-    def __call__(cls, key=None, *args, **kwds):
-        if key is None:
-            key = cls.create_key(*args, **kwds)
-            if key is None or key == '':
-                raise InvalidRegistryKey(key=key, classname=cls.__name__)
+    def __call__(cls, *args, **kwds):
+        key = cls.create_key(*args, **kwds)
+        if key is None or key == '':
+            raise InvalidRegistryKey(key=key, classname=cls.__name__)
         inst = cls._instances.get(key, None)
         if inst is None:
             inst = super(Trackable, cls).__call__(*args, **kwds)
@@ -85,6 +90,27 @@ class Trackable(DeclarativeMeta):
             yield v
 
     @classmethod
+    def register_existing(meta, *args):
+        '''Register existing instances of Trackable classes (in the DB)
+
+        If no arguments are provided, instances of all Trackable classes
+        in the database will be registered. If one or more classes are
+        passed as input, only these classes will have their instances
+        in the database registered. If a class is not Trackable, a
+        TypeError is raised.
+        '''
+        engine = create_engine(DevConfig.DATABASE, echo=True)
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        classes = meta._classes.values() if len(args) == 0 else args
+        for cls in classes:
+            if cls.__name__ not in meta._classes:
+                raise TypeError('{} not Trackable.'.format(cls.__name__))
+            instances = session.query(cls).all()
+            for inst in instances:
+                cls._instances[inst.derive_key()] = inst
+
+    @classmethod
     def clear_updates(meta, *args):
         '''Clear updates tracked by Trackable classes
 
@@ -93,14 +119,11 @@ class Trackable(DeclarativeMeta):
         as input, only these classes will have updates cleared. If a
         class is not Trackable, a TypeError is raised.
         '''
-        if len(args) == 0:
-            for cname, cls in meta._classes.items():
-                cls._updates = set()
-        else:
-            for cls in args:
-                if cls.__name__ not in meta._classes:
-                    raise TypeError('{} not Trackable.'.format(cls.__name__))
-                cls._updates = set()
+        classes = meta._classes.values() if len(args) == 0 else args
+        for cls in classes:
+            if cls.__name__ not in meta._classes:
+                raise TypeError('{} not Trackable.'.format(cls.__name__))
+            cls._updates = set()
 
     @classmethod
     def catalog_updates(meta, *args):
@@ -114,15 +137,12 @@ class Trackable(DeclarativeMeta):
         only updates from these classes will be included. If a class is
         not Trackable, a TypeError is raised.
         '''
+        classes = meta._classes.values() if len(args) == 0 else args
         updates = {}
-        if len(args) == 0:
-            for cname, cls in meta._classes.items():
-                updates[cname] = cls._updates
-        else:
-            for cls in args:
-                if cls.__name__ not in meta._classes:
-                    raise TypeError('{} not Trackable.'.format(cls.__name__))
-                updates[cls.__name__] = cls._updates
+        for cls in classes:
+            if cls.__name__ not in meta._classes:
+                raise TypeError('{} not Trackable.'.format(cls.__name__))
+            updates[cls.__name__] = cls._updates
         return updates
 
 
@@ -203,9 +223,9 @@ class Image(AutoTableMixin, BaseProblemModel):
         self.problem = problem
 
     def __repr__(self):
-        cname = self.__class__.__name__
-        form_str = '<{cname}: ({problem!r}) {url!r}>'
-        return form_str.format(cname=cname, problem=self.problem, url=self.url)
+        cls_name = self.__class__.__name__
+        form_str = '<{cls}: ({prob!r}) {url!r}>'
+        return form_str.format(cls=cls_name, prob=self.problem, url=self.url)
 
     def __str__(self):
         return '{url}'.format(url=self.url)
@@ -319,12 +339,9 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
                                                  connection=connection)
         if user_id is None or user_id == '':
             raise InvalidUser(user=user_id, connection=connection)
-        if connection.connection_type == 'causal':
-            p_a = connection.driving_problem
-            p_b = connection.impacted_problem
-        else:
-            p_a = connection.broader_problem
-            p_b = connection.narrower_problem
+        is_causal = connection.connection_type == 'causal'
+        p_a = connection.driver if is_causal else connection.broader
+        p_b = connection.impact if is_causal else connection.narrower
         if problem_scope not in (p_a, p_b):
             raise InvalidProblemScope(problem_scope=problem_scope,
                                       connection=connection)
@@ -353,8 +370,8 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
             self._modified.add(self)
 
     def __repr__(self):
-        cname = self.__class__.__name__
-        s = '<{cname}: {rating!r}\n'.format(cname=cname, rating=self.rating)
+        cls_name = self.__class__.__name__
+        s = '<{cls}: {rating!r}\n'.format(cls=cls_name, rating=self.rating)
         s += '  user: {user!r}\n'.format(user=self.user)
         s += '  connection: {conn!r}\n'.format(conn=self.connection)
         s += '  problem_scope: {prob!r}\n'.format(prob=self.problem_scope)
@@ -364,24 +381,23 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
         return s
 
     def __str__(self):
-        cname = self.__class__.__name__
-        prob = self.problem_scope.name
-        if self.connection.connection_type == 'causal':
-            p_a = self.connection.driving_problem.name
+        cls_name = self.__class__.__name__
+        p_name = self.problem_scope.name
+        conn = self.connection
+        is_causal = conn.connection_type == 'causal'
+        p_a = conn.driver.name if is_causal else conn.broader.name
+        if p_name == p_a:
+            conn_str = str(conn).replace(p_name, '@' + p_name, 1)
         else:
-            p_a = self.connection.broader_problem.name
-        if prob == p_a:
-            conn = str(self.connection).replace(prob, '@' + prob, 1)
-        else:
-            conn = ('@' + prob).join(str(self.connection).rsplit(prob, 1))
+            conn_str = ('@' + p_name).join(str(conn).rsplit(p_name, 1))
         rating = self.rating
         user = self.user
         org = self.org_scope
         geo = self.geo_scope
-        s = '{cname}: {rating} by {user}\n'.format(cname=cname,
-                                                   rating=rating,
-                                                   user=user)
-        s += '  on {conn}\n'.format(conn=conn)
+        s = '{cls}: {rating} by {user}\n'.format(cls=cls_name,
+                                                 rating=rating,
+                                                 user=user)
+        s += '  on {conn}\n'.format(conn=conn_str)
         s += '  at {org} '.format(org=org) if org is not None else '  '
         # TODO: convert to more friendly geo
         s += 'in {geo}'.format(geo=geo) if geo is not None else '(globally)'
@@ -396,24 +412,22 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
     and problem_b.
 
     In causal connections, problem_a drives problem_b, so problem_a is
-    the 'driving_problem' and problem_b is the 'impacted_problem' in the
-    database relationships. (Of course, this means from the perspective
-    of the driving_problem, the given connection is in the 'impacts'
-    field.)
+    the 'driver' and problem_b is the 'impact' in the database
+    relationships. (Of course, this means from the perspective
+    of the driver, the given connection is in the 'impacts' field.)
 
     In scoped connections, problem_a is broader than problem_b, so
-    problem_a is the 'broader_problem' and problem_b is the
-    'narrower_problem' in the database relationships. (Again, this means
-    from the perspective of the broader_problem, the given connection is
-    in the 'narrower' field.)
+    problem_a is 'broader' and problem_b is 'narrower' in the database
+    relationships. (Again, this means from the perspective of the
+    broader problem, the given connection is in the 'narrower' field.)
 
                   'causal'                          'scoped'
 
                                                     problem_a
-        problem_a    ->    problem_b            (broader_problem)
-    (driving_problem)  (impacted_problem)              ::
+        problem_a    ->    problem_b               ('broader')
+        ('driver')         ('impact')                  ::
                                                     problem_b
-                                                (narrower_problem)
+                                                   ('narrower')
 
     '''
 
@@ -449,12 +463,9 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
         connection_type, problem_a, and problem_b fields on the problem
         connection instance.
         '''
-        if self.connection_type == 'causal':
-            p_a = self.driving_problem
-            p_b = self.impacted_problem
-        else:
-            p_a = self.broader_problem
-            p_b = self.narrower_problem
+        is_causal = self.connection_type == 'causal'
+        p_a = self.driver if is_causal else self.broader
+        p_b = self.impact if is_causal else self.narrower
         return (self.connection_type, p_a, p_b)
 
     def __init__(self, connection_type, problem_a, problem_b,
@@ -520,29 +531,19 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
             self._modified.add(self)
 
     def __repr__(self):
-        # ct = '->' if self.connection_type == 'causal' else '::'
-        if self.connection_type == 'causal':
-            ct = '->'
-            p_a = self.driving_problem.name
-            p_b = self.impacted_problem.name
-        else:
-            ct = '::'
-            p_a = self.broader_problem.name
-            p_b = self.narrower_problem.name
-        return '<{cname}: ({conn_type}) {p_a!r} {ct} {p_b!r}>'.format(
-            cname=self.__class__.__name__,
+        is_causal = self.connection_type == 'causal'
+        ct = '->' if is_causal else '::'
+        p_a = self.driver.name if is_causal else self.broader.name
+        p_b = self.impact.name if is_causal else self.narrower.name
+        return '<{cls}: ({conn_type}) {p_a!r} {ct} {p_b!r}>'.format(
+            cls=self.__class__.__name__,
             conn_type=self.connection_type, p_a=p_a, ct=ct, p_b=p_b)
 
     def __str__(self):
-        # ct = '->' if self.connection_type == 'causal' else '::'
-        if self.connection_type == 'causal':
-            ct = '->'
-            p_a = self.driving_problem.name
-            p_b = self.impacted_problem.name
-        else:
-            ct = '::'
-            p_a = self.broader_problem.name
-            p_b = self.narrower_problem.name
+        is_causal = self.connection_type == 'causal'
+        ct = '->' if is_causal else '::'
+        p_a = self.driver.name if is_causal else self.broader.name
+        p_b = self.impact.name if is_causal else self.narrower.name
         return '{p_a} {ct} {p_b}'.format(p_a=p_a, ct=ct, p_b=p_b)
 
 
@@ -577,25 +578,25 @@ class Problem(AutoTableMixin, BaseProblemModel):
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
                             "ProblemConnection.connection_type=='causal')",
-                backref='impacted_problem',
+                backref='impact',
                 lazy='dynamic')
     impacts = db.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
                             "ProblemConnection.connection_type=='causal')",
-                backref='driving_problem',
+                backref='driver',
                 lazy='dynamic')
     broader = db.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
                             "ProblemConnection.connection_type=='scoped')",
-                backref='narrower_problem',
+                backref='narrower',
                 lazy='dynamic')
     narrower = db.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
                             "ProblemConnection.connection_type=='scoped')",
-                backref='broader_problem',
+                backref='broader',
                 lazy='dynamic')
 
     @staticmethod
@@ -722,8 +723,8 @@ class Problem(AutoTableMixin, BaseProblemModel):
             self._modified.add(self)
 
     def __repr__(self):
-        cname = self.__class__.__name__
-        return '<{cname}: {name!r}>'.format(cname=cname, name=self.name)
+        cls_name = self.__class__.__name__
+        return '<{cls}: {prob!r}>'.format(cls=cls_name, prob=self.name)
 
     def __str__(self):
         indent = ' ' * 4
@@ -732,10 +733,10 @@ class Problem(AutoTableMixin, BaseProblemModel):
             definition=self.definition,
             definition_url=self.definition_url,
             images=[i.url for i in self.images],
-            drivers=[c.driving_problem.name for c in self.drivers],
-            impacts=[c.impacted_problem.name for c in self.impacts],
-            broader=[c.broader_problem.name for c in self.broader],
-            narrower=[c.narrower_problem.name for c in self.narrower],
+            drivers=[c.driver.name for c in self.drivers],
+            impacts=[c.impact.name for c in self.impacts],
+            broader=[c.broader.name for c in self.broader],
+            narrower=[c.narrower.name for c in self.narrower],
         )
         field_order = ['name', 'definition', 'definition_url', 'images',
                        'drivers', 'impacts', 'broader', 'narrower']
