@@ -99,7 +99,7 @@ class Trackable(DeclarativeMeta):
         in the database registered. If a class is not Trackable, a
         TypeError is raised.
         '''
-        engine = create_engine(DevConfig.DATABASE, echo=True)
+        engine = create_engine(DevConfig.DATABASE)
         Session = sessionmaker(bind=engine)
         session = Session()
         classes = meta._classes.values() if len(args) == 0 else args
