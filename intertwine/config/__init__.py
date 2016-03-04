@@ -19,5 +19,5 @@ class DevConfig(DevelopmentConfig, LocalConfig, SqlLiteConfig):
     '''Standard development environment configuration'''
 
 
-class ToxConfig(TestingConfig, LocalConfig, SqlLiteConfig):
+class ToxConfig(TestingConfig, LocalConfig, InMemoryConfig):
     '''Standard development for tox testing'''
