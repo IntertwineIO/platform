@@ -319,7 +319,13 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
                                                  connection=connection)
         if user_id is None or user_id == '':
             raise InvalidUser(user=user_id, connection=connection)
-        if problem_scope not in (connection.problem_a, connection.problem_b):
+        if connection.connection_type == 'causal':
+            p_a = connection.driving_problem
+            p_b = connection.impacted_problem
+        else:
+            p_a = connection.broader_problem
+            p_b = connection.narrower_problem
+        if problem_scope not in (p_a, p_b):
             raise InvalidProblemScope(problem_scope=problem_scope,
                                       connection=connection)
         self.rating = rating
@@ -360,7 +366,11 @@ class ProblemConnectionRating(AutoTableMixin, BaseProblemModel):
     def __str__(self):
         cname = self.__class__.__name__
         prob = self.problem_scope.name
-        if prob == self.connection.problem_a.name:
+        if self.connection.connection_type == 'causal':
+            p_a = self.connection.driving_problem.name
+        else:
+            p_a = self.connection.broader_problem.name
+        if prob == p_a:
             conn = str(self.connection).replace(prob, '@' + prob, 1)
         else:
             conn = ('@' + prob).join(str(self.connection).rsplit(prob, 1))
@@ -439,7 +449,13 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
         connection_type, problem_a, and problem_b fields on the problem
         connection instance.
         '''
-        return (self.connection_type, self.problem_a, self.problem_b)
+        if self.connection_type == 'causal':
+            p_a = self.driving_problem
+            p_b = self.impacted_problem
+        else:
+            p_a = self.broader_problem
+            p_b = self.narrower_problem
+        return (self.connection_type, p_a, p_b)
 
     def __init__(self, connection_type, problem_a, problem_b,
                  ratings_data=None, problem_scope=None):
@@ -504,18 +520,30 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
             self._modified.add(self)
 
     def __repr__(self):
-        ct = '->' if self.connection_type == 'causal' else '::'
+        # ct = '->' if self.connection_type == 'causal' else '::'
+        if self.connection_type == 'causal':
+            ct = '->'
+            p_a = self.driving_problem.name
+            p_b = self.impacted_problem.name
+        else:
+            ct = '::'
+            p_a = self.broader_problem.name
+            p_b = self.narrower_problem.name
         return '<{cname}: ({conn_type}) {p_a!r} {ct} {p_b!r}>'.format(
             cname=self.__class__.__name__,
-            conn_type=self.connection_type,
-            p_a=self.problem_a.name, ct=ct, p_b=self.problem_b.name)
+            conn_type=self.connection_type, p_a=p_a, ct=ct, p_b=p_b)
 
     def __str__(self):
-        ct = '->' if self.connection_type == 'causal' else '::'
-        return '{p_a} {ct} {p_b}'.format(
-            p_a=self.problem_a.name,
-            ct=ct,
-            p_b=self.problem_b.name)
+        # ct = '->' if self.connection_type == 'causal' else '::'
+        if self.connection_type == 'causal':
+            ct = '->'
+            p_a = self.driving_problem.name
+            p_b = self.impacted_problem.name
+        else:
+            ct = '::'
+            p_a = self.broader_problem.name
+            p_b = self.narrower_problem.name
+        return '{p_a} {ct} {p_b}'.format(p_a=p_a, ct=ct, p_b=p_b)
 
 
 class Problem(AutoTableMixin, BaseProblemModel):
@@ -704,10 +732,10 @@ class Problem(AutoTableMixin, BaseProblemModel):
             definition=self.definition,
             definition_url=self.definition_url,
             images=[i.url for i in self.images],
-            drivers=[c.problem_a.name for c in self.drivers],
-            impacts=[c.problem_b.name for c in self.impacts],
-            broader=[c.problem_a.name for c in self.broader],
-            narrower=[c.problem_b.name for c in self.narrower],
+            drivers=[c.driving_problem.name for c in self.drivers],
+            impacts=[c.impacted_problem.name for c in self.impacts],
+            broader=[c.broader_problem.name for c in self.broader],
+            narrower=[c.narrower_problem.name for c in self.narrower],
         )
         field_order = ['name', 'definition', 'definition_url', 'images',
                        'drivers', 'impacts', 'broader', 'narrower']
