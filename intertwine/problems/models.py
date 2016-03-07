@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import (
     declarative_base,
     DeclarativeMeta,
@@ -23,26 +21,26 @@ from .exceptions import (
     CircularConnection,
 )
 
-from intertwine.config import DevConfig  # Used to get db config
-
 
 class Trackable(DeclarativeMeta):
     '''Metaclass providing ability to track instances
 
     Each class of type Trackable maintains a registry of instances and
     only creates a new instance if it does not already exist. Existing
-    instances can be updated with new data if a 'modify' method has been
-    defined.
+    instances can be updated with new data using the constructor if a
+    'modify' method has been defined.
 
-    The registry key for an instance can either be explicitly provided
-    by passing it in the 'key' parameter or constructed using the
-    'create_key' method on the class (if 'key' is None).
+    A 'create_key' staticmethod must be defined on each Trackable class
+    that returns a registry key based on the classes constructor input.
+    A 'derive_key' (instance) method must also be defined on each
+    Trackable class that returns the registry key based on the
+    instance's data.
 
-    Any updates that result from the creation or modification
-    of the instance can also be tracked. New instance creations are tracked
-    automatically. Modifications of instances must be tracked using the
-    '_modified' field on the instance, which is the set of instances of
-    the same type that were modified.
+    Any updates that result from the creation or modification of an
+    instance using the class constructor can also be tracked. New
+    instances are tracked automatically. Modifications of instances may
+    be tracked using the '_modified' field on the instance, which is the
+    set of instances of the same type that were modified.
 
     A class of type Trackable is subscriptable (indexed by key) and
     iterable.
@@ -86,22 +84,19 @@ class Trackable(DeclarativeMeta):
         cls._instances[key] = value
 
     def __iter__(cls):
-        for k, v in cls._instances.items():
-            yield v
+        for inst in cls._instances.values():
+            yield inst
 
     @classmethod
-    def register_existing(meta, *args):
+    def register_existing(meta, session, *args):
         '''Register existing instances of Trackable classes (in the DB)
 
-        If no arguments are provided, instances of all Trackable classes
-        in the database will be registered. If one or more classes are
-        passed as input, only these classes will have their instances
-        in the database registered. If a class is not Trackable, a
-        TypeError is raised.
+        Takes a session and optional Trackable classes as input. The
+        specified classes have their instances loaded from the database
+        and registered. If no classes are provided, instances of all
+        Trackable classes are loaded from the database and registered.
+        If a class is not Trackable, a TypeError is raised.
         '''
-        engine = create_engine(DevConfig.DATABASE)
-        Session = sessionmaker(bind=engine)
-        session = Session()
         classes = meta._classes.values() if len(args) == 0 else args
         for cls in classes:
             if cls.__name__ not in meta._classes:
@@ -111,12 +106,27 @@ class Trackable(DeclarativeMeta):
                 cls._instances[inst.derive_key()] = inst
 
     @classmethod
+    def clear_instances(meta, *args):
+        '''Clear instances tracked by Trackable classes
+
+        If no arguments are provided, all Trackable classes have their
+        instances cleared from the registry. If one or more classes are
+        passed as input, only these classes have their instances
+        cleared. If a class is not Trackable, a TypeError is raised.
+        '''
+        classes = meta._classes.values() if len(args) == 0 else args
+        for cls in classes:
+            if cls.__name__ not in meta._classes:
+                raise TypeError('{} not Trackable.'.format(cls.__name__))
+            cls._instances = {}
+
+    @classmethod
     def clear_updates(meta, *args):
         '''Clear updates tracked by Trackable classes
 
-        If no arguments are provided, all Trackable classes will have
+        If no arguments are provided, all Trackable classes have their
         updates cleared (i.e. reset). If one or more classes are passed
-        as input, only these classes will have updates cleared. If a
+        as input, only these classes have their updates cleared. If a
         class is not Trackable, a TypeError is raised.
         '''
         classes = meta._classes.values() if len(args) == 0 else args
@@ -133,9 +143,9 @@ class Trackable(DeclarativeMeta):
         the corresponding sets of updated instances.
 
         If no arguments are provided, updates for all Trackable classes
-        will be included. If one or more classes are passed as input,
-        only updates from these classes will be included. If a class is
-        not Trackable, a TypeError is raised.
+        are included. If one or more classes are passed as input, only
+        updates from these classes are included. If a class is not
+        Trackable, a TypeError is raised.
         '''
         classes = meta._classes.values() if len(args) == 0 else args
         updates = {}
@@ -489,8 +499,11 @@ class ProblemConnection(AutoTableMixin, BaseProblemModel):
         if problem_a is problem_b:
             raise CircularConnection(problem=problem_a)
         self.connection_type = connection_type
-        self.problem_a = problem_a
-        self.problem_b = problem_b
+        is_causal = self.connection_type == 'causal'
+        self.driver = problem_a if is_causal else None
+        self.impact = problem_b if is_causal else None
+        self.broader = problem_a if not is_causal else None
+        self.narrower = problem_b if not is_causal else None
         self.ratings = []
 
         if ratings_data and problem_scope:

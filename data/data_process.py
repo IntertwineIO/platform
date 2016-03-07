@@ -34,7 +34,6 @@ def decode_problems(json_data):
     Resets tracking of updates via the Trackable metaclass each time it
     is called.
     '''
-    Trackable.register_existing()
     Trackable.clear_updates()
 
     for json_data_load in json_data:
@@ -44,7 +43,7 @@ def decode_problems(json_data):
     return Trackable.catalog_updates()
 
 
-def decode(json_path, *args, **options):
+def decode(session, json_path, *args, **options):
     '''Loads JSON files within a path and returns data structures
 
     Given a path to a JSON file or a directory containing JSON files,
@@ -98,7 +97,36 @@ def decode(json_path, *args, **options):
     function_name = 'decode_' + dir_name
     module = sys.modules[__name__]
     decode_function = getattr(module, function_name)
+    Trackable.register_existing(session)
     return decode_function(json_data)
+
+
+def erase_data(session, confirm=None):
+    '''Erase all data from database and clear tracking of all instances
+
+    For Trackable classes, erases all data from the database and clears
+    tracking of all instances. Prompts the user to confirm by typing
+    'ERASE'. Can alternatively take an optional confirm parameter with
+    a value of 'ERASE' to proceed without a user prompt.
+    '''
+    if confirm != 'ERASE':
+        prompt = ('This will erase *all* data from the database and ' +
+                  'clear tracking of all instances.\n' +
+                  'Type "ERASE" (all caps) to proceed.\n> ')
+        confirm = raw_input(prompt)
+
+    if confirm != 'ERASE':
+        print('Leaving data untouched.')
+    else:
+        print('Processing...')
+        classes = Trackable._classes.values()
+        Trackable.register_existing(session, *classes)
+        for cls in classes:
+            for inst in cls:
+                session.delete(inst)
+        session.commit()
+        Trackable.clear_instances()
+        print('Erase data has completed')
 
 
 if __name__ == '__main__':
