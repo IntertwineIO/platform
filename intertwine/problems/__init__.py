@@ -7,7 +7,8 @@ from flask import Blueprint
 from flask.ext.sqlalchemy import SQLAlchemy
 
 modname = __name__.split('.')[-1]
-blueprint = Blueprint(modname, __name__, template_folder='templates')
+blueprint = Blueprint(modname, __name__, template_folder='templates',
+                      static_folder='static')
 problems_db = SQLAlchemy()
 
 # Must come later as we use blueprint in views

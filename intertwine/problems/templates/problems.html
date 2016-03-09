@@ -1,5 +1,18 @@
 {% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block styles %}
+{{ super() }}
+<link href="{{ url_for('static', filename='problems/static/css/problems.css') }}"
+      rel="stylesheet" type="text/css">
+{% endblock %}
 
 {% block content %}
 <h1>Problems</h1>
+
+<div class="inner">
+    {% for problem in problems %}
+    <div><p><a href={{ problem.derive_key() }}> {{ problem.name }}</a></p></div>
+    {% endfor %}
+</div>
 {% endblock %}
