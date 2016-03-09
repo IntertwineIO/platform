@@ -45,4 +45,5 @@ def test_database_created(options):
     app.config['SERVER_NAME'] = '{}:{}'.format(host, port)
 
     with app.app_context():
-        assert os.path.exists(filepath)
+        if not filepath.endswith('://'):
+            assert os.path.exists(filepath)
