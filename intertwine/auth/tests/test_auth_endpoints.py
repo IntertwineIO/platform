@@ -31,7 +31,7 @@ def test_auth_admin_(options):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_table_generation(options):
+def test_auth_table_generation(options):
     '''Tests decoding incrementally'''
     import os
     from intertwine import create_app
@@ -46,4 +46,5 @@ def test_table_generation(options):
     app.config['SERVER_NAME'] = '{}:{}'.format(host, port)
 
     with app.app_context():
-        assert os.path.exists(filepath)
+        if not filepath.endswith('://'):
+            assert os.path.exists(filepath)
