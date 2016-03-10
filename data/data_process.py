@@ -30,7 +30,13 @@ from intertwine.problems.exceptions import InvalidJSONPath
 
 
 class DataSessionManager(object):
-    '''Base class for managing data sessions'''
+    '''Base class for managing data sessions
+
+    Takes an optional database configuration string as input (default is
+    DevConfig.DATABASE) and returns a session. In the process, the
+    engine, tables, session factory, and session are created only if
+    they do not already exist. The session returned is a scoped_session
+    '''
     engine = None
     session_factory = None
     session = None
@@ -42,6 +48,7 @@ class DataSessionManager(object):
         # Only create tables if they don't exist
         inspector = Inspector.from_engine(DSM.engine)
         if len(inspector.get_table_names()) == 0:
+            # TODO: update to include all models/tables
             BaseProblemModel.metadata.create_all(DSM.engine)
         if DSM.session_factory is None:
             DSM.session_factory = sessionmaker(bind=DSM.engine)
