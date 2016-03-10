@@ -19,8 +19,34 @@ import os
 import os.path
 import sys
 
-from intertwine.problems.models import (Trackable, Problem)
+from sqlalchemy import create_engine
+from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm import sessionmaker
+
+from intertwine.config import DevConfig
+from intertwine.problems.models import (Trackable, BaseProblemModel, Problem)
 from intertwine.problems.exceptions import InvalidJSONPath
+
+
+class DataSessionManager(object):
+    '''Base class for managing data sessions'''
+    engine = None
+    session_factory = None
+    session = None
+
+    def __init__(self, db_config=DevConfig.DATABASE):
+        DSM = DataSessionManager
+        if DSM.engine is None:
+            DSM.engine = create_engine(db_config)
+        # Only create tables if they don't exist
+        inspector = Inspector.from_engine(DSM.engine)
+        if len(inspector.get_table_names()) == 0:
+            BaseProblemModel.metadata.create_all(DSM.engine)
+        if DSM.session_factory is None:
+            DSM.session_factory = sessionmaker(bind=DSM.engine)
+        if DSM.session is None:
+            DSM.session = scoped_session(DSM.session_factory)
 
 
 def decode_problems(json_data):
