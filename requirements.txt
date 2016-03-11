@@ -1,3 +1,4 @@
+alchy==2.1.0
 apipkg==1.4
 appnope==0.1.0
 blinker==1.4
@@ -22,7 +23,6 @@ Flask-WTF==0.12
 future==0.15.2
 gnureadline==6.3.3
 greenlet==0.4.9
--e git+git@github.com:IntertwineIO/platform.git@91df172fa1c9c56838e3b79deee1e41d14fa88c1#egg=intertwine
 ipdb==0.9.0
 ipython==4.1.2
 ipython-genutils==0.1.0
@@ -40,6 +40,7 @@ pickleshare==0.6
 pluggy==0.3.1
 ptyprocess==0.5.1
 py==1.4.31
+pydash==3.4.1
 pyflakes==1.0.0
 Pygments==2.1.3
 pyrepl==0.8.4
@@ -55,9 +56,8 @@ titlecase==0.8.1
 tox==2.3.1
 traitlets==4.1.0
 urlnorm==1.1.3
-virtualenv==14.0.6
+virtualenv==15.0.0
 visitor==0.1.2
 Werkzeug==0.11.4
-wheel==0.29.0
 wmctrl==0.3
 WTForms==2.1

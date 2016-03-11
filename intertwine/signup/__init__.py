@@ -4,7 +4,7 @@
 Main application for website.  Contains default/non-modified views
 '''
 from flask import Blueprint
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 
 modname = __name__.split('.')[-1]
 blueprint = Blueprint(modname, __name__, template_folder='templates')

@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from sqlalchemy.ext.declarative import (
-    declarative_base,
-    DeclarativeMeta,
-    declared_attr,
-)
+from alchy.model import ModelBase, ModelMeta, make_declarative_base
+from past.builtins import basestring
+from sqlalchemy import orm, types, Column, ForeignKey, Index, UniqueConstraint
 
 from titlecase import titlecase
 import urlnorm
 
-from ..utils import camelCaseTo_snake_case
-from . import problems_db as db
+from ..utils import AutoTableMixin
+
+
 from .exceptions import (
     InvalidRegistryKey,
     InvalidEntity,
@@ -22,7 +21,7 @@ from .exceptions import (
 )
 
 
-class Trackable(DeclarativeMeta):
+class Trackable(ModelMeta):
     '''Metaclass providing ability to track instances
 
     Each class of type Trackable maintains a registry of instances and
@@ -156,25 +155,15 @@ class Trackable(DeclarativeMeta):
         return updates
 
 
-BaseProblemModel = declarative_base(metaclass=Trackable)
-
-
-class AutoTableMixin(object):
-    '''Automatically creates a table from class name'''
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    @declared_attr
-    def __tablename__(cls):
-        return camelCaseTo_snake_case(cls.__name__)
+BaseProblemModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
 
 
 class Image(BaseProblemModel, AutoTableMixin):
     '''Base class for images'''
 
-    url = db.Column(db.String(2048))
-    problem_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
-    problem = db.relationship('Problem', back_populates='images')
+    url = Column(types.String(2048))
+    problem_id = Column(types.Integer, ForeignKey('problem.id'))
+    problem = orm.relationship('Problem', back_populates='images')
 
     # TODO: add following:
     #
@@ -252,25 +241,26 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
     the perceived importance of A as a driver of B.
     '''
 
-    rating = db.Column(db.Integer)
+    rating = Column(types.Integer)
 
     # TODO: rename user to user_id, make it a foreign key, and create a
     #       user relationship
-    user = db.Column(db.String(60))
+    user = Column(types.String(60))
 
-    connection_id = db.Column(db.Integer, db.ForeignKey('problem_connection.id'))
-    problem_scope_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
+    connection_id = Column(types.Integer, ForeignKey('problem_connection.id'))
+    problem_scope_id = Column(types.Integer, ForeignKey('problem.id'))
 
     # TODO: rename geo_scope to geo_scope_id, make it a foreign key, and
     #       create a geo_scope relationship
-    geo_scope = db.Column(db.String(256))
+    geo_scope = Column(types.String(256))
 
     # TODO: rename org_scope to org_scope_id, make it a foreign key, and
     #       create an org_scope relationship
-    org_scope = db.Column(db.String(256))
+    org_scope = Column(types.String(256))
 
-    connection = db.relationship('ProblemConnection', back_populates='ratings')
-    problem_scope = db.relationship('Problem')
+    connection = orm.relationship('ProblemConnection',
+                                  back_populates='ratings')
+    problem_scope = orm.relationship('Problem')
 
     # Querying use cases:
     #
@@ -291,25 +281,25 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
     #    inputs including connection ratings.
     #    cols: user
     #
-    # __table_args__ = (db.UniqueConstraint('problem_scope_id',
-    #                                       'connection_id',
-    #                                       'org_scope',
-    #                                       'geo_scope',
-    #                                       'user',
-    #                                       name='uq_problem_connection_rating'),)
+    # __table_args__ = (UniqueConstraint('problem_scope_id',
+    #                                    'connection_id',
+    #                                    'org_scope',
+    #                                    'geo_scope',
+    #                                    'user',
+    #                                    name='uq_problem_connection_rating'),)
     #
-    __table_args__ = (db.Index('ux_problem_connection_rating',
-                               # ux for unique index
-                               'problem_scope_id',
-                               'connection_id',
-                               'org_scope',
-                               'geo_scope',
-                               'user',
-                               unique=True),
-                      db.Index('ix_problem_connection_rating:user+problem_scope_id',
-                               # ix for index
-                               'user',
-                               'problem_scope_id'),)
+    __table_args__ = (Index('ux_problem_connection_rating',
+                            # ux for unique index
+                            'problem_scope_id',
+                            'connection_id',
+                            'org_scope',
+                            'geo_scope',
+                            'user',
+                            unique=True),
+                      Index('ix_problem_connection_rating:user+problem_scope_id',
+                            # ix for index
+                            'user',
+                            'problem_scope_id'),)
 
     @staticmethod
     def create_key(user_id, connection, problem_scope,
@@ -441,16 +431,16 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
 
     '''
 
-    connection_type = db.Column(db.String(6))
-    problem_a_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
-    problem_b_id = db.Column(db.Integer, db.ForeignKey('problem.id'))
-    ratings = db.relationship('ProblemConnectionRating',
-                              back_populates='connection',
-                              lazy='dynamic')
-    __table_args__ = (db.UniqueConstraint('problem_a_id',
-                                          'problem_b_id',
-                                          'connection_type',
-                                          name='uq_problem_connection'),)
+    connection_type = Column(types.String(6))
+    problem_a_id = Column(types.Integer, ForeignKey('problem.id'))
+    problem_b_id = Column(types.Integer, ForeignKey('problem.id'))
+    ratings = orm.relationship('ProblemConnectionRating',
+                               back_populates='connection',
+                               lazy='dynamic')
+    __table_args__ = (UniqueConstraint('problem_a_id',
+                                       'problem_b_id',
+                                       'connection_type',
+                                       name='uq_problem_connection'),)
 
     # TODO: Add index for (connection_type, problem_a_id)
     # TODO: Add index for (connection_type, problem_b_id)
@@ -582,30 +572,32 @@ class Problem(BaseProblemModel, AutoTableMixin):
     Drivers/impacts are 'causal' connections while broader/narrower are
     'scoped' connections.
     '''
-    name = db.Column(db.String(60), index=True, unique=True)
-    definition = db.Column(db.String(200))
-    definition_url = db.Column(db.String(2048))
-    images = db.relationship('Image', back_populates='problem', lazy='dynamic')
-
-    drivers = db.relationship(
+    name = Column(types.String(60), index=True, unique=True)
+    definition = Column(types.String(200))
+    definition_url = Column(types.String(2048))
+    images = orm.relationship(
+                'Image',
+                back_populates='problem',
+                lazy='dynamic')
+    drivers = orm.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
                             "ProblemConnection.connection_type=='causal')",
                 backref='impact',
                 lazy='dynamic')
-    impacts = db.relationship(
+    impacts = orm.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
                             "ProblemConnection.connection_type=='causal')",
                 backref='driver',
                 lazy='dynamic')
-    broader = db.relationship(
+    broader = orm.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
                             "ProblemConnection.connection_type=='scoped')",
                 backref='narrower',
                 lazy='dynamic')
-    narrower = db.relationship(
+    narrower = orm.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
                             "ProblemConnection.connection_type=='scoped')",

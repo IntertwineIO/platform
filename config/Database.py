@@ -19,7 +19,7 @@ class InMemoryConfig(DefaultDatabaseConfig):
 class SqlLiteConfig(DefaultDatabaseConfig):
     '''Local SqlLite file'''
     DATABASE = 'sqlite:///{}'.format(
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'sqlite.db')
+        os.path.join(os.path.abspath(os.getcwd()), 'sqlite.db')
     )
     SQLALCHEMY_DATABASE_URI = DATABASE
 

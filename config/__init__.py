@@ -1,16 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''Provides a way to dynamically create a new environment if needed.
-
-Standard environments are:  Demo, Local and Dev
-
-TODO:  Test (staging) and Production
-'''
 from .Default import DefaultConfig, DevelopmentConfig, TestingConfig, ProductionConfig, DeployableConfig
-from .Environment import LocalConfig, HerokuConfig, VagrantConfig, AWSConfig
+from .Environment import LocalConfig, HerokuConfig, VagrantConfig, EBConfig, EC2Config
 from .Database import InMemoryConfig, SqlLiteConfig, PostgresConfig
 
-__all__ = ['DemoConfig', 'LocalDemoConfig', 'DevConfig']
+__all__ = ['DemoConfig', 'LocalDemoConfig', 'DevConfig', 'ToxConfig']
 
 
 class DemoConfig(DeployableConfig, HerokuConfig, SqlLiteConfig):
@@ -23,3 +17,7 @@ class LocalDemoConfig(DeployableConfig, LocalConfig, SqlLiteConfig):
 
 class DevConfig(DevelopmentConfig, LocalConfig, SqlLiteConfig):
     '''Standard development environment configuration'''
+
+
+class ToxConfig(TestingConfig, LocalConfig, InMemoryConfig):
+    '''Standard development for tox testing'''

@@ -1,26 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from flask.ext.security import UserMixin, RoleMixin
+from alchy.model import ModelBase, make_declarative_base
+from flask_security import UserMixin, RoleMixin
+from sqlalchemy import orm, types, Column, ForeignKey, Table
 
 from . import login_manager
-from . import auth_db
+from ..utils import AutoTableMixin
 
 
-roles_users = auth_db.Table(
+BaseAuthModel = make_declarative_base(Base=ModelBase,
+                                      # Meta=Trackable
+                                      )
+
+roles_users = Table(
     'roles_users',
-    auth_db.Column('user_id', auth_db.Integer(), auth_db.ForeignKey('users.id')),
-    auth_db.Column('role_id', auth_db.Integer(), auth_db.ForeignKey('roles.id'))
+    BaseAuthModel.metadata,
+    Column('user_id', types.Integer(), ForeignKey('users.id')),
+    Column('role_id', types.Integer(), ForeignKey('roles.id'))
 )
 
 
-class Role(auth_db.Model, RoleMixin):
+class Role(AutoTableMixin, RoleMixin, BaseAuthModel):
     '''Allows users to have different roles'''
 
     __tablename__ = 'roles'
 
-    id = auth_db.Column(auth_db.Integer, primary_key=True)
-    name = auth_db.Column(auth_db.String, unique=True)
-    description = auth_db.Column(auth_db.String)
+    id = Column(types.Integer, primary_key=True)
+    name = Column(types.String, unique=True)
+    description = Column(types.String)
 
     def __init__(self, name, description='', permissions=None):
         self.name = name
@@ -35,7 +42,7 @@ class Role(auth_db.Model, RoleMixin):
         return string
 
 
-class User(auth_db.Model, UserMixin):
+class User(AutoTableMixin, UserMixin, BaseAuthModel):
     '''Basic user model'''
 
     __tablename__ = 'users'
@@ -46,17 +53,17 @@ class User(auth_db.Model, UserMixin):
         'guest': ('guest', 'guest')
     }
 
-    id = auth_db.Column(auth_db.Integer, primary_key=True)
-    display_name = auth_db.Column(auth_db.String)
-    email = auth_db.Column(auth_db.String, unique=True)
-    username = auth_db.Column(auth_db.String, unique=True)
-    password = auth_db.Column(auth_db.String)
-    active = auth_db.Column(auth_db.Boolean())
-    confirmed_at = auth_db.Column(auth_db.DateTime())
-    roles = auth_db.relationship(
+    id = Column(types.Integer, primary_key=True)
+    display_name = Column(types.String)
+    email = Column(types.String, unique=True)
+    username = Column(types.String, unique=True)
+    password = Column(types.String)
+    active = Column(types.Boolean())
+    confirmed_at = Column(types.DateTime())
+    roles = orm.relationship(
         'Role',
         secondary=roles_users,
-        backref=auth_db.backref('users', lazy='dynamic')
+        backref=orm.backref('users', lazy='dynamic')
     )
 
     def __init__(self, username, password, email):

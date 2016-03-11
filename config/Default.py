@@ -50,3 +50,5 @@ class DeployableConfig(DefaultConfig):
 class ProductionConfig(DeployableConfig):
     '''For use on production system'''
     SERVER_NAME = 'intertwine.io'
+    SECRET_KEY = uuid4().bytes
+    PERMANENT_SESSION_LIFETIME = 60 * 120  # 2 hours: in seconds

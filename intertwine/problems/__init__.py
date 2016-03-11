@@ -4,22 +4,27 @@
 Problems for database.
 '''
 from flask import Blueprint
-from flask.ext.sqlalchemy import SQLAlchemy
+from alchy import Manager
+from alchy.model import extend_declarative_base
+
+from . import models
+
 
 modname = __name__.split('.')[-1]
 blueprint = Blueprint(modname, __name__, template_folder='templates',
                       static_folder='static')
-problems_db = SQLAlchemy()
 
-# Must come later as we use blueprint in views
+problem_db = Manager(Model=models.BaseProblemModel)
+
+# Attach query property to BaseProblemModel
+extend_declarative_base(models.BaseProblemModel, session=problem_db.session)
+
+# Must come later as we use blueprint and query property in views
 from . import views
-from . import models
 
 
 @blueprint.record_once
 def on_load(state):
-    # Sets up problems database tables
-    problems_db.init_app(state.app)
-    with state.app.app_context():
-        models.BaseProblemModel.metadata.create_all(bind=problems_db.engine)
-        problems_db.session.commit()
+    # Sets up problem database tables
+    problem_db.config.update(state.app.config)
+    problem_db.create_all()

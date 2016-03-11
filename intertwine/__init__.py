@@ -5,7 +5,7 @@ Base platform for intertwine.
 
 '''
 import flask
-from flask.ext.bootstrap import Bootstrap
+from flask_bootstrap import Bootstrap
 
 from . import auth, main, problems, signup
 
@@ -36,7 +36,7 @@ def create_app(config):
     if app.config['DEBUG']:
         app.config['SQLALCHEMY_ECHO'] = True
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-        from flask.ext.debugtoolbar import DebugToolbarExtension
+        from flask_debugtoolbar import DebugToolbarExtension
         toolbar = DebugToolbarExtension()
 
     # We are using bootstrap for now

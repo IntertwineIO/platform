@@ -50,6 +50,7 @@ setup_requires = [
 
 # Identifies what is needed to run this package
 install_requires = [
+    'alchy>2.0.1',
     'flask',
     'flask-bootstrap',
     'flask-security',
@@ -113,6 +114,12 @@ extras_requires = {
     'tests': testing_requires,
 }
 
+sass_manifests = {
+    data.get('title'): (
+        'static/sass', 'static/css', '/static/css'
+    )
+}
+
 setup(
     name=data.get('title'),
     version=data.get('version'),
@@ -135,7 +142,10 @@ setup(
     ],
     install_requires=install_requires,
     setup_requires=setup_requires,
+    sass_manifests=sass_manifests,
     extras_require=extras_requires,
     tests_require=testing_requires,
     test_suite='tests',
+    include_package_data=True,
+    zip_safe=False,
 )
