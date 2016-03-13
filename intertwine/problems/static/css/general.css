@@ -3,7 +3,7 @@
 body {
 	margin:0;
 	padding:0;
-	font-family:Arial;
+	font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
 	font-size:100%;
 	background-color:white; /* #EBF0FC #bed2fa; */
 	min-width:60em; /* 960px to preserves network structure */
@@ -21,17 +21,42 @@ a:hover {
 
 section {
 	font-size:1em;
-	color:#112a5c;
+	color:#1A1A1A;
 
 	/*background-color:white;*/
-	/*border: 0.05em solid #112a5c;*/
+	/*border: 0.05em solid #1A1A1A;*/
 }
 
 .section-label {
+	display:inline-block;
 	font-size:3em;
 	font-weight:bold;
-	padding-top:0.5em;
-	padding-bottom:0.5em;
+	padding-top:0.2em;
+	padding-bottom:0.2em;
+	padding-left:1em;
+	padding-right:0em;
+	text-align:left;
+	/*background-color:#EBF0FC;*/
+}
+
+
+.section-scope {
+	display:inline-block;
+	font-size:2em;
+	padding-top:0em;
+	padding-bottom:0em;
+	padding-left:0.5em;
+	padding-right:0em;
+	text-align:left;
+	/*background-color:#EBF0FC;*/
+}
+
+.section-tagline {
+	font-size:1.25em;
+	padding-top:0em;
+	padding-bottom:0em;
+	padding-left:2.4em;
+	padding-right:0em;
 	text-align:left;
 	/*background-color:#EBF0FC;*/
 }
@@ -47,7 +72,7 @@ section {
 #top-bar1 {
 	height:2em;
 	width:100%;
-	background-color:#112a5c;
+	background-color:#1A1A1A;
 }
 
 .bar1-text {
@@ -268,7 +293,7 @@ div.arrow-left {
 	height: 0;
 	border-bottom: 1em solid transparent;
 	border-top: 1em solid transparent;
-	border-right: 1em solid #112a5c;
+	border-right: 1em solid #1A1A1A;
 }
 
 div.arrow-right {
@@ -276,7 +301,7 @@ div.arrow-right {
 	height: 0;
 	border-bottom: 1em solid transparent;
 	border-top: 1em solid transparent;
-	border-left: 1em solid #112a5c;
+	border-left: 1em solid #1A1A1A;
 }
 
 div.arrow-up {
@@ -284,7 +309,7 @@ div.arrow-up {
 	height: 0;
 	border-left: 1em solid transparent;
 	border-right: 1em solid transparent;
-	border-bottom: 1em solid #112a5c;
+	border-bottom: 1em solid #1A1A1A;
 	margin-left:auto;
 	margin-right:auto;
 }
@@ -294,7 +319,7 @@ div.arrow-down {
 	height: 0;
 	border-left: 1em solid transparent;
 	border-right: 1em solid transparent;
-	border-top: 1em solid #112a5c;
+	border-top: 1em solid #1A1A1A;
 	margin-left:auto;
 	margin-right:auto;
 }

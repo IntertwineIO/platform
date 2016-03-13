@@ -14,8 +14,8 @@
 <header>
     <div class="v-large-spacer">a</div>
     <div class="v-large-spacer">a</div>
-    <h1 class="section-label">{{ problem.name }} in Austin, TX </h1>
-    <h4> An open innovation space sponsored by the Urban Institute </h4>
+    <div class="section-label"><h1>{{ problem.name }}</h1></div><div class="section-scope"><h2> in Austin, TX </h2></div>
+    <h4 class="section-tagline"> An open innovation space sponsored by the Urban Institute </h4>
 </header>
 <section>
     <div id="network-section">
@@ -27,7 +27,7 @@
       </span><!-- this comment is a hack to get rid of the newline between spans
    --><span class="side-buffer v-align-inner h-align-inner-left">
         <!-- add problem connection -->
-        <a href=""><img class="xx-small-icon h-medium-spacer" style="vertical-align:top" src="{{ url_for('static', filename='problems/static/images/add_node_blue_48x48.png') }}"/></a>
+        <!--a href=""><img class="xx-small-icon h-medium-spacer" style="vertical-align:top" src="{{ url_for('static', filename='problems/static/images/add_node_48x48.png') }}"/></a-->
       </span>
     </div>
 
@@ -36,21 +36,14 @@
       <span class="h-problem-scroll-container">
         <span class="v-align-inner"><a href=""><div class="arrow-left h-large-spacer"></div></a></span>
         <span class="h-align-inner v-align-inner-bottom">
-          <div class="h-problem-scroll macro-problem-connector">
-
+          <div class="h-problem-scroll broader-problem-connector">
+          {% for connection in problem.broader.all() %}
             <span class="related-problem h-problem v-align-outer">
             <!-- link to related problem page from text and node icon -->
-                <div class="h-problem-link-container v-align-inner-bottom"><a href="" class="problem-link"><h4>Poverty</h4></a></div>
-            <a href=""><img class="related-problem-icon v-medium-spacer" src="../images/node_blue_48x48.png"/></a>
+                <div class="h-problem-link-container v-align-inner-bottom"><a href="/problems/{{ connection.broader.derive_key() }}" class="problem-link"><h4>{{ connection.broader.name }}</h4></a></div>
+            <a href="/problems/{{ connection.broader.derive_key() }}"><img class="related-problem-icon v-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a>
           </span><!-- this comment is a hack to get rid of the newline between spans
-       --><span class="related-problem h-problem v-align-outer">
-                <div class="h-problem-link-container v-align-inner-bottom"><a href="" class="problem-link"><h4>Social Injustice</h4></a></div>
-                <a href=""><img class="related-problem-icon v-medium-spacer" src="../images/node_blue_48x48.png"/></a>
-            </span><!-- this comment is a hack to get rid of the newline between spans
-       --><span class="related-problem h-problem v-align-outer">
-            <div class="h-problem-link-container v-align-inner-bottom"><a href="" class="problem-link"><h4>Economic Inequality</h4></a></div>
-            <a href=""><img class="related-problem-icon v-medium-spacer" src="../images/node_blue_48x48.png"/></a>
-          </span>
+       -->{% endfor %}
 
           </div>
           </span>
@@ -63,7 +56,7 @@
     <div id="middle-problem-network-frame">
       <span class="v-problem-section v-align-outer">
         <span class="v-label-container h-align-inner">
-          <div class="relation-label rotate-upstream"><h3>Drivers</h3></div>
+          <div class="relation-label rotate-drivers"><h3>Drivers</h3></div>
         </span>
 
         <span class="v-problem-list-frame v-align-inner">
@@ -75,50 +68,14 @@
               </span>
             </div>
 
-            <div class="v-ghost-center-before v-problem-scroll upstream-problem-connector">
+            <div class="v-ghost-center-before v-problem-scroll driver-problem-connector">
               <div>
-
+              {% for connection in problem.drivers.all() %}
                 <div class="related-problem v-problem">
-                  <span class="v-align-inner v-problem-link-container"><a href="" class="problem-link"><h4>Mental Illness</h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" style="float:right" src="../images/node_blue_48x48.png"/></a></span>
+                  <span class="v-align-inner v-problem-link-container"><a href="/problems/{{ connection.driver.derive_key() }}" class="problem-link"><h4> {{ connection.driver.name }} </h4></a></span><!-- this comment is a hack to get rid of the newline between spans
+               --><span class="v-align-inner"><a href="/problems/{{ connection.driver.derive_key() }}"><img class="related-problem-icon h-medium-spacer" style="float:right" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a></span>
                 </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner v-problem-link-container"><a href="" class="problem-link"><h4>Substance Abuse</h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" style="float:right" src="../images/node_blue_48x48.png"/></a></span>
-                </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner v-problem-link-container"><a href="" class="problem-link"><h4>Trauma</h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" style="float:right" src="../images/node_blue_48x48.png"/></a></span>
-                </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner v-problem-link-container"><a href="" class="problem-link"><h4>Failures in the Foster Care System</h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" src="../images/node_blue_48x48.png"/></a></span>
-                </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner v-problem-link-container"><a href="" class="problem-link"><h4>Unemployment</h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" src="../images/node_blue_48x48.png"/></a></span>
-                </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner v-problem-link-container"><a href="" class="problem-link"><h4>Insufficient Wages</h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" style="float:right" src="../images/node_blue_48x48.png"/></a></span>
-                </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner v-problem-link-container"><a href="" class="problem-link"><h4>Lack of Affordable Housing</h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" src="../images/node_blue_48x48.png"/></a></span>
-                </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner v-problem-link-container"><a href="" class="problem-link"><h4>Exconvict Discrimination</h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" src="../images/node_blue_48x48.png"/></a></span>
-                </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner v-problem-link-container"><a href="" class="problem-link"><h4>Criminalization of Poverty</h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" src="../images/node_blue_48x48.png"/></a></span>
-                </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner v-problem-link-container"><a href="" class="problem-link"><h4>Refuge Crises</h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" src="../images/node_blue_48x48.png"/></a></span>
-                </div>
-
+              {% endfor %}
               </div>
             </div>
             <div class="v-arrow-container h-align-outer">
@@ -134,21 +91,21 @@
 
         <div class="h-align-outer">
           <div class="h-align-inner">
-            <span class="macro-problem-connector-left"></span><!-- this comment is a hack to get rid of the newline between spans
-         --><span class="macro-problem-connector-right"></span>
+            <span class="broader-problem-connector-left"></span><!-- this comment is a hack to get rid of the newline between spans
+         --><span class="broader-problem-connector-right"></span>
           </div>
         </div>
 
         <div class="h-align-outer">
           <span class="h-align-inner-left">
-            <div class="upstream-problem-connector-top"></div>
-            <div class="upstream-problem-connector-bottom"></div>
+            <div class="driver-problem-connector-top"></div>
+            <div class="driver-problem-connector-bottom"></div>
           </span><!-- this comment is a hack to get rid of the newline between spans
        --><span id="problem-focus-container">
-            <img id="problem-focus-image" src="../images/center_node_512x512.png">
+            <img id="problem-focus-image" src="{{ url_for('static', filename='problems/static/images/center_node_512x512.png') }}">
             <div id="problem-focus-label-container" class="v-align-outer">
               <div id="problem-focus-label" class="v-align-inner">
-                <h1>Homelessness<h1>
+                <h1>{{ problem.name }}<h1>
               </div>
             </div>
           </span><!-- this comment is a hack to get rid of the newline between spans
@@ -160,8 +117,8 @@
 
         <div class="h-align-outer">
           <div class="h-align-inner">
-            <span class="sub-problem-connector-left"></span><!-- this comment is a hack to get rid of the newline between spans
-         --><span class="sub-problem-connector-right"></span>
+            <span class="narrower-problem-connector-left"></span><!-- this comment is a hack to get rid of the newline between spans
+         --><span class="narrower-problem-connector-right"></span>
           </div>
         </div>
 
@@ -178,24 +135,12 @@
 
             <div class="v-ghost-center-after v-problem-scroll downstream-problem-connector">
               <div>
-
+              {% for connection in problem.impacts.all() %}
                 <div class="related-problem v-problem">
-                  <span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" src="../images/node_blue_48x48.png"/></h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-problem-link-container v-align-inner"><a href="" class="problem-link"><h4>Emergency Room Costs</a></span>
+                  <span class="v-align-inner"><a href="/problems/{{ connection.impact.derive_key() }}"><img class="related-problem-icon h-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></h4></a></span><!-- this comment is a hack to get rid of the newline between spans
+               --><span class="v-problem-link-container v-align-inner"><a href="/problems/{{ connection.impact.derive_key() }}" class="problem-link"><h4>{{ connection.impact.name }}</a></span>
                 </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" src="../images/node_blue_48x48.png"/></h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-problem-link-container v-align-inner"><a href="" class="problem-link"><h4>Law Enforcement Costs</a></span>
-                </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" src="../images/node_blue_48x48.png"/></h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-problem-link-container v-align-inner"><a href="" class="problem-link"><h4>Lower Property Values</a></span>
-                </div>
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner"><a href=""><img class="related-problem-icon h-medium-spacer" src="../images/node_blue_48x48.png"/></h4></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-problem-link-container v-align-inner"><a href="" class="problem-link"><h4>Reduced Tourism</a></span>
-                </div>
-
+              {% endfor %}
               </div>
             </div>
 
@@ -208,7 +153,7 @@
 
         </span>
         <span class="v-label-container h-align-inner">
-          <div class="relation-label rotate-downstream"><h3>Impacts</h3>
+          <div class="relation-label rotate-impacts"><h3>Impacts</h3>
           </div>
         </span>
       </span>
@@ -220,28 +165,13 @@
       <div class="h-problem-scroll-container h-align-outer">
         <span class="v-align-inner"><a href=""><div class="arrow-left h-large-spacer"></div></a></span>
         <div class="h-align-inner v-align-inner-top">
-          <div class="h-problem-scroll sub-problem-connector">
-
+          <div class="h-problem-scroll narrower-problem-connector">
+          {% for connection in problem.narrower.all() %}
             <span class="related-problem h-problem v-align-outer">
-              <a href=""><img class="related-problem-icon v-medium-spacer" src="../images/node_blue_48x48.png"/></a>
-              <div class="h-problem-link-container v-align-inner-top"><a href="" class="problem-link"><h4>Homeless Children</h4></a></div>
+              <a href="/problems/{{ connection.narrower.derive_key() }}"><img class="related-problem-icon v-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a>
+              <div class="h-problem-link-container v-align-inner-top"><a href="/problems/{{ connection.narrower.derive_key() }}" class="problem-link"><h4>{{ connection.narrower.name }}</h4></a></div>
             </span><!-- this comment is a hack to get rid of the newline between spans
-         --><span class="related-problem h-problem v-align-outer">
-              <a href=""><img class="related-problem-icon v-medium-spacer" src="../images/node_blue_48x48.png"/></a>
-              <div class="h-problem-link-container v-align-inner-top"><a href="" class="problem-link"><h4>Homeless Veterans</h4></a></div>
-            </span><!-- this comment is a hack to get rid of the newline between spans
-         --><span class="related-problem h-problem v-align-outer">
-              <a href=""><img class="related-problem-icon v-medium-spacer" src="../images/node_blue_48x48.png"/></a>
-              <div class="h-problem-link-container v-align-inner-top"><a href="" class="problem-link"><h4>Lack of Identification</h4></a></div>
-            </span><!-- this comment is a hack to get rid of the newline between spans
-         --><span class="related-problem h-problem v-align-outer">
-              <a href=""><img class="related-problem-icon v-medium-spacer" src="../images/node_blue_48x48.png"/></a>
-              <div class="h-problem-link-container v-align-inner-top"><a href="" class="problem-link"><h4>Lack of Coordination Between Health & Social Services</h4></a></div>
-            </span><!-- this comment is a hack to get rid of the newline between spans
-         --><span class="related-problem h-problem v-align-outer">
-              <a href=""><img class="related-problem-icon v-medium-spacer" src="../images/node_blue_48x48.png"/></a>
-              <div class="h-problem-link-container v-align-inner-top"><a href="" class="problem-link"><h4>Lack of Standard Metrics for Homeless</h4></a></div>
-            </span>
+       -->{% endfor %}
 
           </div>
         </div>
@@ -258,7 +188,7 @@
       </span><!-- this comment is a hack to get rid of the newline between spans
    --><span class="side-buffer v-align-inner h-align-inner-left">
         <!-- add problem connection -->
-        <a href=""><img class="xx-small-icon h-medium-spacer" style="vertical-align:top" src="../images/add_node_blue_48x48.png"/></a>
+        <!--a href=""><img class="xx-small-icon h-medium-spacer" style="vertical-align:top" src="{{ url_for('static', filename='problems/static/images/add_node_48x48.png') }}"/></a-->
       </span>
     </div>
 
