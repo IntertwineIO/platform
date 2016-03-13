@@ -7,48 +7,51 @@ import pytest
 @pytest.mark.smoke
 def test_problem_model(options):
     '''Tests simple problem model interaction'''
-    from intertwine import create_app
     from intertwine.config import ToxConfig
-    from intertwine.problems import problems_db
-    from intertwine.problems.models import Problem as Model
+    from intertwine.problems.models import Problem
+    from data.data_process import DataSessionManager, erase_data
 
-    app = create_app(ToxConfig)
-    with app.app_context():
-        session = problems_db.session
-        assert session is not None
-        assert session.query(Model).all() == []
-        problem_name = 'testProblem'
-        problem = Model(problem_name)
-        session.add(problem)
-        session.commit()
-        assert session.query(Model).all() != []
-        query = session.query(Model).filter_by(name='testProblem')
-        assert problem in query.all()
+    # DSM only creates a session if one doesn't exist
+    dsm = DataSessionManager(ToxConfig.DATABASE)
+    session = dsm.session
+    assert session is not None
+    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    problem_name = 'This is a Test Problem'
+    problem = Problem(problem_name)
+    session.add(problem)
+    session.commit()
+    assert session.query(Problem).first() == problem
 
 
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_problem_connection_model(options):
     '''Tests simple problem model interaction'''
-    from intertwine import create_app
     from intertwine.config import ToxConfig
-    from intertwine.problems import problems_db
-    from intertwine.problems.models import ProblemConnection, Problem
+    from intertwine.problems.models import Problem, ProblemConnection
+    from data.data_process import DataSessionManager, erase_data
 
-    app = create_app(ToxConfig)
-    with app.app_context():
-        session = problems_db.session
-        assert session is not None
-        assert session.query(ProblemConnection).all() == []
-        problem_name = 'testProblem'
-        problem1 = Problem(problem_name + '01')
-        problem2 = Problem(problem_name + '02')
-        connection = ProblemConnection('causal',problem1, problem2)
-        session.add(problem1)
-        session.add(problem2)
-        session.add(connection)
-        session.commit()
-        assert session.query(Problem).all() != []
-        assert session.query(ProblemConnection).all() != []
-        query = session.query(ProblemConnection)
-        assert connection in query.all()
+    # DSM only creates a session if one doesn't exist
+    dsm = DataSessionManager(ToxConfig.DATABASE)
+    session = dsm.session
+    assert session is not None
+    erase_data(session, confirm='ERASE')
+    assert session.query(ProblemConnection).all() == []
+    problem_name_base = 'Test Problem'
+    problem1 = Problem(problem_name_base + ' 01')
+    problem2 = Problem(problem_name_base + ' 02')
+    connection = ProblemConnection('causal', problem1, problem2)
+    session.add(problem1)
+    session.add(problem2)
+    session.add(connection)
+    session.commit()
+    problems = session.query(Problem).order_by(Problem.name).all()
+    assert len(problems) == 2
+    assert problems[0] == problem1
+    assert problems[1] == problem2
+    connections = session.query(ProblemConnection).all()
+    assert len(connections) == 1
+    assert connection == connections[0]
+    assert problem1.impacts.all()[0].impact == problem2
+    assert problem2.drivers.all()[0].driver == problem1
