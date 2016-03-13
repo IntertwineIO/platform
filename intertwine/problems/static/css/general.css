@@ -1,0 +1,333 @@
+
+
+body {
+	margin:0;
+	padding:0;
+	font-family:Arial;
+	font-size:100%;
+	background-color:white; /* #EBF0FC #bed2fa; */
+	min-width:60em; /* 960px to preserves network structure */
+	width: auto !important;  /* Firefox will set width as auto */
+    width:1000px;             /* As IE ignores !important it will set width as 1000px; */
+}
+
+a {
+	text-decoration:none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+section {
+	font-size:1em;
+	color:#112a5c;
+
+	/*background-color:white;*/
+	/*border: 0.05em solid #112a5c;*/
+}
+
+.section-label {
+	font-size:3em;
+	font-weight:bold;
+	padding-top:0.5em;
+	padding-bottom:0.5em;
+	text-align:left;
+	/*background-color:#EBF0FC;*/
+}
+
+#top-bar-container {
+	 position:fixed;
+	 z-index:10000;
+	 top:0px;
+	 width:100%;
+	 margin:auto;
+}
+
+#top-bar1 {
+	height:2em;
+	width:100%;
+	background-color:#112a5c;
+}
+
+.bar1-text {
+	color:white;
+	font-size:1.25em;
+}
+
+#top-bar2 {
+	height:2em;
+	background-color:#335080;
+}
+
+.bar2-text {
+	color:white;
+	font-size:1.25em;
+	vertical-align:middle;
+	text-align:center;
+}
+
+.icon-container {
+	 width:0.5em;
+}
+
+.intertwine-link {
+	color:white;
+}
+
+.side-buffer {
+	 width:50%;
+}
+
+.h-x-small-spacer {
+	margin-left:0.0625em;
+	margin-right:0.0625em;
+}
+
+.h-small-spacer {
+	margin-left:0.125em;
+	margin-right:0.125em;
+}
+
+.h-medium-spacer {
+	margin-left:0.25em;
+	margin-right:0.25em;
+}
+
+.h-large-spacer {
+	margin-left:0.5em;
+	margin-right:0.5em;
+}
+
+.v-x-small-spacer {
+	margin-top:0.0625em;
+	margin-bottom:0.0625em;
+}
+
+.v-small-spacer {
+	margin-top:0.125em;
+	margin-bottom:0.125em;
+}
+
+.v-medium-spacer {
+	margin-top:0.25em;
+	margin-bottom:0.25em;
+}
+
+.v-large-spacer {
+	margin-top:0.5em;
+	margin-bottom:0.5em;
+}
+
+.v-x-large-spacer {
+	margin-top:1.0em;
+	margin-bottom:1.0em;
+}
+
+.xx-small-icon {
+	width:0.8em;
+	height:auto;
+	vertical-align:middle;
+}
+
+.x-small-icon {
+	width:1em;
+	height:auto;
+	vertical-align:middle;
+}
+
+.small-icon {
+	width:1.25em;
+	height:auto;
+	vertical-align:middle;
+}
+
+.medium-icon {
+	width:1.5em;
+	height:auto;
+	vertical-align:middle;
+}
+
+/* helper is used by an empty span to allow other images in the same div to be vertically aligned */
+.img-v-align-helper {
+	display:inline-block;
+	height:100%;
+	vertical-align:middle;
+	margin: 0 auto;
+}
+
+.v-ghost-center-before {
+	position:relative;
+}
+.v-ghost-center-before::before {
+	display:inline-block;
+	vertical-align:middle;
+	height:100%;
+	content:"";
+	margin-right:-1em;
+}
+.v-ghost-center-before div {
+	display:inline-block;
+	vertical-align:middle;
+	text-align:right;
+	width:95%;
+}
+
+.v-ghost-center-after {
+	position:relative;
+}
+.v-ghost-center-after::after {
+	display:inline-block;
+	vertical-align:middle;
+	height:100%;
+	content:"";
+	margin-left:-1em;
+}
+.v-ghost-center-after div {
+	display:inline-block;
+	vertical-align:middle;
+	width:95%;
+}
+
+.center-outer {
+	position:relative;
+}
+
+.center-inner {
+	width:100%;
+	height:100%;
+	overflow:auto;
+	margin: auto;
+	position:absolute;
+	top:0;
+	left:0;
+	bottom:0;
+	right:0;
+}
+
+.v-align-outer {
+	display:table;
+	height:100%;
+	margin: 0 auto;
+/*	overflow:hidden; */
+}
+
+.v-align-inner {
+	display:table-cell;
+	vertical-align:middle;
+	margin: 0 auto;
+}
+
+.v-align-inner-top {
+	display:table-cell;
+	vertical-align:top;
+	margin: 0 auto;
+}
+
+.v-align-inner-bottom {
+	display:table-cell;
+	vertical-align:bottom;
+	margin: 0 auto;
+}
+
+.h-align-outer {
+	display:table;
+	width:100%;
+	margin: 0 auto;
+/*	overflow:hidden; */
+}
+
+.h-align-inner {
+	display:table-cell;
+	text-align:center;
+	margin: 0 auto;
+}
+
+.h-align-inner-left {
+	display:table-cell;
+	text-align:left;
+	margin: 0 auto;
+}
+
+.h-align-inner-right {
+	display:table-cell;
+	text-align:right;
+	margin: 0 auto;
+}
+
+.h-resizable {
+	resize:horizontal;
+}
+
+.not-resizable {
+	resize:none;
+}
+
+div.arrow-left {
+	width: 0;
+	height: 0;
+	border-bottom: 1em solid transparent;
+	border-top: 1em solid transparent;
+	border-right: 1em solid #112a5c;
+}
+
+div.arrow-right {
+	width: 0;
+	height: 0;
+	border-bottom: 1em solid transparent;
+	border-top: 1em solid transparent;
+	border-left: 1em solid #112a5c;
+}
+
+div.arrow-up {
+	width: 0;
+	height: 0;
+	border-left: 1em solid transparent;
+	border-right: 1em solid transparent;
+	border-bottom: 1em solid #112a5c;
+	margin-left:auto;
+	margin-right:auto;
+}
+
+div.arrow-down {
+	width: 0;
+	height: 0;
+	border-left: 1em solid transparent;
+	border-right: 1em solid transparent;
+	border-top: 1em solid #112a5c;
+	margin-left:auto;
+	margin-right:auto;
+}
+
+.rotate {
+  -webkit-transform: rotate(-90deg);
+  -moz-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  -o-transform: rotate(-90deg);
+  transform: rotate(-90deg);
+
+  /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
+  -webkit-transform-origin: 50% 50%;
+  -moz-transform-origin: 50% 50%;
+  -ms-transform-origin: 50% 50%;
+  -o-transform-origin: 50% 50%;
+  transform-origin: 50% 50%;
+
+  /* Should be unset in IE9+ I think. */
+  filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+}
+
+
+.main-nav ul {
+	margin-left: 10%;
+	margin-right: 10%;
+}
+
+
+.main-nav li {
+	float: right;
+	padding-left: 15px;
+	padding-right: 15px;
+}
+
+

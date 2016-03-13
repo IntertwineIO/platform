@@ -1,0 +1,307 @@
+#network-section {
+	margin-top:4em;
+	color:#112a5c;
+	vertical-align:top;
+	text-align:center;
+}
+
+#middle-problem-network-frame {
+	height:28em;
+	width:auto;
+}
+
+#problem-focus-frame {
+	display:inline-block;
+	vertical-align:top;
+	width:28em;
+	height:100%;
+}
+
+#problem-focus-container {
+	display:table-cell;
+	position:relative;
+	vertical-align:top;
+	width:24em;
+	height:100%;
+	margin:auto;
+}
+
+#problem-focus-image {
+	width:24em;
+	height:auto;
+	vertical-align:middle;
+}
+
+#problem-focus-label-container {
+    position:absolute;
+    margin:auto;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+   	z-index:100;
+    color:white;
+    font-weight:bold;
+    font-size:2.5em;
+    height:6em;
+    max-height:6em;
+    width:85%;
+	overflow:hidden;
+}
+
+#problem-focus-label {
+	height:6em;
+	max-height:6em;
+}
+
+.related-problem-icon {
+	width:1.5em;
+	height:auto;
+	margin:0.25em;
+	vertical-align:middle;
+}
+
+.related-problem {
+	display:inline-block;
+	font-size:1em;
+	white-space:normal;
+}
+
+.problem-node {
+	margin:0.25em;
+}
+
+.problem-link {
+	color:#112a5c;
+}
+
+.h-problem {
+	height:5em; /* 3 line description */
+	overflow:hidden;
+	margin-left:0.125em;
+	margin-right:0.125em;
+	resize:none;
+}
+
+.v-problem {
+	margin-top:0.5em;
+	margin-bottom:0.5em;
+    margin-left:0;
+	margin-right:0;
+}
+
+.h-problem-link-container {
+    height:3em; /* 3 line description */
+    max-height:3em;
+    width:5.75em;
+	margin-left:0.125em;
+	margin-right:0.125em;
+	overflow:hidden;
+}
+
+.v-problem-link-container {
+	width:100%;
+}
+
+.h-problem-scroll-container {
+	height:auto;
+	width:100%;
+}
+
+.h-problem-scroll-container {
+	height:auto;
+	width:100%;
+}
+.h-problem-scroll-container > span > a {
+	display:none;
+}
+.h-problem-scroll-container:hover > span > a {
+	display:block;
+}
+
+.v-problem-scroll-container {
+	height:auto;
+	width:auto;
+}
+.v-problem-scroll-container > div > span > a {
+	display:none;
+}
+.v-problem-scroll-container:hover > div > span > a {
+	display:block;
+}
+
+.v-problem-scroll {
+	height:24em;
+	width:11.75em;
+	overflow-x:hidden;
+	overflow-y:auto;
+}
+
+.h-problem-scroll {
+	height:5em; /* 3 line description */
+	width:24em;
+	max-width:54em;
+	overflow-x:auto;
+	overflow-y:hidden;
+	white-space:nowrap;
+	resize:horizontal;
+}
+
+.v-arrow-container {
+	height:2em;
+	width:100%;
+}
+
+.relation-label {
+	font-size:2em;
+	margin-top:0.25em;
+	margin-bottom:0.25em;
+}
+
+.macro-problem-label {
+	font-size:2em;
+	margin-bottom:0.25em;
+}
+
+.sub-problem-label {
+	font-size:2em;
+	margin-top:0.25em;
+}
+
+.v-problem-section {
+	display:inline-block;
+	height:100%;
+	width:auto;
+}
+
+.v-label-container {
+	max-width:3em;
+	height:100%;
+	vertical-align:middle;
+	padding-right:0;
+}
+
+.v-problem-list-frame {
+	height:100%;
+	width:auto;
+}
+
+.macro-problem-connector {
+	border-bottom: 0.25em solid #112a5c;
+}
+
+.macro-problem-connector-left {
+	display:inline-block;
+	width:11.875em;
+	height:2em;
+	vertical-align:bottom;
+	/*border-top: 0.25em solid #112a5c;*/
+	border-right: 0.125em solid #112a5c;
+}
+
+.macro-problem-connector-right {
+	display:inline-block;
+	width:11.875em;
+	height:2em;
+	vertical-align:bottom;
+	/*border-top: 0.25em solid #112a5c;*/
+	border-left: 0.125em solid #112a5c;
+}
+
+.sub-problem-connector {
+	border-top: 0.25em solid #112a5c;
+}
+
+.sub-problem-connector-left {
+	display:inline-block;
+	width:11.875em;
+	height:2em;
+	vertical-align:bottom;
+	/*border-bottom: 0.25em solid #112a5c;*/
+	border-right: 0.125em solid #112a5c;
+}
+
+.sub-problem-connector-right {
+	display:inline-block;
+	width:11.875em;
+	height:2em;
+	vertical-align:bottom;
+	/*border-bottom: 0.25em solid #112a5c;*/
+	border-left: 0.125em solid #112a5c;
+}
+
+.upstream-problem-connector {
+	border-right: 0.25em solid #112a5c;
+}
+
+.upstream-problem-connector-top {
+	width:2em;
+	height:11.875em;
+	text-align:right;
+	/*border-left: 0.25em solid #112a5c;*/
+	border-bottom: 0.125em solid #112a5c;
+}
+
+.upstream-problem-connector-bottom {
+	width:2em;
+	height:11.875em;
+	text-align:right;
+	/*border-left: 0.25em solid #112a5c;*/
+	border-top: 0.125em solid #112a5c;
+}
+
+.downstream-problem-connector {
+	border-left: 0.25em solid #112a5c;
+}
+
+.downstream-problem-connector-top {
+	width:2em;
+	height:11.875em;
+	text-align:left;
+	/*border-right: 0.25em solid #112a5c;*/
+	border-bottom: 0.125em solid #112a5c;
+}
+
+.downstream-problem-connector-bottom {
+	width:2em;
+	height:11.875em;
+	text-align:left;
+	/*border-right: 0.25em solid #112a5c;*/
+	border-top: 0.125em solid #112a5c;
+}
+
+.rotate-upstream {
+  -webkit-transform: rotate(-90deg);
+  -moz-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  -o-transform: rotate(-90deg);
+  transform: rotate(-90deg);
+
+  /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
+  -webkit-transform-origin: 100% 120%;
+  -moz-transform-origin: 100% 120%;
+  -ms-transform-origin: 100% 120%;
+  -o-transform-origin: 100% 120%;
+  transform-origin: 100% 120%;
+
+  /* Should be unset in IE9+ I think. */
+  filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+}
+
+.rotate-downstream {
+  -webkit-transform: rotate(-90deg);
+  -moz-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  -o-transform: rotate(-90deg);
+  transform: rotate(-90deg);
+
+  /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
+  -webkit-transform-origin: 115% 145%;
+  -moz-transform-origin: 115% 145%;
+  -ms-transform-origin: 115% 145%;
+  -o-transform-origin: 115% 145%;
+  transform-origin: 115% 145%;
+
+  /* Should be unset in IE9+ I think. */
+  filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+}
