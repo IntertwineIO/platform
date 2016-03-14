@@ -8,6 +8,23 @@
       rel="stylesheet" type="text/css">
 <link href="{{ url_for('static', filename='problems/static/css/network.css') }}"
       rel="stylesheet" type="text/css">
+<!--[if IE]>
+  <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<!-- Uncomment below for debugging --
+<style>
+  #network-section {background:white;}
+  div:nth-child(1) {background:crimson;}
+  div:nth-child(2) {background:coral;}
+  div:nth-child(3) {background:gold;}
+  div:nth-child(4) {background:khaki;}
+  span:nth-child(1) {background:cornflowerblue;}
+  span:nth-child(2) {background:cyan;}
+  span:nth-child(3) {background:lightseagreen;}
+  span:nth-child(4) {background:palegreen;}
+</style>
+<!-- -->
 {% endblock %}
 
 {% block content %}

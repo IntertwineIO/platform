@@ -29,11 +29,11 @@ section {
 
 .section-label {
 	display:inline-block;
-	font-size:3em;
-	font-weight:bold;
+	font-size:2em;
+	/*font-weight:bold;*/
 	padding-top:0.2em;
 	padding-bottom:0.2em;
-	padding-left:1em;
+	padding-left:1.5em;
 	padding-right:0em;
 	text-align:left;
 	/*background-color:#EBF0FC;*/
@@ -42,7 +42,7 @@ section {
 
 .section-scope {
 	display:inline-block;
-	font-size:2em;
+	font-size:1.5em;
 	padding-top:0em;
 	padding-bottom:0em;
 	padding-left:0.5em;
@@ -52,10 +52,10 @@ section {
 }
 
 .section-tagline {
-	font-size:1.25em;
+	font-size:1em;
 	padding-top:0em;
 	padding-bottom:0em;
-	padding-left:2.4em;
+	padding-left:3em;
 	padding-right:0em;
 	text-align:left;
 	/*background-color:#EBF0FC;*/

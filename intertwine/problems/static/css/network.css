@@ -91,11 +91,13 @@
 }
 
 .h-problem-link-container {
-    height:3em; /* 3 line description */
-    max-height:3em;
+    height:3.25em; /* 3 line description */
+    max-height:3.25em;
     width:5.75em;
 	margin-left:0.125em;
 	margin-right:0.125em;
+    /*padding-top:0.125em;*/
+    padding-bottom:0.125em;
 	overflow:hidden;
 }
 
@@ -138,7 +140,7 @@
 }
 
 .h-problem-scroll {
-	height:5em; /* 3 line description */
+	height:5.50em; /* 3 line description */
 	width:24em;
 	max-width:54em;
 	overflow-x:auto;
@@ -293,14 +295,14 @@
   -moz-transform: rotate(-90deg);
   -ms-transform: rotate(-90deg);
   -o-transform: rotate(-90deg);
-  transform: rotate(-90deg);
+  transform: rotate(90deg);
 
   /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
-  -webkit-transform-origin: 80% 90%;
-  -moz-transform-origin: 80% 90%;
-  -ms-transform-origin: 80% 90%;
-  -o-transform-origin: 80% 90%;
-  transform-origin: 80% 90%;
+  -webkit-transform-origin: 90% -20%;
+  -moz-transform-origin: 890% -20%;
+  -ms-transform-origin: 90% -20%;
+  -o-transform-origin: 90% -20%;
+  transform-origin: 90% -20%;
 
   /* Should be unset in IE9+ I think. */
   filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
