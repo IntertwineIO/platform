@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import pytest
+from config import ToxConfig
 
-from intertwine.config import ToxConfig
 
 collect_ignore = ["setup.py"]
 

@@ -7,12 +7,11 @@ import pytest
 @pytest.mark.smoke
 def test_decode_problem(options):
     '''Tests decoding a standard problem'''
-    from intertwine.config import ToxConfig
     from intertwine.problems.models import Problem
     from data.data_process import DataSessionManager, erase_data, decode
 
     # DSM only creates a session if one doesn't exist
-    dsm = DataSessionManager(ToxConfig.DATABASE)
+    dsm = DataSessionManager(options['config'].DATABASE)
     session = dsm.session
     assert session is not None
 
@@ -40,12 +39,11 @@ def test_decode_problem(options):
 @pytest.mark.smoke
 def test_decode_problem_connection(options):
     '''Tests decoding a standard problem connection'''
-    from intertwine.config import ToxConfig
     from intertwine.problems.models import Problem, ProblemConnection
     from data.data_process import DataSessionManager, erase_data, decode
 
     # DSM only creates a session if one doesn't exist
-    dsm = DataSessionManager(ToxConfig.DATABASE)
+    dsm = DataSessionManager(options['config'].DATABASE)
     session = dsm.session
     assert session is not None
 
@@ -74,13 +72,12 @@ def test_decode_problem_connection(options):
 @pytest.mark.smoke
 def test_decode_problem_connection_rating(options):
     '''Tests decoding ratings on a single problem connection'''
-    from intertwine.config import ToxConfig
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
     from data.data_process import DataSessionManager, erase_data, decode
 
     # DSM only creates a session if one doesn't exist
-    dsm = DataSessionManager(ToxConfig.DATABASE)
+    dsm = DataSessionManager(options['config'].DATABASE)
     session = dsm.session
     assert session is not None
 
@@ -112,13 +109,12 @@ def test_decode_problem_connection_rating(options):
 @pytest.mark.smoke
 def test_incremental_decode(options):
     '''Tests decoding incrementally'''
-    from intertwine.config import ToxConfig
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating, Trackable)
     from data.data_process import DataSessionManager, erase_data, decode
 
     # DSM only creates a session if one doesn't exist
-    dsm = DataSessionManager(ToxConfig.DATABASE)
+    dsm = DataSessionManager(options['config'].DATABASE)
     session = dsm.session
     assert session is not None
 

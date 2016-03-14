@@ -7,12 +7,11 @@ import pytest
 @pytest.mark.smoke
 def test_problem_model(options):
     '''Tests simple problem model interaction'''
-    from intertwine.config import ToxConfig
     from intertwine.problems.models import Problem
     from data.data_process import DataSessionManager, erase_data
 
     # DSM only creates a session if one doesn't exist
-    dsm = DataSessionManager(ToxConfig.DATABASE)
+    dsm = DataSessionManager(options['config'].DATABASE)
     session = dsm.session
     assert session is not None
     erase_data(session, confirm='ERASE')
@@ -28,12 +27,11 @@ def test_problem_model(options):
 @pytest.mark.smoke
 def test_problem_connection_model(options):
     '''Tests simple problem model interaction'''
-    from intertwine.config import ToxConfig
     from intertwine.problems.models import Problem, ProblemConnection
     from data.data_process import DataSessionManager, erase_data
 
     # DSM only creates a session if one doesn't exist
-    dsm = DataSessionManager(ToxConfig.DATABASE)
+    dsm = DataSessionManager(options['config'].DATABASE)
     session = dsm.session
     assert session is not None
     erase_data(session, confirm='ERASE')

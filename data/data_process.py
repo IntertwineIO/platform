@@ -24,7 +24,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 
-from intertwine.config import DevConfig
+from config import DevConfig
 from intertwine.problems.models import (Trackable, BaseProblemModel, Problem)
 from intertwine.problems.exceptions import InvalidJSONPath
 

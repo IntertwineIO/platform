@@ -4,4 +4,5 @@ include *.ini
 include *.cfg
 recursive-include intertwine *
 recursive-include examples *
+recursive-include config *
 global-exclude *pyc
