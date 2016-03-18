@@ -73,10 +73,13 @@
 
 .problem-link {
 	color:#1A1A1A;
+    line-height:1em;
 }
 
 .h-problem {
-	height:5em; /* 3 line description */
+    font-size:1em;
+    line-height:1.1em;
+    height:5.5em; /* 3 line description */
 	overflow:hidden;
 	margin-left:0.125em;
 	margin-right:0.125em;
@@ -84,6 +87,8 @@
 }
 
 .v-problem {
+    font-size:1em;
+    line-height:1.1em;
 	margin-top:0.5em;
 	margin-bottom:0.5em;
     margin-left:0;
@@ -94,19 +99,14 @@
     height:3.25em; /* 3 line description */
     max-height:3.25em;
     width:5.75em;
-	margin-left:0.125em;
-	margin-right:0.125em;
-    /*padding-top:0.125em;*/
+/*	margin-left:0.125em;
+	margin-right:0.125em;*/
+    padding-top:0.125em;
     padding-bottom:0.125em;
 	overflow:hidden;
 }
 
 .v-problem-link-container {
-	width:100%;
-}
-
-.h-problem-scroll-container {
-	height:auto;
 	width:100%;
 }
 
@@ -152,6 +152,11 @@
 .v-arrow-container {
 	height:2em;
 	width:100%;
+}
+
+.h-connection-category {
+    font-size:2em;
+    text-align:center;
 }
 
 .relation-label {
@@ -280,11 +285,11 @@
   transform: rotate(-90deg);
 
   /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
-  -webkit-transform-origin: 80% 90%;
-  -moz-transform-origin: 80% 90%;
-  -ms-transform-origin: 80% 90%;
-  -o-transform-origin: 80% 90%;
-  transform-origin: 80% 90%;
+  -webkit-transform-origin: 80% 80%;
+  -moz-transform-origin: 80% 80%;
+  -ms-transform-origin: 80% 80%;
+  -o-transform-origin: 80% 80%;
+  transform-origin: 80% 80%;
 
   /* Should be unset in IE9+ I think. */
   filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
@@ -298,11 +303,11 @@
   transform: rotate(90deg);
 
   /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
-  -webkit-transform-origin: 90% -20%;
-  -moz-transform-origin: 890% -20%;
-  -ms-transform-origin: 90% -20%;
-  -o-transform-origin: 90% -20%;
-  transform-origin: 90% -20%;
+  -webkit-transform-origin: 90% 10%;
+  -moz-transform-origin: 890% 10%;
+  -ms-transform-origin: 90% 10%;
+  -o-transform-origin: 90% 10%;
+  transform-origin: 90% 10%;
 
   /* Should be unset in IE9+ I think. */
   filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);

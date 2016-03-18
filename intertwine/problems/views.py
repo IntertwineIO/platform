@@ -17,7 +17,7 @@ def render():
     template = render_template(
         'problems.html',
         current_app=flask.current_app,
-        title="Problems",
+        title="Social Problems",
         problems=problems)
     return template
 
