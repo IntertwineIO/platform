@@ -33,164 +33,153 @@
         <span class="page-title">{{ problem.name }}</span>
         <span class="page-scope">in Austin, TX</span>
     </h1>
-    <h2><span class="page-tagline"> An open innovation space sponsored by the Urban Institute </span></h2>
+    <span class="page-tagline"> An open innovation space sponsored by the Urban Institute </span>
 </header>
 <section id="network-section">
-  <span class="h-connection-category">
-    Broader
-  </span>
-    <div class="h-align-outer">
-      <span class="side-buffer v-align-inner"></span>
-      <span class="h-problem-scroll-container">
-        <span class="v-align-inner"><a href=""><div class="arrow-left h-large-spacer"></div></a></span>
-        <span class="h-align-inner v-align-inner-bottom">
-          <div class="h-problem-scroll broader-problem-connector">
-          {% for connection in problem.broader.all() %}<!-- this comment is a hack to get rid of the newline between spans
-       --><span class="related-problem h-problem v-align-outer">
-            <!-- link to related problem page from text and node icon -->
-                <div class="h-problem-link-container v-align-inner-bottom"><a href="/problems/{{ connection.broader.derive_key() }}" class="problem-link">{{ connection.broader.name }}</a></div>
-            <a href="/problems/{{ connection.broader.derive_key() }}"><img class="related-problem-icon v-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a>
-          </span><!-- this comment is a hack to get rid of the newline between spans
-       -->{% endfor %}
-
-          </div>
-          </span>
-        <span class="v-align-inner"><a href=""><div class="arrow-right h-large-spacer"></div></a></span>
-      </span>
-      <span class="side-buffer v-align-inner"></span>
+    <!-- <span class="h-connection-category">Broader</span> -->
+    <div class="v-align-outer">
+        <span class="side-buffer v-align-inner"></span><!-- remove whitespace
+     --><span class="h-connection-category v-align-inner">Broader</span><!-- remove whitespace
+     --><span class="side-buffer v-align-inner h-align-inner-left">
+            <a href="/problems/"><img class="medium-icon h-medium-spacer" src="{{ url_for('static', filename='problems/static/images/add_node_48x48.png') }}"/></a>
+        </span>
     </div>
-
+    <div class="h-align-outer">
+        <span class="side-buffer v-align-inner"></span>
+        <span class="h-problem-scroll-container">
+            <span class="v-align-inner"><a href=""><div class="arrow-left h-large-spacer"></div></a></span>
+            <span class="v-align-inner-bottom">
+                <div class="h-problem-scroll broader-connector">
+                    {% for connection in problem.broader.all() %}<!-- remove whitespace
+                 --><span class="related-problem h-problem v-align-outer word-break">
+                        <div class="h-problem-link-container v-align-inner-bottom"><a href="/problems/{{ connection.broader.derive_key() }}" class="problem-link">{{ connection.broader.name }}</a></div>
+                        <a href="/problems/{{ connection.broader.derive_key() }}"><img class="related-problem-icon v-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a>
+                    </span><!-- remove whitespace
+                 -->{% endfor %}
+                </div>
+            </span>
+            <span class="v-align-inner"><a href=""><div class="arrow-right h-large-spacer"></div></a></span>
+        </span>
+        <span class="side-buffer v-align-inner"></span>
+    </div>
     <div id="middle-problem-network-frame">
-      <span class="v-problem-section v-align-outer">
-        <span class="v-label-container h-align-inner">
-          <div class="relation-label rotate-drivers">Drivers</div>
-        </span>
-
-        <span class="v-problem-list-frame v-align-inner">
-
-          <div class="v-problem-scroll-container h-align-inner-right">
-            <div class="v-arrow-container h-align-outer">
-              <span class="v-align-inner h-align-inner">
-                <a href=""><div class="arrow-up v-large-spacer"></div></a>
-              </span>
-            </div>
-
-            <div class="v-ghost-center-before v-problem-scroll driver-problem-connector">
-              <div>
-              {% for connection in problem.drivers.all() %}
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner v-problem-link-container"><a href="/problems/{{ connection.driver.derive_key() }}" class="problem-link">{{ connection.driver.name }} </a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-align-inner"><a href="/problems/{{ connection.driver.derive_key() }}"><img class="related-problem-icon h-medium-spacer" style="float:right" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a></span>
+        <span class="v-problem-section v-align-outer">
+            <span class="v-label-container h-align-inner">
+                <div class="relation-label rotate-drivers">Drivers</div>
+            </span>
+            <span class="v-problem-list-frame v-align-inner">
+                <div class="v-problem-scroll-container h-align-inner-right">
+                    <div class="v-arrow-container h-align-outer">
+                        <span class="v-align-inner h-align-inner">
+                            <a href=""><div class="arrow-up v-large-spacer"></div></a>
+                        </span>
+                    </div>
+                    <div class="v-ghost-center-before v-problem-scroll driver-connector">
+                        <div>
+                            {% for connection in problem.drivers.all() %}
+                            <div class="related-problem v-problem">
+                                <span class="v-problem-link-container v-align-inner word-break"><a href="/problems/{{ connection.driver.derive_key() }}" class="problem-link">{{ connection.driver.name }} </a></span><!-- remove whitespace
+                                --><span class="v-align-inner"><a href="/problems/{{ connection.driver.derive_key() }}"><img class="related-problem-icon h-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a></span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="v-arrow-container h-align-outer">
+                        <span class="v-align-inner h-align-inner">
+                            <a href=""><div class="arrow-down v-large-spacer"></div></a>
+                        </span>
+                    </div>
                 </div>
-              {% endfor %}
-              </div>
-            </div>
-            <div class="v-arrow-container h-align-outer">
-              <span class="v-align-inner h-align-inner">
-                <a href=""><div class="arrow-down v-large-spacer"></div></a>
-              </span>
-            </div>
-          </div>
-
-        </span>
-      </span><!-- this comment is a hack to get rid of the newline between spans
-   --><span id="problem-focus-frame" class="v-align-outer">
-
-        <div class="h-align-outer">
-          <div class="h-align-inner">
-            <span class="broader-problem-connector-left"></span><!-- this comment is a hack to get rid of the newline between spans
-         --><span class="broader-problem-connector-right"></span>
-          </div>
-        </div>
-
-        <div class="h-align-outer">
-          <span class="h-align-inner-left">
-            <div class="driver-problem-connector-top"></div>
-            <div class="driver-problem-connector-bottom"></div>
-          </span><!-- this comment is a hack to get rid of the newline between spans
-       --><span id="problem-focus-container">
-            <img id="problem-focus-image" src="{{ url_for('static', filename='problems/static/images/center_node_512x512.png') }}">
-            <div id="problem-focus-label-container" class="v-align-outer">
-              <div id="problem-focus-label" class="v-align-inner">
-                {{ problem.name }}
-              </div>
-            </div>
-          </span><!-- this comment is a hack to get rid of the newline between spans
-       --><span class="h-align-inner">
-            <div class="downstream-problem-connector-top"></div>
-            <div class="downstream-problem-connector-bottom"></div>
-          </span>
-        </div>
-
-        <div class="h-align-outer">
-          <div class="h-align-inner">
-            <span class="narrower-problem-connector-left"></span><!-- this comment is a hack to get rid of the newline between spans
-         --><span class="narrower-problem-connector-right"></span>
-          </div>
-        </div>
-
-      </span><!-- this comment is a hack to get rid of the newline between spans
-   --><span class="v-problem-section v-align-outer">
-        <span class="v-problem-list-frame v-align-inner">
-
-          <div class="v-problem-scroll-container h-align-inner-left">
-            <div class="v-arrow-container h-align-outer">
-              <span class="v-align-inner h-align-inner">
-                <a href=""><div class="arrow-up v-large-spacer"></div></a>
-              </span>
-            </div>
-
-            <div class="v-ghost-center-after v-problem-scroll downstream-problem-connector">
-              <div>
-              {% for connection in problem.impacts.all() %}
-                <div class="related-problem v-problem">
-                  <span class="v-align-inner"><a href="/problems/{{ connection.impact.derive_key() }}"><img class="related-problem-icon h-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a></span><!-- this comment is a hack to get rid of the newline between spans
-               --><span class="v-problem-link-container v-align-inner"><a href="/problems/{{ connection.impact.derive_key() }}" class="problem-link"> {{ connection.impact.name }}</a></span>
+            </span>
+        </span><!-- remove whitespace
+     --><span id="problem-focus-frame" class="v-align-outer">
+            <div class="h-align-outer">
+                <div class="h-align-inner">
+                    <span class="broader-connector-left"></span><!-- remove whitespace
+                 --><span class="broader-connector-right"></span>
                 </div>
-              {% endfor %}
-              </div>
             </div>
-
-            <div class="v-arrow-container h-align-outer">
-              <span class="v-align-inner h-align-inner">
-                <a href=""><div class="arrow-down v-large-spacer"></div></a>
-              </span>
+            <div class="h-align-outer">
+                <span class="h-align-inner-left">
+                    <div class="driver-connector-top"></div>
+                    <div class="driver-connector-bottom"></div>
+                </span><!-- remove whitespace
+             --><span id="problem-focus-container">
+                    <img id="problem-focus-image" src="{{ url_for('static', filename='problems/static/images/center_node_512x512.png') }}">
+                    <div id="problem-focus-label-container" class="v-align-outer">
+                        <div id="problem-focus-label" class="v-align-inner word-break">
+                        {{ problem.name }}
+                        </div>
+                    </div>
+                </span><!-- remove whitespace
+             --><span class="h-align-inner">
+                    <div class="impact-connector-top"></div>
+                    <div class="impact-connector-bottom"></div>
+                </span>
             </div>
-          </div>
-
+            <div class="h-align-outer">
+                <div class="h-align-inner">
+                    <span class="narrower-connector-left"></span><!-- remove whitespace
+                 --><span class="narrower-connector-right"></span>
+                </div>
+            </div>
+        </span><!-- remove whitespace
+     --><span class="v-problem-section v-align-outer">
+            <span class="v-problem-list-frame v-align-inner">
+                <div class="v-problem-scroll-container h-align-inner-left">
+                    <div class="v-arrow-container h-align-outer">
+                        <span class="v-align-inner h-align-inner">
+                            <a href=""><div class="arrow-up v-large-spacer"></div></a>
+                        </span>
+                    </div>
+                    <div class="v-ghost-center-after v-problem-scroll impact-connector">
+                        <div>
+                            {% for connection in problem.impacts.all() %}
+                            <div class="related-problem v-problem">
+                                <span class="v-align-inner"><a href="/problems/{{ connection.impact.derive_key() }}"><img class="related-problem-icon h-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a></span><!-- remove whitespace
+                                --><span class="v-problem-link-container v-align-inner word-break"><a href="/problems/{{ connection.impact.derive_key() }}" class="problem-link">{{ connection.impact.name }}</a></span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="v-arrow-container h-align-outer">
+                        <span class="v-align-inner h-align-inner">
+                            <a href=""><div class="arrow-down v-large-spacer"></div></a>
+                        </span>
+                    </div>
+                </div>
+            </span>
+            <span class="v-label-container h-align-inner">
+                <div class="relation-label rotate-impacts">Impacts</div>
+            </span>
         </span>
-        <span class="v-label-container h-align-inner">
-          <div class="relation-label rotate-impacts">Impacts
-          </div>
-        </span>
-      </span>
-
     </div>
-
     <div class="h-align-outer">
-      <span class="side-buffer v-align-inner"></span>
-      <div class="h-problem-scroll-container h-align-outer">
-        <span class="v-align-inner"><a href=""><div class="arrow-left h-large-spacer"></div></a></span>
-        <div class="h-align-inner v-align-inner-top">
-          <div class="h-problem-scroll narrower-problem-connector">
-          {% for connection in problem.narrower.all() %}<!-- this comment is a hack to get rid of the newline between spans
-       --><span class="related-problem h-problem v-align-outer">
-              <a href="/problems/{{ connection.narrower.derive_key() }}"><img class="related-problem-icon v-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a>
-              <div class="h-problem-link-container v-align-inner-top"><a href="/problems/{{ connection.narrower.derive_key() }}" class="problem-link">{{ connection.narrower.name }}</a></div>
-            </span><!-- this comment is a hack to get rid of the newline between spans
-       -->{% endfor %}
-
-          </div>
+        <span class="side-buffer v-align-inner"></span>
+        <div class="h-problem-scroll-container h-align-outer">
+            <span class="v-align-inner"><a href=""><div class="arrow-left h-large-spacer"></div></a></span>
+            <div class="v-align-inner-top">
+                <div class="h-problem-scroll narrower-connector">
+                    {% for connection in problem.narrower.all() %}<!-- remove whitespace
+                 --><span class="related-problem h-problem v-align-outer word-break">
+                        <a href="/problems/{{ connection.narrower.derive_key() }}"><img class="related-problem-icon v-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a>
+                        <div class="h-problem-link-container v-align-inner-top"><a href="/problems/{{ connection.narrower.derive_key() }}" class="problem-link">{{ connection.narrower.name }}</a></div>
+                    </span><!-- remove whitespace
+                 -->{% endfor %}
+                </div>
+            </div>
+            <span class="v-align-inner"><a href=""><div class="arrow-right h-large-spacer"></div></a></span>
         </div>
-        <span class="v-align-inner"><a href=""><div class="arrow-right h-large-spacer"></div></a></span>
-      </div>
-      <span class="side-buffer v-align-inner"></span>
+        <span class="side-buffer v-align-inner"></span>
     </div>
-  <span class="h-connection-category">
-    Narrower
-  </span>
+    <!-- <span class="h-connection-category">Narrower</span> -->
+    <div class="v-align-outer">
+        <span class="side-buffer v-align-inner"></span><!-- remove whitespace
+     --><span class="h-connection-category v-align-inner">Narrower</span><!-- remove whitespace
+     --><span class="side-buffer v-align-inner h-align-inner-left">
+            <a href="/problems/"><img class="medium-icon h-medium-spacer" src="{{ url_for('static', filename='problems/static/images/add_node_48x48.png') }}"/></a>
+        </span>
+    </div>
 </section> <!-- end network section -->
-
-
 
 {% endblock %}

@@ -3,16 +3,28 @@
 
 {% block styles %}
 {{ super() }}
+<link href="{{ url_for('static', filename='problems/static/css/normalize.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('static', filename='problems/static/css/general.css') }}"
+      rel="stylesheet" type="text/css">
 <link href="{{ url_for('static', filename='problems/static/css/problems.css') }}"
       rel="stylesheet" type="text/css">
 {% endblock %}
 
 {% block content %}
-<h1>Problems</h1>
+<header>
+    <h1>
+        <span class="page-title">Problems</span>
+        <span class="page-scope">in Austin, TX</span>
+    </h1>
+    <span class="page-tagline"> An open innovation space sponsored by the City of Austin </span>
+</header>
 
-<div class="inner">
-    {% for problem in problems %}
-    <div><p><a href={{ problem.derive_key() }}> {{ problem.name }}</a></p></div>
-    {% endfor %}
-</div>
+<section id="problem-list-section">
+    <div class="indent">
+        {% for problem in problems %}
+        <div class="problem-name"><p><a href={{ problem.derive_key() }}> {{ problem.name }} </a></p></div>
+        {% endfor %}
+    </div>
+</section>
 {% endblock %}

@@ -15,6 +15,8 @@
 	vertical-align:top;
 	width:28em;
 	height:100%;
+    margin:0;
+    padding:0;
 }
 
 #problem-focus-container {
@@ -67,22 +69,17 @@
 	white-space:normal;
 }
 
-.problem-node {
-	margin:0.25em;
-}
-
 .problem-link {
 	color:#1A1A1A;
-    line-height:1em;
 }
 
 .h-problem {
     font-size:1em;
     line-height:1.1em;
-    height:5.5em; /* 3 line description */
+    height:5.5em; /* 3 lines per problem name */
 	overflow:hidden;
-	margin-left:0.125em;
-	margin-right:0.125em;
+	margin-left:0.1em;
+	margin-right:0.1em;
 	resize:none;
 }
 
@@ -91,18 +88,13 @@
     line-height:1.1em;
 	margin-top:0.5em;
 	margin-bottom:0.5em;
-    margin-left:0;
-	margin-right:0;
 }
 
 .h-problem-link-container {
-    height:3.25em; /* 3 line description */
-    max-height:3.25em;
-    width:5.75em;
-/*	margin-left:0.125em;
-	margin-right:0.125em;*/
-    padding-top:0.125em;
-    padding-bottom:0.125em;
+    height:3.3em; /* 3 lines per problem name */
+    width:5.8em; /* 6em including margins in h-problem*/
+    padding-top:0.1em;
+    padding-bottom:0.1em; /* allows gjpqy to extend below the line */
 	overflow:hidden;
 }
 
@@ -134,15 +126,17 @@
 
 .v-problem-scroll {
 	height:24em;
-	width:11.75em;
+	width:10em;
+    /*min-width:10em;*/
+    /*max-width:20em;*/
 	overflow-x:hidden;
 	overflow-y:auto;
 }
 
 .h-problem-scroll {
-	height:5.50em; /* 3 line description */
+	height:5.50em; /* 3 lines per problem name */
 	width:24em;
-	max-width:54em;
+	max-width:48em; /* preserves structure on hover when expanded */
 	overflow-x:auto;
 	overflow-y:hidden;
 	white-space:nowrap;
@@ -193,88 +187,80 @@
 	width:auto;
 }
 
-.broader-problem-connector {
-	border-bottom: 0.25em solid #1A1A1A;
+.broader-connector {
+	border-bottom: 0.2em solid #1A1A1A;
 }
 
-.broader-problem-connector-left {
+.broader-connector-left {
 	display:inline-block;
-	width:11.875em;
+	width:12em;
 	height:2em;
 	vertical-align:bottom;
-	/*border-top: 0.25em solid #1A1A1A;*/
-	border-right: 0.125em solid #1A1A1A;
+	border-right: 0.2em solid #1A1A1A;
 }
 
-.broader-problem-connector-right {
+.broader-connector-right {
 	display:inline-block;
-	width:11.875em;
+	width:12em;
 	height:2em;
 	vertical-align:bottom;
-	/*border-top: 0.25em solid #1A1A1A;*/
-	border-left: 0.125em solid #1A1A1A;
+	border-left: 0.2em solid #1A1A1A;
 }
 
-.narrower-problem-connector {
-	border-top: 0.25em solid #1A1A1A;
+.narrower-connector {
+	border-top: 0.2em solid #1A1A1A;
 }
 
-.narrower-problem-connector-left {
+.narrower-connector-left {
 	display:inline-block;
-	width:11.875em;
+	width:12em;
 	height:2em;
 	vertical-align:bottom;
-	/*border-bottom: 0.25em solid #1A1A1A;*/
-	border-right: 0.125em solid #1A1A1A;
+	border-right: 0.2em solid #1A1A1A;
 }
 
-.narrower-problem-connector-right {
+.narrower-connector-right {
 	display:inline-block;
-	width:11.875em;
+	width:12em;
 	height:2em;
 	vertical-align:bottom;
-	/*border-bottom: 0.25em solid #1A1A1A;*/
-	border-left: 0.125em solid #1A1A1A;
+	border-left: 0.2em solid #1A1A1A;
 }
 
-.driver-problem-connector {
-	border-right: 0.25em solid #1A1A1A;
+.driver-connector {
+	border-right: 0.2em solid #1A1A1A;
 }
 
-.driver-problem-connector-top {
+.driver-connector-top {
 	width:2em;
-	height:11.875em;
+	height:12em;
 	text-align:right;
-	/*border-left: 0.25em solid #1A1A1A;*/
-	border-bottom: 0.125em solid #1A1A1A;
+	border-bottom: 0.2em solid #1A1A1A;
 }
 
-.driver-problem-connector-bottom {
+.driver-connector-bottom {
 	width:2em;
-	height:11.875em;
+	height:12em;
 	text-align:right;
-	/*border-left: 0.25em solid #1A1A1A;*/
-	border-top: 0.125em solid #1A1A1A;
+	border-top: 0.2em solid #1A1A1A;
 }
 
-.downstream-problem-connector {
-	border-left: 0.25em solid #1A1A1A;
+.impact-connector {
+	border-left: 0.2em solid #1A1A1A;
 }
 
-.downstream-problem-connector-top {
+.impact-connector-top {
 	width:2em;
-	height:11.875em;
+	height:12em;
 	text-align:left;
-	/*border-right: 0.25em solid #1A1A1A;*/
-	border-bottom: 0.125em solid #1A1A1A;
+	border-bottom: 0.2em solid #1A1A1A;
 }
 
-.downstream-problem-connector-bottom {
+.impact-connector-bottom {
 	width:2em;
-	height:11.875em;
+	height:12em;
 	text-align:left;
-	/*border-right: 0.25em solid #1A1A1A;*/
-	border-top: 0.125em solid #1A1A1A;
+	border-top: 0.2em solid #1A1A1A;
 }
 
 .rotate-drivers {

@@ -1,7 +1,17 @@
+#problem-list-section {
+    margin-top:1em;
+    color:#1A1A1A;
+    vertical-align:top;
+    text-align:left;
+}
 
-
-.inner {
+.indent {
+    font-size: 1em;
     width:80%;
     margin: 0 auto;
+}
+
+.problem-name {
+    font-size: 1em;
 }
 
