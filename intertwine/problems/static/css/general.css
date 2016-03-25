@@ -13,17 +13,17 @@ body {
 
 header {
 	font-size:2em;
-	margin-top:3.5em;
+	margin-top:3em;
 	margin-left:2em;
 }
 
 section {
 	font-size:1.5em;
 	color:#1A1A1A;
+	margin-top:1em;
 	/*background-color:white;*/
 	/*border: 0.05em solid #1A1A1A;*/
 }
-
 
 a {
 	text-decoration:none;
@@ -36,7 +36,7 @@ a:hover {
 h1 {
 	margin-top:0em;
 	margin-bottom:0em;
-	line-height:0.5em;
+	/*line-height:1.1;*/
 }
 
 h2 {
@@ -56,7 +56,7 @@ h2 {
 .page-tagline {
 	font-size:0.8em;
 
-	line-height:0.5em;
+	line-height:0.5;
 	/*padding-left:0.75em;*/
 	text-align:left;
 }
@@ -267,13 +267,6 @@ h2 {
 /*	overflow:hidden; */
 }
 
-.test {
-	display:inline-block;
-	text-align:center;
-	width: 100%;
-	margin: 0 auto;
-}
-
 .v-align-inner {
 	display:table-cell;
 	vertical-align:middle;
@@ -403,6 +396,7 @@ div.arrow-down {
   /*word-break: break-all;*/
 
   /* Instead use this non-standard one: */
+  /* Incompatible with Firefox hyphens? */
   word-break: break-word;
 
   /* Adds a hyphen where the word breaks, if supported (No Blink) */

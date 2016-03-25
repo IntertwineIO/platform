@@ -1,7 +1,4 @@
 #network-section {
-	margin-top:1em;
-	color:#1A1A1A;
-	vertical-align:top;
 	text-align:center;
 }
 
@@ -52,15 +49,28 @@
 }
 
 #problem-focus-label {
-	height:6em;
+	/*height:6em;*/
 	max-height:6em;
 }
 
-.related-problem-icon {
-	width:1.5em;
-	height:auto;
-	margin:0.25em;
-	vertical-align:middle;
+.h-problem-icon-container {
+    display:inline-block;
+}
+
+.v-problem-icon-container {
+    display:table-cell;
+}
+
+.problem-icon {
+    color:#1A1A1A;
+    font-size:1.5em;
+    margin:0.1em;
+}
+
+.add-problem-icon {
+    color:#1A1A1A;
+    font-size:1.5em;
+    margin:0.25em;
 }
 
 .related-problem {
@@ -91,10 +101,9 @@
 }
 
 .h-problem-link-container {
-    height:3.3em; /* 3 lines per problem name */
+    height:3.5em; /* 3 lines per problem name */
     width:5.8em; /* 6em including margins in h-problem*/
-    padding-top:0.1em;
-    padding-bottom:0.1em; /* allows gjpqy to extend below the line */
+    padding: 0.2em 0; /* allows gjpqy to extend below the line */
 	overflow:hidden;
 }
 
@@ -134,7 +143,7 @@
 }
 
 .h-problem-scroll {
-	height:5.50em; /* 3 lines per problem name */
+	height:5.5em; /* 3 lines per problem name */
 	width:24em;
 	max-width:48em; /* preserves structure on hover when expanded */
 	overflow-x:auto;
@@ -155,8 +164,8 @@
 
 .relation-label {
 	font-size:2em;
-	margin-top:0.25em;
-	margin-bottom:0.25em;
+	/*margin-top:0.25em;*/
+	/*margin-bottom:0.25em;*/
 }
 
 .broader-problem-label {
@@ -176,7 +185,7 @@
 }
 
 .v-label-container {
-	max-width:3em;
+	max-width:2em;
 	height:100%;
 	vertical-align:middle;
 	padding-right:0;
@@ -228,7 +237,8 @@
 }
 
 .driver-connector {
-	border-right: 0.2em solid #1A1A1A;
+    border-right: 0.2em solid #1A1A1A;
+    text-align:right;
 }
 
 .driver-connector-top {
@@ -246,7 +256,8 @@
 }
 
 .impact-connector {
-	border-left: 0.2em solid #1A1A1A;
+    border-left: 0.2em solid #1A1A1A;
+    text-align:left;
 }
 
 .impact-connector-top {
@@ -271,29 +282,29 @@
   transform: rotate(-90deg);
 
   /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
-  -webkit-transform-origin: 80% 80%;
-  -moz-transform-origin: 80% 80%;
-  -ms-transform-origin: 80% 80%;
-  -o-transform-origin: 80% 80%;
-  transform-origin: 80% 80%;
+  -webkit-transform-origin: 100% 90%;
+  -moz-transform-origin: 100% 90%;
+  -ms-transform-origin: 100% 90%;
+  -o-transform-origin: 100% 90%;
+  transform-origin: 100% 90%;
 
   /* Should be unset in IE9+ I think. */
   filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
 }
 
 .rotate-impacts {
-  -webkit-transform: rotate(-90deg);
-  -moz-transform: rotate(-90deg);
-  -ms-transform: rotate(-90deg);
-  -o-transform: rotate(-90deg);
+  -webkit-transform: rotate(90deg);
+  -moz-transform: rotate(90deg);
+  -ms-transform: rotate(90deg);
+  -o-transform: rotate(90deg);
   transform: rotate(90deg);
 
   /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
-  -webkit-transform-origin: 90% 10%;
-  -moz-transform-origin: 890% 10%;
-  -ms-transform-origin: 90% 10%;
-  -o-transform-origin: 90% 10%;
-  transform-origin: 90% 10%;
+  -webkit-transform-origin: 120% 10%;
+  -moz-transform-origin: 120% 10%;
+  -ms-transform-origin: 120% 10%;
+  -o-transform-origin: 120% 10%;
+  transform-origin: 120% 10%;
 
   /* Should be unset in IE9+ I think. */
   filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);

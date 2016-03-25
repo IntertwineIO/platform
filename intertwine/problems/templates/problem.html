@@ -2,11 +2,13 @@
 
 {% block styles %}
 {{ super() }}
-<link href="{{ url_for('static', filename='problems/static/css/normalize.css') }}"
+<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"
       rel="stylesheet" type="text/css">
-<link href="{{ url_for('static', filename='problems/static/css/general.css') }}"
+<link href="{{ url_for('problems.static', filename='css/normalize.css') }}"
       rel="stylesheet" type="text/css">
-<link href="{{ url_for('static', filename='problems/static/css/network.css') }}"
+<link href="{{ url_for('problems.static', filename='css/general.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('problems.static', filename='css/network.css') }}"
       rel="stylesheet" type="text/css">
 <!--[if IE]>
   <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -41,7 +43,9 @@
         <span class="side-buffer v-align-inner"></span><!-- remove whitespace
      --><span class="h-connection-category v-align-inner">Broader</span><!-- remove whitespace
      --><span class="side-buffer v-align-inner h-align-inner-left">
-            <a href="/problems/"><img class="medium-icon h-medium-spacer" src="{{ url_for('static', filename='problems/static/images/add_node_48x48.png') }}"/></a>
+            <a href="/problems/">
+                <i class="fa fa-plus-circle add-problem-icon"></i>
+            </a>
         </span>
     </div>
     <div class="h-align-outer">
@@ -52,8 +56,14 @@
                 <div class="h-problem-scroll broader-connector">
                     {% for connection in problem.broader.all() %}<!-- remove whitespace
                  --><span class="related-problem h-problem v-align-outer word-break">
-                        <div class="h-problem-link-container v-align-inner-bottom"><a href="/problems/{{ connection.broader.derive_key() }}" class="problem-link">{{ connection.broader.name }}</a></div>
-                        <a href="/problems/{{ connection.broader.derive_key() }}"><img class="related-problem-icon v-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a>
+                        <div class="h-problem-link-container v-align-inner-bottom">
+                            <a href="/problems/{{ connection.broader.derive_key() }}" class="problem-link">{{ connection.broader.name }}</a>
+                        </div>
+                        <div class="h-problem-icon-container">
+                            <a href="/problems/{{ connection.broader.derive_key() }}">
+                                <i class="fa fa-circle problem-icon"></i>
+                            </a>
+                        </div>
                     </span><!-- remove whitespace
                  -->{% endfor %}
                 </div>
@@ -78,8 +88,16 @@
                         <div>
                             {% for connection in problem.drivers.all() %}
                             <div class="related-problem v-problem">
-                                <span class="v-problem-link-container v-align-inner word-break"><a href="/problems/{{ connection.driver.derive_key() }}" class="problem-link">{{ connection.driver.name }} </a></span><!-- remove whitespace
-                                --><span class="v-align-inner"><a href="/problems/{{ connection.driver.derive_key() }}"><img class="related-problem-icon h-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a></span>
+                                <span class="v-problem-link-container v-align-inner word-break">
+                                    <a href="/problems/{{ connection.driver.derive_key() }}" class="problem-link">
+                                        {{ connection.driver.name }}
+                                    </a>
+                                </span><!-- remove whitespace
+                             --><span class="v-problem-icon-container v-align-inner">
+                                    <a href="/problems/{{ connection.driver.derive_key() }}">
+                                        <i class="fa fa-circle problem-icon"></i>
+                                    </a>
+                                </span>
                             </div>
                             {% endfor %}
                         </div>
@@ -105,7 +123,7 @@
                     <div class="driver-connector-bottom"></div>
                 </span><!-- remove whitespace
              --><span id="problem-focus-container">
-                    <img id="problem-focus-image" src="{{ url_for('static', filename='problems/static/images/center_node_512x512.png') }}">
+                    <img id="problem-focus-image" src="{{ url_for('problems.static', filename='images/center_node_512x512.png') }}">
                     <div id="problem-focus-label-container" class="v-align-outer">
                         <div id="problem-focus-label" class="v-align-inner word-break">
                         {{ problem.name }}
@@ -136,8 +154,16 @@
                         <div>
                             {% for connection in problem.impacts.all() %}
                             <div class="related-problem v-problem">
-                                <span class="v-align-inner"><a href="/problems/{{ connection.impact.derive_key() }}"><img class="related-problem-icon h-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a></span><!-- remove whitespace
-                                --><span class="v-problem-link-container v-align-inner word-break"><a href="/problems/{{ connection.impact.derive_key() }}" class="problem-link">{{ connection.impact.name }}</a></span>
+                                <span class="v-problem-icon-container v-align-inner">
+                                    <a href="/problems/{{ connection.impact.derive_key() }}">
+                                        <i class="fa fa-circle problem-icon"></i>
+                                    </a>
+                                </span><!-- remove whitespace
+                             --><span class="v-problem-link-container v-align-inner word-break">
+                                    <a href="/problems/{{ connection.impact.derive_key() }}" class="problem-link">
+                                        {{ connection.impact.name }}
+                                    </a>
+                                </span>
                             </div>
                             {% endfor %}
                         </div>
@@ -162,8 +188,16 @@
                 <div class="h-problem-scroll narrower-connector">
                     {% for connection in problem.narrower.all() %}<!-- remove whitespace
                  --><span class="related-problem h-problem v-align-outer word-break">
-                        <a href="/problems/{{ connection.narrower.derive_key() }}"><img class="related-problem-icon v-medium-spacer" src="{{ url_for('static', filename='problems/static/images/node_48x48.png') }}"/></a>
-                        <div class="h-problem-link-container v-align-inner-top"><a href="/problems/{{ connection.narrower.derive_key() }}" class="problem-link">{{ connection.narrower.name }}</a></div>
+                        <div class="h-problem-icon-container">
+                            <a href="/problems/{{ connection.narrower.derive_key() }}">
+                                <i class="fa fa-circle problem-icon"></i>
+                            </a>
+                        </div>
+                        <div class="h-problem-link-container v-align-inner-top">
+                            <a href="/problems/{{ connection.narrower.derive_key() }}" class="problem-link">
+                                {{ connection.narrower.name }}
+                            </a>
+                        </div>
                     </span><!-- remove whitespace
                  -->{% endfor %}
                 </div>
@@ -177,7 +211,9 @@
         <span class="side-buffer v-align-inner"></span><!-- remove whitespace
      --><span class="h-connection-category v-align-inner">Narrower</span><!-- remove whitespace
      --><span class="side-buffer v-align-inner h-align-inner-left">
-            <a href="/problems/"><img class="medium-icon h-medium-spacer" src="{{ url_for('static', filename='problems/static/images/add_node_48x48.png') }}"/></a>
+            <a href="/problems/">
+                <i class="fa fa-plus-circle add-problem-icon"></i>
+            </a>
         </span>
     </div>
 </section> <!-- end network section -->
