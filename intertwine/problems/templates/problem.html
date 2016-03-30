@@ -38,6 +38,157 @@
     <span class="page-tagline"> An open innovation space sponsored by the Urban Institute </span>
 </header>
 <section id="network-section">
+    <!-- <div id="problem-network-flex"> -->
+        <!-- <div class="top-problem-network-flex"> -->
+    <div class="h-connection-label-container-flex">
+        <div class="">
+            <i class="fa fa-circle add-problem-icon invisible"></i>
+        </div>
+        <div class="h-connection-category">Broader</div>
+        <div class="">
+            <a href="/problems/">
+                <i class="fa fa-plus-circle add-problem-icon"></i>
+            </a>
+        </div>
+    </div>
+    <div class="h-problem-section-flex">
+        <div class="v-margin-flex"></div>
+        <div class="h-arrow-container-flex">
+            <a href=""><div class="arrow-left h-large-spacer"></div></a>
+        </div>
+        <div class="h-problem-scroll-container-flex">
+            <div class="h-problem-scroll-flex broader-scroll-flex broader-connector">
+                {% for connection in problem.broader.all() %}
+                <div class="h-problem-flex related-problem">
+                    <div class="h-problem-link-container-flex v-align-inner-bottom word-break">
+                        <a href="/problems/{{ connection.broader.derive_key() }}" class="problem-link">
+                            {{ connection.broader.name }}
+                        </a>
+                    </div>
+                    <div class="h-problem-icon-container">
+                        <a href="/problems/{{ connection.broader.derive_key() }}">
+                            <i class="fa fa-circle problem-icon"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="h-arrow-container-flex">
+            <a href=""><div class="arrow-right h-large-spacer"></div></a>
+        </div>
+        <div class="v-margin-flex"></div>
+    </div>
+    <!-- </div> -->
+    <div class="middle-problem-network-flex">
+        <div class="v-margin-flex"></div>
+        <div class="v-label-container">
+            <div class="relation-label rotate-drivers">Drivers</div>
+        </div>
+        <div class="v-problem-section-flex">
+            <div class="v-arrow-container-flex">
+                <a href=""><div class="arrow-up v-large-spacer"></div></a>
+            </div>
+            <div class="v-problem-scroll-container-flex">
+                <div class="v-problem-scroll-flex driver-scroll-flex driver-connector">
+                    {% for connection in problem.drivers.all() %}
+                    <div class="v-problem related-problem">
+                        <div class="v-problem-link-container v-align-inner word-break">
+                            <a href="/problems/{{ connection.driver.derive_key() }}" class="problem-link">
+                                {{ connection.driver.name }}
+                            </a>
+                        </div>
+                        <div class="v-problem-icon-container v-align-inner">
+                            <a href="/problems/{{ connection.driver.derive_key() }}">
+                                <i class="fa fa-circle problem-icon"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="v-arrow-container-flex">
+                <a href=""><div class="arrow-down v-large-spacer"></div></a>
+            </div>
+        </div>
+        <div class="problem-focus-container-flex">
+            {{ problem.name }}
+        </div>
+        <div class="v-problem-section-flex">
+            <div class="v-arrow-container-flex">
+                <a href=""><div class="arrow-up v-large-spacer"></div></a>
+            </div>
+            <div class="v-problem-scroll-container-flex">
+                <div class="v-problem-scroll-flex impact-scroll-flex impact-connector">
+                    {% for connection in problem.impacts.all() %}
+                    <div class="related-problem v-problem">
+                        <div class="v-problem-icon-container v-align-inner">
+                            <a href="/problems/{{ connection.driver.derive_key() }}">
+                                <i class="fa fa-circle problem-icon"></i>
+                            </a>
+                        </div>
+                        <div class="v-problem-link-container v-align-inner word-break">
+                            <a href="/problems/{{ connection.impact.derive_key() }}" class="problem-link">
+                                {{ connection.impact.name }}
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="v-arrow-container-flex">
+                <a href=""><div class="arrow-down v-large-spacer"></div></a>
+            </div>
+        </div>
+        <div class="v-label-container">
+            <div class="relation-label rotate-impacts">Impacts</div>
+        </div>
+        <div class="v-margin-flex"></div>
+    </div>
+    <!-- <div class="bottom-problem-network-flex"> -->
+    <div class="h-problem-section-flex">
+        <div class="v-margin-flex"></div>
+        <div class="h-arrow-container-flex">
+            <a href=""><div class="arrow-left h-large-spacer"></div></a>
+        </div>
+        <div class="h-problem-scroll-container-flex">
+            <div class="h-problem-scroll-flex narrower-scroll-flex narrower-connector">
+                {% for connection in problem.narrower.all() %}
+                <div class="h-problem-flex related-problem">
+                    <div class="h-problem-icon-container">
+                        <a href="/problems/{{ connection.narrower.derive_key() }}">
+                            <i class="fa fa-circle problem-icon"></i>
+                        </a>
+                    </div>
+                    <div class="h-problem-link-container-flex v-align-inner-bottom word-break">
+                        <a href="/problems/{{ connection.narrower.derive_key() }}" class="problem-link">
+                            {{ connection.narrower.name }}
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="h-arrow-container-flex">
+            <a href=""><div class="arrow-right h-large-spacer"></div></a>
+        </div>
+        <div class="v-margin-flex"></div>
+    </div>
+    <div class="h-connection-label-container-flex">
+        <div class="">
+            <i class="fa fa-circle add-problem-icon invisible"></i>
+        </div>
+        <div class="h-connection-category">Narrower</div>
+        <div class="">
+            <a href="/problems/">
+                <i class="fa fa-plus-circle add-problem-icon"></i>
+            </a>
+        </div>
+    </div>
+    <!-- </div> -->
+    <!-- </div> -->
+</section>
+<section id="network-section">
     <!-- <span class="h-connection-category">Broader</span> -->
     <div class="v-align-outer">
         <span class="side-buffer v-align-inner"></span><!-- remove whitespace

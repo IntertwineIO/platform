@@ -6,7 +6,7 @@ body {
 	/*font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;*/
 	font-size:100%;
 	background-color:white; /* #EBF0FC #bed2fa; */
-	min-width:81em; /* preserves network structure */
+	min-width:1em; /* preserves network structure */
 	width: auto !important;  /* Firefox will set width as auto */
     width:1000px;             /* As IE ignores !important it will set width as 1000px; */
 }
@@ -59,6 +59,76 @@ h2 {
 	line-height:0.5;
 	/*padding-left:0.75em;*/
 	text-align:left;
+}
+
+.v-margin-flex {
+    /*width:0.1em;*/
+    /*min-width:0em;*/
+    flex:1 1 0;
+}
+
+.flex-grow-min-10 {
+	flex:1 1 2em;
+}
+
+.flex-fix-1 {
+	width:1em;
+}
+
+.flex-fix-2 {
+	width:2em;
+	min-width:2em;
+	max-width:2em;
+}
+
+.flex-fix-3 {
+	width:2em;
+}
+
+.flex-fix-4 {
+	width:4em;
+	/*height:auto;*/
+}
+
+.flex-fix-24 {
+	width:24em;
+}
+
+.flex-fix-28 {
+	width:28em;
+	min-width:28em;
+	max-width:28em;
+}
+
+.variable-width {
+	display:inline-block;
+	width:20%;
+	/*width:calc(50%-16em);*/
+	/*min-width:10em*/
+	/*max-width:10em*/
+	height:28em;
+}
+
+.fixed-width-4 {
+	display:inline-block;
+	min-width:4em;
+	max-width:4em;
+}
+
+.fixed-width-6 {
+	display:inline-block;
+	width:6em;
+}
+
+.fixed-width-12 {
+	display:inline-block;
+	width:12em;
+}
+
+.fixed-width-24 {
+	display:inline-block;
+	min-width:24em;
+	max-width:24em;
 }
 
 #top-bar-container {
@@ -330,6 +400,13 @@ h2 {
 
 .not-resizable {
 	resize:none;
+}
+
+.invisible {
+    /* Fallback for web browsers that don't support RGBa */
+    background: rgb(0, 0, 0);
+    /* RGBa with 0 opacity */
+    background: rgba(0, 0, 0, 0);
 }
 
 div.arrow-left {

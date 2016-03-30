@@ -1,5 +1,5 @@
 #network-section {
-	text-align:center;
+    text-align:center;
 }
 
 #middle-problem-network-frame {
@@ -53,6 +53,12 @@
 	max-height:6em;
 }
 
+.v-problem-section {
+    display:inline-block;
+    height:100%;
+    width:auto;
+}
+
 .h-problem-icon-container {
     display:inline-block;
 }
@@ -86,11 +92,12 @@
 .h-problem {
     font-size:1em;
     line-height:1.1em;
-    height:5.5em; /* 3 lines per problem name */
-	overflow:hidden;
-	margin-left:0.1em;
-	margin-right:0.1em;
-	resize:none;
+    /* 3 lines per problem name */
+    height:5.5em;
+    overflow:hidden;
+    margin-left:0.1em;
+    margin-right:0.1em;
+    resize:none;
 }
 
 .v-problem {
@@ -101,60 +108,60 @@
 }
 
 .h-problem-link-container {
-    height:3.5em; /* 3 lines per problem name */
+    /* 3 lines per problem name */
+    height:3.5em;
     width:5.8em; /* 6em including margins in h-problem*/
-    padding: 0.2em 0; /* allows gjpqy to extend below the line */
-	overflow:hidden;
+    padding-top:0.1em;
+    padding-bottom:0.1em; /* allows gjpqy to extend below the line */
+    overflow:hidden;
 }
 
 .v-problem-link-container {
-	width:100%;
+    width:100%;
 }
 
 .h-problem-scroll-container {
-	height:auto;
-	width:100%;
+    height:auto;
+    width:100%;
 }
 .h-problem-scroll-container > span > a {
-	display:none;
+    display:none;
 }
 .h-problem-scroll-container:hover > span > a {
-	display:block;
+    display:block;
 }
 
 .v-problem-scroll-container {
-	height:auto;
-	width:auto;
+    height:auto;
+    width:auto;
 }
 .v-problem-scroll-container > div > span > a {
-	display:none;
+    display:none;
 }
 .v-problem-scroll-container:hover > div > span > a {
-	display:block;
-}
-
-.v-problem-scroll {
-	height:24em;
-	width:10em;
-    /*min-width:10em;*/
-    /*max-width:20em;*/
-	overflow-x:hidden;
-	overflow-y:auto;
+    display:block;
 }
 
 .h-problem-scroll {
-	height:5.5em; /* 3 lines per problem name */
-	width:24em;
-	max-width:48em; /* preserves structure on hover when expanded */
-	overflow-x:auto;
-	overflow-y:hidden;
-	white-space:nowrap;
-	resize:horizontal;
+    height:5.5em; /* 3 lines per problem name */
+    width:24em;
+    max-width:48em; /* preserves structure on hover when expanded */
+    overflow-x:auto;
+    overflow-y:hidden;
+    white-space:nowrap;
+    resize:horizontal;
+}
+
+.v-problem-scroll {
+    height:24em;
+    width:10em;
+    overflow-x:hidden;
+    overflow-y:auto;
 }
 
 .v-arrow-container {
-	height:2em;
-	width:100%;
+    height:2em;
+    /*width:100%;*/
 }
 
 .h-connection-category {
@@ -163,77 +170,71 @@
 }
 
 .relation-label {
-	font-size:2em;
-	/*margin-top:0.25em;*/
-	/*margin-bottom:0.25em;*/
+    font-size:2em;
+    /*margin-top:0.25em;*/
+    /*margin-bottom:0.25em;*/
 }
 
 .broader-problem-label {
-	font-size:2em;
-	margin-bottom:0.25em;
+    font-size:2em;
+    margin-bottom:0.25em;
 }
 
 .narrower-problem-label {
-	font-size:2em;
-	margin-top:0.25em;
-}
-
-.v-problem-section {
-	display:inline-block;
-	height:100%;
-	width:auto;
+    font-size:2em;
+    margin-top:0.25em;
 }
 
 .v-label-container {
-	max-width:2em;
-	height:100%;
-	vertical-align:middle;
-	padding-right:0;
+    max-width:2em;
+    height:100%;
+    vertical-align:middle;
+    padding-right:0;
 }
 
 .v-problem-list-frame {
-	height:100%;
-	width:auto;
+    height:100%;
+    width:auto;
 }
 
 .broader-connector {
-	border-bottom: 0.2em solid #1A1A1A;
+    border-bottom: 0.2em solid #1A1A1A;
 }
 
 .broader-connector-left {
-	display:inline-block;
-	width:12em;
-	height:2em;
-	vertical-align:bottom;
-	border-right: 0.2em solid #1A1A1A;
+    display:inline-block;
+    width:12em;
+    height:2em;
+    vertical-align:bottom;
+    border-right: 0.2em solid #1A1A1A;
 }
 
 .broader-connector-right {
-	display:inline-block;
-	width:12em;
-	height:2em;
-	vertical-align:bottom;
-	border-left: 0.2em solid #1A1A1A;
+    display:inline-block;
+    width:12em;
+    height:2em;
+    vertical-align:bottom;
+    border-left: 0.2em solid #1A1A1A;
 }
 
 .narrower-connector {
-	border-top: 0.2em solid #1A1A1A;
+    border-top: 0.2em solid #1A1A1A;
 }
 
 .narrower-connector-left {
-	display:inline-block;
-	width:12em;
-	height:2em;
-	vertical-align:bottom;
-	border-right: 0.2em solid #1A1A1A;
+    display:inline-block;
+    width:12em;
+    height:2em;
+    vertical-align:bottom;
+    border-right: 0.2em solid #1A1A1A;
 }
 
 .narrower-connector-right {
-	display:inline-block;
-	width:12em;
-	height:2em;
-	vertical-align:bottom;
-	border-left: 0.2em solid #1A1A1A;
+    display:inline-block;
+    width:12em;
+    height:2em;
+    vertical-align:bottom;
+    border-left: 0.2em solid #1A1A1A;
 }
 
 .driver-connector {
@@ -242,17 +243,17 @@
 }
 
 .driver-connector-top {
-	width:2em;
-	height:12em;
-	text-align:right;
-	border-bottom: 0.2em solid #1A1A1A;
+    width:2em;
+    height:12em;
+    text-align:right;
+    border-bottom: 0.2em solid #1A1A1A;
 }
 
 .driver-connector-bottom {
-	width:2em;
-	height:12em;
-	text-align:right;
-	border-top: 0.2em solid #1A1A1A;
+    width:2em;
+    height:12em;
+    text-align:right;
+    border-top: 0.2em solid #1A1A1A;
 }
 
 .impact-connector {
@@ -261,18 +262,196 @@
 }
 
 .impact-connector-top {
-	width:2em;
-	height:12em;
-	text-align:left;
-	border-bottom: 0.2em solid #1A1A1A;
+    width:2em;
+    height:12em;
+    text-align:left;
+    border-bottom: 0.2em solid #1A1A1A;
 }
 
 .impact-connector-bottom {
-	width:2em;
-	height:12em;
-	text-align:left;
-	border-top: 0.2em solid #1A1A1A;
+    width:2em;
+    height:12em;
+    text-align:left;
+    border-top: 0.2em solid #1A1A1A;
 }
+
+
+
+
+/* delete? */
+#problem-network-section-flex {
+    display:flex;
+    flex-flow:row nowrap;
+    justify-content:center;
+    align-items:center;
+}
+
+/* delete? */
+#problem-network-flex {
+    flex:10 10 0;
+}
+
+/* delete? */
+.top-problem-network-flex {
+    display:flex;
+    flex-flow:column nowrap;
+    justify-content:flex-end;
+    align-items:center;
+}
+
+.middle-problem-network-flex {
+    display:flex;
+    flex-flow:row nowrap;
+    justify-content:center;
+    align-items:center;
+    min-width:0;
+}
+
+/* delete? */
+.bottom-problem-network-flex {
+    display:flex;
+    flex-flow:column nowrap;
+    justify-content:flex-start;
+    align-items:center;
+}
+
+.problem-focus-container-flex {
+    flex:10 10 10em;
+    /*min-width:8em;*/
+    /*width:24em;*/
+    height:100%;
+    text-align:center;
+}
+
+.h-connection-label-container-flex {
+    display:flex;
+    flex-flow:row nowrap;
+    justify-content:center;
+    align-items:center;
+}
+
+.h-problem-section-flex {
+    display:flex;
+    flex-flow:row nowrap;
+    justify-content:center;
+    align-items:center;
+    width:100%;
+    min-width:10em;
+}
+
+.h-arrow-container-flex {
+    /*width:2em;*/
+    flex: 0 0 0;
+}
+
+.h-problem-scroll-container-flex {
+    display:flex;
+    flex-flow:row nowrap;
+    justify-content:center;
+    align-items:center;
+    flex:20 20 20;
+    overflow-x:auto;
+    overflow-y:hidden;
+    white-space:nowrap;
+}
+
+.h-problem-scroll-flex {
+    display:flex;
+    flex-flow:row nowrap;
+    justify-content:flex-start;
+    overflow-x:auto;
+    overflow-y:hidden;
+    white-space:nowrap;
+    /*resize:horizontal;*/
+}
+
+.broader-scroll-flex {
+    align-items:flex-end;
+}
+
+.narrower-scroll-flex {
+    align-items:flex-start;
+}
+
+.h-problem-flex {
+    font-size:1em;
+    line-height:1.1em;
+    min-width:5.5em;
+    max-width:9.5em;
+    margin-left:0.25em;
+    margin-right:0.25em;
+    overflow:hidden;
+    resize:none;
+}
+
+.h-problem-link-container-flex {
+    display:flex;
+    flex-flow:column nowrap;
+    justify-content:flex-end;
+    align-items:center;
+    /* 3 lines per problem name */
+    /*height:3.7em;*/
+    padding: 0.2em 0; /* allows gjpqy to extend below the line */
+    overflow:hidden;
+    text-align:center;
+}
+
+
+
+
+
+.v-problem-section-flex {
+    display:flex;
+    flex-flow:column nowrap;
+    justify-content:center;
+    align-items:stretch;
+    flex:5 5 20em;
+    /*max-width:20em;*/
+    /*width:8em;*/
+    /*min-width:8em;*/
+}
+.v-problem-section-flex > div > a {
+    display:none;
+}
+.v-problem-section-flex:hover > div > a {
+    display:block;
+}
+
+.v-problem-scroll-container-flex {
+    display:flex;
+    flex-flow:column nowrap;
+    justify-content:center;
+    align-items:stretch;
+    height:24em;
+    /*width:100%;*/
+    min-width:0;
+}
+
+.v-problem-scroll-flex {
+    display:flex;
+    flex-flow:column nowrap;
+    justify-content:flex-start;
+    overflow-x:hidden;
+    overflow-y:auto;
+}
+
+.driver-scroll-flex {
+    align-items:flex-end;
+}
+
+.impact-scroll-flex {
+    align-items:flex-start;
+}
+
+.v-arrow-container-flex {
+    height:2em;
+    align-self:center;
+}
+
+
+
+
+
 
 .rotate-drivers {
   -webkit-transform: rotate(-90deg);
