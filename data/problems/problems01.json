@@ -604,6 +604,41 @@
                 ]
             },
             {
+                "adjacent_problem": "Poor Health and Social Service Coordination for the Homeless",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 1,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States/Texas"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
                 "adjacent_problem": "Lack of Standard Homeless Metrics",
                 "problem_connection_ratings": [
                     {
@@ -617,7 +652,7 @@
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
-                        "rating": 4,
+                        "rating": 3,
                         "user_id": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
@@ -637,36 +672,6 @@
                         "geo_scope": "United States"
                     }
                 ]
-            }
-        ]
-    },
-    "Poverty": {
-        "definition": "Poverty is the state or condition of having little or no money, goods, or means of support",
-        "definition_url": "http://dictionary.reference.com/browse/poverty",
-        "narrower": [
-            {
-                "adjacent_problem": "Homelessness",
-                "problem_connection_ratings": [
-                    {
-                        "rating": 4,
-                        "user_id": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 4,
-                        "user_id": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
-                    }                ]
             }
         ]
     }
