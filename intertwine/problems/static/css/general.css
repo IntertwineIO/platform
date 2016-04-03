@@ -60,6 +60,34 @@ h2 {
 	text-align:left;
 }
 
+/* 320px */
+@media (min-width: 20em) {
+    header, section {
+        font-size:1.2em;
+    }
+}
+
+/* 448px */
+@media (min-width: 28em) {
+    header, section {
+        font-size:1.3em;
+    }
+}
+
+/* 512px */
+@media (min-width: 32em) {
+    header, section {
+        font-size:1.5em;
+    }
+}
+
+/* 768px */
+@media (min-width: 48em) {
+    header, section {
+        font-size:1.75em;
+    }
+}
+
 .nav-spacer {
 	padding:3em 0;
 }
