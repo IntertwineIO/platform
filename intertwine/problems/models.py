@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import re
+
 from alchy.model import ModelBase, ModelMeta, make_declarative_base
 from past.builtins import basestring
 from sqlalchemy import orm, types, Column, ForeignKey, Index, UniqueConstraint
+from sqlalchemy.orm import synonym
 
 from titlecase import titlecase
 import urlnorm
@@ -13,11 +16,11 @@ from ..utils import AutoTableMixin
 from .exceptions import (
     InvalidRegistryKey,
     InvalidEntity,
+    InvalidConnectionType,
+    CircularConnection,
     InvalidProblemConnectionRating,
     InvalidUser,
     InvalidProblemScope,
-    InvalidConnectionType,
-    CircularConnection,
 )
 
 
@@ -572,7 +575,8 @@ class Problem(BaseProblemModel, AutoTableMixin):
     Drivers/impacts are 'causal' connections while broader/narrower are
     'scoped' connections.
     '''
-    name = Column(types.String(60), index=True, unique=True)
+    _name = Column('name', types.String(60), index=True, unique=True)
+    _human_id = Column('human_id', types.String(60), index=True, unique=True)
     definition = Column(types.String(200))
     definition_url = Column(types.String(2048))
     images = orm.relationship(
@@ -604,6 +608,42 @@ class Problem(BaseProblemModel, AutoTableMixin):
                 backref='broader',
                 lazy='dynamic')
 
+    # definitely exclude: #?/\_
+    # possibly include: -~`!@$%^&*()+=:;"'<>,.{}[]|
+    # probably exclude: !@{}[]|
+    name_pattern = re.compile(r'''^[-~`$%^&*()+=:;"'<>,. a-zA-Z0-9]+$''')
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, val):
+        name = titlecase(val.strip())
+        if Problem.name_pattern.match(name) is None:  # check for valid name
+            raise NameError("'{}' is not a valid problem name.".format(name))
+        self.human_id = Problem.create_key(name)  # set the human_id
+        self._name = name  # set the name last
+
+    name = synonym('_name', descriptor=name)
+
+    @property
+    def human_id(self):
+        return self._human_id
+
+    @human_id.setter
+    def human_id(self, val):
+        # check if it's already registered by a different problem
+        problem = Problem._instances.get(val, None)
+        if problem is not None and problem is not self:
+            raise NameError("'{}' is already registered.".format(val))
+        if hasattr(self, '_human_id'):  # unregister the old human_id
+            Problem._instances.pop(self.human_id, None)
+        Problem[val] = self  # register the new human_id
+        self._human_id = val  # set the new human_id last
+
+    human_id = synonym('_human_id', descriptor=human_id)
+
     @staticmethod
     def create_key(name, *args, **kwds):
         '''Create key for a problem
@@ -629,7 +669,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
 
         Inputs are key-value pairs based on the JSON problem schema.
         '''
-        self.name = titlecase(name.strip())
+        self.name = name
         self.definition = definition.strip() if definition else None
         self.definition_url = definition_url.strip() if definition_url else None
         self.images = []
@@ -646,10 +686,10 @@ class Problem(BaseProblemModel, AutoTableMixin):
         # track problems modified by the creation of this problem via
         # new connections to existing problems
         self._modified = set()
-        problem_connections_data = {'drivers': drivers, 'impacts': impacts,
-                                    'broader': broader, 'narrower': narrower}
-        for k, v in problem_connections_data.items():
-            self.load_connections(connections_name=k, connections_data=v)
+        problem_connection_data = {'drivers': drivers, 'impacts': impacts,
+                                   'broader': broader, 'narrower': narrower}
+        for k, v in problem_connection_data.items():
+            self.load_connections(category=k, data=v)
 
     def modify(self, *args, **kwds):
         '''Modify an existing problem
@@ -686,11 +726,11 @@ class Problem(BaseProblemModel, AutoTableMixin):
                         self.images.append(image)
                         self._modified.add(self)
             elif k in ['drivers', 'impacts', 'broader', 'narrower']:
-                self.load_connections(connections_name=k, connections_data=v)
+                self.load_connections(category=k, data=v)
             else:
                 raise NameError('{} not found.'.format(k))
 
-    def load_connections(self, connections_name, connections_data):
+    def load_connections(self, category, data):
         '''Load a problem's drivers, impacts, broader, or narrower
 
         The connections_name is the field name for a set of connections
@@ -705,11 +745,11 @@ class Problem(BaseProblemModel, AutoTableMixin):
             'broader': ('scoped', 'adjacent_problem', 'self', 'narrower'),
             'narrower': ('scoped', 'self', 'adjacent_problem', 'broader'),
         }
-        assert connections_name in derived_vars
-        conn_type, p_a, p_b, inverse_name = derived_vars[connections_name]
-        connections = getattr(self, connections_name)
+        assert category in derived_vars
+        conn_type, p_a, p_b, inverse_name = derived_vars[category]
+        connections = getattr(self, category)
 
-        for connection_data in connections_data:
+        for connection_data in data:
             adjacent_name = connection_data.get('adjacent_problem', None)
             adjacent_problem = Problem(name=adjacent_name)
             ratings_data = connection_data.get('problem_connection_ratings', [])
@@ -729,12 +769,13 @@ class Problem(BaseProblemModel, AutoTableMixin):
 
     def __repr__(self):
         cls_name = self.__class__.__name__
-        return '<{cls}: {prob!r}>'.format(cls=cls_name, prob=self.name)
+        return '<{cls}: {prob!r}>'.format(cls=cls_name, prob=self.human_id)
 
     def __str__(self):
         indent = ' ' * 4
         fields = dict(
             name=self.name,
+            human_id=self.human_id,
             definition=self.definition,
             definition_url=self.definition_url,
             images=[i.url for i in self.images],
@@ -743,8 +784,8 @@ class Problem(BaseProblemModel, AutoTableMixin):
             broader=[c.broader.name for c in self.broader],
             narrower=[c.narrower.name for c in self.narrower],
         )
-        field_order = ['name', 'definition', 'definition_url', 'images',
-                       'drivers', 'impacts', 'broader', 'narrower']
+        field_order = ['name', 'human_id', 'definition', 'definition_url',
+                       'images', 'drivers', 'impacts', 'broader', 'narrower']
         string = []
         for field in field_order:
             data = fields[field]
