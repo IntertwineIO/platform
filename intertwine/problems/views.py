@@ -4,8 +4,6 @@
 import flask
 from flask import abort, render_template
 
-from titlecase import titlecase
-
 from . import blueprint
 from .models import Problem
 
@@ -13,11 +11,11 @@ from .models import Problem
 @blueprint.route('/', methods=['GET'])
 def render():
     '''Generic page rendering for top level'''
-    problems = Problem.query.order_by(Problem.name).all()
+    problems = Problem.query.order_by(Problem._name).all()
     template = render_template(
         'problems.html',
         current_app=flask.current_app,
-        title="Problems",
+        title="Social Problems",
         problems=problems)
     return template
 
@@ -25,8 +23,8 @@ def render():
 @blueprint.route('/<problem_name>', methods=['GET'])
 def render_problem(problem_name):
     '''Problem Page'''
-    p_name = titlecase(problem_name.replace('_', ' '))
-    problem = Problem.query.filter_by(name=p_name).first()
+    human_id = problem_name.lower()
+    problem = Problem.query.filter_by(human_id=human_id).first()
     if problem is None:
         # TODO: Instead of aborting, reroute to problem_not_found page
         # Oops! 'X' is not a problem found in Intertwine.

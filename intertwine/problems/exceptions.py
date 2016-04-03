@@ -28,6 +28,14 @@ class MissingRequiredField(DataProcessException):
     '''Required field '{field}' on {classname!r} is missing.'''
 
 
+class InvalidRegistryKey(DataProcessException):
+    '''{key!r} is not a valid registry key for class {classname}'''
+
+
+class InvalidEntity(DataProcessException):
+    ''''{variable}' value of {value!r} is not a valid {classname}.'''
+
+
 class InvalidConnectionType(DataProcessException):
     '''Connection type '{connection_type}' is not valid. Must be
     'causal' or 'scoped'.'''
@@ -35,14 +43,6 @@ class InvalidConnectionType(DataProcessException):
 
 class CircularConnection(DataProcessException):
     '''{problem!r} cannot be connected to itself.'''
-
-
-class InvalidRegistryKey(DataProcessException):
-    '''{key!r} is not a valid registry key for class {classname}'''
-
-
-class InvalidEntity(DataProcessException):
-    ''''{variable}' value of {value!r} is not a valid {classname}.'''
 
 
 class InvalidProblemConnectionRating(DataProcessException):

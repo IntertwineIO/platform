@@ -172,6 +172,8 @@ if __name__ == '__main__':
         return option
 
     options = {fix(k): v for k, v in docopt(__doc__).items()}
+    default_session = DataSessionManager().session
+    options['session'] = default_session
     if options.get('verbose'):
         logging.basicConfig(level=logging.DEBUG)
     elif options.get('quiet'):
@@ -179,4 +181,7 @@ if __name__ == '__main__':
     else:
         logging.basicConfig(level=logging.INFO)
 
-    decode(**options)
+    data = decode(**options)
+    for updates in data.values():
+        options['session'].add_all(updates)
+    options['session'].commit()
