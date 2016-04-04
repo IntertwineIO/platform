@@ -78,7 +78,7 @@
                 ]
             },
             {
-                "adjacent_problem": "Post Traumatic Stress Disorder",
+                "adjacent_problem": "Post-Traumatic Stress Disorder",
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
@@ -142,6 +142,56 @@
                     },
                     {
                         "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Criminalization of Poverty",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Discrimination Against Ex-Convicts",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 2,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
                         "user_id": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
