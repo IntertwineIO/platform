@@ -661,7 +661,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
         problem instance. The key is derived from the name field on the
         problem instance.
         '''
-        return self.name.strip().lower().replace(' ', '_')
+        return self.human_id
 
     def __init__(self, name, definition=None, definition_url=None, images=[],
                  drivers=[], impacts=[], broader=[], narrower=[]):
