@@ -25,6 +25,11 @@ def render_problem(problem_name):
     '''Problem Page'''
     human_id = problem_name.lower()
     problem = Problem.query.filter_by(human_id=human_id).first()
+    # TODO: add geo and org to query strings
+    geo = 'United States/Texas/Austin'
+    org = None
+    connections = problem.connections_with_ratings(geo_scope=geo,
+                                                   org_scope=org)
     if problem is None:
         # TODO: Instead of aborting, reroute to problem_not_found page
         # Oops! 'X' is not a problem found in Intertwine.
@@ -38,5 +43,7 @@ def render_problem(problem_name):
         'problem.html',
         current_app=flask.current_app,
         title=problem.name,
-        problem=problem)
+        problem=problem,
+        connections=connections,
+        )
     return template

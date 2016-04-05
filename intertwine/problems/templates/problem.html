@@ -53,11 +53,12 @@
         </div>
         <div class="h-problem-scroll-container">
             <div class="h-problem-scroll broader-scroll broader-edge">
-                {% for connection in problem.broader.all() %}
+                {% for connection, rating in connections['broader'] %}
                 <div class="h-problem broader-problem">
                     <div class="h-problem-link-container word-break">
                         <a href="/problems/{{ connection.broader.derive_key() }}" class="problem-link">
                             {{ connection.broader.name }}
+                            ({{ '{:.1f}'.format(rating) }})
                         </a>
                     </div>
                     <a href="/problems/{{ connection.broader.derive_key() }}">
@@ -83,11 +84,12 @@
             </div>
             <div class="v-problem-scroll-container">
                 <div class="v-problem-scroll driver-scroll driver-edge">
-                    {% for connection in problem.drivers.all() %}
+                    {% for connection, rating in connections['drivers'] %}
                     <div class="v-problem">
                         <div class="v-problem-link-container v-align-inner word-break">
                             <a href="/problems/{{ connection.driver.derive_key() }}" class="problem-link">
                                 {{ connection.driver.name }}
+                                ({{ '{:.1f}'.format(rating) }})
                             </a>
                         </div>
                         <div class="v-align-inner">
@@ -127,7 +129,7 @@
             </div>
             <div class="v-problem-scroll-container">
                 <div class="v-problem-scroll impact-scroll impact-edge">
-                    {% for connection in problem.impacts.all() %}
+                    {% for connection, rating in connections['impacts'] %}
                     <div class="v-problem">
                         <div class="v-align-inner">
                             <a href="/problems/{{ connection.driver.derive_key() }}">
@@ -137,6 +139,7 @@
                         <div class="v-problem-link-container v-align-inner word-break">
                             <a href="/problems/{{ connection.impact.derive_key() }}" class="problem-link">
                                 {{ connection.impact.name }}
+                                ({{ '{:.1f}'.format(rating) }})
                             </a>
                         </div>
                     </div>
@@ -159,7 +162,7 @@
         </div>
         <div class="h-problem-scroll-container">
             <div class="h-problem-scroll narrower-scroll narrower-edge">
-                {% for connection in problem.narrower.all() %}
+                {% for connection, rating in connections['narrower'] %}
                 <div class="h-problem narrower-problem">
                     <a href="/problems/{{ connection.narrower.derive_key() }}">
                         <i class="fa fa-circle problem-icon"></i>
@@ -167,6 +170,7 @@
                     <div class="h-problem-link-container word-break">
                         <a href="/problems/{{ connection.narrower.derive_key() }}" class="problem-link">
                             {{ connection.narrower.name }}
+                            ({{ '{:.1f}'.format(rating) }})
                         </a>
                     </div>
                 </div>
