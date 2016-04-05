@@ -93,7 +93,7 @@
     min-width:6em;
     max-width:16em;
     /*max-height:8.25em;*/
-    margin: 0 0.5em;
+    margin:0 0.5em;
     overflow:hidden;
     resize:none;
     text-align:center;
@@ -117,11 +117,10 @@
     font-size:1em;
     line-height:1.1em;
     /* 3 lines per problem name */
-    max-height:3.5em;
-    padding: 0.2em 0; /* allows gjpqy to extend below the line */
+    max-height:3.3em;
     overflow:hidden;
-    /*overflow-x:hidden;*/
-    /*overflow-y:auto;*/
+    overflow-x:hidden;
+    overflow-y:auto;
     text-align:center;
     /*white-space:nowrap;*/
 }

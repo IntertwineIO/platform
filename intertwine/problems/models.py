@@ -536,6 +536,24 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
         if rating_added and hasattr(self, '_modified'):
             self._modified.add(self)
 
+    def average_rating(self, problem_scope, geo_scope=None, org_scope=None):
+        '''Determine average rating for a connection within a context
+        '''
+        ratings_in_context = [r for r in self.ratings.all() if
+                              r.problem_scope == problem_scope and
+                              r.geo_scope == geo_scope and
+                              r.org_scope == org_scope]
+        ratings = [r.rating for r in ratings_in_context]
+        # Placeholder for r.user.expertise(problem_scope, geo_scope, org_scope)
+        r_user_expertise = 1
+        expertises = [r_user_expertise for r in ratings_in_context]
+        if sum(expertises) > 0:
+            avg_rating = (sum(r*e for r, e in zip(ratings, expertises))*1.0 /
+                          sum(expertises))
+        else:
+            avg_rating = 0
+        return avg_rating
+
     def __repr__(self):
         is_causal = self.connection_type == 'causal'
         ct = '->' if is_causal else '::'
@@ -661,7 +679,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
         problem instance. The key is derived from the name field on the
         problem instance.
         '''
-        return self.name.strip().lower().replace(' ', '_')
+        return self.human_id
 
     def __init__(self, name, definition=None, definition_url=None, images=[],
                  drivers=[], impacts=[], broader=[], narrower=[]):
@@ -766,6 +784,20 @@ class Problem(BaseProblemModel, AutoTableMixin):
 
         if len(self._modified) > 0:
             self._modified.add(self)
+
+    def connections_with_ratings(self, geo_scope=None, org_scope=None):
+        '''Pair connections with ratings and sort by connection category
+        '''
+        connections_with_ratings = {}
+        for category in ['drivers', 'impacts', 'broader', 'narrower']:
+            connections_with_ratings[category] = [
+                    (c, c.average_rating(problem_scope=self,
+                                         geo_scope=geo_scope,
+                                         org_scope=org_scope))
+                    for c in getattr(self, category).all()]
+            connections_with_ratings[category].sort(key=lambda c: c[1],
+                                                    reverse=True)
+        return connections_with_ratings
 
     def __repr__(self):
         cls_name = self.__class__.__name__
