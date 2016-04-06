@@ -539,19 +539,18 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
     def average_rating(self, problem_scope, geo_scope=None, org_scope=None):
         '''Determine average rating for a connection within a context
         '''
-        ratings_in_context = [r for r in self.ratings.all() if
+        ratings_in_context = (r for r in self.ratings.all() if
                               r.problem_scope == problem_scope and
                               r.geo_scope == geo_scope and
-                              r.org_scope == org_scope]
-        ratings = [r.rating for r in ratings_in_context]
+                              r.org_scope == org_scope)
+        weighted_ratings = expertise_total = 0
         # Placeholder for r.user.expertise(problem_scope, geo_scope, org_scope)
         r_user_expertise = 1
-        expertises = [r_user_expertise for r in ratings_in_context]
-        if sum(expertises) > 0:
-            avg_rating = (sum(r*e for r, e in zip(ratings, expertises))*1.0 /
-                          sum(expertises))
-        else:
-            avg_rating = 0
+        for r in ratings_in_context:
+            weighted_ratings += r.rating * r_user_expertise
+            expertise_total += r_user_expertise
+        avg_rating = (weighted_ratings * 1.0 / expertise_total if
+                      expertise_total > 0 else 0)
         return avg_rating
 
     def __repr__(self):
@@ -628,7 +627,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
 
     # definitely exclude: #?/\_
     # possibly include: -~`!@$%^&*()+=:;"'<>,.{}[]|
-    # probably exclude: !@{}[]|
+    # probably exclude: !@{}[]|  `*
     name_pattern = re.compile(r'''^[-~`$%^&*()+=:;"'<>,. a-zA-Z0-9]+$''')
 
     @property
@@ -656,7 +655,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
         if problem is not None and problem is not self:
             raise NameError("'{}' is already registered.".format(val))
         if hasattr(self, '_human_id'):  # unregister the old human_id
-            Problem._instances.pop(self.human_id, None)
+            Problem._instances.pop(self.human_id)
         Problem[val] = self  # register the new human_id
         self._human_id = val  # set the new human_id last
 
