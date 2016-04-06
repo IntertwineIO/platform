@@ -98,10 +98,10 @@
     resize: none;
     text-align: center;
 }
-.h-problem: first-child {
+.h-problem:first-child {
     margin-left: 0;
 }
-.h-problem: last-child {
+.h-problem:last-child {
     margin-right: 0;
 }
 
@@ -191,10 +191,10 @@
 .v-problem {
     margin: 0.5em 0;
 }
-.v-problem: first-child {
+.v-problem:first-child {
     margin-top: 0;
 }
-.v-problem: last-child {
+.v-problem:last-child {
     margin-bottom: 0;
 }
 
