@@ -4,7 +4,7 @@
 import flask
 from flask import abort, render_template
 
-from . import blueprint
+from . import blueprint, problem_db
 from .models import Problem
 
 
@@ -29,7 +29,9 @@ def render_problem(problem_name):
     geo = 'United States/Texas/Austin'
     org = None
     connections = problem.connections_with_ratings(geo_scope=geo,
-                                                   org_scope=org)
+                                                   org_scope=org,
+                                                   aggregation='strict',
+                                                   session=problem_db.session)
     if problem is None:
         # TODO: Instead of aborting, reroute to problem_not_found page
         # Oops! 'X' is not a problem found in Intertwine.
