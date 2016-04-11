@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import inspect
 import re
 from numbers import Real
 
@@ -37,9 +38,7 @@ class Trackable(ModelMeta):
 
     A 'create_key' staticmethod must be defined on each Trackable class
     that returns a registry key based on the classes constructor input.
-    The create_key parameters (aside from *args, **kwds) and their order
-    must match the initial __init__ parameters (aside from self). A
-    'derive_key' (instance) method must also be defined on each
+    A 'derive_key' (instance) method must also be defined on each
     Trackable class that returns the registry key based on the
     instance's data.
 
@@ -67,9 +66,13 @@ class Trackable(ModelMeta):
         return new_cls
 
     def __call__(cls, *args, **kwds):
-        # TODO: introspect cls to convert args to kwds for create_key
-        # so parameters don't need to match __init__ parameters
-        key = cls.create_key(*args, **kwds)
+        # Convert args to kwds for create_key() and modify() so
+        # parameter order need not match __init__()
+        all_kwds = kwds.copy()
+        arg_names = inspect.getargspec(cls.__init__)[0][1:len(args)+1]
+        for arg_name, arg in zip(arg_names, args):
+            all_kwds[arg_name] = arg
+        key = cls.create_key(**all_kwds)
         if key is None or key == '':
             raise InvalidRegistryKey(key=key, classname=cls.__name__)
         inst = cls._instances.get(key, None)
@@ -78,9 +81,9 @@ class Trackable(ModelMeta):
             cls._instances[key] = inst
             cls._updates.add(inst)
         else:
-            if hasattr(cls, 'modify') and (args or kwds):
+            if hasattr(cls, 'modify') and all_kwds:
                 inst._modified = set()
-                cls.modify(inst, *args, **kwds)
+                cls.modify(inst, **all_kwds)
         if hasattr(inst, '_modified'):
             cls._updates.update(inst._modified)
             del inst._modified
@@ -171,9 +174,11 @@ BaseProblemModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
 class Image(BaseProblemModel, AutoTableMixin):
     '''Base class for images'''
 
-    url = Column(types.String(2048))
+    # TODO: make Image work with any entity (not just problems), where
+    # each image can be attached to multiple entities
     problem_id = Column(types.Integer, ForeignKey('problem.id'))
     problem = orm.relationship('Problem', back_populates='images')
+    url = Column(types.String(2048))
 
     # TODO: add following:
     #
@@ -205,23 +210,22 @@ class Image(BaseProblemModel, AutoTableMixin):
     # dimensions    # in pixels
 
     @staticmethod
-    def create_key(url, *args, **kwds):
+    def create_key(problem, url, **kwds):
         '''Create key for an image
 
         Return a registry key allowing the Trackable metaclass to look
-        up an image. The key is created from the given url
-        parameter.
+        up an image. The key is created from the given problem and url.
         '''
-        return urlnorm.norm(url)
+        return (problem, urlnorm.norm(url))
 
     def derive_key(self):
         '''Derive key from an image instance
 
         Return the registry key used by the Trackable metaclass from an
-        image instance. The key is derived from the url field on the
-        image instance.
+        image instance. The key is derived from the problem and url
+        fields.
         '''
-        return self.url
+        return (self.problem, self.url)
 
     def __init__(self, url, problem):
         '''Initialize a new image from a url
@@ -292,12 +296,11 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
 
     @staticmethod
     def create_key(problem, connection, org_scope=None, geo_scope=None,
-                   aggregation='strict', *args, **kwds):
+                   aggregation='strict', **kwds):
         '''Create key for a problem connection rating
 
         Return a registry key allowing the Trackable metaclass to look
-        up an aggregate problem connection rating instance. The key is
-        created from the explicit parameters.
+        up an aggregate problem connection rating instance.
         '''
         return (problem, connection, org_scope, geo_scope, aggregation)
 
@@ -311,8 +314,8 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         return (self.problem, self.connection, self.org_scope,
                 self.geo_scope, self.aggregation)
 
-    def __init__(self, problem, connection, org_scope=None, geo_scope=None,
-                 aggregation='strict', rating=None, weight=None):
+    def __init__(self, rating, weight, problem, connection,
+                 org_scope=None, geo_scope=None, aggregation='strict'):
         '''Initialize a new aggregate problem connection rating
 
         Inputs connection and problem are instances while the rest are
@@ -321,6 +324,11 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         if not isinstance(connection, ProblemConnection):
             raise InvalidEntity(variable='connection', value=connection,
                                 classname='ProblemConnection')
+        if (not isinstance(rating, Real) or rating < 0 or rating > 4):
+            raise InvalidAggregateConnectionRating(rating=rating,
+                                                   connection=connection)
+        if not isinstance(weight, Real):
+            raise TypeError('Argument weight must be a Real number.')
         is_causal = connection.connection_type == 'causal'
         p_a = connection.driver if is_causal else connection.broader
         p_b = connection.impact if is_causal else connection.narrower
@@ -331,22 +339,16 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         # TODO: add 'inherited' to point to a different context for ratings
         if aggregation not in ('strict'):
             raise InvalidAggregation(aggregation=aggregation)
-        if (not isinstance(rating, Real) or
-                rating < 0 or rating > 4):
-            raise InvalidAggregateConnectionRating(rating=rating,
-                                                   connection=connection)
-        if not isinstance(weight, Real):
-            raise TypeError('Argument weight must be a Real number.')
+        self.rating = rating
+        self.weight = weight
         self.problem = problem
         self.connection = connection
         # TODO: make org and geo entities rather than strings
         self.org_scope = org_scope
         self.geo_scope = geo_scope
         self.aggregation = aggregation
-        self.rating = rating
-        self.weight = weight
 
-    def modify(self, *args, **kwds):
+    def modify(self, **kwds):
         '''Modify an existing aggregate problem connection rating
 
         Modify the rating and/or weight if new values are provided and
@@ -368,9 +370,10 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
 
     def __repr__(self):
         cls_name = self.__class__.__name__
-        s = '<{cls}:\n'.format(cls=cls_name)
-        s = '<{cls}: {rating:.4f}\n'.format(cls=cls_name, rating=self.rating)
-        s += '  weight: {weight:.4f}\n'.format(weight=self.weight)
+        s = '<{cls}: {rating:.4f} weight: {weight:.4f}\n'.format(
+                                                        cls=cls_name,
+                                                        rating=self.rating,
+                                                        weight=self.weight)
         s += '  problem: {prob!r}\n'.format(prob=self.problem)
         s += '  connection: {conn!r}\n'.format(conn=self.connection)
         s += '  org_scope: {org!r}\n'.format(org=self.org_scope)
@@ -391,11 +394,11 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
             conn_str = ('@' + p_name).join(str(conn).rsplit(p_name, 1))
         org = self.org_scope
         geo = self.geo_scope
-        s = '{cls}:'.format(cls=cls_name)
-        s += '  ({agg}) {rating:.2f} rating with {weight:.2f} weight\n'.format(
-                                                        agg=self.aggregation,
+        s = '{cls}: {rating:.2f} with {weight:.2f} weight ({agg})\n'.format(
+                                                        cls=cls_name,
                                                         rating=self.rating,
-                                                        weight=self.weight)
+                                                        weight=self.weight,
+                                                        agg=self.aggregation)
         s += '  on {conn}\n'.format(conn=conn_str)
         s += '  at {org} '.format(org=org) if org is not None else '  '
         # TODO: convert to more friendly geo
@@ -476,12 +479,11 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
 
     @staticmethod
     def create_key(problem, connection, org_scope=None,
-                   geo_scope=None, user_id='Intertwine', *args, **kwds):
+                   geo_scope=None, user_id='Intertwine', **kwds):
         '''Create key for a problem connection rating
 
         Return a registry key allowing the Trackable metaclass to look
-        up a problem connection rating instance. The key is created from
-        the explicit parameters.
+        up a problem connection rating instance.
         '''
         return (problem, connection, org_scope, geo_scope, user_id)
 
@@ -495,8 +497,8 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         return (self.problem, self.connection, self.org_scope,
                 self.geo_scope, self.user)
 
-    def __init__(self, problem, connection, org_scope=None,
-                 geo_scope=None, user_id='Intertwine', rating=None):
+    def __init__(self, rating, problem, connection, org_scope=None,
+                 geo_scope=None, user_id='Intertwine'):
         '''Initialize a new problem connection rating
 
         Inputs problem and connection are instances while the rest
@@ -506,6 +508,9 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         if not isinstance(connection, ProblemConnection):
             raise InvalidEntity(variable='connection', value=connection,
                                 classname='ProblemConnection')
+        if not isinstance(rating, int) or rating < 0 or rating > 4:
+            raise InvalidProblemConnectionRating(rating=rating,
+                                                 connection=connection)
         is_causal = connection.connection_type == 'causal'
         p_a = connection.driver if is_causal else connection.broader
         p_b = connection.impact if is_causal else connection.narrower
@@ -514,9 +519,7 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
                                               connection=connection)
         if user_id is None or user_id == '':
             raise InvalidUser(user=user_id, connection=connection)
-        if not isinstance(rating, int) or rating < 0 or rating > 4:
-            raise InvalidProblemConnectionRating(rating=rating,
-                                                 connection=connection)
+        self.rating = rating
         self.problem = problem
         self.connection = connection
         # TODO: make org and geo entities rather than strings
@@ -524,12 +527,11 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         self.geo_scope = geo_scope
         # TODO: assign user based on user_id
         self.user = user_id
-        self.rating = rating
 
         # Update aggregate ratings affected by this rating
         self.update_aggregate_ratings(new_rating=rating)
 
-    def modify(self, *args, **kwds):
+    def modify(self, **kwds):
         '''Modify an existing problem connection rating
 
         Modify the rating field if a new value is provided and flag the
@@ -657,12 +659,11 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
     # TODO: Add index for (connection_type, problem_b_id)
 
     @staticmethod
-    def create_key(connection_type, problem_a, problem_b, *args, **kwds):
+    def create_key(connection_type, problem_a, problem_b, **kwds):
         '''Create key for a problem connection
 
         Return a registry key allowing the Trackable metaclass to look
-        up a problem connection instance. The key is created from
-        the explicit parameters.
+        up a problem connection instance.
         '''
         return (connection_type, problem_a, problem_b)
 
@@ -711,7 +712,7 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
         if ratings_data and ratings_context_problem:
             self.load_ratings(ratings_data, ratings_context_problem)
 
-    def modify(self, *args, **kwds):
+    def modify(self, **kwds):
         '''Modify an existing problem connection
 
         Append any new problem connection ratings to the ratings field
@@ -894,7 +895,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
     human_id = synonym('_human_id', descriptor=human_id)
 
     @staticmethod
-    def create_key(name, *args, **kwds):
+    def create_key(name, **kwds):
         '''Create key for a problem
 
         Return a registry key allowing the Trackable metaclass to look
@@ -940,7 +941,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
         for k, v in problem_connection_data.items():
             self.load_connections(category=k, data=v)
 
-    def modify(self, *args, **kwds):
+    def modify(self, **kwds):
         '''Modify an existing problem
 
         Inputs are key-value pairs based on the JSON problem schema.
