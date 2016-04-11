@@ -63,5 +63,5 @@ class InvalidUser(DataProcessException):
     '''User {user!r} on rating of {connection!r} is not a valid.'''
 
 
-class InvalidProblemScope(DataProcessException):
-    '''{problem_scope!r} must be a problem on one end of {connection!r}.'''
+class InvalidProblemForConnection(DataProcessException):
+    '''{problem!r} must be a problem in {connection!r}.'''

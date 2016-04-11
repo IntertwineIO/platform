@@ -5,6 +5,7 @@ Base platform for intertwine.
 
 '''
 import flask
+from sassutils.wsgi import SassMiddleware
 from flask_bootstrap import Bootstrap
 
 from . import auth, main, problems, signup
@@ -39,6 +40,11 @@ def create_app(config):
         from flask_debugtoolbar import DebugToolbarExtension
         toolbar = DebugToolbarExtension()
 
+    # Auto-build SASS/SCSS for each request
+    app.wsgi_app = SassMiddleware(app.wsgi_app, {
+        __name__: ('static/sass', 'static/css', 'static/css')
+    })
+
     # We are using bootstrap for now
     Bootstrap(app)
 
@@ -47,6 +53,11 @@ def create_app(config):
     app.register_blueprint(auth.blueprint, url_prefix='/auth')
     app.register_blueprint(signup.blueprint, url_prefix='/signup')
     app.register_blueprint(problems.blueprint, url_prefix='/problems')
+
+    # Auto-build SASS/SCSS for each request
+    app.wsgi_app = SassMiddleware(app.wsgi_app, {
+        __name__: ('problems/static/sass', 'problems/static/css', 'problems/static/css')
+    })
 
     if app.config['DEBUG']:
         toolbar.init_app(app)
