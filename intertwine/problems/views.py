@@ -28,8 +28,8 @@ def render_problem(problem_name):
     # TODO: add org and geo to URL or query string
     org = None
     geo = 'United States/Texas/Austin'
-    connections = problem.connections_with_ratings(geo_scope=geo,
-                                                   org_scope=org,
+    connections = problem.connections_with_ratings(org_scope=org,
+                                                   geo_scope=geo,
                                                    aggregation='strict',
                                                    session=problem_db.session)
     if problem is None:
