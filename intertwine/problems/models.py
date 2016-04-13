@@ -436,7 +436,7 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
     #       user relationship
     user = Column(types.String(60))
 
-    rating = Column(types.Integer)
+    _rating = Column('rating', types.Integer)
 
     # Querying use cases:
     #
@@ -477,6 +477,23 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
                             'user',
                             'problem_id'),)
 
+    @property
+    def rating(self):
+        return self._rating
+
+    @rating.setter
+    def rating(self, val):
+        if not isinstance(val, int) or val < 0 or val > 4:
+            raise InvalidProblemConnectionRating(rating=val,
+                                                 connection=self.connection)
+        old_val = self.rating if hasattr(self, '_rating') else None
+        if (val != old_val):
+            # Update aggregate ratings affected by this rating
+            self._rating = val
+            self.update_aggregate_ratings(new_rating=val, old_rating=old_val)
+
+    rating = synonym('_rating', descriptor=rating)
+
     @staticmethod
     def create_key(problem, connection, org_scope=None,
                    geo_scope=None, user_id='Intertwine', **kwds):
@@ -508,9 +525,6 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         if not isinstance(connection, ProblemConnection):
             raise InvalidEntity(variable='connection', value=connection,
                                 classname='ProblemConnection')
-        if not isinstance(rating, int) or rating < 0 or rating > 4:
-            raise InvalidProblemConnectionRating(rating=rating,
-                                                 connection=connection)
         is_causal = connection.connection_type == 'causal'
         p_a = connection.driver if is_causal else connection.broader
         p_b = connection.impact if is_causal else connection.narrower
@@ -519,7 +533,6 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
                                               connection=connection)
         if user_id is None or user_id == '':
             raise InvalidUser(user=user_id, connection=connection)
-        self.rating = rating
         self.problem = problem
         self.connection = connection
         # TODO: make org and geo entities rather than strings
@@ -527,9 +540,7 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         self.geo_scope = geo_scope
         # TODO: assign user based on user_id
         self.user = user_id
-
-        # Update aggregate ratings affected by this rating
-        self.update_aggregate_ratings(new_rating=rating)
+        self.rating = rating
 
     def modify(self, **kwds):
         '''Modify an existing problem connection rating
@@ -539,20 +550,12 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         metaclass.
         '''
         rating = kwds.get('rating', None)
-        if not isinstance(rating, int) or rating < 0 or rating > 4:
-            raise InvalidProblemConnectionRating(rating=rating,
-                                                 connection=self.connection)
         if rating != self.rating:
-            # import ipdb; ipdb.set_trace()
-            old_rating = self.rating
             self.rating = rating
             self._modified.add(self)
-            # Update any aggregate ratings affected by this rating change
-            self.update_aggregate_ratings(new_rating=rating,
-                                          old_rating=old_rating)
 
     def update_aggregate_ratings(self, new_rating, old_rating=None):
-        # Update strict aggregate rating
+        # Update strict aggregate ratings
         ars = [ar for ar in self.connection.aggregate_ratings.all() if
                ar.problem == self.problem and
                (ar.org_scope is None or ar.org_scope == self.org_scope) and
@@ -633,7 +636,6 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
         ('driver')         ('impact')                  ::
                                                     problem_b
                                                    ('narrower')
-
     '''
 
     connection_type = Column(types.String(6))
