@@ -1,14 +1,12 @@
 {
-    "Homelessness": {
-        "definition": "Homelessness is the condition of people without a regular dwelling",
-        "definition_url": "https://en.wikipedia.org/wiki/Homelessness",
+    "Substance Abuse": {
+        "definition": "Substance abuse is a patterned use of a drug in which the user consumes the substance in amounts or with methods which are harmful to themselves or others, and is a form of substance-related disorder",
+        "definition_url": "https://en.wikipedia.org/wiki/Substance_abuse",
         "images": [
-            "http://mediad.publicbroadcasting.net/p/kut/files/201206/Homeless%20in%20Line.JPG",
-            "http://healthnewstexas.com/wp-content/uploads/2011/03/Austin-Homeless.jpg"
         ],
         "drivers": [
             {
-                "adjacent_problem": "Mental Illness",
+                "adjacent_problem": "Depression",
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
@@ -28,7 +26,7 @@
                 ]
             },
             {
-                "adjacent_problem": "Substance Abuse",
+                "adjacent_problem": "Stress",
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
@@ -53,7 +51,7 @@
                 ]
             },
             {
-                "adjacent_problem": "Domestic Violence",
+                "adjacent_problem": "Peer Pressure",
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
@@ -78,7 +76,7 @@
                 ]
             },
             {
-                "adjacent_problem": "Post-Traumatic Stress Disorder",
+                "adjacent_problem": "Low Self-Esteem",
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
@@ -101,9 +99,11 @@
                         "geo_scope": "United States"
                     }
                 ]
-            },
+            }
+        ],
+        "impacts": [
             {
-                "adjacent_problem": "Broken Foster Care System",
+                "adjacent_problem": "Incarceration",
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
@@ -111,27 +111,27 @@
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
-                        "rating": 2,
+                        "rating": 4,
                         "user_id": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
-                        "rating": 3,
+                        "rating": 4,
                         "user_id": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
-                        "rating": 3,
+                        "rating": 4,
                         "user_id": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
             },
             {
-                "adjacent_problem": "Lack of Affordable Housing",
+                "adjacent_problem": "Health Problems",
                 "problem_connection_ratings": [
                     {
-                        "rating": 2,
+                        "rating": 4,
                         "user_id": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
@@ -141,44 +141,19 @@
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
-                        "rating": 3,
+                        "rating": 4,
                         "user_id": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
-                        "rating": 2,
+                        "rating": 3,
                         "user_id": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
             },
             {
-                "adjacent_problem": "Criminalization of Poverty",
-                "problem_connection_ratings": [
-                    {
-                        "rating": 3,
-                        "user_id": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
-                        "user_id": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
-                        "user_id": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
-                    }
-                ]
-            },
-            {
-                "adjacent_problem": "Discrimination Against Ex-Convicts",
+                "adjacent_problem": "Criminal Careers",
                 "problem_connection_ratings": [
                     {
                         "rating": 2,
@@ -191,12 +166,139 @@
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Premature Death",
+                "problem_connection_ratings": [
+                    {
                         "rating": 2,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 1,
                         "user_id": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Poor School Performance",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 2,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "org_scope": "Concordia University",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "org_scope": "University of Texas",
+                        "geo_scope": "United States/Texas/Austin"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Healthcare Costs",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 1,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States/Texas"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Jail Costs",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 1,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States/Texas"
+                    },
+                    {
+                        "rating": 3,
                         "user_id": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
@@ -223,54 +325,12 @@
                     {
                         "rating": 1,
                         "user_id": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
-                    }
-                ]
-            }
-        ],
-        "impacts": [
-            {
-                "adjacent_problem": "Emergency Room Costs",
-                "problem_connection_ratings": [
-                    {
-                        "rating": 4,
-                        "user_id": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
-                        "rating": 4,
-                        "user_id": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 4,
+                        "rating": 2,
                         "user_id": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
-                    }
-                ]
-            },
-            {
-                "adjacent_problem": "Law Enforcement Costs",
-                "problem_connection_ratings": [
-                    {
-                        "rating": 4,
-                        "user_id": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 3,
-                        "user_id": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "United States/Texas"
                     },
                     {
                         "rating": 3,
@@ -280,82 +340,7 @@
                 ]
             },
             {
-                "adjacent_problem": "Victimization by Violent Crime",
-                "problem_connection_ratings": [
-                    {
-                        "rating": 2,
-                        "user_id": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
-                        "user_id": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
-                    }
-                ]
-            },
-            {
-                "adjacent_problem": "Spread of Disease",
-                "problem_connection_ratings": [
-                    {
-                        "rating": 2,
-                        "user_id": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
-                        "user_id": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 1,
-                        "user_id": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
-                    }
-                ]
-            },
-            {
-                "adjacent_problem": "Disenfranchisement",
-                "problem_connection_ratings": [
-                    {
-                        "rating": 2,
-                        "user_id": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
-                        "user_id": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
-                    }
-                ]
-            },
-            {
-                "adjacent_problem": "Hypothermia",
+                "adjacent_problem": "Homelessness",
                 "problem_connection_ratings": [
                     {
                         "rating": 1,
@@ -392,7 +377,7 @@
         ],
         "broader": [
             {
-                "adjacent_problem": "Poverty",
+                "adjacent_problem": "Escapism",
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
@@ -417,7 +402,7 @@
                 ]
             },
             {
-                "adjacent_problem": "Social Injustice",
+                "adjacent_problem": "Abdication of Responsibility",
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
@@ -442,7 +427,7 @@
                 ]
             },
             {
-                "adjacent_problem": "Economic Inequality",
+                "adjacent_problem": "Overindulgence",
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
@@ -476,31 +461,6 @@
                     },
                     {
                         "rating": 3,
-                        "user_id": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
-                    }
-                ]
-            },
-            {
-                "adjacent_problem": "Insufficient Safety Net",
-                "problem_connection_ratings": [
-                    {
-                        "rating": 2,
-                        "user_id": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
                         "user_id": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
@@ -554,7 +514,7 @@
         ],
         "narrower": [
             {
-                "adjacent_problem": "Homeless Youth",
+                "adjacent_problem": "Alcoholism",
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
@@ -579,7 +539,7 @@
                 ]
             },
             {
-                "adjacent_problem": "Homeless Veterans",
+                "adjacent_problem": "Heroin Use",
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
@@ -604,7 +564,7 @@
                 ]
             },
             {
-                "adjacent_problem": "Homeless Elderly",
+                "adjacent_problem": "Prescription Drug Abuse",
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
@@ -629,7 +589,7 @@
                 ]
             },
             {
-                "adjacent_problem": "Homeless Families",
+                "adjacent_problem": "Crack Cocaine Use",
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
@@ -638,31 +598,6 @@
                     },
                     {
                         "rating": 3,
-                        "user_id": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
-                    }
-                ]
-            },
-            {
-                "adjacent_problem": "Homeless Often Lack ID",
-                "problem_connection_ratings": [
-                    {
-                        "rating": 2,
-                        "user_id": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
-                    },
-                    {
-                        "rating": 2,
                         "user_id": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
@@ -679,7 +614,32 @@
                 ]
             },
             {
-                "adjacent_problem": "Poor Health and Social Service Coordination for the Homeless",
+                "adjacent_problem": "Methamphetamine Use",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 2,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Cocaine Use",
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
@@ -714,7 +674,77 @@
                 ]
             },
             {
-                "adjacent_problem": "Lack of Standard Homeless Metrics",
+                "adjacent_problem": "Tobacco Use",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 1,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States/Texas"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Amphetamine Use",
+                "problem_connection_ratings": [
+                    {
+                        "rating": 3,
+                        "user_id": "eli@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 1,
+                        "user_id": "brian@intertwine.io",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "Donald.Christian@concordia.edu",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 2,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States/Texas/Austin"
+                    },
+                    {
+                        "rating": 3,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States/Texas"
+                    },
+                    {
+                        "rating": 4,
+                        "user_id": "sapanadonde@hotmail.com",
+                        "geo_scope": "United States"
+                    }
+                ]
+            },
+            {
+                "adjacent_problem": "Cannabis Use",
                 "problem_connection_ratings": [
                     {
                         "rating": 3,

@@ -553,31 +553,26 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
 
     def update_aggregate_ratings(self, new_rating, old_rating=None):
         # Update strict aggregate rating
-        connection = self.connection
-        aggregate_ratings = [ar for ar in connection.aggregate_ratings.all() if
-                             ar.problem == self.problem and
-                             ar.org_scope == self.org_scope and
-                             ar.geo_scope == self.geo_scope and
-                             ar.aggregation == 'strict']
-        assert(len(aggregate_ratings) < 2)
-        if len(aggregate_ratings) == 1:
-            aggregate_rating = aggregate_ratings[0]
+        ars = [ar for ar in self.connection.aggregate_ratings.all() if
+               ar.problem == self.problem and
+               (ar.org_scope is None or ar.org_scope == self.org_scope) and
+               (ar.geo_scope is None or ar.geo_scope == self.geo_scope) and
+               ar.aggregation == 'strict']
+        if ars:
             # user.expertise(self.problem, self.org_scope, self.geo_scope)
             user_w = user_expertise = 1
             deduction = (old_rating * user_w) if old_rating else 0
             addition = new_rating * user_w
-            old_agg_w = aggregate_rating.weight
-            old_agg_r = aggregate_rating.rating
-            new_agg_w = old_agg_w + (user_w if old_rating is None else 0)
-            new_agg_r = ((old_agg_r * old_agg_w - deduction + addition) /
-                         new_agg_w)
-            AggregateProblemConnectionRating(problem=self.problem,
-                                             connection=self.connection,
-                                             org_scope=self.org_scope,
-                                             geo_scope=self.geo_scope,
-                                             aggregation='strict',
-                                             rating=new_agg_r,
-                                             weight=new_agg_w)
+            for ar in ars:
+                new_w = ar.weight + (user_w if old_rating is None else 0)
+                new_r = ((ar.rating*ar.weight - deduction + addition) / new_w)
+                AggregateProblemConnectionRating(problem=ar.problem,
+                                                 connection=ar.connection,
+                                                 org_scope=ar.org_scope,
+                                                 geo_scope=ar.geo_scope,
+                                                 aggregation='strict',
+                                                 rating=new_r,
+                                                 weight=new_w)
 
     def __repr__(self):
         cls_name = self.__class__.__name__
@@ -760,14 +755,19 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
             aggregate_rating = aggregate_ratings[0]
         else:
             if aggregation == 'strict':
-                ratings_in_context = (r for r in self.ratings.all() if
-                                      r.problem == problem and
-                                      r.org_scope == org_scope and
-                                      r.geo_scope == geo_scope)
+                # rq = ProblemConnectionRating.query.filter_by(problem=problem,
+                #                                              connection=self)
+                # rq = rq.filter_by(org_scope=org_scope) if org_scope else rq
+                # rq = rq.filter_by(geo_scope=geo_scope) if geo_scope else rq
+                # ratings = rq.all()
+                ratings = (r for r in self.ratings.all() if
+                           r.problem == problem and
+                           (org_scope is None or r.org_scope == org_scope) and
+                           (geo_scope is None or r.geo_scope == geo_scope))
                 weighted_ratings = weight = 0
                 # Sub w/ r.user.expertise(problem, org_scope, geo_scope)
                 r_user_expertise = 1
-                for r in ratings_in_context:
+                for r in ratings:
                     weighted_ratings += r.rating * r_user_expertise
                     weight += r_user_expertise
                 rating = (weighted_ratings * 1.0 / weight if

@@ -25,9 +25,9 @@ def render_problem(problem_name):
     '''Problem Page'''
     human_id = problem_name.lower()
     problem = Problem.query.filter_by(human_id=human_id).first()
-    # TODO: add geo and org to query strings
-    geo = 'United States/Texas/Austin'
+    # TODO: add org and geo to URL or query string
     org = None
+    geo = 'United States/Texas/Austin'
     connections = problem.connections_with_ratings(geo_scope=geo,
                                                    org_scope=org,
                                                    aggregation='strict',
@@ -47,5 +47,7 @@ def render_problem(problem_name):
         title=problem.name,
         problem=problem,
         connections=connections,
+        org=org,
+        geo=geo
         )
     return template
