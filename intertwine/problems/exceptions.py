@@ -20,6 +20,11 @@ class DataProcessException(Exception):
         Exception.__init__(self, message)
 
 
+class InconsistentArguments(DataProcessException):
+    '''Argument '{arg1_name}' with value '{arg1_value}' is inconsistent
+    with '{arg2_name}' with value '{arg2_value}'.'''
+
+
 class InvalidJSONPath(DataProcessException):
     '''No JSON files found in path {path}.'''
 

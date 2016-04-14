@@ -179,14 +179,14 @@ def test_incremental_decode(options):
         assert r.connection == c1
 
     rs2 = session.query(ProblemConnectionRating).filter(
+        ProblemConnectionRating.problem == p1,
         ProblemConnectionRating.connection == c2,
-        ProblemConnectionRating.problem_scope == p1,
         ProblemConnectionRating.org_scope.is_(None),
         ProblemConnectionRating.geo_scope == 'United States/Texas/Austin')
     assert len(rs2.all()) > 0
     for r in rs2:
+        assert r.problem == p1
         assert r.connection == c2
-        assert r.problem_scope == p1
         assert r.org_scope is None
         assert r.geo_scope == 'United States/Texas/Austin'
 
