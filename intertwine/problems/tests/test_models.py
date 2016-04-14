@@ -26,7 +26,7 @@ def test_problem_model(options):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_problem_connection_model(options):
-    '''Tests simple problem model interaction'''
+    '''Tests simple problem connection model interaction'''
     from intertwine.problems.models import Problem, ProblemConnection
     from data.data_process import DataSessionManager, erase_data
 
@@ -57,7 +57,7 @@ def test_problem_connection_model(options):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_problem_connection_rating_model(options):
-    '''Tests simple problem model interaction'''
+    '''Tests simple problem connection rating model interaction'''
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
     from data.data_process import DataSessionManager, erase_data
@@ -98,7 +98,7 @@ def test_problem_connection_rating_model(options):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_aggregate_problem_connection_rating_model(options):
-    '''Tests simple problem model interaction'''
+    '''Tests aggregate problem connection rating model interaction'''
     from alchy import Manager
     from alchy.model import extend_declarative_base
     from data.data_process import erase_data
