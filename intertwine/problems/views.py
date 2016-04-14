@@ -27,7 +27,12 @@ def render_problem(problem_name):
     problem = Problem.query.filter_by(human_id=human_id).first()
     # TODO: add org and geo to URL or query string
     org = None
+    # org = 'University of Texas'
+    org_display = org
+    # geo = None
+    # geo_display = None
     geo = 'United States/Texas/Austin'
+    geo_display = 'Austin, TX'
     connections = problem.connections_with_ratings(org_scope=org,
                                                    geo_scope=geo,
                                                    aggregation='strict',
@@ -47,7 +52,7 @@ def render_problem(problem_name):
         title=problem.name,
         problem=problem,
         connections=connections,
-        org=org,
-        geo=geo
+        org_display=org_display,
+        geo_display=geo_display
         )
     return template
