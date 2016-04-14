@@ -50,9 +50,18 @@ class InvalidProblemConnectionRating(DataProcessException):
     between 0 and 4 (inclusive).'''
 
 
+class InvalidAggregateConnectionRating(DataProcessException):
+    '''Aggregate rating of {rating} on {connection!r} is not valid. Must
+    be a Real number between 0 and 4 (inclusive).'''
+
+
+class InvalidAggregation(DataProcessException):
+    '''Aggregation '{aggregation}' is not valid. Must be 'strict'.'''
+
+
 class InvalidUser(DataProcessException):
     '''User {user!r} on rating of {connection!r} is not a valid.'''
 
 
-class InvalidProblemScope(DataProcessException):
-    '''{problem_scope!r} must be a problem on one end of {connection!r}.'''
+class InvalidProblemForConnection(DataProcessException):
+    '''{problem!r} must be a problem in {connection!r}.'''
