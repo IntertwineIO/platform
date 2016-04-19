@@ -16,6 +16,7 @@ from ..utils import AutoTableMixin
 
 
 from .exceptions import (
+    InconsistentArguments,
     InvalidRegistryKey,
     InvalidEntity,
     InvalidConnectionType,
@@ -297,7 +298,7 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
     @staticmethod
     def create_key(problem, connection, org_scope=None, geo_scope=None,
                    aggregation='strict', **kwds):
-        '''Create key for a problem connection rating
+        '''Create key for an aggregate rating
 
         Return a registry key allowing the Trackable metaclass to look
         up an aggregate problem connection rating instance.
@@ -305,7 +306,7 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         return (problem, connection, org_scope, geo_scope, aggregation)
 
     def derive_key(self):
-        '''Derive key from a problem connection rating instance
+        '''Derive key from an aggregate rating instance
 
         Return the registry key used by the Trackable metaclass from an
         aggregate problem connection rating instance. The key is derived
@@ -314,21 +315,31 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         return (self.problem, self.connection, self.org_scope,
                 self.geo_scope, self.aggregation)
 
-    def __init__(self, rating, weight, problem, connection,
-                 org_scope=None, geo_scope=None, aggregation='strict'):
-        '''Initialize a new aggregate problem connection rating
+    def __init__(self, problem, connection, org_scope=None, geo_scope=None,
+                 aggregation='strict', rating=None, weight=None):
+        '''Initialize a new aggregate rating
 
-        Inputs connection and problem are instances while the rest are
-        literals based on the JSON problem connection rating schema. The
-        aggregate rating must be a float between 0 and 4 inclusive.'''
+        Inputs connection and problem are instances while org_scope,
+        geo_scope, aggregation, rating, and weight are literals based on
+        the JSON aggregate problem connection rating schema.
+
+        The rating must be a real number between 0 and 4 inclusive. The
+        weight reflects the total weight of all the ratings included and
+        must also be a real number. Rating and weight must both be
+        provided or both be None.
+
+        If both rating and weight are None, The value and weight are
+        calculated from the set of problem connection ratings using the
+        method specified in the aggregation argument.
+
+        The default aggregation is 'strict', which only includes those
+        ratings which exactly match the problem, org_scope, and
+        geo_scope. However, note that org_scope of None includes all
+        orgs and geo_scope of None includes all geos.
+        '''
         if not isinstance(connection, ProblemConnection):
             raise InvalidEntity(variable='connection', value=connection,
                                 classname='ProblemConnection')
-        if (not isinstance(rating, Real) or rating < 0 or rating > 4):
-            raise InvalidAggregateConnectionRating(rating=rating,
-                                                   connection=connection)
-        if not isinstance(weight, Real):
-            raise TypeError('Argument weight must be a Real number.')
         is_causal = connection.connection_type == 'causal'
         p_a = connection.driver if is_causal else connection.broader
         p_b = connection.impact if is_causal else connection.narrower
@@ -339,17 +350,47 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         # TODO: add 'inherited' to point to a different context for ratings
         if aggregation not in ('strict'):
             raise InvalidAggregation(aggregation=aggregation)
-        self.rating = rating
-        self.weight = weight
+        if ((rating is None and weight is not None) or
+                (rating is not None and weight is None)):
+            raise InconsistentArguments(arg1_name='rating', arg1_value=rating,
+                                        art2_name='weight', arg2_value=weight)
+        if rating is None:
+            if aggregation == 'strict':
+                rq = ProblemConnectionRating.query.filter_by(
+                                                        problem=problem,
+                                                        connection=connection)
+                rq = rq.filter_by(org_scope=org_scope) if org_scope else rq
+                rq = rq.filter_by(geo_scope=geo_scope) if geo_scope else rq
+                ratings = rq.all()
+                # ratings = (r for r in connection.ratings.all() if
+                #            r.problem == problem and
+                #            (org_scope is None or r.org_scope == org_scope) and
+                #            (geo_scope is None or r.geo_scope == geo_scope))
+                weighted_rating_total = weight_total = 0
+                r_user_expertise = 1  # Placeholder - see below
+                for r in ratings:
+                    weighted_rating_total += r.rating * r_user_expertise
+                    # Sub w/ r.user.expertise(problem, org_scope, geo_scope)
+                    weight_total += r_user_expertise
+                rating = (weighted_rating_total * 1.0 / weight_total if
+                          weight_total > 0 else 0)
+                weight = weight_total
+        if (not isinstance(rating, Real) or rating < 0 or rating > 4):
+            raise InvalidAggregateConnectionRating(rating=rating,
+                                                   connection=connection)
+        if not isinstance(weight, Real):
+            raise TypeError('Weight must be a Real number.')
         self.problem = problem
         self.connection = connection
         # TODO: make org and geo entities rather than strings
         self.org_scope = org_scope
         self.geo_scope = geo_scope
         self.aggregation = aggregation
+        self.rating = rating
+        self.weight = weight
 
     def modify(self, **kwds):
-        '''Modify an existing aggregate problem connection rating
+        '''Modify an existing aggregate rating
 
         Modify the rating and/or weight if new values are provided and
         flag the aggregate problem connection rating as modified.
@@ -743,9 +784,16 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
         if rating_added and hasattr(self, '_modified'):
             self._modified.add(self)
 
-    def aggregate_rating(self, problem, org_scope=None, geo_scope=None,
-                         aggregation='strict', session=None):
-        '''Determine aggregate rating for a connection within a context
+    def aggregate_rating_in_context(self, problem, org_scope=None,
+                                    geo_scope=None, aggregation='strict',
+                                    session=None):
+        '''Emit aggregate rating for the connection within a context
+
+        Given a problem, org_scope, geo_scope, aggregation, and a
+        session, return an aggregate problem connection rating. If an
+        aggregate rating matching the criteria already exists, it is
+        returned. If not, a new one is created and persisted to the
+        database.
         '''
         aggregate_ratings = [ar for ar in self.aggregate_ratings.all() if
                              ar.problem == problem and
@@ -756,36 +804,16 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
         if len(aggregate_ratings) == 1:
             aggregate_rating = aggregate_ratings[0]
         else:
-            if aggregation == 'strict':
-                # rq = ProblemConnectionRating.query.filter_by(problem=problem,
-                #                                              connection=self)
-                # rq = rq.filter_by(org_scope=org_scope) if org_scope else rq
-                # rq = rq.filter_by(geo_scope=geo_scope) if geo_scope else rq
-                # ratings = rq.all()
-                ratings = (r for r in self.ratings.all() if
-                           r.problem == problem and
-                           (org_scope is None or r.org_scope == org_scope) and
-                           (geo_scope is None or r.geo_scope == geo_scope))
-                weighted_ratings = weight = 0
-                # Sub w/ r.user.expertise(problem, org_scope, geo_scope)
-                r_user_expertise = 1
-                for r in ratings:
-                    weighted_ratings += r.rating * r_user_expertise
-                    weight += r_user_expertise
-                rating = (weighted_ratings * 1.0 / weight if
-                          weight > 0 else 0)
             aggregate_rating = AggregateProblemConnectionRating(
                                                 problem=problem,
                                                 connection=self,
                                                 org_scope=org_scope,
                                                 geo_scope=geo_scope,
-                                                aggregation=aggregation,
-                                                rating=rating,
-                                                weight=weight)
+                                                aggregation=aggregation)
             if session is not None:
                 session.add(aggregate_rating)
                 session.commit()
-        return aggregate_rating.rating
+        return aggregate_rating
 
     def __repr__(self):
         is_causal = self.connection_type == 'causal'
@@ -1026,11 +1054,11 @@ class Problem(BaseProblemModel, AutoTableMixin):
         connections_with_ratings = {}
         for category in ['drivers', 'impacts', 'broader', 'narrower']:
             connections_with_ratings[category] = [
-                    (c, c.aggregate_rating(problem=self,
-                                           org_scope=org_scope,
-                                           geo_scope=geo_scope,
-                                           aggregation=aggregation,
-                                           session=session))
+                    (c, c.aggregate_rating_in_context(problem=self,
+                                                      org_scope=org_scope,
+                                                      geo_scope=geo_scope,
+                                                      aggregation=aggregation,
+                                                      session=session).rating)
                     for c in getattr(self, category).all()]
             connections_with_ratings[category].sort(key=lambda c: c[1],
                                                     reverse=True)
