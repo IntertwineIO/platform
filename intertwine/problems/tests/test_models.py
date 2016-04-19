@@ -9,9 +9,10 @@ def test_problem_model(options):
     '''Tests simple problem model interaction'''
     from intertwine.problems.models import Problem
     from data.data_process import DataSessionManager, erase_data
-
-    # DSM only creates a session if one doesn't exist
-    dsm = DataSessionManager(options['config'].DATABASE)
+    # To test in interpreter, use below:
+    # from config import DevConfig; config = DevConfig
+    config = options['config']
+    dsm = DataSessionManager(config.DATABASE)
     session = dsm.session
     assert session is not None
     erase_data(session, confirm='ERASE')
@@ -29,9 +30,10 @@ def test_problem_connection_model(options):
     '''Tests simple problem connection model interaction'''
     from intertwine.problems.models import Problem, ProblemConnection
     from data.data_process import DataSessionManager, erase_data
-
-    # DSM only creates a session if one doesn't exist
-    dsm = DataSessionManager(options['config'].DATABASE)
+    # To test in interpreter, use below:
+    # from config import DevConfig; config = DevConfig
+    config = options['config']
+    dsm = DataSessionManager(config.DATABASE)
     session = dsm.session
     assert session is not None
     erase_data(session, confirm='ERASE')
@@ -54,6 +56,7 @@ def test_problem_connection_model(options):
     assert problem1.impacts.all()[0].impact == problem2
     assert problem2.drivers.all()[0].driver == problem1
 
+
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_problem_connection_rating_model(options):
@@ -61,9 +64,10 @@ def test_problem_connection_rating_model(options):
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
     from data.data_process import DataSessionManager, erase_data
-
-    # DSM only creates a session if one doesn't exist
-    dsm = DataSessionManager(options['config'].DATABASE)
+    # To test in interpreter, use below:
+    # from config import DevConfig; config = DevConfig
+    config = options['config']
+    dsm = DataSessionManager(config.DATABASE)
     session = dsm.session
     assert session is not None
     erase_data(session, confirm='ERASE')
@@ -95,6 +99,7 @@ def test_problem_connection_rating_model(options):
     assert r.geo_scope == geo
     assert r.rating == 2
 
+
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_aggregate_problem_connection_rating_model(options):
@@ -102,13 +107,14 @@ def test_aggregate_problem_connection_rating_model(options):
     from alchy import Manager
     from alchy.model import extend_declarative_base
     from data.data_process import erase_data
-    # from config import DevConfig; config = DevConfig
-    config = options['config']
     from intertwine.problems.models import (BaseProblemModel,
                                             Problem,
                                             ProblemConnection,
                                             ProblemConnectionRating,
                                             AggregateProblemConnectionRating)
+    # To test in interpreter, use below:
+    # from config import DevConfig; config = DevConfig
+    config = options['config']
     problem_db = Manager(Model=BaseProblemModel, config=config)
     session = problem_db.session
     assert session is not None
