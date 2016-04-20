@@ -114,14 +114,13 @@ def test_aggregate_problem_connection_rating_model(options):
                                             ProblemConnectionRating,
                                             AggregateProblemConnectionRating)
     # To test in interpreter, use below:
-    from config import DevConfig; config = DevConfig
-    # config = options['config']
+    # from config import DevConfig; config = DevConfig
+    config = options['config']
 
     problem_db = Manager(Model=BaseProblemModel, config=config)
 
     inspector = Inspector.from_engine(problem_db.engine)
     if len(inspector.get_table_names()) == 0:
-        # TODO: update to include all models/tables
         BaseProblemModel.metadata.create_all(problem_db.engine)
 
     session = problem_db.session
