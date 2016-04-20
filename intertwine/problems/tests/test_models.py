@@ -15,13 +15,15 @@ def test_problem_model(options):
     dsm = DataSessionManager(config.DATABASE)
     session = dsm.session
     assert session is not None
-    erase_data(session, confirm='ERASE')
     assert session.query(Problem).all() == []
     problem_name = 'This is a Test Problem'
     problem = Problem(problem_name)
     session.add(problem)
     session.commit()
     assert session.query(Problem).first() == problem
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
 
 
 @pytest.mark.unit
@@ -36,8 +38,9 @@ def test_problem_connection_model(options):
     dsm = DataSessionManager(config.DATABASE)
     session = dsm.session
     assert session is not None
-    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
     assert session.query(ProblemConnection).all() == []
+
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
     problem2 = Problem(problem_name_base + ' 02')
@@ -55,6 +58,10 @@ def test_problem_connection_model(options):
     assert connection == connections[0]
     assert problem1.impacts.all()[0].impact == problem2
     assert problem2.drivers.all()[0].driver == problem1
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
 
 
 @pytest.mark.unit
@@ -70,8 +77,10 @@ def test_problem_connection_rating_model(options):
     dsm = DataSessionManager(config.DATABASE)
     session = dsm.session
     assert session is not None
-    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
     assert session.query(ProblemConnectionRating).all() == []
+
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
     problem2 = Problem(problem_name_base + ' 02')
@@ -98,6 +107,11 @@ def test_problem_connection_rating_model(options):
     assert r.org_scope == org
     assert r.geo_scope == geo
     assert r.rating == 2
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
+    assert session.query(ProblemConnectionRating).all() == []
 
 
 @pytest.mark.unit
@@ -116,19 +130,18 @@ def test_aggregate_problem_connection_rating_model(options):
     # To test in interpreter, use below:
     # from config import DevConfig; config = DevConfig
     config = options['config']
-
     problem_db = Manager(Model=BaseProblemModel, config=config)
-
     inspector = Inspector.from_engine(problem_db.engine)
     if len(inspector.get_table_names()) == 0:
         BaseProblemModel.metadata.create_all(problem_db.engine)
-
     session = problem_db.session
     assert session is not None
     extend_declarative_base(BaseProblemModel, session=session)
-
-    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
     assert session.query(ProblemConnectionRating).all() == []
+    assert session.query(AggregateProblemConnectionRating).all() == []
+
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
     problem2 = Problem(problem_name_base + ' 02')
@@ -203,6 +216,8 @@ def test_aggregate_problem_connection_rating_model(options):
     assert round(ars[2].weight, 2) == 2.0
     assert round(ars[3].rating, 2) == 2.5
     assert round(ars[3].weight, 2) == 4.0
+
+    # Change rating on r2 and validate that aggregates 2 and 4 updated
     r2.rating = 0
     assert round(ars[0].rating) == 1.0
     assert round(ars[0].weight) == 1.0
@@ -212,3 +227,10 @@ def test_aggregate_problem_connection_rating_model(options):
     assert round(ars[2].weight, 2) == 2.0
     assert round(ars[3].rating, 2) == 2.0
     assert round(ars[3].weight, 2) == 4.0
+
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
+    assert session.query(ProblemConnectionRating).all() == []
+    assert session.query(AggregateProblemConnectionRating).all() == []

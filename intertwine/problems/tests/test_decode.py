@@ -9,14 +9,10 @@ def test_decode_problem(options):
     '''Tests decoding a standard problem'''
     from intertwine.problems.models import Problem
     from data.data_process import DataSessionManager, erase_data, decode
-
-    # DSM only creates a session if one doesn't exist
     dsm = DataSessionManager(options['config'].DATABASE)
     session = dsm.session
     assert session is not None
-
-    # Erase data
-    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
 
     # Decode
     u1 = decode(session, 'data/problems/problems01.json')
@@ -33,6 +29,9 @@ def test_decode_problem(options):
     assert len(p1.impacts.all()) > 0
     assert len(p1.broader.all()) > 0
     assert len(p1.narrower.all()) > 0
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
 
 
 @pytest.mark.unit
@@ -41,14 +40,11 @@ def test_decode_problem_connection(options):
     '''Tests decoding a standard problem connection'''
     from intertwine.problems.models import Problem, ProblemConnection
     from data.data_process import DataSessionManager, erase_data, decode
-
-    # DSM only creates a session if one doesn't exist
     dsm = DataSessionManager(options['config'].DATABASE)
     session = dsm.session
     assert session is not None
-
-    # Erase data
-    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
 
     # Decode
     u0 = decode(session, 'data/problems/problems00.json')
@@ -66,6 +62,10 @@ def test_decode_problem_connection(options):
     assert c1.connection_type == 'scoped'
     assert c1.broader == p0
     assert c1.narrower == p1
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
 
 
 @pytest.mark.unit
@@ -75,14 +75,12 @@ def test_decode_problem_connection_rating(options):
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
     from data.data_process import DataSessionManager, erase_data, decode
-
-    # DSM only creates a session if one doesn't exist
     dsm = DataSessionManager(options['config'].DATABASE)
     session = dsm.session
     assert session is not None
-
-    # Erase data
-    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
+    assert session.query(ProblemConnectionRating).all() == []
 
     # Decode directory:
     u = decode(session, 'data/problems/')
@@ -103,6 +101,11 @@ def test_decode_problem_connection_rating(options):
     assert len(rs1.all()) > 0
     for r in rs1:
         assert r.connection == c1
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
+    assert session.query(ProblemConnectionRating).all() == []
 
 
 @pytest.mark.unit
@@ -117,9 +120,9 @@ def test_incremental_decode(options):
     dsm = DataSessionManager(options['config'].DATABASE)
     session = dsm.session
     assert session is not None
-
-    # Erase data
-    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
+    assert session.query(ProblemConnectionRating).all() == []
 
     # Initial data load:
     u0 = decode(session, 'data/problems/problems00.json')
@@ -197,3 +200,9 @@ def test_incremental_decode(options):
     u2_repeat = decode(session, 'data/problems/problems02.json')
     for updates in u2_repeat.values():
         assert len(updates) == 0
+
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
+    assert session.query(ProblemConnectionRating).all() == []
