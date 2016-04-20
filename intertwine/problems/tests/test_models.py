@@ -104,6 +104,7 @@ def test_problem_connection_rating_model(options):
 @pytest.mark.smoke
 def test_aggregate_problem_connection_rating_model(options):
     '''Tests aggregate problem connection rating model interaction'''
+    from sqlalchemy.engine.reflection import Inspector
     from alchy import Manager
     from alchy.model import extend_declarative_base
     from data.data_process import erase_data
@@ -113,9 +114,16 @@ def test_aggregate_problem_connection_rating_model(options):
                                             ProblemConnectionRating,
                                             AggregateProblemConnectionRating)
     # To test in interpreter, use below:
-    # from config import DevConfig; config = DevConfig
-    config = options['config']
+    from config import DevConfig; config = DevConfig
+    # config = options['config']
+
     problem_db = Manager(Model=BaseProblemModel, config=config)
+
+    inspector = Inspector.from_engine(problem_db.engine)
+    if len(inspector.get_table_names()) == 0:
+        # TODO: update to include all models/tables
+        BaseProblemModel.metadata.create_all(problem_db.engine)
+
     session = problem_db.session
     assert session is not None
     extend_declarative_base(BaseProblemModel, session=session)
