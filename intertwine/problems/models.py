@@ -716,6 +716,8 @@ class Problem(BaseProblemModel, AutoTableMixin):
     _human_id = Column('human_id', types.String(60), index=True, unique=True)
     definition = Column(types.String(200))
     definition_url = Column(types.String(2048))
+    # TODO: support multiple sponsors in different org/geo contexts
+    sponsor = Column(types.String(60))
     images = orm.relationship(
                 'Image',
                 back_populates='problem',
@@ -801,7 +803,8 @@ class Problem(BaseProblemModel, AutoTableMixin):
         '''
         return self.human_id
 
-    def __init__(self, name, definition=None, definition_url=None, images=[],
+    def __init__(self, name, definition=None, definition_url=None,
+                 sponsor=None, images=[],
                  drivers=[], impacts=[], broader=[], narrower=[]):
         '''Initialize a new problem
 
@@ -810,6 +813,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
         self.name = name
         self.definition = definition.strip() if definition else None
         self.definition_url = definition_url.strip() if definition_url else None
+        self.sponsor = sponsor.strip() if sponsor else None
         self.images = []
         self.drivers = []
         self.impacts = []
@@ -847,14 +851,19 @@ class Problem(BaseProblemModel, AutoTableMixin):
             if k == 'name':
                 continue  # name cannot be updated via upload
             elif k == 'definition':
-                definition = v.strip()
+                definition = v.strip() if v else None
                 if definition != self.definition:
                     self.definition = definition
                     self._modified.add(self)
             elif k == 'definition_url':
-                definition_url = v.strip()
+                definition_url = v.strip() if v else None
                 if definition_url != self.definition_url:
                     self.definition_url = definition_url
+                    self._modified.add(self)
+            elif k == 'sponsor':
+                sponsor = v.strip() if v else None
+                if sponsor != self.sponsor:
+                    self.sponsor = sponsor
                     self._modified.add(self)
             elif k == 'images':
                 image_urls = v if v else []
