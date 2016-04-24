@@ -112,8 +112,9 @@ def test_decode_problem_connection_rating(options):
 @pytest.mark.smoke
 def test_incremental_decode(options):
     '''Tests decoding incrementally'''
+    from intertwine.utils import Trackable
     from intertwine.problems.models import (Problem, ProblemConnection,
-                                            ProblemConnectionRating, Trackable)
+                                            ProblemConnectionRating)
     from data.data_process import DataSessionManager, erase_data, decode
 
     # DSM only creates a session if one doesn't exist

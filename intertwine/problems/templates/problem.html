@@ -45,7 +45,14 @@
         <span class="page-scope">in {{ geo_display }}</span>
         {% endif %}
     </h1>
-    <div class="page-tagline"> An open innovation space sponsored by the Urban Institute </div>
+    <div class="page-tagline">
+        <span>An open innovation space sponsored by</span>
+        {% if problem.sponsor is not none %}
+        <span>{{ problem.sponsor }}</span>
+        {% else %}
+        <span>Intertwine</span>
+        {% endif %}
+    </div>
 </header>
 <section id="network-section">
     <div class="h-connection-label-container">

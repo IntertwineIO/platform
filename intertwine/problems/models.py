@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import inspect
 import re
 from numbers import Real
 
-from alchy.model import ModelBase, ModelMeta, make_declarative_base
+from alchy.model import ModelBase, make_declarative_base
 from past.builtins import basestring
 from sqlalchemy import orm, types, Column, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import synonym
@@ -12,12 +11,11 @@ from sqlalchemy.orm import synonym
 from titlecase import titlecase
 import urlnorm
 
-from ..utils import AutoTableMixin
+from ..utils import AutoTableMixin, Trackable
 
 
 from .exceptions import (
     InconsistentArguments,
-    InvalidRegistryKey,
     InvalidEntity,
     InvalidConnectionType,
     CircularConnection,
@@ -27,146 +25,6 @@ from .exceptions import (
     InvalidUser,
     InvalidProblemForConnection,
 )
-
-
-class Trackable(ModelMeta):
-    '''Metaclass providing ability to track instances
-
-    Each class of type Trackable maintains a registry of instances and
-    only creates a new instance if it does not already exist. Existing
-    instances can be updated with new data using the constructor if a
-    'modify' method has been defined.
-
-    A 'create_key' staticmethod must be defined on each Trackable class
-    that returns a registry key based on the classes constructor input.
-    A 'derive_key' (instance) method must also be defined on each
-    Trackable class that returns the registry key based on the
-    instance's data.
-
-    Any updates that result from the creation or modification of an
-    instance using the class constructor can also be tracked. New
-    instances are tracked automatically. Modifications of instances may
-    be tracked using the '_modified' field on the instance, which is the
-    set of instances of the same type that were modified.
-
-    A class of type Trackable is subscriptable (indexed by key) and
-    iterable.
-    '''
-
-    # keep track of all classes that are Trackable
-    _classes = {}
-
-    def __new__(meta, name, bases, attr):
-        # track instances for each class of type Trackable
-        attr['_instances'] = {}
-        # track any new or modified instances
-        attr['_updates'] = set()
-        new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
-        if new_cls.__name__ != 'Base':
-            meta._classes[name] = new_cls
-        return new_cls
-
-    def __call__(cls, *args, **kwds):
-        # Convert args to kwds for create_key() and modify() so
-        # parameter order need not match __init__()
-        all_kwds = kwds.copy()
-        arg_names = inspect.getargspec(cls.__init__)[0][1:len(args)+1]
-        for arg_name, arg in zip(arg_names, args):
-            all_kwds[arg_name] = arg
-        key = cls.create_key(**all_kwds)
-        if key is None or key == '':
-            raise InvalidRegistryKey(key=key, classname=cls.__name__)
-        inst = cls._instances.get(key, None)
-        if inst is None:
-            inst = super(Trackable, cls).__call__(*args, **kwds)
-            cls._instances[key] = inst
-            cls._updates.add(inst)
-        else:
-            if hasattr(cls, 'modify') and all_kwds:
-                inst._modified = set()
-                cls.modify(inst, **all_kwds)
-        if hasattr(inst, '_modified'):
-            cls._updates.update(inst._modified)
-            del inst._modified
-        return inst
-
-    def __getitem__(cls, key):
-        return cls._instances.get(key, None)
-
-    def __setitem__(cls, key, value):
-        cls._instances[key] = value
-
-    def __iter__(cls):
-        for inst in cls._instances.values():
-            yield inst
-
-    @classmethod
-    def register_existing(meta, session, *args):
-        '''Register existing instances of Trackable classes (in the DB)
-
-        Takes a session and optional Trackable classes as input. The
-        specified classes have their instances loaded from the database
-        and registered. If no classes are provided, instances of all
-        Trackable classes are loaded from the database and registered.
-        If a class is not Trackable, a TypeError is raised.
-        '''
-        classes = meta._classes.values() if len(args) == 0 else args
-        for cls in classes:
-            if cls.__name__ not in meta._classes:
-                raise TypeError('{} not Trackable.'.format(cls.__name__))
-            instances = session.query(cls).all()
-            for inst in instances:
-                cls._instances[inst.derive_key()] = inst
-
-    @classmethod
-    def clear_instances(meta, *args):
-        '''Clear instances tracked by Trackable classes
-
-        If no arguments are provided, all Trackable classes have their
-        instances cleared from the registry. If one or more classes are
-        passed as input, only these classes have their instances
-        cleared. If a class is not Trackable, a TypeError is raised.
-        '''
-        classes = meta._classes.values() if len(args) == 0 else args
-        for cls in classes:
-            if cls.__name__ not in meta._classes:
-                raise TypeError('{} not Trackable.'.format(cls.__name__))
-            cls._instances = {}
-
-    @classmethod
-    def clear_updates(meta, *args):
-        '''Clear updates tracked by Trackable classes
-
-        If no arguments are provided, all Trackable classes have their
-        updates cleared (i.e. reset). If one or more classes are passed
-        as input, only these classes have their updates cleared. If a
-        class is not Trackable, a TypeError is raised.
-        '''
-        classes = meta._classes.values() if len(args) == 0 else args
-        for cls in classes:
-            if cls.__name__ not in meta._classes:
-                raise TypeError('{} not Trackable.'.format(cls.__name__))
-            cls._updates = set()
-
-    @classmethod
-    def catalog_updates(meta, *args):
-        '''Catalog updates tracked by Trackable classes
-
-        Returns a dictionary keyed by class name, where the values are
-        the corresponding sets of updated instances.
-
-        If no arguments are provided, updates for all Trackable classes
-        are included. If one or more classes are passed as input, only
-        updates from these classes are included. If a class is not
-        Trackable, a TypeError is raised.
-        '''
-        classes = meta._classes.values() if len(args) == 0 else args
-        updates = {}
-        for cls in classes:
-            if cls.__name__ not in meta._classes:
-                raise TypeError('{} not Trackable.'.format(cls.__name__))
-            updates[cls.__name__] = cls._updates
-        return updates
 
 
 BaseProblemModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
@@ -858,6 +716,8 @@ class Problem(BaseProblemModel, AutoTableMixin):
     _human_id = Column('human_id', types.String(60), index=True, unique=True)
     definition = Column(types.String(200))
     definition_url = Column(types.String(2048))
+    # TODO: support multiple sponsors in different org/geo contexts
+    sponsor = Column(types.String(60))
     images = orm.relationship(
                 'Image',
                 back_populates='problem',
@@ -943,7 +803,8 @@ class Problem(BaseProblemModel, AutoTableMixin):
         '''
         return self.human_id
 
-    def __init__(self, name, definition=None, definition_url=None, images=[],
+    def __init__(self, name, definition=None, definition_url=None,
+                 sponsor=None, images=[],
                  drivers=[], impacts=[], broader=[], narrower=[]):
         '''Initialize a new problem
 
@@ -952,6 +813,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
         self.name = name
         self.definition = definition.strip() if definition else None
         self.definition_url = definition_url.strip() if definition_url else None
+        self.sponsor = sponsor.strip() if sponsor else None
         self.images = []
         self.drivers = []
         self.impacts = []
@@ -989,14 +851,19 @@ class Problem(BaseProblemModel, AutoTableMixin):
             if k == 'name':
                 continue  # name cannot be updated via upload
             elif k == 'definition':
-                definition = v.strip()
+                definition = v.strip() if v else None
                 if definition != self.definition:
                     self.definition = definition
                     self._modified.add(self)
             elif k == 'definition_url':
-                definition_url = v.strip()
+                definition_url = v.strip() if v else None
                 if definition_url != self.definition_url:
                     self.definition_url = definition_url
+                    self._modified.add(self)
+            elif k == 'sponsor':
+                sponsor = v.strip() if v else None
+                if sponsor != self.sponsor:
+                    self.sponsor = sponsor
                     self._modified.add(self)
             elif k == 'images':
                 image_urls = v if v else []
