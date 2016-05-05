@@ -1,3 +1,9 @@
+.separator ","
+.import ur1_us_ghr_070.csv ur1_us_ghr_070
+
+.separator ","
+.import ur1_us_f02_070.csv ur1_us_f02_070
+
 .separator "|"
 .import state.txt state
 
