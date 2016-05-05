@@ -1,0 +1,137 @@
+LSAD_CODE,LSAD_DESCRIPTION,GEO_ENTITY_TYPE
+0,,"American Indian Area, Congressional District, Consolidated City, County or Equivalent Feature, County Subdivision, Economic Census Place, Elementary School District, Incorporated Place, Local/Tribal Legislative District, Military Installation, Nation, Secondary School District, Special School Administrative Area, Special-Purpose District, State Legislative District (Lower Chamber), State Legislative District (Upper Chamber), State or Equivalent Feature, Tribal Subdivision, Unified School District, Voting District"
+3,City and Borough (suffix),County or Equivalent Feature
+4,Borough (suffix),County or Equivalent Feature
+5,Census Area (suffix),County or Equivalent Feature
+6,Balance of County EC Place,Economic Census Place
+6,County (suffix),County or Equivalent Feature
+7,District (suffix),County or Equivalent Feature
+10,Island (suffix),"County or Equivalent Feature, Economic Census Place"
+12,Municipality (suffix),County or Equivalent Feature
+13,Municipio (suffix),County or Equivalent Feature
+15,Parish (suffix),"County or Equivalent Feature, Economic Census Place"
+20,barrio (suffix),County Subdivision
+21,borough (suffix),"County Subdivision, Economic Census Place"
+22,CCD (suffix),County Subdivision
+23,census subarea (suffix),County Subdivision
+24,census subdistrict (suffix),County Subdivision
+25,city (suffix),"Consolidated City, County or Equivalent Feature, County Subdivision, Economic Census Place, Incorporated Place"
+26,county (suffix),"County Subdivision, Economic Census Place"
+27,district (suffix),"County Subdivision, Economic Census Place"
+28,District (prefix),"County Subdivision, Tribal Subdivision"
+29,precinct (suffix),County Subdivision
+30,Precinct (prefix),County Subdivision
+31,gore (suffix),County Subdivision
+32,grant (suffix),County Subdivision
+36,location (suffix),County Subdivision
+37,municipality (suffix),"Economic Census Place, Incorporated Place"
+39,plantation (suffix),County Subdivision
+41,barrio-pueblo (suffix),County Subdivision
+42,purchase (suffix),County Subdivision
+43,town (suffix),"County Subdivision, Economic Census Place, Incorporated Place"
+44,township (suffix),"County Subdivision, Economic Census Place"
+45,Township (prefix),County Subdivision
+46,UT (suffix),County Subdivision
+47,village (suffix),"County Subdivision, Economic Census Place, Incorporated Place"
+49,charter township (suffix),"County Subdivision, Economic Census Place"
+51,subbarrio (suffix),Sub-Minor Civil Division
+53,city and borough (suffix),"Economic Census Place, Incorporated Place"
+55,comunidad (suffix),Census Designated Place
+57,CDP (suffix),"Census Designated Place, Economic Census Place"
+62,zona urbana (suffix),Census Designated Place
+68,Region (suffix),Census Region
+69,Division (suffix),Census Division
+70,UGA (suffix),Urban Growth Area
+71,CMSA,Consolidated Metropolitan Statistical Area and Metropolitan Statistical Area
+72,MSA,Consolidated Metropolitan Statistical Area and Metropolitan Statistical Area
+73,Primary Metropolitan Statistical Area,Primary Metropolitan Statistical Area
+74,New England County Metropolitan Area,New England County Metropolitan Area
+75,Urbanized Area (suffix),Urban Area
+76,Urban Cluster (suffix),Urban Area
+77,Alaska Native Regional Corporation (suffix),Alaska Native Regional Corporation
+78,Hawaiian Home Land (suffix),Hawaiian Home Land
+79,ANVSA (suffix),Alaska Native Village Statistical Area
+80,TDSA (suffix),Tribal Designated Statistical Area
+81,Colony (suffix),American Indian Area
+82,Community (suffix),"American Indian Area, Tribal Subdivision"
+83,joint-use area (suffix),American Indian Joint Use Area
+84,Pueblo (suffix),American Indian Area
+85,Rancheria (suffix),American Indian Area
+86,Reservation (suffix),"American Indian Area, County Subdivision"
+87,Reserve (suffix),American Indian Area
+88,OTSA (suffix),Oklahoma Tribal Statistical Area
+89,Trust Land (suffix),American Indian Area
+90,joint-use OTSA (suffix),American Indian Joint Use Area
+91,Ranch (suffix),American Indian Area
+92,SDTSA (suffix),State-designated Tribal Statistical Area
+93,Indian Village (suffix),American Indian Area
+94,Village (suffix),American Indian Area
+95,Indian Community (suffix),American Indian Area
+96,Indian Reservation (suffix),American Indian Area
+97,Indian Rancheria (suffix),American Indian Area
+98,Indian Colony (suffix),American Indian Area
+99,Pueblo de,American Indian Area
+9C,Pueblo of,American Indian Area
+9D,Ranch Reservation (suffix),American Indian Area
+9E,Rancheria Reservation (suffix),American Indian Area
+9F,Ranches (suffix),American Indian Area
+B1,Balance of County,Economic Census Place
+B2,Balance of Parish,Economic Census Place
+B3,Balance of Borough,Economic Census Place
+B4,Balance of Census Area,Economic Census Place
+B5,town (balance),Economic Census Place
+B6,township (balance),Economic Census Place
+B7,charter township (balance),Economic Census Place
+B8,Balance of,Economic Census Place
+BG,Block Group (prefix),Block Group
+BI,Balance of Island,Economic Census Place
+BK,Block (prefix),Tabulation Block
+BL,(balance),Incorporated Place
+C1,Congressional District (at Large) (actual text),Congressional District
+C2,Congressional District (prefix),Congressional District
+C3,Resident Commissioner District (at Large) (actual text),Congressional District
+C4,Delegate District (at Large) (actual text),Congressional District
+C5,No Representative (actual text),Congressional District
+CB,consolidated government (balance),Incorporated Place
+CG,consolidated government (suffix),"Consolidated City, Economic Census Place"
+CN,corporation (suffix),Incorporated Place
+CR,Commercial Region (suffix),Commercial Region
+CT,Census Tract (prefix),Census Tract
+IB,Tribal Block Group (prefix),Tribal Block Group
+IT,Tribal Census Tract (prefix),Tribal Census Tract
+L1,Ward (prefix),State Legislative District (Upper Chamber)
+L2,Senatorial District (suffix),State Legislative District (Upper Chamber)
+L3,Assembly District (prefix),State Legislative District (Lower Chamber)
+L4,General Assembly District (prefix),State Legislative District (Lower Chamber)
+L5,State Legislative District (prefix),State Legislative District (Lower Chamber)
+L6,State Legislative Subdistrict (prefix),State Legislative District (Lower Chamber)
+L7,District,"State Legislative District (Lower Chamber), State Legislative District (Upper Chamber)"
+LL,State House District (prefix),State Legislative District (Lower Chamber)
+LU,State Senate District (prefix),State Legislative District (Upper Chamber)
+M0,CSA (suffix),Combined Statistical Area
+M1,Metro Area (suffix),Metropolitan and Micropolitan Statistical Area
+M2,Micro Area (suffix),Metropolitan and Micropolitan Statistical Area
+M3,Metro Division (suffix),Metropolitan Division
+M4,Combined NECTA (suffix),Combined New England City and Town Area
+M5,Metropolitan NECTA (suffix),New England City and Town Metropolitan and Micropolitan Statistical Area
+M6,Micropolitan NECTA (suffix),New England City and Town Metropolitan and Micropolitan Statistical Area
+M7,NECTA Division (suffix),New England City and Town Division
+MB,metropolitan government (balance),"Economic Census Place, Incorporated Place"
+MG,metropolitan government (suffix),"Consolidated City, Economic Census Place, Incorporated Place"
+MT,metro government (suffix),Consolidated City
+P1,SuperPUMA (prefix),Public-Use Microdata Area (1% Area)
+P5,PUMA (prefix),Public-Use Microdata Area (5% or 10% Area)
+T1,Area (suffix),Tribal Subdivision
+T2,Chapter (suffix),Tribal Subdivision
+T3,Segment (suffix),Tribal Subdivision
+TA,Administrative Area (suffix),Tribal Subdivision
+TB,Addition (suffix),Tribal Subdivision
+TC,County District (prefix),Tribal Subdivision
+TZ,TAZ (prefix),Traffic Analysis Zone
+UB,unified government (balance),Incorporated Place
+UC,urban county (suffix),"Economic Census Place, Incorporated Place"
+UG,unified government (suffix),"Consolidated City, Economic Census Place, Incorporated Place"
+V1,Voting District (prefix),Voting District
+V2,Voting District (suffix),Voting District
+Z3,ZCTA3 (suffix),ZIP Code Tabulation Area (Three-Digit)
+Z5,ZCTA5 (suffix),Zip Code Tabulation Area (Five-Digit)
