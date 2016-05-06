@@ -99,8 +99,8 @@ def decode(session, json_path, *args, **options):
     >>> p0 = Problem('poverty')  # get existing 'Poverty' problem
     >>> p1 = Problem('homelessness')  # get existing 'Homelessness' problem
     >>> p2 = Problem['domestic_violence']  # Problem is subscriptable
-    >>> for k in Problem:  # Problem is iterable
-    ...    print(Problem[k])
+    >>> for p in Problem:  # Problem is iterable
+    ...    print(p)
     '''
     # Gather valid json_paths based on the given file or directory
     json_paths = []

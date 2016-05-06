@@ -1,14 +1,6 @@
-.separator ","
-.import ur1_us_ghr_070.csv ur1_us_ghr_070
-
-.separator ","
-.import ur1_us_f02_070.csv ur1_us_f02_070
 
 .separator "|"
 .import state.txt state
-
-.separator ","
-.import cbsa.csv cbsa
 
 .separator "\t"
 .import national_county.txt county
@@ -17,7 +9,16 @@
 .import Gaz_places_national.txt place
 
 .separator ","
+.import cbsa.csv cbsa
+
+.separator ","
 .import lsad.csv lsad
+
+.separator ","
+.import ur1_us_ghr_070.csv ur1_us_ghr_070
+
+.separator ","
+.import ur1_us_f02_070.csv ur1_us_f02_070
 
 
 CREATE TABLE ur1_us_ghr_bulk (full_string CHAR);
