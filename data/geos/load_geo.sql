@@ -2,7 +2,7 @@
 .separator "|"
 .import state.txt state
 
-.separator "\t"
+.separator ","
 .import national_county.txt county
 
 .separator "\t"

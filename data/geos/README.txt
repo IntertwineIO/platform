@@ -1,3 +1,4 @@
+SOURCES
 
 2010 Census Summary File 1 Technical Documentation:
 http://www.census.gov/prod/cen2010/doc/sf1.pdf
@@ -12,8 +13,10 @@ cbsa            cbsa.csv                    ","     https://www.census.gov/popul
 county          national_county.txt         "\t"    https://www.census.gov/geo/reference/codes/cou.html
 place           Gaz_places_national.txt     "\t"    https://www.census.gov/geo/maps-data/data/gazetteer2010.html
 lsad            lsad.csv                    ","     https://www.census.gov/geo/reference/lsad.html
+__________
 
 KEY
+
 ur1     Urban Rural Update 1
 ghr     Geographic Header Record
 f02     File 02, which contains urban vs. rural population counts
@@ -21,7 +24,6 @@ f02     File 02, which contains urban vs. rural population counts
 cbsa    Core Based Statistical Area, a general term that applies to metropolitan and micropolitan statistical areas
 place   Census term for an incorporated place or a census designated place (CDP)
 lsad    Legal/Statistical Area Description (city, town, borough, CDP, etc.)
-
 __________
 
 SETUP
@@ -33,9 +35,9 @@ unzip ur1_us_ghr_070.csv.zip
 
 .separator "\t"
 .import Gaz_places_national.txt place
-.import national_county.txt county
 
 .separator ","
+.import national_county.txt county
 .import cbsa.csv cbsa
 .import lsad.csv lsad
 .import ur1_us_ghr_070.csv ur1_us_ghr_070
