@@ -90,3 +90,8 @@ Temporary Items
 
 # Databases
 *.db
+
+# Temporary directories and files
+tmp/
+*.tmp
+

@@ -1,31 +1,46 @@
+######################################################################
+#
+# SETUP
+#
+#______________________________________________________________________
+#
+# STEP 0: DOWNLOADS
+#______________________________________________________________________
+#
 
-.separator "|"
-.import state.txt state
+# dir: intertwine/platform
+cd data/geos
+mkdir tmp
+cd tmp
 
-.separator ","
-.import national_county.txt county
+# Download 2010 US Census National Places Gazetteer Files (1.2MB)
+# dir: intertwine/platform/data/geos/tmp
+curl "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_places_national.zip" -o "Gaz_places_national.zip"
+unzip Gaz_places_national.zip
 
-.separator "\t"
-.import Gaz_places_national.txt place
+# Download 2010 US Census Urban Rural Update 1 National File (1.45GB - this can take a while)
+# dir: intertwine/platform/data/geos/tmp
+curl "https://www2.census.gov/census_2010/04-Summary_File_1/Urban_Rural_Update/National/us2010.ur1.zip" -o "us2010.ur1.zip"
+unzip us2010.ur1.zip -d us2010.ur1
 
-.separator ","
-.import cbsa.csv cbsa
+# If following steps sequentially (strongly recommended):
+cd ..
 
-.separator ","
-.import lsad.csv lsad
+#______________________________________________________________________
+#
+# STEP 1: PRE-PROCESS GEOGRAPHIC HEADER RECORD (GHR) FILE
+#______________________________________________________________________
+#
 
-.separator ","
-.import ur1_us_ghr_070.csv ur1_us_ghr_070
+# Load Geographic Header Record (GHR)
+# dir: intertwine/platform/data/geos
+sqlite3 geo.db
+CREATE TABLE ghr_bulk (full_string CHAR);
+.import tmp/us2010.ur1/usgeo2010.ur1 ghr_bulk
 
-.separator ","
-.import ur1_us_f02_070.csv ur1_us_f02_070
-
-
-CREATE TABLE ur1_us_ghr_bulk (full_string CHAR);
-.import us2010.ur1/usgeo2010.ur1 ur1_us_ghr_bulk
-
-
-CREATE TABLE ur1_us_ghr AS
+# Split fixed-width GHR into separate columns (all text)
+# sqlite3 geo.db
+CREATE TABLE ghr_txt AS
 SELECT
     SUBSTR(full_string,1,6) AS FILEID,
     SUBSTR(full_string,7,2) AS STUSAB,
@@ -128,224 +143,224 @@ SELECT
     SUBSTR(full_string,477,1) AS NMEMI,
     SUBSTR(full_string,478,5) AS PUMA,
     SUBSTR(full_string,483,18) AS RESERVED
-FROM ur1_us_ghr_bulk;
+FROM ghr_bulk;
 
-
-CREATE TABLE ur1_us_ghr_austin AS
-SELECT * FROM ur1_us_ghr WHERE PLACE="05000";
-
-
-CREATE TABLE ur1_us_f01(FILEID, STUSAB, CHARITER, CIFSN, LOGRECNO, P0010001);
+# Export GHR to CSV
+# sqlite3 geo.db
+.headers on
 .mode csv
-.import us2010.ur1/us000012010.ur1 ur1_us_f01
+.output tmp/us2010.ur1/usgeo2010.ur1.csv
+SELECT * FROM ghr_txt;
+.output stdout
 
-CREATE TABLE ur1_us_f02(FILEID, STUSAB, CHARITER, CIFSN, LOGRECNO, P0020001, P0020002, P0020003, P0020004, P0020005, P0020006);
-.mode csv
-.import us2010.ur1/us000022010.ur1 ur1_us_f02
+# These tables are no longer needed and should not be used
+DROP TABLE ghr_bulk;
+DROP TABLE ghr_txt;
 
-CREATE TABLE ur1_us_f03(
-    FILEID,
-    STUSAB,
-    CHARITER,
-    CIFSN,
-    LOGRECNO,
-    P0030001,
-    P0030002,
-    P0030003,
-    P0030004,
-    P0030005,
-    P0030006,
-    P0030007,
-    P0030008,
-    P0040001,
-    P0040002,
-    P0040003,
-    P0050001,
-    P0050002,
-    P0050003,
-    P0050004,
-    P0050005,
-    P0050006,
-    P0050007,
-    P0050008,
-    P0050009,
-    P0050010,
-    P0050011,
-    P0050012,
-    P0050013,
-    P0050014,
-    P0050015,
-    P0050016,
-    P0050017,
-    P0060001,
-    P0060002,
-    P0060003,
-    P0060004,
-    P0060005,
-    P0060006,
-    P0060007,
-    P0070001,
-    P0070002,
-    P0070003,
-    P0070004,
-    P0070005,
-    P0070006,
-    P0070007,
-    P0070008,
-    P0070009,
-    P0070010,
-    P0070011,
-    P0070012,
-    P0070013,
-    P0070014,
-    P0070015,
-    P0080001,
-    P0080002,
-    P0080003,
-    P0080004,
-    P0080005,
-    P0080006,
-    P0080007,
-    P0080008,
-    P0080009,
-    P0080010,
-    P0080011,
-    P0080012,
-    P0080013,
-    P0080014,
-    P0080015,
-    P0080016,
-    P0080017,
-    P0080018,
-    P0080019,
-    P0080020,
-    P0080021,
-    P0080022,
-    P0080023,
-    P0080024,
-    P0080025,
-    P0080026,
-    P0080027,
-    P0080028,
-    P0080029,
-    P0080030,
-    P0080031,
-    P0080032,
-    P0080033,
-    P0080034,
-    P0080035,
-    P0080036,
-    P0080037,
-    P0080038,
-    P0080039,
-    P0080040,
-    P0080041,
-    P0080042,
-    P0080043,
-    P0080044,
-    P0080045,
-    P0080046,
-    P0080047,
-    P0080048,
-    P0080049,
-    P0080050,
-    P0080051,
-    P0080052,
-    P0080053,
-    P0080054,
-    P0080055,
-    P0080056,
-    P0080057,
-    P0080058,
-    P0080059,
-    P0080060,
-    P0080061,
-    P0080062,
-    P0080063,
-    P0080064,
-    P0080065,
-    P0080066,
-    P0080067,
-    P0080068,
-    P0080069,
-    P0080070,
-    P0080071,
-    P0090001,
-    P0090002,
-    P0090003,
-    P0090004,
-    P0090005,
-    P0090006,
-    P0090007,
-    P0090008,
-    P0090009,
-    P0090010,
-    P0090011,
-    P0090012,
-    P0090013,
-    P0090014,
-    P0090015,
-    P0090016,
-    P0090017,
-    P0090018,
-    P0090019,
-    P0090020,
-    P0090021,
-    P0090022,
-    P0090023,
-    P0090024,
-    P0090025,
-    P0090026,
-    P0090027,
-    P0090028,
-    P0090029,
-    P0090030,
-    P0090031,
-    P0090032,
-    P0090033,
-    P0090034,
-    P0090035,
-    P0090036,
-    P0090037,
-    P0090038,
-    P0090039,
-    P0090040,
-    P0090041,
-    P0090042,
-    P0090043,
-    P0090044,
-    P0090045,
-    P0090046,
-    P0090047,
-    P0090048,
-    P0090049,
-    P0090050,
-    P0090051,
-    P0090052,
-    P0090053,
-    P0090054,
-    P0090055,
-    P0090056,
-    P0090057,
-    P0090058,
-    P0090059,
-    P0090060,
-    P0090061,
-    P0090062,
-    P0090063,
-    P0090064,
-    P0090065,
-    P0090066,
-    P0090067,
-    P0090068,
-    P0090069,
-    P0090070,
-    P0090071,
-    P0090072,
-    P0090073
-    );
-.mode csv
-.import us2010.ur1/us000032010.sf1 ur1_us_f03
+.quit
+
+# If following steps sequentially (strongly recommended):
+cd tmp
+
+#______________________________________________________________________
+#
+# STEP 2: UNICODE CONVERSION
+#______________________________________________________________________
+#
+
+# Convert files from ISO-8859-15 to UTF-8:
+# dir: intertwine/platform/data/geos/tmp
+iconv -f ISO-8859-15 -t UTF-8 Gaz_places_national.txt > Gaz_places_national_utf-8.txt
+mkdir us2010.ur1.utf-8
+iconv -f ISO-8859-15 -t UTF-8 us2010.ur1/usgeo2010.ur1.csv > us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv
+iconv -f ISO-8859-15 -t UTF-8 us2010.ur1/us000022010.ur1 > us2010.ur1.utf-8/us000022010.ur1.utf-8.csv
+
+# Create copies without first row as we create the table first to handle non-text types:
+# dir: intertwine/platform/data/geos/tmp
+tail -n +2 "Gaz_places_national_utf-8.txt" > "Gaz_places_national_utf-8.txt.tmp"
+cd us2010.ur1.utf-8
+tail -n +2 "usgeo2010.ur1.utf-8.csv" > "usgeo2010.ur1.utf-8.csv.tmp"
+tail -n +2 "us000022010.ur1.utf-8.csv" > "us000022010.ur1.utf-8.csv.tmp"
+
+# If following steps sequentially (strongly recommended):
+cd ../..
+
+#______________________________________________________________________
+#
+# STEP 3: PREPARE TABLES FOR UPLOAD
+#______________________________________________________________________
+#
+
+# Create tables for those that contain non-text types
+# dir: intertwine/platform/data/geos
+
+sqlite3 geo.db
+
+CREATE TABLE place(
+    "USPS" TEXT,
+    "GEOID" TEXT,
+    "ANSICODE" TEXT,
+    "LONG_NAME" TEXT,
+    "LSAD_CODE" TEXT,
+    "FUNCSTAT" TEXT,
+    "POP10" INTEGER,
+    "HU10" INTEGER,
+    "ALAND" INTEGER,
+    "AWATER" INTEGER,
+    "ALAND_SQMI" REAL,
+    "AWATER_SQMI" REAL,
+    "INTPTLAT" REAL,
+    "INTPTLONG" REAL
+);
+
+CREATE TABLE ghr(
+    "FILEID" TEXT,
+    "STUSAB" TEXT,
+    "SUMLEV" TEXT,
+    "GEOCOMP" TEXT,
+    "CHARITER" TEXT,
+    "CIFSN" TEXT,
+    "LOGRECNO" INTEGER,
+    "REGION" TEXT,
+    "DIVISION" TEXT,
+    "STATE" TEXT,
+    "COUNTY" TEXT,
+    "COUNTYCC" TEXT,
+    "COUNTYSC" TEXT,
+    "COUSUB" TEXT,
+    "COUSUBCC" TEXT,
+    "COUSUBSC" TEXT,
+    "PLACE" TEXT,
+    "PLACECC" TEXT,
+    "PLACESC" TEXT,
+    "TRACT" TEXT,
+    "BLKGRP" TEXT,
+    "BLOCK" TEXT,
+    "IUC" TEXT,
+    "CONCIT" TEXT,
+    "CONCITCC" TEXT,
+    "CONCITSC" TEXT,
+    "AIANHH" TEXT,
+    "AIANHHFP" TEXT,
+    "AIANHHCC" TEXT,
+    "AIHHTLI" TEXT,
+    "AITSCE" TEXT,
+    "AITS" TEXT,
+    "AITSCC" TEXT,
+    "TTRACT" TEXT,
+    "TBLKGRP" TEXT,
+    "ANRC" TEXT,
+    "ANRCCC" TEXT,
+    "CBSA" TEXT,
+    "CBSASC" TEXT,
+    "METDIV" TEXT,
+    "CSA" TEXT,
+    "NECTA" TEXT,
+    "NECTASC" TEXT,
+    "NECTADIV" TEXT,
+    "CNECTA" TEXT,
+    "CBSAPCI" TEXT,
+    "NECTAPCI" TEXT,
+    "UA" TEXT,
+    "UASC" TEXT,
+    "UATYPE" TEXT,
+    "UR" TEXT,
+    "CD" TEXT,
+    "SLDU" TEXT,
+    "SLDL" TEXT,
+    "VTD" TEXT,
+    "VTDI" TEXT,
+    "RESERVE2" TEXT,
+    "ZCTA5" TEXT,
+    "SUBMCD" TEXT,
+    "SUBMCDCC" TEXT,
+    "SDELM" TEXT,
+    "SDSEC" TEXT,
+    "SDUNI" TEXT,
+    "AREALAND" INTEGER,
+    "AREAWATR" INTEGER,
+    "NAME" TEXT,
+    "FUNCSTAT" TEXT,
+    "GCUNI" TEXT,
+    "POP100" INTEGER,
+    "HU100" INTEGER,
+    "INTPTLAT" FLOAT,
+    "INTPTLON" FLOAT,
+    "LSADC" TEXT,
+    "PARTFLAG" TEXT,
+    "RESERVE3" TEXT,
+    "UGA" TEXT,
+    "STATENS" TEXT,
+    "COUNTYNS" TEXT,
+    "COUSUBNS" TEXT,
+    "PLACENS" TEXT,
+    "CONCITNS" TEXT,
+    "AIANHHNS" TEXT,
+    "AITSNS" TEXT,
+    "ANRCNS" TEXT,
+    "SUBMCDNS" TEXT,
+    "CD113" TEXT,
+    "CD114" TEXT,
+    "CD115" TEXT,
+    "SLDU2" TEXT,
+    "SLDU3" TEXT,
+    "SLDU4" TEXT,
+    "SLDL2" TEXT,
+    "SLDL3" TEXT,
+    "SLDL4" TEXT,
+    "AIANHHSC" TEXT,
+    "CSASC" TEXT,
+    "CNECTASC" TEXT,
+    "MEMI" TEXT,
+    "NMEMI" TEXT,
+    "PUMA" TEXT,
+    "RESERVED" TEXT
+);
+
+CREATE TABLE f02(
+    "FILEID" TEXT,
+    "STUSAB" TEXT,
+    "CHARITER" TEXT,
+    "CIFSN" TEXT,
+    "LOGRECNO" INTEGER,
+    "P0020001" INTEGER,
+    "P0020002" INTEGER,
+    "P0020003" INTEGER,
+    "P0020004" INTEGER,
+    "P0020005" INTEGER,
+    "P0020006" INTEGER
+);
+
+#______________________________________________________________________
+#
+# STEP 4: UPLOAD DATA
+#______________________________________________________________________
+#
+
+# dir: intertwine/platform/data/geos
+# sqlite3 geo.db
+
+.separator "\t"
+.import tmp/Gaz_places_national_utf-8.txt.tmp place
+
+.separator ","
+.import national_county.txt county
+.import cbsa.csv cbsa
+.import lsad.csv lsad
+.import tmp/us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv.tmp ghr
+.import tmp/us2010.ur1.utf-8/us000022010.ur1.utf-8.csv.tmp f02
+
+.separator "|"
+.import state.txt state
+
+
+
+
+
+
+
+
+
 
 
 .headers on
@@ -363,7 +378,6 @@ SELECT f.FILEID, f.STUSAB, f.CHARITER, f.CIFSN, f.LOGRECNO, f.P0020001,
     LEFT OUTER JOIN ur1_us_ghr AS g ON f.LOGRECNO = g.LOGRECNO
     WHERE g.SUMLEV = "070";
 .output stdout
-
 
 .headers on
 .mode csv
