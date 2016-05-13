@@ -10,9 +10,9 @@ BaseGeoDataModel = make_declarative_base(Base=ModelBase)
 
 
 class State(BaseGeoDataModel, AutoTablenameMixin):
-    STATE = Column(types.String(2), primary_key=True)   # 48
-    STUSAB = Column(types.String(2), unique=True)       # TX
-    STATE_NAME = Column(types.String(60), unique=True)  # Texas
+    STATEFP = Column(types.String(2), primary_key=True)  # 48
+    STUSPS = Column(types.String(2), unique=True)       # TX
+    NAME = Column(types.String(60), unique=True)        # Texas
     STATENS = Column(types.String(8), unique=True)      # 01779801
 
 
@@ -21,28 +21,28 @@ class CBSA(BaseGeoDataModel, AutoTablenameMixin):
     METRO_DIVISION_CODE = Column(types.String(5))
     CSA_CODE = Column(types.String(3))
     CBSA_NAME = Column(types.String(60))                # Austin-Round Rock, TX
-    METRO_VS_MICRO = Column(types.String(30))
+    CBSA_TYPE = Column(types.String(30))                # Metro...(vs Micro...)
     METRO_DIVISION_NAME = Column(types.String(60))
     CSA_NAME = Column(types.String(60))
     COUNTY_NAME = Column(types.String(60))              # Travis County
     STATE_NAME = Column(types.String(60))               # Texas
-    STATE_FIPS_CODE = Column(types.String(2))           # 48
-    COUNTY_FIPS_CODE = Column(types.String(3))          # 453
+    STATEFP = Column(types.String(2))                   # 48
+    COUNTYFP = Column(types.String(3))                  # 453
     COUNTY = orm.relationship('County', back_populates='CBSA', uselist=False)
-    CENTRAL_VS_OUTLYING = Column(types.String(30))      # Central
+    COUNTY_TYPE = Column(types.String(30))              # Central (vs Outlying)
     # GHRS = orm.relationship('GHR', back_populates='CBSA')
 
     __table_args__ = (
-        PrimaryKeyConstraint('STATE_FIPS_CODE', 'COUNTY_FIPS_CODE'),
+        PrimaryKeyConstraint('STATEFP', 'COUNTYFP'),
         {}
         )
 
 
 class County(BaseGeoDataModel, AutoTablenameMixin):
-    STATE = Column(types.String(2))                     # TX
+    STUSPS = Column(types.String(2))                    # TX
     STATEFP = Column(types.String(2))                   # 48
     COUNTYFP = Column(types.String(3))                  # 453
-    COUNTYNAME = Column(types.String(60))               # Travis County
+    NAME = Column(types.String(60))                     # Travis County
     CLASSFP = Column(types.String(2))                   # H1
     CBSA = orm.relationship('CBSA', back_populates='COUNTY')
     # GHRS = orm.relationship('GHR', back_populates='COUNTY')
@@ -50,15 +50,14 @@ class County(BaseGeoDataModel, AutoTablenameMixin):
     __table_args__ = (
         PrimaryKeyConstraint('STATEFP', 'COUNTYFP'),
         ForeignKeyConstraint(['STATEFP', 'COUNTYFP'],
-                             ['cbsa.STATE_FIPS_CODE',
-                              'cbsa.COUNTY_FIPS_CODE']),
+                             ['cbsa.STATEFP', 'cbsa.COUNTYFP']),
         {}
         )
 
 
 class Place(BaseGeoDataModel, AutoTablenameMixin):
-    USPS = Column(types.String(2),                      # TX
-                  ForeignKey('state.STUSAB'))
+    STUSPS = Column(types.String(2),                    # TX
+                    ForeignKey('state.STUSPS'))
     STATE = orm.relationship('State')
     GEOID = Column(types.String(7), primary_key=True)   # 4805000
     ANSICODE = Column(types.String(8), unique=True)     # 02409761
@@ -102,7 +101,7 @@ class GHR(BaseGeoDataModel):
     # GEOGRAPHIC AREA CODES
     REGION = Column(types.String(1))
     DIVISION = Column(types.String(1))
-    STATEFP = Column(types.String(2), ForeignKey('state.STATE'))
+    STATEFP = Column(types.String(2), ForeignKey('state.STATEFP'))
     STATE = orm.relationship('State', viewonly=True)
 
     COUNTYFP = Column(types.String(3))
@@ -208,7 +207,7 @@ class GHR(BaseGeoDataModel):
 
     __table_args__ = (
         # ForeignKeyConstraint(['STATEFP', 'COUNTYFP'],
-        #                      ['cbsa.STATE_FIPS_CODE', 'cbsa.COUNTY_FIPS_CODE']),
+        #                      ['cbsa.STATEFP', 'cbsa.COUNTYFP']),
         ForeignKeyConstraint(['STATEFP', 'COUNTYFP'],
                              ['county.STATEFP', 'county.COUNTYFP']),
         {}

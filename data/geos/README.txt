@@ -1,24 +1,24 @@
 SOURCES
 
-TABLE           FILE                        FORMAT  SOURCE
-ur1_us_ghr      us2010.ur1/usgeo2010.ur1    fixed   http://www2.census.gov/census_2010/04-Summary_File_1/Urban_Rural_Update/National
-ur1_us_f02      us2010.ur1/us000022010.ur1  ","     http://www2.census.gov/census_2010/04-Summary_File_1/Urban_Rural_Update/National
-ghr             ur1_us_ghr_070.csv          ","     ur1_us_ghr
-f02             ur1_us_f02_070.csv          ","     ur1_us_f02
-state           state.txt                   "|"     https://www.census.gov/geo/reference/ansi_statetables.html
-cbsa            cbsa.csv                    ","     https://www.census.gov/population/metro/files/lists/2013/List1.xls
-county          national_county.txt         "\t"    https://www.census.gov/geo/reference/codes/cou.html
-place           Gaz_places_national.txt     "\t"    https://www.census.gov/geo/maps-data/data/gazetteer2010.html
-lsad            lsad.csv                    ","     https://www.census.gov/geo/reference/lsad.html
+TABLE     FILE                               SEP   SOURCE
+ghr_bulk  usgeo2010.ur1                      fix   https://www2.census.gov/census_2010/04-Summary_File_1/Urban_Rural_Update/National/us2010.ur1.zip
+ghr_txt   n/a (created in database)          n/a   ghr_bulk
+ghr       usgeo2010.ur1.utf-8.csv.tmp        ','   Exported from ghr_txt, then converted to utf-8 and headers removed
+f02       us000022010.ur1.utf-8.csv.tmp      ','   Same as usgeo2010.ur1, then converted to utf-8 and headers removed
+state     state.txt                          '|'   https://www2.census.gov/geo/docs/reference/state.txt
+cbsa      cbsa.csv                           ','   https://www.census.gov/population/metro/files/lists/2013/List1.xls
+county    national_county.txt                ','   https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt
+place     Gaz_places_national_utf-8.txt.tmp  '\t'  https://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_places_national.zip (then converted to utf-8 and headers removed)
+lsad      lsad.csv                           ','   https://www.census.gov/geo/reference/lsad.html (copied from html table)
 __________
 
 KEY
 
-ur1     Urban Rural Update 1
 us      United States National File (vs. individual states)
+2010    Census 2010
+ur1     Urban Rural Update 1 (released in 2012)
 ghr     Geographic Header Record
 f02     File 02, which contains urban vs. rural population counts
-070     SUMLEV = 070, the Summary Level for: State-County-County Subdivision-Place/Remainder
 cbsa    Core Based Statistical Area, a general term that applies to metropolitan and micropolitan statistical areas
 place   Census term for an incorporated place or a census designated place (CDP)
 lsad    Legal/Statistical Area Description (city, town, borough, CDP, etc.)
@@ -199,7 +199,7 @@ cd tmp
 
 #______________________________________________________________________
 #
-# STEP 2: UNICODE CONVERSION
+# STEP 2: UNICODE CONVERSION AND HEADER REMOVAL
 #______________________________________________________________________
 #
 
@@ -210,9 +210,19 @@ mkdir us2010.ur1.utf-8
 iconv -f ISO-8859-15 -t UTF-8 us2010.ur1/usgeo2010.ur1.csv > us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv
 iconv -f ISO-8859-15 -t UTF-8 us2010.ur1/us000022010.ur1 > us2010.ur1.utf-8/us000022010.ur1.utf-8.csv
 
+# If following steps sequentially (strongly recommended):
+cd ..
+
 # Create copies without first row as we create the table first to handle non-text types:
-# dir: intertwine/platform/data/geos/tmp
+# dir: intertwine/platform/data/geos
+tail -n +2 "state.txt" > "state.txt.tmp"
+tail -n +2 "national_county.txt" > "national_county.txt.tmp"
+tail -n +2 "cbsa.csv" > "cbsa.csv.tmp"
+tail -n +2 "lsad.csv" > "lsad.csv.tmp"
+
+cd tmp
 tail -n +2 "Gaz_places_national_utf-8.txt" > "Gaz_places_national_utf-8.txt.tmp"
+
 cd us2010.ur1.utf-8
 tail -n +2 "usgeo2010.ur1.utf-8.csv" > "usgeo2010.ur1.utf-8.csv.tmp"
 tail -n +2 "us000022010.ur1.utf-8.csv" > "us000022010.ur1.utf-8.csv.tmp"
@@ -222,17 +232,47 @@ cd ../..
 
 #______________________________________________________________________
 #
-# STEP 3: PREPARE TABLES FOR UPLOAD
+# STEP 3: CREATE TABLE SCHEMAS
 #______________________________________________________________________
 #
 
-# Create tables for those that contain non-text types
+# Create table schemas to allow column renaming and non-text types
 # dir: intertwine/platform/data/geos
 
 sqlite3 geo.db
 
+CREATE TABLE state(
+  "STATEFP" TEXT,
+  "STUSPS" TEXT,
+  "NAME" TEXT,
+  "STATENS" TEXT
+);
+
+CREATE TABLE cbsa(
+  "CBSA_CODE" TEXT,
+  "METRO_DIVISION_CODE" TEXT,
+  "CSA_CODE" TEXT,
+  "CBSA_NAME" TEXT,
+  "CBSA_TYPE" TEXT,
+  "METRO_DIVISION_NAME" TEXT,
+  "CSA_NAME" TEXT,
+  "COUNTY_NAME" TEXT,
+  "STATE_NAME" TEXT,
+  "STATEFP" TEXT,
+  "COUNTYFP" TEXT,
+  "COUNTY_TYPE" TEXT
+);
+
+CREATE TABLE county(
+  "STUSPS" TEXT,
+  "STATEFP" TEXT,
+  "COUNTYFP" TEXT,
+  "NAME" TEXT,
+  "CLASSFP" TEXT
+);
+
 CREATE TABLE place(
-    "USPS" TEXT,
+    "STUSPS" TEXT,
     "GEOID" TEXT,
     "ANSICODE" TEXT,
     "NAME" TEXT,
@@ -246,6 +286,12 @@ CREATE TABLE place(
     "AWATER_SQMI" REAL,
     "INTPTLAT" REAL,
     "INTPTLONG" REAL
+);
+
+CREATE TABLE lsad(
+  "LSAD_CODE" TEXT,
+  "LSAD_DESCRIPTION" TEXT,
+  "GEO_ENTITY_TYPE" TEXT
 );
 
 CREATE TABLE ghr(
@@ -376,17 +422,17 @@ CREATE TABLE f02(
 # dir: intertwine/platform/data/geos
 # sqlite3 geo.db
 
+.separator "|"
+.import state.txt.tmp state
+
 .separator "\t"
 .import tmp/Gaz_places_national_utf-8.txt.tmp place
 
 .separator ","
-.import national_county.txt county
-.import cbsa.csv cbsa
-.import lsad.csv lsad
+.import national_county.txt.tmp county
+.import cbsa.csv.tmp cbsa
+.import lsad.csv.tmp lsad
 .import tmp/us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv.tmp ghr
 .import tmp/us2010.ur1.utf-8/us000022010.ur1.utf-8.csv.tmp f02
-
-.separator "|"
-.import state.txt state
 
 

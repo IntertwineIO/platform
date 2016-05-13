@@ -1,4 +1,4 @@
-LSAD_CODE,LSAD_DESCRIPTION,GEO_ENTITY_TYPE
+LSAD,LSAD Description,Associated Geographic Entity
 0,,"American Indian Area, Congressional District, Consolidated City, County or Equivalent Feature, County Subdivision, Economic Census Place, Elementary School District, Incorporated Place, Local/Tribal Legislative District, Military Installation, Nation, Secondary School District, Special School Administrative Area, Special-Purpose District, State Legislative District (Lower Chamber), State Legislative District (Upper Chamber), State or Equivalent Feature, Tribal Subdivision, Unified School District, Voting District"
 3,City and Borough (suffix),County or Equivalent Feature
 4,Borough (suffix),County or Equivalent Feature
