@@ -30,7 +30,6 @@ class CBSA(BaseGeoDataModel, AutoTablenameMixin):
     COUNTYFP = Column(types.String(3))                  # 453
     COUNTY = orm.relationship('County', back_populates='CBSA', uselist=False)
     COUNTY_TYPE = Column(types.String(30))              # Central (vs Outlying)
-    # GHRS = orm.relationship('GHR', back_populates='CBSA')
 
     __table_args__ = (
         PrimaryKeyConstraint('STATEFP', 'COUNTYFP'),
@@ -39,13 +38,14 @@ class CBSA(BaseGeoDataModel, AutoTablenameMixin):
 
 
 class County(BaseGeoDataModel, AutoTablenameMixin):
-    STUSPS = Column(types.String(2))                    # TX
+    STUSPS = Column(types.String(2),                    # TX
+                    ForeignKey('state.STUSPS'))
+    STATE = orm.relationship('State')
     STATEFP = Column(types.String(2))                   # 48
     COUNTYFP = Column(types.String(3))                  # 453
     NAME = Column(types.String(60))                     # Travis County
     CLASSFP = Column(types.String(2))                   # H1
     CBSA = orm.relationship('CBSA', back_populates='COUNTY')
-    # GHRS = orm.relationship('GHR', back_populates='COUNTY')
 
     __table_args__ = (
         PrimaryKeyConstraint('STATEFP', 'COUNTYFP'),
@@ -74,7 +74,6 @@ class Place(BaseGeoDataModel, AutoTablenameMixin):
     AWATER_SQMI = Column(types.Float)                   # 7.166
     INTPTLAT = Column(types.Float)                      # 30.307182
     INTPTLONG = Column(types.Float)                     # -97.755996
-    # GHRS = orm.relationship('GHR', back_populates='PLACE')
 
 
 class LSAD(BaseGeoDataModel, AutoTablenameMixin):
@@ -206,8 +205,6 @@ class GHR(BaseGeoDataModel):
     GEOID = Column(types.String(7), ForeignKey('place.GEOID'))
 
     __table_args__ = (
-        # ForeignKeyConstraint(['STATEFP', 'COUNTYFP'],
-        #                      ['cbsa.STATEFP', 'cbsa.COUNTYFP']),
         ForeignKeyConstraint(['STATEFP', 'COUNTYFP'],
                              ['county.STATEFP', 'county.COUNTYFP']),
         {}
