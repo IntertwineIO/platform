@@ -165,7 +165,7 @@ cd tmp
 
 #______________________________________________________________________
 #
-# STEP 2: UNICODE CONVERSION
+# STEP 2: UNICODE CONVERSION AND HEADER REMOVAL
 #______________________________________________________________________
 #
 
@@ -176,9 +176,19 @@ mkdir us2010.ur1.utf-8
 iconv -f ISO-8859-15 -t UTF-8 us2010.ur1/usgeo2010.ur1.csv > us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv
 iconv -f ISO-8859-15 -t UTF-8 us2010.ur1/us000022010.ur1 > us2010.ur1.utf-8/us000022010.ur1.utf-8.csv
 
+# If following steps sequentially (strongly recommended):
+cd ..
+
 # Create copies without first row as we create the table first to handle non-text types:
-# dir: intertwine/platform/data/geos/tmp
+# dir: intertwine/platform/data/geos
+tail -n +2 "state.txt" > "state.txt.tmp"
+tail -n +2 "national_county.txt" > "national_county.txt.tmp"
+tail -n +2 "cbsa.csv" > "cbsa.csv.tmp"
+tail -n +2 "lsad.csv" > "lsad.csv.tmp"
+
+cd tmp
 tail -n +2 "Gaz_places_national_utf-8.txt" > "Gaz_places_national_utf-8.txt.tmp"
+
 cd us2010.ur1.utf-8
 tail -n +2 "usgeo2010.ur1.utf-8.csv" > "usgeo2010.ur1.utf-8.csv.tmp"
 tail -n +2 "us000022010.ur1.utf-8.csv" > "us000022010.ur1.utf-8.csv.tmp"
@@ -188,149 +198,185 @@ cd ../..
 
 #______________________________________________________________________
 #
-# STEP 3: PREPARE TABLES FOR UPLOAD
+# STEP 3: CREATE TABLE SCHEMAS
 #______________________________________________________________________
 #
 
-# Create tables for those that contain non-text types
+# Create table schemas to allow column renaming and non-text types
 # dir: intertwine/platform/data/geos
 
 sqlite3 geo.db
 
+CREATE TABLE state(
+    "statefp" TEXT,
+    "stusps" TEXT,
+    "name" TEXT,
+    "statens" TEXT
+);
+
+CREATE TABLE cbsa(
+    "cbsa_code" TEXT,
+    "metro_division_code" TEXT,
+    "csa_code" TEXT,
+    "cbsa_name" TEXT,
+    "cbsa_type" TEXT,
+    "metro_division_name" TEXT,
+    "csa_name" TEXT,
+    "county_name" TEXT,
+    "state_name" TEXT,
+    "statefp" TEXT,
+    "countyfp" TEXT,
+    "county_type" TEXT
+);
+
+CREATE TABLE county(
+    "stusps" TEXT,
+    "statefp" TEXT,
+    "countyfp" TEXT,
+    "name" TEXT,
+    "classfp" TEXT
+);
+
 CREATE TABLE place(
-    "USPS" TEXT,
-    "GEOID" TEXT,
-    "ANSICODE" TEXT,
-    "NAME" TEXT,
-    "LSAD_CODE" TEXT,
-    "FUNCSTAT" TEXT,
-    "POP10" INTEGER,
-    "HU10" INTEGER,
-    "ALAND" INTEGER,
-    "AWATER" INTEGER,
-    "ALAND_SQMI" REAL,
-    "AWATER_SQMI" REAL,
-    "INTPTLAT" REAL,
-    "INTPTLONG" REAL
+    "stusps" TEXT,
+    "geoid" TEXT,
+    "ansicode" TEXT,
+    "name" TEXT,
+    "lsad_code" TEXT,
+    "funcstat" TEXT,
+    "pop10" INTEGER,
+    "hu10" INTEGER,
+    "aland" INTEGER,
+    "awater" INTEGER,
+    "aland_sqmi" REAL,
+    "awater_sqmi" REAL,
+    "intptlat" REAL,
+    "intptlong" REAL
+);
+
+CREATE TABLE lsad(
+    "lsad_code" TEXT,
+    "lsad_description" TEXT,
+    "geo_entity_type" TEXT
 );
 
 CREATE TABLE ghr(
-    "FILEID" TEXT,
-    "STUSAB" TEXT,
-    "SUMLEV" TEXT,
-    "GEOCOMP" TEXT,
-    "CHARITER" TEXT,
-    "CIFSN" TEXT,
-    "LOGRECNO" INTEGER,
-    "REGION" TEXT,
-    "DIVISION" TEXT,
-    "STATEFP" TEXT,
-    "COUNTYFP" TEXT,
-    "COUNTYCC" TEXT,
-    "COUNTYSC" TEXT,
-    "COUSUB" TEXT,
-    "COUSUBCC" TEXT,
-    "COUSUBSC" TEXT,
-    "PLACEFP" TEXT,
-    "PLACECC" TEXT,
-    "PLACESC" TEXT,
-    "TRACT" TEXT,
-    "BLKGRP" TEXT,
-    "BLOCK" TEXT,
-    "IUC" TEXT,
-    "CONCIT" TEXT,
-    "CONCITCC" TEXT,
-    "CONCITSC" TEXT,
-    "AIANHH" TEXT,
-    "AIANHHFP" TEXT,
-    "AIANHHCC" TEXT,
-    "AIHHTLI" TEXT,
-    "AITSCE" TEXT,
-    "AITS" TEXT,
-    "AITSCC" TEXT,
-    "TTRACT" TEXT,
-    "TBLKGRP" TEXT,
-    "ANRC" TEXT,
-    "ANRCCC" TEXT,
-    "CBSA" TEXT,
-    "CBSASC" TEXT,
-    "METDIV" TEXT,
-    "CSA" TEXT,
-    "NECTA" TEXT,
-    "NECTASC" TEXT,
-    "NECTADIV" TEXT,
-    "CNECTA" TEXT,
-    "CBSAPCI" TEXT,
-    "NECTAPCI" TEXT,
-    "UA" TEXT,
-    "UASC" TEXT,
-    "UATYPE" TEXT,
-    "UR" TEXT,
-    "CD" TEXT,
-    "SLDU" TEXT,
-    "SLDL" TEXT,
-    "VTD" TEXT,
-    "VTDI" TEXT,
-    "RESERVE2" TEXT,
-    "ZCTA5" TEXT,
-    "SUBMCD" TEXT,
-    "SUBMCDCC" TEXT,
-    "SDELM" TEXT,
-    "SDSEC" TEXT,
-    "SDUNI" TEXT,
-    "AREALAND" INTEGER,
-    "AREAWATR" INTEGER,
-    "NAME" TEXT,
-    "FUNCSTAT" TEXT,
-    "GCUNI" TEXT,
-    "POP100" INTEGER,
-    "HU100" INTEGER,
-    "INTPTLAT" FLOAT,
-    "INTPTLON" FLOAT,
-    "LSADC" TEXT,
-    "PARTFLAG" TEXT,
-    "RESERVE3" TEXT,
-    "UGA" TEXT,
-    "STATENS" TEXT,
-    "COUNTYNS" TEXT,
-    "COUSUBNS" TEXT,
-    "PLACENS" TEXT,
-    "CONCITNS" TEXT,
-    "AIANHHNS" TEXT,
-    "AITSNS" TEXT,
-    "ANRCNS" TEXT,
-    "SUBMCDNS" TEXT,
-    "CD113" TEXT,
-    "CD114" TEXT,
-    "CD115" TEXT,
-    "SLDU2" TEXT,
-    "SLDU3" TEXT,
-    "SLDU4" TEXT,
-    "SLDL2" TEXT,
-    "SLDL3" TEXT,
-    "SLDL4" TEXT,
-    "AIANHHSC" TEXT,
-    "CSASC" TEXT,
-    "CNECTASC" TEXT,
-    "MEMI" TEXT,
-    "NMEMI" TEXT,
-    "PUMA" TEXT,
-    "RESERVED" TEXT,
-    "GEOID" TEXT
+    "fileid" TEXT,
+    "stusab" TEXT,
+    "sumlev" TEXT,
+    "geocomp" TEXT,
+    "chariter" TEXT,
+    "cifsn" TEXT,
+    "logrecno" INTEGER,
+    "region" TEXT,
+    "division" TEXT,
+    "statefp" TEXT,
+    "countyfp" TEXT,
+    "countycc" TEXT,
+    "countysc" TEXT,
+    "cousub" TEXT,
+    "cousubcc" TEXT,
+    "cousubsc" TEXT,
+    "placefp" TEXT,
+    "placecc" TEXT,
+    "placesc" TEXT,
+    "tract" TEXT,
+    "blkgrp" TEXT,
+    "block" TEXT,
+    "iuc" TEXT,
+    "concit" TEXT,
+    "concitcc" TEXT,
+    "concitsc" TEXT,
+    "aianhh" TEXT,
+    "aianhhfp" TEXT,
+    "aianhhcc" TEXT,
+    "aihhtli" TEXT,
+    "aitsce" TEXT,
+    "aits" TEXT,
+    "aitscc" TEXT,
+    "ttract" TEXT,
+    "tblkgrp" TEXT,
+    "anrc" TEXT,
+    "anrccc" TEXT,
+    "cbsa" TEXT,
+    "cbsasc" TEXT,
+    "metdiv" TEXT,
+    "csa" TEXT,
+    "necta" TEXT,
+    "nectasc" TEXT,
+    "nectadiv" TEXT,
+    "cnecta" TEXT,
+    "cbsapci" TEXT,
+    "nectapci" TEXT,
+    "ua" TEXT,
+    "uasc" TEXT,
+    "uatype" TEXT,
+    "ur" TEXT,
+    "cd" TEXT,
+    "sldu" TEXT,
+    "sldl" TEXT,
+    "vtd" TEXT,
+    "vtdi" TEXT,
+    "reserve2" TEXT,
+    "zcta5" TEXT,
+    "submcd" TEXT,
+    "submcdcc" TEXT,
+    "sdelm" TEXT,
+    "sdsec" TEXT,
+    "sduni" TEXT,
+    "arealand" INTEGER,
+    "areawatr" INTEGER,
+    "name" TEXT,
+    "funcstat" TEXT,
+    "gcuni" TEXT,
+    "pop100" INTEGER,
+    "hu100" INTEGER,
+    "intptlat" FLOAT,
+    "intptlon" FLOAT,
+    "lsadc" TEXT,
+    "partflag" TEXT,
+    "reserve3" TEXT,
+    "uga" TEXT,
+    "statens" TEXT,
+    "countyns" TEXT,
+    "cousubns" TEXT,
+    "placens" TEXT,
+    "concitns" TEXT,
+    "aianhhns" TEXT,
+    "aitsns" TEXT,
+    "anrcns" TEXT,
+    "submcdns" TEXT,
+    "cd113" TEXT,
+    "cd114" TEXT,
+    "cd115" TEXT,
+    "sldu2" TEXT,
+    "sldu3" TEXT,
+    "sldu4" TEXT,
+    "sldl2" TEXT,
+    "sldl3" TEXT,
+    "sldl4" TEXT,
+    "aianhhsc" TEXT,
+    "csasc" TEXT,
+    "cnectasc" TEXT,
+    "memi" TEXT,
+    "nmemi" TEXT,
+    "puma" TEXT,
+    "reserved" TEXT,
+    "geoid" TEXT
 );
 
 CREATE TABLE f02(
-    "FILEID" TEXT,
-    "STUSAB" TEXT,
-    "CHARITER" TEXT,
-    "CIFSN" TEXT,
-    "LOGRECNO" INTEGER,
-    "P0020001" INTEGER,
-    "P0020002" INTEGER,
-    "P0020003" INTEGER,
-    "P0020004" INTEGER,
-    "P0020005" INTEGER,
-    "P0020006" INTEGER
+    "fileid" TEXT,
+    "stusab" TEXT,
+    "chariter" TEXT,
+    "cifsn" TEXT,
+    "logrecno" INTEGER,
+    "p0020001" INTEGER,
+    "p0020002" INTEGER,
+    "p0020003" INTEGER,
+    "p0020004" INTEGER,
+    "p0020005" INTEGER,
+    "p0020006" INTEGER
 );
 
 #______________________________________________________________________
@@ -342,18 +388,20 @@ CREATE TABLE f02(
 # dir: intertwine/platform/data/geos
 # sqlite3 geo.db
 
+.separator "|"
+.import state.txt.tmp state
+
 .separator "\t"
 .import tmp/Gaz_places_national_utf-8.txt.tmp place
 
 .separator ","
-.import national_county.txt county
-.import cbsa.csv cbsa
-.import lsad.csv lsad
+.import national_county.txt.tmp county
+.import cbsa.csv.tmp cbsa
+.import lsad.csv.tmp lsad
 .import tmp/us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv.tmp ghr
 .import tmp/us2010.ur1.utf-8/us000022010.ur1.utf-8.csv.tmp f02
 
-.separator "|"
-.import state.txt state
+
 
 
 
