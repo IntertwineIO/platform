@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from alchy.model import ModelBase, make_declarative_base
 from sqlalchemy import (orm, types, Column, ForeignKey, Index,
-                        PrimaryKeyConstraint)
+                        PrimaryKeyConstraint, ForeignKeyConstraint)
 
 from intertwine.utils import AutoTablenameMixin
 
@@ -17,18 +17,21 @@ class State(BaseGeoDataModel, AutoTablenameMixin):
 
 
 class CBSA(BaseGeoDataModel, AutoTablenameMixin):
-    CBSA_CODE = Column(types.String(5))             # 12420
+    CBSA_CODE = Column(types.String(5))                 # 12420
     METRO_DIVISION_CODE = Column(types.String(5))
     CSA_CODE = Column(types.String(3))
-    CBSA_NAME = Column(types.String(60))            # Austin-Round Rock, TX
+    CBSA_NAME = Column(types.String(60))                # Austin-Round Rock, TX
     METRO_VS_MICRO = Column(types.String(30))
     METRO_DIVISION_NAME = Column(types.String(60))
     CSA_NAME = Column(types.String(60))
-    COUNTY_NAME = Column(types.String(60))          # Travis County
-    STATE_NAME = Column(types.String(60))           # Texas
-    STATE_FIPS_CODE = Column(types.String(2))       # 48
-    COUNTY_FIPS_CODE = Column(types.String(3))      # 453
-    CENTRAL_VS_OUTLYING = Column(types.String(30))  # Central
+    COUNTY_NAME = Column(types.String(60))              # Travis County
+    STATE_NAME = Column(types.String(60))               # Texas
+    STATE_FIPS_CODE = Column(types.String(2))           # 48
+    COUNTY_FIPS_CODE = Column(types.String(3))          # 453
+    COUNTY = orm.relationship('County', back_populates='CBSA', uselist=False)
+    CENTRAL_VS_OUTLYING = Column(types.String(30))      # Central
+    # GHRS = orm.relationship('GHR', back_populates='CBSA')
+
     __table_args__ = (
         PrimaryKeyConstraint('STATE_FIPS_CODE', 'COUNTY_FIPS_CODE'),
         {}
@@ -36,22 +39,30 @@ class CBSA(BaseGeoDataModel, AutoTablenameMixin):
 
 
 class County(BaseGeoDataModel, AutoTablenameMixin):
-    STATE = Column(types.String(2))         # TX
-    STATEFP = Column(types.String(2))       # 48
-    COUNTYFP = Column(types.String(3))      # 453
-    COUNTYNAME = Column(types.String(60))   # Travis County
-    CLASSFP = Column(types.String(2))       # H1
+    STATE = Column(types.String(2))                     # TX
+    STATEFP = Column(types.String(2))                   # 48
+    COUNTYFP = Column(types.String(3))                  # 453
+    COUNTYNAME = Column(types.String(60))               # Travis County
+    CLASSFP = Column(types.String(2))                   # H1
+    CBSA = orm.relationship('CBSA', back_populates='COUNTY')
+    # GHRS = orm.relationship('GHR', back_populates='COUNTY')
+
     __table_args__ = (
         PrimaryKeyConstraint('STATEFP', 'COUNTYFP'),
+        ForeignKeyConstraint(['STATEFP', 'COUNTYFP'],
+                             ['cbsa.STATE_FIPS_CODE',
+                              'cbsa.COUNTY_FIPS_CODE']),
         {}
         )
 
 
 class Place(BaseGeoDataModel, AutoTablenameMixin):
-    USPS = Column(types.String(2))                      # TX
+    USPS = Column(types.String(2),                      # TX
+                  ForeignKey('state.STUSAB'))
+    STATE = orm.relationship('State')
     GEOID = Column(types.String(7), primary_key=True)   # 4805000
     ANSICODE = Column(types.String(8), unique=True)     # 02409761
-    LONG_NAME = Column(types.String(60))                # Austin city
+    NAME = Column(types.String(60))                     # Austin city
     LSAD_CODE = Column(types.String(2),
                        ForeignKey('lsad.LSAD_CODE'))    # 25
     LSAD = orm.relationship('LSAD')
@@ -64,6 +75,7 @@ class Place(BaseGeoDataModel, AutoTablenameMixin):
     AWATER_SQMI = Column(types.Float)                   # 7.166
     INTPTLAT = Column(types.Float)                      # 30.307182
     INTPTLONG = Column(types.Float)                     # -97.755996
+    # GHRS = orm.relationship('GHR', back_populates='PLACE')
 
 
 class LSAD(BaseGeoDataModel, AutoTablenameMixin):
@@ -90,16 +102,19 @@ class GHR(BaseGeoDataModel):
     # GEOGRAPHIC AREA CODES
     REGION = Column(types.String(1))
     DIVISION = Column(types.String(1))
-    STATE = Column(types.String(2))
-    COUNTY = Column(types.String(3))
+    STATEFP = Column(types.String(2), ForeignKey('state.STATE'))
+    STATE = orm.relationship('State', viewonly=True)
+
+    COUNTYFP = Column(types.String(3))
+    COUNTY = orm.relationship('County')
+
     COUNTYCC = Column(types.String(2))
     COUNTYSC = Column(types.String(2))
     COUSUB = Column(types.String(5))
     COUSUBCC = Column(types.String(2))
     COUSUBSC = Column(types.String(2))
-    PLACE = Column(types.String(5))
-    # Need composite foreign key constraint; map 2 fields to one?
-    # GEOID = orm.relationship('Place', backref='GHR')
+    PLACEFP = Column(types.String(5))
+    PLACE = orm.relationship('Place')
 
     PLACECC = Column(types.String(2))
     PLACESC = Column(types.String(2))
@@ -189,6 +204,15 @@ class GHR(BaseGeoDataModel):
     NMEMI = Column(types.String(1))
     PUMA = Column(types.String(5))
     RESERVED = Column(types.String(18))
+    GEOID = Column(types.String(7), ForeignKey('place.GEOID'))
+
+    __table_args__ = (
+        # ForeignKeyConstraint(['STATEFP', 'COUNTYFP'],
+        #                      ['cbsa.STATE_FIPS_CODE', 'cbsa.COUNTY_FIPS_CODE']),
+        ForeignKeyConstraint(['STATEFP', 'COUNTYFP'],
+                             ['county.STATEFP', 'county.COUNTYFP']),
+        {}
+        )
 
 
 class F02(BaseGeoDataModel):
