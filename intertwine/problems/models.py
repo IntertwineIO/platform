@@ -6,7 +6,6 @@ from numbers import Real
 from alchy.model import ModelBase, make_declarative_base
 from past.builtins import basestring
 from sqlalchemy import orm, types, Column, ForeignKey, Index, UniqueConstraint
-from sqlalchemy.orm import synonym
 
 from titlecase import titlecase
 import urlnorm
@@ -391,7 +390,7 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
             self._rating = val
             self.update_aggregate_ratings(new_rating=val, old_rating=old_val)
 
-    rating = synonym('_rating', descriptor=rating)
+    rating = orm.synonym('_rating', descriptor=rating)
 
     @staticmethod
     def create_key(problem, connection, org_scope=None,
@@ -747,10 +746,13 @@ class Problem(BaseProblemModel, AutoTableMixin):
                 backref='broader',
                 lazy='dynamic')
 
-    # definitely exclude: #?/\_
-    # possibly include: -~`!@$%^&*()+=:;"'<>,.{}[]|
-    # probably exclude: !@{}[]|  `*
-    name_pattern = re.compile(r'''^[-~`$%^&*()+=:;"'<>,. a-zA-Z0-9]+$''')
+    # could include:        -~`!@$%^&*()+=:;"'<>{}[]|,. a-zA-Z0-9
+    # definitely exclude:   #?/\_
+    # probably exclude:     `!@{}[]|
+    # could go either way:  +*=<>
+    # probably include:     ~^&()"':;
+    # definitely include:   -$%,. a-zA-Z0-9
+    name_pattern = re.compile(r'''^[-$%,. a-zA-Z0-9]+$''')
 
     @property
     def name(self):
@@ -764,7 +766,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
         self.human_id = Problem.create_key(name)  # set the human_id
         self._name = name  # set the name last
 
-    name = synonym('_name', descriptor=name)
+    name = orm.synonym('_name', descriptor=name)
 
     @property
     def human_id(self):
@@ -782,7 +784,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
         Problem[val] = self  # register the new human_id
         self._human_id = val  # set the new human_id last
 
-    human_id = synonym('_human_id', descriptor=human_id)
+    human_id = orm.synonym('_human_id', descriptor=human_id)
 
     @staticmethod
     def create_key(name, **kwds):
