@@ -8,7 +8,7 @@ import flask
 # from sassutils.wsgi import SassMiddleware
 from flask_bootstrap import Bootstrap
 
-from . import auth, main, problems, signup
+from . import auth, geos, main, problems, signup
 
 ###############################################################################
 __title__ = 'intertwine'
@@ -53,6 +53,7 @@ def create_app(config):
     app.register_blueprint(auth.blueprint, url_prefix='/auth')
     app.register_blueprint(signup.blueprint, url_prefix='/signup')
     app.register_blueprint(problems.blueprint, url_prefix='/problems')
+    # app.register_blueprint(geos.blueprint, url_prefix='/geos')
 
     # Auto-build SASS/SCSS for each request
     # app.wsgi_app = SassMiddleware(app.wsgi_app, {
