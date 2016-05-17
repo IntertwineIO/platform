@@ -26,37 +26,36 @@ class Geo(BaseGeoModel, AutoTableMixin):
     geo_type      geo                   path_parent  human_id
     country       US                    (none)       us
     subdivision1  TX                    US           us/tx
-    subdivision2  Travis County         TX           us/tx/travis_county
     csa           Greater Houston Area  TX           us/tx/greater_houston_area
     cbsa          Austin Area           TX           us/tx/austin_area
+    subdivision2  Travis County         TX           us/tx/travis_county
     place         Austin                TX           us/tx/austin
     '''
-
     _name = Column('name', types.String(60))
+    _abbrev = Column('abbrev', types.String(4))
     _human_id = Column('human_id', types.String(60), index=True, unique=True)
-    abbrev = Column(types.String(3))
+    path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
+    _path_parent = orm.relationship('Geo', uselist=False)
+
     the_prefix = Column(types.Boolean)
     geo_type = Column(types.String(30))
 
     # city, town, village, parish, etc.; based on lsad for places
     descriptor = Column(types.String(60))
 
-    path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
-    _path_parent = orm.relationship('Geo', uselist=False)
-
-    # geo_type  parents
-    # country   None
-    # state     country
-    # csa       state
-    # cbsa      csa or state (if no csa)
-    # county    cbsa or state (if no cbsa)
-    # place     county or counties
+    # geo_type      us geo      us parents
+    # country       US          None
+    # subdivision1  state       US
+    # csa           csa         state
+    # cbsa          cbsa        csa or state (if no csa)
+    # subdivision2  county      cbsa or state (if no cbsa)
+    # place         place       county or counties or state (if no county)
     parents = orm.relationship(
                 'Geo', secondary='geo_association',
                 primaryjoin='Geo.id==geo_association.c.child_id',
                 secondaryjoin='Geo.id==geo_association.c.parent_id',
-                backref='children',
-                lazy='dynamic')
+                backref=orm.backref('children', lazy='dynamic'),
+                lazy='joined')
 
     # enables population-based prioritization and urban/rural designation
     total_pop = Column(types.Integer)
@@ -69,12 +68,26 @@ class Geo(BaseGeoModel, AutoTableMixin):
 
     @name.setter
     def name(self, val):
-        if self.human_id is not None:  # Not during __init__()
+        # Not during __init__() and there's no abbreviation used instead
+        if self.human_id is not None and self.abbrev is None:
             self.human_id = Geo.create_key(name=val,
                                            path_parent=self.path_parent)
-        self._name = val  # set the name last
+        self._name = val  # set name last
 
     name = orm.synonym('_name', descriptor=name)
+
+    @property
+    def abbrev(self):
+        return self._abbrev
+
+    @abbrev.setter
+    def abbrev(self, val):
+        if self.human_id is not None:  # Not during __init__()
+            self.human_id = Geo.create_key(name=self.name, abbrev=val,
+                                           path_parent=self.path_parent)
+        self._abbrev = val  # set abbrev last
+
+    abbrev = orm.synonym('_abbrev', descriptor=abbrev)
 
     @property
     def path_parent(self):
@@ -83,7 +96,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
     @path_parent.setter
     def path_parent(self, val):
         if self.human_id is not None:  # Not during __init__()
-            self.human_id = Geo.create_key(name=self.name, path_parent=val)
+            self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
+                                           path_parent=val)
         self._path_parent = val
 
     path_parent = orm.synonym('_path_parent', descriptor=path_parent)
@@ -95,7 +109,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
     @human_id.setter
     def human_id(self, val):
         if val is None:
-            val = Geo.create_key(name=self.name, path_parent=self.path_parent)
+            val = Geo.create_key(name=self.name, abbrev=self.abbrev,
+                                 path_parent=self.path_parent)
         # check if it's already registered by a different geo
         geo = Geo._instances.get(val, None)
         if geo is not None and geo is not self:
@@ -104,12 +119,13 @@ class Geo(BaseGeoModel, AutoTableMixin):
             # Default None since Trackable registers after Geo.__init__()
             Geo._instances.pop(self.human_id, None)
         Geo[val] = self  # register the new human_id
-        self._human_id = val  # set the new human_id last
+        self._human_id = val  # set human_id last
 
     human_id = orm.synonym('_human_id', descriptor=human_id)
 
     @staticmethod
-    def create_key(name, human_id=None, path_parent=None, **kwds):
+    def create_key(name=None, abbrev=None, path_parent=None, human_id=None,
+                   **kwds):
         '''Create key for a geo
 
         Return a registry key allowing the Trackable metaclass to look
@@ -130,7 +146,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
                     qualifier = path_finder.name
                 path = qualifier + '/' + path
                 path_finder = path_finder.path_parent
-            path += name
+            path += abbrev if abbrev is not None else name
             return path.lower().replace(' ', '_')
 
     def derive_key(self):
@@ -141,13 +157,13 @@ class Geo(BaseGeoModel, AutoTableMixin):
         '''
         return self.human_id
 
-    def __init__(self, name, path_parent=None, human_id=None, abbrev=None,
+    def __init__(self, name, abbrev=None, path_parent=None, human_id=None,
                  the_prefix=False, geo_type=None, descriptor=None,
                  parents=[], children=[], total_pop=None, urban_pop=None):
         self.name = name
+        self.abbrev = abbrev
         self.path_parent = path_parent
         self.human_id = human_id
-        self.abbrev = abbrev
         self.the_prefix = the_prefix
         self.geo_type = geo_type
         self.descriptor = descriptor
@@ -162,11 +178,10 @@ class Geo(BaseGeoModel, AutoTableMixin):
 
     def __str__(self):
         return '{prefix}{name}'.format(
-                prefix='the ' if self.the_prefix else '',
+                prefix='The ' if self.the_prefix else '',
                 name=self.name)
 
 # class GeoCode(BaseGeoModel, AutoTableMixin):
-#     pass
-    # geo_id
-    # code - 4805000
-    # code_type - FIPS
+#     geo_id
+#     code - 4805000
+#     code_type - FIPS
