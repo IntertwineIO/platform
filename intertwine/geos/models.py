@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from alchy.model import ModelBase, make_declarative_base
 from sqlalchemy import orm, types, Column, ForeignKey, Index, Table, UniqueConstraint
-
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from ..utils import AutoTableMixin, Trackable
 
@@ -35,7 +35,12 @@ class Geo(BaseGeoModel, AutoTableMixin):
     _abbrev = Column('abbrev', types.String(4))
     _human_id = Column('human_id', types.String(60), index=True, unique=True)
     path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
-    _path_parent = orm.relationship('Geo', uselist=False)
+    _path_parent = orm.relationship(
+                'Geo',
+                primaryjoin=('Geo.path_parent_id==Geo.id'),
+                remote_side='Geo.id',
+                backref=orm.backref('path_children', lazy='dynamic'),
+                lazy='joined')
 
     the_prefix = Column(types.Boolean)
     geo_type = Column(types.String(30))
@@ -111,10 +116,16 @@ class Geo(BaseGeoModel, AutoTableMixin):
         if val is None:
             val = Geo.create_key(name=self.name, abbrev=self.abbrev,
                                  path_parent=self.path_parent)
+        if val == self.human_id:
+            return
         # check if it's already registered by a different geo
         geo = Geo._instances.get(val, None)
         if geo is not None and geo is not self:
             raise NameError("'{}' is already registered.".format(val))
+        # recursively propagate change to path_children
+        for pc in self.path_children:
+            pc.human_id = Geo.create_key(name=pc.name, abbrev=pc.abbrev,
+                                         human_base=val)
         if hasattr(self, '_human_id'):  # unregister old human_id
             # Default None since Trackable registers after Geo.__init__()
             Geo._instances.pop(self.human_id, None)
@@ -124,7 +135,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
     human_id = orm.synonym('_human_id', descriptor=human_id)
 
     @staticmethod
-    def create_key(name=None, abbrev=None, path_parent=None, human_id=None,
+    def create_key(name=None, abbrev=None, path_parent=None, human_base=None,
                    **kwds):
         '''Create key for a geo
 
@@ -134,20 +145,21 @@ class Geo(BaseGeoModel, AutoTableMixin):
         human_id using the same format can be provided directly for
         optimization purposes. The latter is recommended for bulk loads.
         '''
-        if human_id is not None:
-            return human_id
-        else:
-            path = ''
+        if human_base is None or human_base == '':
+            human_base = ''
             path_finder = path_parent
             while path_finder is not None:
                 if path_finder.abbrev:
                     qualifier = path_finder.abbrev
                 else:
                     qualifier = path_finder.name
-                path = qualifier + '/' + path
+                human_base = qualifier + '/' + human_base
                 path_finder = path_finder.path_parent
-            path += abbrev if abbrev is not None else name
-            return path.lower().replace(' ', '_')
+        else:
+            human_base += '/'
+
+        return (human_base +
+                abbrev if abbrev else name).lower().replace(' ', '_')
 
     def derive_key(self):
         '''Derive key from a geo instance
@@ -157,13 +169,15 @@ class Geo(BaseGeoModel, AutoTableMixin):
         '''
         return self.human_id
 
-    def __init__(self, name, abbrev=None, path_parent=None, human_id=None,
+    def __init__(self, name, abbrev=None, path_parent=None, human_base=None,
                  the_prefix=False, geo_type=None, descriptor=None,
                  parents=[], children=[], total_pop=None, urban_pop=None):
         self.name = name
         self.abbrev = abbrev
         self.path_parent = path_parent
-        self.human_id = human_id
+        self.human_id = Geo.create_key(name=name, abbrev=abbrev,
+                                       path_parent=path_parent,
+                                       human_base=human_base)
         self.the_prefix = the_prefix
         self.geo_type = geo_type
         self.descriptor = descriptor
