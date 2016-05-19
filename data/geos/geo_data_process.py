@@ -34,10 +34,9 @@ def load_geo_data():
     us = Geo(name='United States', abbrev='US', geo_type='country',
              descriptor='country')
 
-    # State-level aggregation including PR, but excluding DC
+    # States including PR and DC
     ghrs = geo_session.query(GHR).filter(GHR.sumlev == '040',
-                                         GHR.geocomp == '00',
-                                         GHR.statefp != '11').all()
+                                         GHR.geocomp == '00').all()
     for ghr in ghrs:
         Geo(name=ghr.state.name,
             abbrev=ghr.state.stusps,
@@ -47,7 +46,12 @@ def load_geo_data():
             parents=[us],
             total_pop=ghr.f02.p0020001,
             urban_pop=ghr.f02.p0020002)
-    Geo['us' + Geo.delimiter + 'pr'].descriptor = 'territory'
+    pr = Geo['us' + Geo.delimiter + 'pr']
+    pr.descriptor = 'territory'
+    dc = Geo['us' + Geo.delimiter + 'dc']
+    dc.name = 'Washington, D.C.'
+    dc.geo_type = 'place'
+    dc.descriptor = 'consolidated federal district'
 
     more_areas = geo_session.query(State).filter(
             State.stusps.in_(['AS', 'GU', 'MP', 'UM', 'VI'])).all()
@@ -59,26 +63,66 @@ def load_geo_data():
             descriptor='territory',
             parents=[us])
 
-    # Counties
+    # Counties excluding independent cities and DC
+    print 'Loading counties and equivalents in...'
     ghrs = geo_session.query(GHR).filter(GHR.sumlev == '050',
-                                         GHR.geocomp == '00').all()
+                                         GHR.geocomp == '00',
+                                         GHR.countycc != 'C7',
+                                         GHR.statefp != '11').all()
+    state = None
+    stusps = last_stusps = None
     for ghr in ghrs:
-        Geo(name=ghr.county.name,
-            path_parent=ghr.state.stusps,
-            geo_type='subdivision2',
-            descriptor='state',
-            parents=[us],
-            total_pop=ghr.f02.p0020001,
-            urban_pop=ghr.f02.p0020002)
+        stusps = ghr.county.stusps
+        if stusps != last_stusps:
+            state = Geo['us' + Geo.delimiter + stusps.lower()]
+            print '\t' + state.name
+            last_stusps = stusps
+        name = ghr.county.name
+        human_id = Geo.create_key(name=name, human_base=state.human_id)
+        if Geo[human_id] is not None:
+            print '{} already in use'.format(human_id)
+        else:
+            Geo(name=name,
+                path_parent=state,
+                human_base=state.human_id,
+                geo_type='subdivision2',
+                descriptor=ghr.countyclass.name.lower(),
+                parents=[state],
+                total_pop=ghr.f02.p0020001,
+                urban_pop=ghr.f02.p0020002)
 
+    ak = Geo['us' + Geo.delimiter + 'ak']
+    anchorage = Geo[Geo.create_key(name='Anchorage Municipality',
+                                   human_base=ak.human_id)]
+    anchorage.name = 'Anchorage'
+    anchorage.geo_type = 'place'
+    juneau = Geo[Geo.create_key(name='Juneau City and Borough',
+                                human_base=ak.human_id)]
+    juneau.name = 'Juneau'
+    juneau.geo_type = 'place'
+    sitka = Geo[Geo.create_key(name='Sitka City and Borough',
+                               human_base=ak.human_id)]
+    sitka.name = 'Sitka'
+    sitka.geo_type = 'place'
+
+    ca = Geo['us' + Geo.delimiter + 'ca']
+    sf = Geo[Geo.create_key(name='San Francisco County',
+                            human_base=ca.human_id)]
+    sf.name = 'San Francisco'
+    sf.geo_type = 'place'
 
     # CSAs
 
     # CBSAs
 
     # Places
+    ghrs = geo_session.query(GHR).filter(GHR.sumlev == '070',
+                                         GHR.statefp != '11').all()
+
+
     # Handle unincorporated county remainder special case
     # Handle independent city special case
+    # Handle consolidated cities/counties special case
     # Handle Washington, D.C. special case
 
     return Trackable.catalog_updates()

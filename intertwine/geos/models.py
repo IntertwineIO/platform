@@ -164,7 +164,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
             human_base += Geo.delimiter
 
         return (human_base +
-                abbrev if abbrev else name).lower().replace(' ', '_')
+                (abbrev if abbrev else name)).lower().replace(' ', '_')
 
     def derive_key(self):
         '''Derive key from a geo instance
@@ -210,3 +210,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
 #     geo_id
 #     code - 4805000
 #     code_type - FIPS
+
+# class GeoType(BaseGeoModel, AutoTableMixin):
+#     geo_id
+#     geo_type
