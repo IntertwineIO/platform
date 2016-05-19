@@ -5,23 +5,25 @@ ghr_bulk  usgeo2010.ur1                      fix   https://www2.census.gov/censu
 ghr_txt   n/a (created in database)          n/a   ghr_bulk
 ghr       usgeo2010.ur1.utf-8.csv.tmp        ','   Exported from ghr_txt, then converted to utf-8 and headers removed
 f02       us000022010.ur1.utf-8.csv.tmp      ','   Same as usgeo2010.ur1, then converted to utf-8 and headers removed
-state     state.txt                          '|'   https://www2.census.gov/geo/docs/reference/state.txt
-cbsa      cbsa.csv                           ','   https://www.census.gov/population/metro/files/lists/2013/List1.xls
-county    national_county.txt                ','   https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt
+state     state.txt.tmp                      '|'   https://www2.census.gov/geo/docs/reference/state.txt
+cbsa      cbsa.csv.tmp                       ','   https://www.census.gov/population/metro/files/lists/2013/List1.xls
+county    national_county.txt.tmp            ','   https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt
 place     Gaz_places_national_utf-8.txt.tmp  '\t'  https://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_places_national.zip (then converted to utf-8 and headers removed)
-lsad      lsad.csv                           ','   https://www.census.gov/geo/reference/lsad.html (copied from html table)
+lsad      lsad.csv.tmp                       ','   https://www.census.gov/geo/reference/lsad.html (copied from html table)
+geoclass  geoclass.csv.tmp                   ','   http://www.census.gov/prod/cen2010/doc/sf1.pdf#165 (55-2 copied from pdf)
 __________
 
 KEY
 
-us      United States National File (vs. individual states)
-2010    Census 2010
-ur1     Urban Rural Update 1 (released in 2012)
-ghr     Geographic Header Record
-f02     File 02, which contains urban vs. rural population counts
-cbsa    Core Based Statistical Area, a general term that applies to metropolitan and micropolitan statistical areas
-place   Census term for an incorporated place or a census designated place (CDP)
-lsad    Legal/Statistical Area Description (city, town, borough, CDP, etc.)
+us        United States National File (vs. individual states)
+2010      Census 2010
+ur1       Urban Rural Update 1 (released in 2012)
+ghr       Geographic Header Record
+f02       File 02, which contains urban vs. rural population counts
+cbsa      Core Based Statistical Area, a general term that applies to metropolitan and micropolitan statistical areas
+place     Census term for an incorporated place or a census designated place (CDP)
+lsad      Legal/Statistical Area Description (city, town, borough, CDP, etc.)
+geoclass  FIPS code describing legal, statistical, governmental, and/or relationship status of a geo
 __________
 
 REFERENCES
@@ -219,6 +221,7 @@ tail -n +2 "state.txt" > "state.txt.tmp"
 tail -n +2 "national_county.txt" > "national_county.txt.tmp"
 tail -n +2 "cbsa.csv" > "cbsa.csv.tmp"
 tail -n +2 "lsad.csv" > "lsad.csv.tmp"
+tail -n +2 "geoclass.csv" > "geoclass.csv.tmp"
 
 cd tmp
 tail -n +2 "Gaz_places_national_utf-8.txt" > "Gaz_places_national_utf-8.txt.tmp"
@@ -268,7 +271,7 @@ CREATE TABLE county(
     "statefp" TEXT,
     "countyfp" TEXT,
     "name" TEXT,
-    "classfp" TEXT
+    "geoclassfp" TEXT
 );
 
 CREATE TABLE place(
@@ -290,8 +293,15 @@ CREATE TABLE place(
 
 CREATE TABLE lsad(
     "lsad_code" TEXT,
-    "lsad_description" TEXT,
+    "description" TEXT,
     "geo_entity_type" TEXT
+);
+
+CREATE TABLE geoclass(
+    "geoclassfp" TEXT,
+    "category" TEXT,
+    "name" TEXT,
+    "description" TEXT
 );
 
 CREATE TABLE ghr(
@@ -432,6 +442,7 @@ CREATE TABLE f02(
 .import national_county.txt.tmp county
 .import cbsa.csv.tmp cbsa
 .import lsad.csv.tmp lsad
+.import geoclass.csv.tmp geoclass
 .import tmp/us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv.tmp ghr
 .import tmp/us2010.ur1.utf-8/us000022010.ur1.utf-8.csv.tmp f02
 

@@ -32,8 +32,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
     place         Austin                TX           us/tx/austin
     '''
     _name = Column('name', types.String(60))
-    _abbrev = Column('abbrev', types.String(4))
-    _human_id = Column('human_id', types.String(60), index=True, unique=True)
+    _abbrev = Column('abbrev', types.String(10))
+    _human_id = Column('human_id', types.String(100), index=True, unique=True)
     path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
     _path_parent = orm.relationship(
                 'Geo',
@@ -51,10 +51,10 @@ class Geo(BaseGeoModel, AutoTableMixin):
     # geo_type      us geo      us parents
     # country       US          None
     # subdivision1  state       US
-    # csa           csa         state
-    # cbsa          cbsa        csa or state (if no csa)
-    # subdivision2  county      cbsa or state (if no cbsa)
-    # place         place       county or counties or state (if no county)
+    # csa           csa         state(s)
+    # cbsa          cbsa        csa (if exists) and state(s)
+    # subdivision2  county      cbsa (if exists) and state
+    # place         place       county or counties (if exists) and state
     parents = orm.relationship(
                 'Geo', secondary='geo_association',
                 primaryjoin='Geo.id==geo_association.c.child_id',

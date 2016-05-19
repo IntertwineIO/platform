@@ -43,9 +43,14 @@ class County(BaseGeoDataModel, AutoTablenameMixin):
     state = orm.relationship('State')
     statefp = Column(types.String(2))                   # 48
     countyfp = Column(types.String(3))                  # 453
-    name = Column(types.String(60))                     # Travis County
-    classfp = Column(types.String(2))                   # H1
     cbsa = orm.relationship('CBSA', back_populates='county')
+
+    name = Column(types.String(60))                     # Travis County
+
+    # renamed from classfp
+    geoclassfp = Column(types.String(2),                # H1
+                        ForeignKey('geoclass.geoclassfp'))
+    geoclass = orm.relationship('Geoclass')
 
     __table_args__ = (
         PrimaryKeyConstraint('statefp', 'countyfp'),
@@ -78,10 +83,19 @@ class Place(BaseGeoDataModel, AutoTablenameMixin):
 
 class LSAD(BaseGeoDataModel, AutoTablenameMixin):
     lsad_code = Column(types.String(2), primary_key=True)  # 25
-    lsad_description = Column(types.String(60))         # 'city (suffix)'
+    description = Column(types.String(60))              # 'city (suffix)'
     geo_entity_type = Column(types.String(600))         # 'Consolidated City,
     # County or Equivalent Feature, County Subdivision, Economic Census Place,
     # Incorporated Place'
+
+
+class Geoclass(BaseGeoDataModel, AutoTablenameMixin):
+    # renamed from classfp
+    geoclassfp = Column(types.String(2), primary_key=True)  # C1
+    category = Column(types.String(60))                 # Incorporated Place
+    name = Column(types.String(60))                     # Incorporated Place
+    description = Column(types.String(300))             # An active
+    # incorporated place that does not serve as a county subdivision equivalent
 
 
 class GHR(BaseGeoDataModel):
@@ -94,27 +108,36 @@ class GHR(BaseGeoDataModel):
     geocomp = Column(types.String(2))
     chariter = Column(types.String(3))
     cifsn = Column(types.String(2))
-    logrecno = Column(types.Integer, primary_key=True)  # Change to Integer
+    logrecno = Column(types.Integer, primary_key=True)  # Changed to Integer
     f02 = orm.relationship('F02', back_populates='ghr', uselist=False)
 
     # GEOGRAPHIC AREA CODES
     region = Column(types.String(1))
     division = Column(types.String(1))
+
+    # Renamed from state
     statefp = Column(types.String(2), ForeignKey('state.statefp'))
     state = orm.relationship('State', viewonly=True)
 
+    # Renamed from county
     countyfp = Column(types.String(3))
     county = orm.relationship('County')
 
-    countycc = Column(types.String(2))
+    countycc = Column(types.String(2), ForeignKey('geoclass.geoclassfp'))
+    countyclass = orm.relationship('Geoclass', foreign_keys='GHR.countycc')
+
     countysc = Column(types.String(2))
     cousub = Column(types.String(5))
     cousubcc = Column(types.String(2))
     cousubsc = Column(types.String(2))
+
+    # Renamed from place
     placefp = Column(types.String(5))
     place = orm.relationship('Place')
 
-    placecc = Column(types.String(2))
+    placecc = Column(types.String(2), ForeignKey('geoclass.geoclassfp'))
+    placeclass = orm.relationship('Geoclass', foreign_keys='GHR.placecc')
+
     placesc = Column(types.String(2))
     tract = Column(types.String(6))
     blkgrp = Column(types.String(1))
@@ -203,6 +226,7 @@ class GHR(BaseGeoDataModel):
     puma = Column(types.String(5))
     reserved = Column(types.String(18))
 
+    # Added - concatenation of statefp and countyfp
     geoid = Column(types.String(7), ForeignKey('place.geoid'))
 
     __table_args__ = (

@@ -7,7 +7,7 @@ from alchy.model import extend_declarative_base
 from config import DevConfig
 from data.data_process import DataSessionManager
 from data.geos.models import (BaseGeoDataModel, State, CBSA, County, Place,
-                              LSAD, GHR, F02)
+                              LSAD, Geoclass, GHR, F02)
 from intertwine.utils import Trackable
 from intertwine.geos.models import BaseGeoModel, Geo
 
@@ -59,12 +59,26 @@ def load_geo_data():
             descriptor='territory',
             parents=[us])
 
+    # Counties
+    ghrs = geo_session.query(GHR).filter(GHR.sumlev == '050',
+                                         GHR.geocomp == '00').all()
+    for ghr in ghrs:
+        Geo(name=ghr.county.name,
+            path_parent=ghr.state.stusps,
+            geo_type='subdivision2',
+            descriptor='state',
+            parents=[us],
+            total_pop=ghr.f02.p0020001,
+            urban_pop=ghr.f02.p0020002)
+
+
     # CSAs
 
     # CBSAs
 
-    # Counties
-
     # Places
+    # Handle unincorporated county remainder special case
+    # Handle independent city special case
+    # Handle Washington, D.C. special case
 
     return Trackable.catalog_updates()
