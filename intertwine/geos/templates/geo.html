@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block styles %}
+{{ super() }}
+<link href="{{ url_for('geos.static', filename='css/normalize.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('geos.static', filename='css/general.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('geos.static', filename='css/geos.css') }}"
+      rel="stylesheet" type="text/css">
+ {% endblock %}
+
+{% block content %}
+<div class="nav-spacer"></div>
+<header>
+    <h1>
+        <span class="page-title">{% if geo.the_prefix %}The {% endif %}{{ geo.name }}</span>
+        <span class="page-scope"></span>
+    </h1>
+    <span class="page-tagline"></span>
+</header>
+
+<section id="problem-list-section">
+
+</section>
+{% endblock %}

@@ -11,7 +11,7 @@ from .models import Problem
 @blueprint.route('/', methods=['GET'])
 def render():
     '''Generic page rendering for top level'''
-    problems = Problem.query.order_by(Problem._name).all()
+    problems = Problem.query.order_by(Problem.name).all()
     template = render_template(
         'problems.html',
         current_app=flask.current_app,

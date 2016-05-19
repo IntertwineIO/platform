@@ -90,6 +90,7 @@ Temporary Items
 
 # Databases
 *.db
+*.db-journal
 
 # Temporary directories and files
 tmp/

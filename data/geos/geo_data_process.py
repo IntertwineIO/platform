@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''Loads geo data into Intertwine'''
+from alchy import Manager
+from alchy.model import extend_declarative_base
+
 from config import DevConfig
 from data.data_process import DataSessionManager
 from data.geos.models import (BaseGeoDataModel, State, CBSA, County, Place,
@@ -17,15 +20,19 @@ def load_geo_data():
     geo_session = geo_dsm.session
 
     # Session for main Intertwine db, where geo data is loaded
-    dsm = DataSessionManager(db_config=DevConfig.DATABASE,
-                             ModelBases=[BaseGeoModel])
-    session = dsm.session
+    # dsm = DataSessionManager(db_config=DevConfig.DATABASE,
+    #                          ModelBases=[BaseGeoModel])
+    # session = dsm.session
+    db = Manager(Model=BaseGeoModel, config=DevConfig)
+    session = db.session
+    extend_declarative_base(BaseGeoModel, session=session)
+    db.create_all()
 
     Trackable.register_existing(session, Geo)
     Trackable.clear_updates()
 
-    us = Geo(name='United States', abbrev='US', the_prefix=True,
-             geo_type='country', descriptor='federal republic')
+    us = Geo(name='United States', abbrev='US', geo_type='country',
+             descriptor='country')
 
     # State-level aggregation including PR, but excluding DC
     ghrs = geo_session.query(GHR).filter(GHR.sumlev == '040',
@@ -40,9 +47,10 @@ def load_geo_data():
             parents=[us],
             total_pop=ghr.f02.p0020001,
             urban_pop=ghr.f02.p0020002)
-    Geo['us/pr'].descriptor = 'territory'
+    Geo['us' + Geo.delimiter + 'pr'].descriptor = 'territory'
 
-    more_areas = geo_session.query(State).filter(State.stusps.in_(['AS', 'GU', 'MP', 'UM', 'VI'])).all()
+    more_areas = geo_session.query(State).filter(
+            State.stusps.in_(['AS', 'GU', 'MP', 'UM', 'VI'])).all()
     for area in more_areas:
         Geo(name=area.name,
             abbrev=area.stusps,

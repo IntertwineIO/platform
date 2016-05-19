@@ -67,6 +67,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
     urban_pop = Column(types.Integer)
     # TODO: add other attributes such as demographics, geography, etc.
 
+    delimiter = '>'
+
     @property
     def name(self):
         return self._name
@@ -140,23 +142,26 @@ class Geo(BaseGeoModel, AutoTableMixin):
         '''Create key for a geo
 
         Return a registry key allowing the Trackable metaclass to look
-        up a geo instance. By default, the key is created from the name
-        and recursively following the path_parent. Alternatively, a
-        human_id using the same format can be provided directly for
-        optimization purposes. The latter is recommended for bulk loads.
+        up a geo instance. The key is created by concatenating a
+        human_base with the given abbreviation if provided, else name.
+        By default, the human_base is assembled by recursively following
+        the path_parent. Alternatively, a human_base using the same
+        format can be provided directly for optimization purposes. The
+        latter is recommended for bulk loads. All geo abbreviations and
+        names are separated by the Geo.delimiter.
         '''
         if human_base is None or human_base == '':
             human_base = ''
             path_finder = path_parent
             while path_finder is not None:
                 if path_finder.abbrev:
-                    qualifier = path_finder.abbrev
+                    path_geo = path_finder.abbrev
                 else:
-                    qualifier = path_finder.name
-                human_base = qualifier + '/' + human_base
+                    path_geo = path_finder.name
+                human_base = path_geo + Geo.delimiter + human_base
                 path_finder = path_finder.path_parent
         else:
-            human_base += '/'
+            human_base += Geo.delimiter
 
         return (human_base +
                 abbrev if abbrev else name).lower().replace(' ', '_')
@@ -170,7 +175,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
         return self.human_id
 
     def __init__(self, name, abbrev=None, path_parent=None, human_base=None,
-                 the_prefix=False, geo_type=None, descriptor=None,
+                 the_prefix=None, geo_type=None, descriptor=None,
                  parents=[], children=[], total_pop=None, urban_pop=None):
         self.name = name
         self.abbrev = abbrev
@@ -178,7 +183,13 @@ class Geo(BaseGeoModel, AutoTableMixin):
         self.human_id = Geo.create_key(name=name, abbrev=abbrev,
                                        path_parent=path_parent,
                                        human_base=human_base)
-        self.the_prefix = the_prefix
+        if the_prefix is not None:
+            self.the_prefix = the_prefix
+        else:
+            nstr = self.name.lower()
+            self.the_prefix = (nstr.find('states') > -1 or
+                               nstr.find('islands') > -1 or
+                               nstr.find('republic') > -1)
         self.geo_type = geo_type
         self.descriptor = descriptor
         self.parents = parents

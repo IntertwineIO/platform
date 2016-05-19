@@ -20,7 +20,7 @@ geo_db = Manager(Model=models.BaseGeoModel)
 extend_declarative_base(models.BaseGeoModel, session=geo_db.session)
 
 # Must come later as we use blueprint and query property in views
-# from . import views
+from . import views
 
 
 @blueprint.record_once
