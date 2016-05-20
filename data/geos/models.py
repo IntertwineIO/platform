@@ -226,7 +226,7 @@ class GHR(BaseGeoDataModel):
     puma = Column(types.String(5))
     reserved = Column(types.String(18))
 
-    # Added - concatenation of statefp and countyfp
+    # Added - concatenation of statefp and placefp
     geoid = Column(types.String(7), ForeignKey('place.geoid'))
 
     __table_args__ = (

@@ -21,3 +21,8 @@ class DataProcessException(Exception):
 
 class InvalidRegistryKey(DataProcessException):
     '''{key!r} is not a valid registry key for class {classname}'''
+
+
+class KeyRegisteredAndNoModify(DataProcessException):
+    '''{key!r} has already been registered for class {classname} and
+    {classname}.modify() has not been implemented'''

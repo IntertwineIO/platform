@@ -65,7 +65,6 @@ class Geo(BaseGeoModel, AutoTableMixin):
     # enables population-based prioritization and urban/rural designation
     total_pop = Column(types.Integer)
     urban_pop = Column(types.Integer)
-    # TODO: add other attributes such as demographics, geography, etc.
 
     delimiter = '>'
 
@@ -206,11 +205,27 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 prefix='The ' if self.the_prefix else '',
                 name=self.name)
 
-# class GeoCode(BaseGeoModel, AutoTableMixin):
-#     geo_id
-#     code - 4805000
-#     code_type - FIPS
+# TODO: Implement alternate_names
+# new Geo attribute: main_geo_id with main_geo/alternate_geos relationship
+# values:
+# None - geo is the main geo
+# some other geo - geo is an alternate name
 
+# TODO: Create GeoType class to track geo types and descriptors
 # class GeoType(BaseGeoModel, AutoTableMixin):
-#     geo_id
-#     geo_type
+#     geo_id (foreign key, M to 1)
+#     name - country, subdivision1, subdivision2, place, csa, cbsa
+#     descriptor - state, county, city, etc. (lsad for place)
+
+# TODO: Create GeoMap class to map geos (by type) to 3rd party IDs
+# class GeoMap(BaseGeoModel, AutoTableMixin):
+#     geo_type_id (foreign key, M to 1)
+#     id_type - FIPS, ANSI, etc.
+#     id - 4805000, 02409761
+
+# TODO: Create GeoData class to store data related to the geo
+# class GeoData(BaseGeoModel, AutoTableMixin):
+#     geo_id (foreign key, 1 to 1)
+#     total_pop
+#     urban_pop
+#     other attributes related to demographics, geography, climate, etc.

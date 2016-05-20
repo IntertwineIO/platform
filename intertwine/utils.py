@@ -5,7 +5,7 @@ import re
 from sqlalchemy import Column, Integer
 from sqlalchemy.ext.declarative import declared_attr
 from alchy.model import ModelMeta
-from .exceptions import InvalidRegistryKey
+from .exceptions import InvalidRegistryKey, KeyRegisteredAndNoModify
 
 
 def camelCaseTo_snake_case(string):
@@ -96,9 +96,10 @@ class Trackable(ModelMeta):
             cls._instances[key] = inst
             cls._updates.add(inst)
         else:
-            if hasattr(cls, 'modify') and all_kwds:
-                inst._modified = set()
-                cls.modify(inst, **all_kwds)
+            if not hasattr(cls, 'modify'):
+                raise KeyRegisteredAndNoModify(key=key, classname=cls.__name__)
+            inst._modified = set()
+            cls.modify(inst, **all_kwds)
         if hasattr(inst, '_modified'):
             cls._updates.update(inst._modified)
             del inst._modified

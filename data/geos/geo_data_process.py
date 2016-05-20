@@ -46,6 +46,8 @@ def load_geo_data():
             parents=[us],
             total_pop=ghr.f02.p0020001,
             urban_pop=ghr.f02.p0020002)
+
+    # Handle special cases
     pr = Geo['us' + Geo.delimiter + 'pr']
     pr.descriptor = 'territory'
     dc = Geo['us' + Geo.delimiter + 'dc']
@@ -53,6 +55,7 @@ def load_geo_data():
     dc.geo_type = 'place'
     dc.descriptor = 'consolidated federal district'
 
+    # Remaining U.S. territories
     more_areas = geo_session.query(State).filter(
             State.stusps.in_(['AS', 'GU', 'MP', 'UM', 'VI'])).all()
     for area in more_areas:
@@ -78,19 +81,16 @@ def load_geo_data():
             print '\t' + state.name
             last_stusps = stusps
         name = ghr.county.name
-        human_id = Geo.create_key(name=name, human_base=state.human_id)
-        if Geo[human_id] is not None:
-            print '{} already in use'.format(human_id)
-        else:
-            Geo(name=name,
-                path_parent=state,
-                human_base=state.human_id,
-                geo_type='subdivision2',
-                descriptor=ghr.countyclass.name.lower(),
-                parents=[state],
-                total_pop=ghr.f02.p0020001,
-                urban_pop=ghr.f02.p0020002)
+        Geo(name=name,
+            path_parent=state,
+            human_base=state.human_id,
+            geo_type='subdivision2',
+            descriptor=ghr.countyclass.name.lower(),
+            parents=[state],
+            total_pop=ghr.f02.p0020001,
+            urban_pop=ghr.f02.p0020002)
 
+    # Handle special cases
     ak = Geo['us' + Geo.delimiter + 'ak']
     anchorage = Geo[Geo.create_key(name='Anchorage Municipality',
                                    human_base=ak.human_id)]
@@ -110,6 +110,29 @@ def load_geo_data():
                             human_base=ca.human_id)]
     sf.name = 'San Francisco'
     sf.geo_type = 'place'
+
+    # Counties in remaining U.S. territories, except Guam, because Guam
+    # has just a single coextensive county
+    more_areas = geo_session.query(County).filter(
+            County.stusps.in_(['AS', 'MP', 'UM', 'VI'])).all()
+
+    territory = None
+    stusps = last_stusps = None
+    for area in more_areas:
+        stusps = area.stusps
+        if stusps != last_stusps:
+            territory = Geo['us' + Geo.delimiter + stusps.lower()]
+            print '\t' + territory.name
+            last_stusps = stusps
+        name = area.name
+        Geo(name=name,
+            path_parent=territory,
+            human_base=territory.human_id,
+            geo_type='subdivision2',
+            descriptor=area.geoclass.name.lower(),
+            parents=[territory])
+
+
 
     # CSAs
 
