@@ -31,21 +31,25 @@ def load_geo_data():
     Trackable.register_existing(session, Geo)
     Trackable.clear_updates()
 
-    us = Geo(name='United States', abbrev='US', geo_type='country',
-             descriptor='country')
+    us = Geo(name='United States', abbrev='US',
+             # geo_type='country', descriptor='country'
+             )
 
     # States including PR and DC
+    print 'Loading states and equivalents...'
     ghrs = geo_session.query(GHR).filter(GHR.sumlev == '040',
                                          GHR.geocomp == '00').all()
     for ghr in ghrs:
-        Geo(name=ghr.state.name,
-            abbrev=ghr.state.stusps,
+        state = ghr.state
+        Geo(name=state.name,
+            abbrev=state.stusps,
             path_parent=us,
-            geo_type='subdivision1',
-            descriptor='state',
+            # geo_type='subdivision1',
+            # descriptor='state',
             parents=[us],
-            total_pop=ghr.f02.p0020001,
-            urban_pop=ghr.f02.p0020002)
+            # total_pop=ghr.f02.p0020001,
+            # urban_pop=ghr.f02.p0020002
+            )
 
     # Handle special cases
     pr = Geo['us' + Geo.delimiter + 'pr']
@@ -83,7 +87,6 @@ def load_geo_data():
         name = ghr.county.name
         Geo(name=name,
             path_parent=state,
-            human_base=state.human_id,
             geo_type='subdivision2',
             descriptor=ghr.countyclass.name.lower(),
             parents=[state],
@@ -93,21 +96,21 @@ def load_geo_data():
     # Handle special cases
     ak = Geo['us' + Geo.delimiter + 'ak']
     anchorage = Geo[Geo.create_key(name='Anchorage Municipality',
-                                   human_base=ak.human_id)]
+                                   path_parent=ak)]
     anchorage.name = 'Anchorage'
     anchorage.geo_type = 'place'
     juneau = Geo[Geo.create_key(name='Juneau City and Borough',
-                                human_base=ak.human_id)]
+                                path_parent=ak)]
     juneau.name = 'Juneau'
     juneau.geo_type = 'place'
     sitka = Geo[Geo.create_key(name='Sitka City and Borough',
-                               human_base=ak.human_id)]
+                               path_parent=ak)]
     sitka.name = 'Sitka'
     sitka.geo_type = 'place'
 
     ca = Geo['us' + Geo.delimiter + 'ca']
     sf = Geo[Geo.create_key(name='San Francisco County',
-                            human_base=ca.human_id)]
+                            path_parent=ca)]
     sf.name = 'San Francisco'
     sf.geo_type = 'place'
 
@@ -127,7 +130,6 @@ def load_geo_data():
         name = area.name
         Geo(name=name,
             path_parent=territory,
-            human_base=territory.human_id,
             geo_type='subdivision2',
             descriptor=area.geoclass.name.lower(),
             parents=[territory])

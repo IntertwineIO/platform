@@ -19,6 +19,16 @@ class DataProcessException(Exception):
         Exception.__init__(self, message)
 
 
+class AttributeConflict(DataProcessException):
+    '''{attr1!s} value of {attr1_val!s} conflicts with {attr2!s} value
+    of {attr2_val!s} on {inst!r}'''
+
+
+class CircularReference(DataProcessException):
+    '''Setting {attr!s} on {inst!r} to {value!r} would create a
+    circular reference'''
+
+
 class InvalidRegistryKey(DataProcessException):
     '''{key!r} is not a valid registry key for class {classname}'''
 

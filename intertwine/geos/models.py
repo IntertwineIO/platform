@@ -5,6 +5,7 @@ from sqlalchemy import orm, types, Column, ForeignKey, Index, Table, UniqueConst
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from ..utils import AutoTableMixin, Trackable
+from ..exceptions import AttributeConflict, CircularReference
 
 
 BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
@@ -43,10 +44,13 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 lazy='joined')
 
     the_prefix = Column(types.Boolean)
-    geo_type = Column(types.String(30))
-
-    # city, town, village, parish, etc.; based on lsad for places
-    descriptor = Column(types.String(60))
+    main_geo_id = Column(types.Integer, ForeignKey('geo.id'))
+    _main_geo = orm.relationship(
+                'Geo',
+                primaryjoin=('Geo.main_geo_id==Geo.id'),
+                remote_side='Geo.id',
+                backref=orm.backref('alternates', lazy='dynamic'),
+                lazy='joined')
 
     # geo_type      us geo      us parents
     # country       US          None
@@ -62,9 +66,14 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 backref=orm.backref('children', lazy='dynamic'),
                 lazy='joined')
 
-    # enables population-based prioritization and urban/rural designation
-    total_pop = Column(types.Integer)
-    urban_pop = Column(types.Integer)
+    # geo_type = Column(types.String(30))
+
+    # # city, town, village, parish, etc.; based on lsad for places
+    # descriptor = Column(types.String(60))
+
+    # # enables population-based prioritization and urban/rural designation
+    # total_pop = Column(types.Integer)
+    # urban_pop = Column(types.Integer)
 
     delimiter = '>'
 
@@ -77,7 +86,12 @@ class Geo(BaseGeoModel, AutoTableMixin):
         # Not during __init__() and there's no abbreviation used instead
         if self.human_id is not None and self.abbrev is None:
             self.human_id = Geo.create_key(name=val,
-                                           path_parent=self.path_parent)
+                                           path_parent=self.path_parent,
+                                           main_geo=self.main_geo)
+        nstr = val.lower()
+        self.the_prefix = (nstr.find('states') > -1 or
+                           nstr.find('islands') > -1 or
+                           nstr.find('republic') > -1)
         self._name = val  # set name last
 
     name = orm.synonym('_name', descriptor=name)
@@ -90,7 +104,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
     def abbrev(self, val):
         if self.human_id is not None:  # Not during __init__()
             self.human_id = Geo.create_key(name=self.name, abbrev=val,
-                                           path_parent=self.path_parent)
+                                           path_parent=self.path_parent,
+                                           main_geo=self.main_geo)
         self._abbrev = val  # set abbrev last
 
     abbrev = orm.synonym('_abbrev', descriptor=abbrev)
@@ -103,10 +118,47 @@ class Geo(BaseGeoModel, AutoTableMixin):
     def path_parent(self, val):
         if self.human_id is not None:  # Not during __init__()
             self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
-                                           path_parent=val)
+                                           path_parent=val,
+                                           main_geo=self.main_geo)
         self._path_parent = val
 
     path_parent = orm.synonym('_path_parent', descriptor=path_parent)
+
+    @property
+    def main_geo(self):
+        return self._main_geo
+
+    @main_geo.setter
+    def main_geo(self, val):
+        if val is None:
+            self._main_geo = val
+            return
+
+        alts = self.alternates.all()
+        if alts:
+            if val in alts:
+                val.promote_to_main()
+            else:
+                for alt in alts:
+                    alt.main_geo = val  # recurse on alternates
+                self.main_geo = val  # recurse on self w/o alternates
+            return
+
+        if val.main_geo is not None:  # val is an alternate, so redirect
+            val = val.main_geo
+            # a main_geo's alternates cannot themselves have alternates
+            assert val.main_geo is None
+
+        if val == self:
+            raise CircularReference(attr='main_geo', inst=self, value=val)
+
+        # more stringent requirements
+        # self.path_parent = val.path_parent
+        # self.parents = []
+        # self.children = []
+        self._main_geo = val
+
+    main_geo = orm.synonym('_main_geo', descriptor=main_geo)
 
     @property
     def human_id(self):
@@ -115,53 +167,43 @@ class Geo(BaseGeoModel, AutoTableMixin):
     @human_id.setter
     def human_id(self, val):
         if val is None:
-            val = Geo.create_key(name=self.name, abbrev=self.abbrev,
-                                 path_parent=self.path_parent)
+            raise ValueError('human_id cannot be set to None')
         if val == self.human_id:
             return
         # check if it's already registered by a different geo
         geo = Geo._instances.get(val, None)
         if geo is not None and geo is not self:
             raise NameError("'{}' is already registered.".format(val))
-        # recursively propagate change to path_children
-        for pc in self.path_children:
-            pc.human_id = Geo.create_key(name=pc.name, abbrev=pc.abbrev,
-                                         human_base=val)
         if hasattr(self, '_human_id'):  # unregister old human_id
             # Default None since Trackable registers after Geo.__init__()
             Geo._instances.pop(self.human_id, None)
         Geo[val] = self  # register the new human_id
         self._human_id = val  # set human_id last
+        # recursively propagate change to path_children
+        for pc in self.path_children:
+            pc.human_id = Geo.create_key(name=pc.name, abbrev=pc.abbrev,
+                                         path_parent=self,
+                                         main_geo=pc.main_geo)
 
     human_id = orm.synonym('_human_id', descriptor=human_id)
 
     @staticmethod
-    def create_key(name=None, abbrev=None, path_parent=None, human_base=None,
+    def create_key(name=None, abbrev=None, path_parent=None, main_geo=None,
                    **kwds):
         '''Create key for a geo
 
         Return a registry key allowing the Trackable metaclass to look
-        up a geo instance. The key is created by concatenating a
-        human_base with the given abbreviation if provided, else name.
-        By default, the human_base is assembled by recursively following
-        the path_parent. Alternatively, a human_base using the same
-        format can be provided directly for optimization purposes. The
-        latter is recommended for bulk loads. All geo abbreviations and
-        names are separated by the Geo.delimiter.
+        up a geo instance. The key is created by concatenating the
+        human_id of the path_parent with the abbreviation or name
+        provided, separated by the Geo delimiter. If no path_parent is
+        provided, but there is a main_geo, the human_id of the
+        main_geo's path_parent is used instead.
         '''
-        if human_base is None or human_base == '':
-            human_base = ''
-            path_finder = path_parent
-            while path_finder is not None:
-                if path_finder.abbrev:
-                    path_geo = path_finder.abbrev
-                else:
-                    path_geo = path_finder.name
-                human_base = path_geo + Geo.delimiter + human_base
-                path_finder = path_finder.path_parent
-        else:
-            human_base += Geo.delimiter
-
+        if path_parent is None and main_geo is not None:
+        # if main_geo is not None:
+            path_parent = main_geo.path_parent
+        human_base = '' if path_parent is None else (path_parent.human_id +
+                                                     Geo.delimiter)
         return (human_base +
                 (abbrev if abbrev else name)).lower().replace(' ', '_')
 
@@ -173,28 +215,72 @@ class Geo(BaseGeoModel, AutoTableMixin):
         '''
         return self.human_id
 
-    def __init__(self, name, abbrev=None, path_parent=None, human_base=None,
-                 the_prefix=None, geo_type=None, descriptor=None,
-                 parents=[], children=[], total_pop=None, urban_pop=None):
+    def __init__(self, name, abbrev=None, path_parent=None, main_geo=None,
+                 the_prefix=None, parents=[], children=[]):
+                # geo_type=None, descriptor=None,
+                # total_pop=None, urban_pop=None):
         self.name = name
-        self.abbrev = abbrev
-        self.path_parent = path_parent
-        self.human_id = Geo.create_key(name=name, abbrev=abbrev,
-                                       path_parent=path_parent,
-                                       human_base=human_base)
-        if the_prefix is not None:
+        if the_prefix is not None:  # Override calculated value, if provided
             self.the_prefix = the_prefix
-        else:
-            nstr = self.name.lower()
-            self.the_prefix = (nstr.find('states') > -1 or
-                               nstr.find('islands') > -1 or
-                               nstr.find('republic') > -1)
-        self.geo_type = geo_type
-        self.descriptor = descriptor
+        self.abbrev = abbrev
+        if path_parent is None and main_geo is not None:
+            path_parent = main_geo.path_parent
+        # if main_geo is not None:
+        #     if path_parent is None:
+        #         path_parent = main_geo.path_parent
+        #     elif path_parent != main_geo.path_parent:
+        #         raise AttributeConflict(attr1='path_parent',
+        #                                 attr_val1=path_parent,
+        #                                 attr2='main_geo',
+        #                                 attr_val2=main_geo,
+        #                                 inst=self)
+        self.path_parent = path_parent
+        self.main_geo = main_geo
+        self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
+                                       path_parent=self.path_parent,
+                                       main_geo=self.main_geo)
+        # if self.main_geo is not None:
+        #     return
         self.parents = parents
         self.children = children
-        self.total_pop = total_pop
-        self.urban_pop = urban_pop
+        # self.geo_type = geo_type
+        # self.descriptor = descriptor
+        # self.total_pop = total_pop
+        # self.urban_pop = urban_pop
+
+    def promote_to_main(self):
+        '''Promote geo's name/abbrev to the main geo
+
+        Swap the geo's name/abbrev with the name/abbrev of the main geo.
+        Has no effect if the geo is a main geo.
+        '''
+        mg = self.main_geo
+        if mg is None:  # self is already a main_geo
+            return
+        # a main_geo's alternates cannot themselves have alternates
+        assert mg.main_geo is None
+
+        # CircularDependencyError on commit():
+        # self.main_geo = None
+        # alts = mg.alternates.all() + [mg]
+        # for alt in alts:
+        #     alt.main_geo = self
+
+        # Set up temp names/abbrevs to prevent registry key clashes
+        n1, a1 = '***NAME1***', '***ABBREV1***'
+        n2, a2 = '***NAME2***', '***ABBREV2***'
+
+        # Swap names/abbrevs for temps
+        self.name, n1 = n1, self.name
+        self.abbrev, a1 = a1, self.abbrev
+        mg.name, n2 = n2, mg.name
+        mg.abbrev, a2 = a2, mg.abbrev
+
+        # Swap temps for names/abbrevs, reversing geos
+        self.name, n2 = n2, self.name
+        self.abbrev, a2 = a2, self.abbrev
+        mg.name, n1 = n1, mg.name
+        mg.abbrev, a1 = a1, mg.abbrev
 
     def __repr__(self):
         cls_name = self.__class__.__name__
@@ -206,10 +292,10 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 name=self.name)
 
 # TODO: Implement alternate_names
-# new Geo attribute: main_geo_id with main_geo/alternate_geos relationship
+# new Geo attribute: main_geo_id with main/alternates relationship
 # values:
 # None - geo is the main geo
-# some other geo - geo is an alternate name
+# some other geo - geo is an alternate name for the other geo
 
 # TODO: Create GeoType class to track geo types and descriptors
 # class GeoType(BaseGeoModel, AutoTableMixin):
@@ -217,7 +303,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
 #     name - country, subdivision1, subdivision2, place, csa, cbsa
 #     descriptor - state, county, city, etc. (lsad for place)
 
-# TODO: Create GeoMap class to map geos (by type) to 3rd party IDs
+# TODO: Create GeoID class to map geos (by type) to 3rd party IDs
 # class GeoMap(BaseGeoModel, AutoTableMixin):
 #     geo_type_id (foreign key, M to 1)
 #     id_type - FIPS, ANSI, etc.
