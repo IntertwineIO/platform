@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from alchy.model import ModelBase, make_declarative_base
-from sqlalchemy import orm, types, Column, ForeignKey, Index, Table, UniqueConstraint
-from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy import orm, types, Column, ForeignKey, Index, Table
 
 from ..utils import AutoTableMixin, Trackable
-from ..exceptions import AttributeConflict, CircularReference
+from ..exceptions import CircularReference
 
 
 BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
@@ -43,14 +42,20 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 backref=orm.backref('path_children', lazy='dynamic'),
                 lazy='joined')
 
+    # e.g. 'The United States'
     the_prefix = Column(types.Boolean)
-    main_geo_id = Column(types.Integer, ForeignKey('geo.id'))
-    _main_geo = orm.relationship(
+
+    # mcka: more commonly known as
+    # akas: also known as's (plural)
+    # if geo.mcka is None, geo is the one more commonly known
+    mcka_id = Column(types.Integer, ForeignKey('geo.id'))
+    _mcka = orm.relationship(
                 'Geo',
-                primaryjoin=('Geo.main_geo_id==Geo.id'),
+                primaryjoin=('Geo.mcka_id==Geo.id'),
                 remote_side='Geo.id',
-                backref=orm.backref('alternates', lazy='dynamic'),
-                lazy='joined')
+                backref=orm.backref('akas', lazy='dynamic'),
+                lazy='joined',
+                post_update=True)  # Needed to avoid CircularDependencyError
 
     # geo_type      us geo      us parents
     # country       US          None
@@ -87,7 +92,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
         if self.human_id is not None and self.abbrev is None:
             self.human_id = Geo.create_key(name=val,
                                            path_parent=self.path_parent,
-                                           main_geo=self.main_geo)
+                                           mcka=self.mcka)
         nstr = val.lower()
         self.the_prefix = (nstr.find('states') > -1 or
                            nstr.find('islands') > -1 or
@@ -105,7 +110,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
         if self.human_id is not None:  # Not during __init__()
             self.human_id = Geo.create_key(name=self.name, abbrev=val,
                                            path_parent=self.path_parent,
-                                           main_geo=self.main_geo)
+                                           mcka=self.mcka)
         self._abbrev = val  # set abbrev last
 
     abbrev = orm.synonym('_abbrev', descriptor=abbrev)
@@ -119,46 +124,42 @@ class Geo(BaseGeoModel, AutoTableMixin):
         if self.human_id is not None:  # Not during __init__()
             self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
                                            path_parent=val,
-                                           main_geo=self.main_geo)
+                                           mcka=self.mcka)
         self._path_parent = val
 
     path_parent = orm.synonym('_path_parent', descriptor=path_parent)
 
     @property
-    def main_geo(self):
-        return self._main_geo
+    def mcka(self):
+        return self._mcka
 
-    @main_geo.setter
-    def main_geo(self, val):
+    @mcka.setter
+    def mcka(self, val):
         if val is None:
-            self._main_geo = val
+            self._mcka = val
             return
 
-        alts = self.alternates.all()
-        if alts:
-            if val in alts:
-                val.promote_to_main()
+        akas = self.akas.all()
+        if akas:
+            if val in akas:
+                val.promote_to_mcka()
             else:
-                for alt in alts:
-                    alt.main_geo = val  # recurse on alternates
-                self.main_geo = val  # recurse on self w/o alternates
+                for aka in akas:
+                    aka.mcka = val  # recurse on each aka
+                self.mcka = val  # recurse on self w/o any aka
             return
 
-        if val.main_geo is not None:  # val is an alternate, so redirect
-            val = val.main_geo
-            # a main_geo's alternates cannot themselves have alternates
-            assert val.main_geo is None
+        if val.mcka is not None:  # val is an aka, so redirect
+            val = val.mcka
+            # an aka cannot itself have an aka
+            assert val.mcka is None
 
         if val == self:
-            raise CircularReference(attr='main_geo', inst=self, value=val)
+            raise CircularReference(attr='mcka', inst=self, value=val)
 
-        # more stringent requirements
-        # self.path_parent = val.path_parent
-        # self.parents = []
-        # self.children = []
-        self._main_geo = val
+        self._mcka = val
 
-    main_geo = orm.synonym('_main_geo', descriptor=main_geo)
+    mcka = orm.synonym('_mcka', descriptor=mcka)
 
     @property
     def human_id(self):
@@ -183,12 +184,12 @@ class Geo(BaseGeoModel, AutoTableMixin):
         for pc in self.path_children:
             pc.human_id = Geo.create_key(name=pc.name, abbrev=pc.abbrev,
                                          path_parent=self,
-                                         main_geo=pc.main_geo)
+                                         mcka=pc.mcka)
 
     human_id = orm.synonym('_human_id', descriptor=human_id)
 
     @staticmethod
-    def create_key(name=None, abbrev=None, path_parent=None, main_geo=None,
+    def create_key(name=None, abbrev=None, path_parent=None, mcka=None,
                    **kwds):
         '''Create key for a geo
 
@@ -196,16 +197,16 @@ class Geo(BaseGeoModel, AutoTableMixin):
         up a geo instance. The key is created by concatenating the
         human_id of the path_parent with the abbreviation or name
         provided, separated by the Geo delimiter. If no path_parent is
-        provided, but there is a main_geo, the human_id of the
-        main_geo's path_parent is used instead.
+        provided, but there is a mcka, the human_id of the mcka's
+        path_parent is used instead.
         '''
-        if path_parent is None and main_geo is not None:
-        # if main_geo is not None:
-            path_parent = main_geo.path_parent
-        human_base = '' if path_parent is None else (path_parent.human_id +
-                                                     Geo.delimiter)
-        return (human_base +
-                (abbrev if abbrev else name)).lower().replace(' ', '_')
+        if path_parent is None and mcka is not None:
+            path_parent = mcka.path_parent
+        string = '' if path_parent is None else (path_parent.human_id +
+                                                 Geo.delimiter)
+        string += (abbrev if abbrev else name).lower()
+        string = string.replace('.', '').replace(' ', '_')
+        return string
 
     def derive_key(self):
         '''Derive key from a geo instance
@@ -215,7 +216,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
         '''
         return self.human_id
 
-    def __init__(self, name, abbrev=None, path_parent=None, main_geo=None,
+    def __init__(self, name, abbrev=None, path_parent=None, mcka=None,
                  the_prefix=None, parents=[], children=[]):
                 # geo_type=None, descriptor=None,
                 # total_pop=None, urban_pop=None):
@@ -223,23 +224,14 @@ class Geo(BaseGeoModel, AutoTableMixin):
         if the_prefix is not None:  # Override calculated value, if provided
             self.the_prefix = the_prefix
         self.abbrev = abbrev
-        if path_parent is None and main_geo is not None:
-            path_parent = main_geo.path_parent
-        # if main_geo is not None:
-        #     if path_parent is None:
-        #         path_parent = main_geo.path_parent
-        #     elif path_parent != main_geo.path_parent:
-        #         raise AttributeConflict(attr1='path_parent',
-        #                                 attr_val1=path_parent,
-        #                                 attr2='main_geo',
-        #                                 attr_val2=main_geo,
-        #                                 inst=self)
+        if path_parent is None and mcka is not None:
+            path_parent = mcka.path_parent
         self.path_parent = path_parent
-        self.main_geo = main_geo
+        self.mcka = mcka
         self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
                                        path_parent=self.path_parent,
-                                       main_geo=self.main_geo)
-        # if self.main_geo is not None:
+                                       mcka=self.mcka)
+        # if self.mcka is not None:
         #     return
         self.parents = parents
         self.children = children
@@ -248,54 +240,96 @@ class Geo(BaseGeoModel, AutoTableMixin):
         # self.total_pop = total_pop
         # self.urban_pop = urban_pop
 
-    def promote_to_main(self):
-        '''Promote geo's name/abbrev to the main geo
+    def promote_to_mcka(self):
+        '''Promote geo to the mcka (more commonly known as)
 
-        Swap the geo's name/abbrev with the name/abbrev of the main geo.
-        Has no effect if the geo is a main geo.
+        Used to convert an aka geo into a mcka geo. The existing mcka
+        geo is converted into an aka of the new mcka. Has no effect if
+        the geo is already a mcka geo.
         '''
-        mg = self.main_geo
-        if mg is None:  # self is already a main_geo
+        mg = self.mcka
+        if mg is None:  # self is already a mcka
             return
-        # a main_geo's alternates cannot themselves have alternates
-        assert mg.main_geo is None
+        # an aka cannot itself have an aka
+        assert mg.mcka is None
 
-        # CircularDependencyError on commit():
-        # self.main_geo = None
-        # alts = mg.alternates.all() + [mg]
-        # for alt in alts:
-        #     alt.main_geo = self
+        self.mcka = None
+        akas = mg.akas.all() + [mg]
+        for aka in akas:
+            aka.mcka = self
 
-        # Set up temp names/abbrevs to prevent registry key clashes
-        n1, a1 = '***NAME1***', '***ABBREV1***'
-        n2, a2 = '***NAME2***', '***ABBREV2***'
+        # transfer all other references to new mcka geo:
+        # ratings, follows, posts, ideas, projects
 
-        # Swap names/abbrevs for temps
-        self.name, n1 = n1, self.name
-        self.abbrev, a1 = a1, self.abbrev
-        mg.name, n2 = n2, mg.name
-        mg.abbrev, a2 = a2, mg.abbrev
+    def display(self, show_the=True, show_abbrev=True, abbrev_path=True,
+                max_path=float('Inf')):
+        geostr = ''
+        geo = self
+        level = 0
+        while geo is not None and level <= max_path:
+            the = ('The ' if geo.the_prefix and show_the and level < 1 else '')
+            if geo.abbrev is None:
+                geostr += '{the}{name}'.format(the=the, name=geo.name)
+            elif show_abbrev and level < 1:
+                geostr += '{the}{name} ({abbrev})'.format(the=the,
+                                                         name=geo.name,
+                                                         abbrev=geo.abbrev)
+            elif abbrev_path and level > 0:
+                geostr += '{abbrev}'.format(abbrev=geo.abbrev)
 
-        # Swap temps for names/abbrevs, reversing geos
-        self.name, n2 = n2, self.name
-        self.abbrev, a2 = a2, self.abbrev
-        mg.name, n1 = n1, mg.name
-        mg.abbrev, a1 = a1, mg.abbrev
+            if geo.path_parent is not None and level < max_path:
+                geostr += ', '
+
+            geo = geo.path_parent
+            level += 1
+        return geostr
 
     def __repr__(self):
         cls_name = self.__class__.__name__
-        return '<{cls}: {geo!r}>'.format(cls=cls_name, geo=self.human_id)
+        return '{cls}[{geo!r}]'.format(cls=cls_name, geo=self.human_id)
 
     def __str__(self):
-        return '{prefix}{name}'.format(
-                prefix='The ' if self.the_prefix else '',
-                name=self.name)
+        # return '{prefix}{name}{abbrev}'.format(
+        #         prefix='The ' if self.the_prefix else '',
+        #         name=self.name,
+        #         abbrev=(' (' + self.abbrev + ')') if self.abbrev else '')
 
-# TODO: Implement alternate_names
-# new Geo attribute: main_geo_id with main/alternates relationship
-# values:
-# None - geo is the main geo
-# some other geo - geo is an alternate name for the other geo
+        indent = ' ' * 4
+        fields = dict(
+            display=self.display(max_path=0, show_the=True, show_abbrev=True,
+                                 abbrev_path=True),
+            human_id=self.human_id,
+            mcka=self.mcka.display() if self.mcka else None,
+            akas=[aka.display() for aka in self.akas],
+            parents=[p.display() for p in self.parents],
+            children=[c.display(max_path=0) for c in self.children],
+        )
+
+        field_order = ['display', 'human_id', 'mcka', 'akas',
+                       'parents', 'children']
+        string = []
+        for field in field_order:
+            data = fields[field]
+            if data is None:
+                continue
+            if isinstance(data, basestring) and not data.strip():
+                continue
+            if not data:
+                continue
+            if field == 'display':
+                data_str = 'Geo: {' + field + '}'
+            else:
+                if isinstance(data, (list, type(iter(list())))):
+                    data_str = '  {field}:\n'.format(field=field)
+                    data = '\n'.join(indent + '{}'.format(v) for v in data)
+                    fields[field] = data
+                else:
+                    data_str = '  {field}: '.format(field=field)
+                data_str += '{' + field + '}'
+            data_str = data_str.format(**fields)
+            string.append(data_str)
+        return '\n'.join(string)
+
 
 # TODO: Create GeoType class to track geo types and descriptors
 # class GeoType(BaseGeoModel, AutoTableMixin):

@@ -31,7 +31,7 @@ def load_geo_data():
     Trackable.register_existing(session, Geo)
     Trackable.clear_updates()
 
-    us = Geo(name='United States', abbrev='US',
+    us = Geo(name='United States', abbrev='U.S.',
              # geo_type='country', descriptor='country'
              )
 
@@ -52,12 +52,19 @@ def load_geo_data():
             )
 
     # Handle special cases
-    pr = Geo['us' + Geo.delimiter + 'pr']
-    pr.descriptor = 'territory'
-    dc = Geo['us' + Geo.delimiter + 'dc']
-    dc.name = 'Washington, D.C.'
-    dc.geo_type = 'place'
-    dc.descriptor = 'consolidated federal district'
+    # pr = Geo['us' + Geo.delimiter + 'pr']
+    # pr.descriptor = 'territory'
+    usa = Geo(name='United States of America', abbrev='U.S.A.', mcka=us, the_prefix=True)
+    d_of_c = Geo['us' + Geo.delimiter + 'dc']
+    d_of_c.abbrev = None
+    d_of_c.parents = []
+    dc = Geo(name='Washington, D.C.', abbrev='D.C.', path_parent=us,
+             parents=[us])
+    d_of_c.mcka = dc
+    w = Geo(name='Washington', mcka=dc)
+
+    # dc.geo_type = 'place'
+    # dc.descriptor = 'consolidated federal district'
 
     # Remaining U.S. territories
     more_areas = geo_session.query(State).filter(
