@@ -43,6 +43,39 @@ class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
     '''Standardizes automatic tables'''
 
 
+def __trepr__(self, indent_level=0):
+    indent = ' '*4*indent_level
+    if self is None:
+        return '{indent}{none}'.format(indent=indent, none=str(None))
+    if isinstance(self, (type(unicode()), type(str()))):
+        return "{indent}{self!r}".format(indent=indent, self=self)
+    key = self.derive_key()
+    if isinstance(key, (type(unicode()), type(str()))):
+        return "{indent}{cls}[{key!r}]".format(indent=indent,
+                                               cls=self.__class__.__name__,
+                                               key=key)
+    if isinstance(key, tuple):
+        repr_beg = '{indent}{cls}[('.format(indent=indent,
+                                            cls=self.__class__.__name__)
+        treprs = map(lambda x: __trepr__(x, indent_level+1), key)
+        all_on_1_line = repr_beg + ', '.join(map(str.strip, treprs)) + ')]'
+        if len(all_on_1_line) <= Trackable.max_width:
+            return all_on_1_line
+        else:
+            return (repr_beg + '\n' + ',\n'.join(treprs) +
+                    '\n{indent})]'.format(indent=indent))
+
+    return '{indent}{cls}[{key}]'.format(indent=indent,
+                                         cls=self.__class__.__name__,
+                                         key=__trepr__(key, indent_level+1))
+
+
+def __repr__(self):
+    '''Default repr for Trackable classes'''
+    # Prefix with newline due to ipython pprint bug related to lists
+    return '\n' + self.__trepr__()
+
+
 class Trackable(ModelMeta):
     '''Metaclass providing ability to track instances
 
@@ -67,14 +100,22 @@ class Trackable(ModelMeta):
     iterable.
     '''
 
-    # keep track of all classes that are Trackable
+    # Keep track of all classes that are Trackable
     _classes = {}
 
+    # Max width used for Trackable's default repr
+    max_width = 79
+
     def __new__(meta, name, bases, attr):
-        # track instances for each class of type Trackable
+        # Track instances for each class of type Trackable
         attr['_instances'] = {}
-        # track any new or modified instances
+        # Track any new or modified instances
         attr['_updates'] = set()
+        repr_fn = attr.get('__repr__', None)
+        if repr_fn is None:
+            # Provide default __repr__()
+            attr['__repr__'] = __repr__
+            attr['__trepr__'] = __trepr__
         new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
         if new_cls.__name__ != 'Base':
             meta._classes[name] = new_cls
