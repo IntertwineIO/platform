@@ -13,7 +13,7 @@ from .models import Geo, GeoLevel
 def render():
     '''Generic page rendering for top level'''
     geos = Geo.query.filter(Geo.path_parent == None,
-                            Geo.mcka == None).order_by(Geo.name).all()
+                            Geo.alias_target == None).order_by(Geo.name).all()
     # glvls = GeoLevel.query.filter(GeoLevel.level == 'country').all()
     # geos = [glvl.geo for glvl in glvls]
     if len(geos) == 1:

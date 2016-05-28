@@ -33,7 +33,8 @@ def load_geo_data():
     Trackable.clear_updates()
 
     us = Geo(name='United States', abbrev='U.S.')
-    usa = Geo(name='United States of America', abbrev='U.S.A.', mcka=us)
+    usa = Geo(name='United States of America', abbrev='U.S.A.',
+              alias_target=us)
     GeoLevel(geo=us, level='country', designation='federal republic')
 
     # States including PR and DC
@@ -60,15 +61,16 @@ def load_geo_data():
     d_of_c.parents = []
     dc = Geo(name='Washington, D.C.', abbrev='D.C.', path_parent=us,
              parents=[us])
-    d_of_c.mcka = dc
+    d_of_c.alias_target = dc
 
     dc.levels = d_of_c.levels
     dc.levels['subdivision1'].designation = 'federal district'
-    GeoLevel(geo=dc, level='subdivision2', designation='consolidated county or equivalent')
+    GeoLevel(geo=dc, level='subdivision2',
+             designation='consolidated county or equivalent')
     GeoLevel(geo=dc, level='place', designation='city')
 
-    w = Geo(name='Washington', mcka=dc)
-    wdc = Geo(name='Washington', path_parent=dc, mcka=dc)
+    w = Geo(name='Washington', alias_target=dc)
+    wdc = Geo(name='Washington', path_parent=dc, alias_target=dc)
 
     # Remaining U.S. territories
     more_areas = geo_session.query(State).filter(

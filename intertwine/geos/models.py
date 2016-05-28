@@ -46,20 +46,14 @@ class Geo(BaseGeoModel, AutoTableMixin):
     # e.g. 'The United States'
     the_prefix = Column(types.Boolean)
 
-    # TODO: Rename akas/mcka to aliases/alias_target because the former
-    # is hard to say and may be confused with 'best_known', a planned
-    # flag for geos that need no qualification (e.g. 'Austin' for
-    # Austin, TX vs. Austin, IN)
-    #
-    # mcka: more commonly known as
-    # akas: also known as's (plural)
-    # if geo.mcka is None, geo is the one more commonly known
-    mcka_id = Column(types.Integer, ForeignKey('geo.id'))
-    _mcka = orm.relationship(
+    # If geo.alias_target is None, the geo is not an alias, but it could
+    # be the target of one or more aliases.
+    alias_target_id = Column(types.Integer, ForeignKey('geo.id'))
+    _alias_target = orm.relationship(
                 'Geo',
-                primaryjoin=('Geo.mcka_id==Geo.id'),
+                primaryjoin=('Geo.alias_target_id==Geo.id'),
                 remote_side='Geo.id',
-                backref=orm.backref('akas', lazy='dynamic'),
+                backref=orm.backref('aliases', lazy='dynamic'),
                 lazy='joined',
                 post_update=True)  # Needed to avoid CircularDependencyError
 
@@ -105,7 +99,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
         if self.human_id is not None and self.abbrev is None:
             self.human_id = Geo.create_key(name=val,
                                            path_parent=self.path_parent,
-                                           mcka=self.mcka)
+                                           alias_target=self.alias_target)
         nstr = val.lower()
         self.the_prefix = (nstr.find('states') > -1 or
                            nstr.find('islands') > -1 or
@@ -123,7 +117,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
         if self.human_id is not None:  # Not during __init__()
             self.human_id = Geo.create_key(name=self.name, abbrev=val,
                                            path_parent=self.path_parent,
-                                           mcka=self.mcka)
+                                           alias_target=self.alias_target)
         self._abbrev = val  # set abbrev last
 
     abbrev = orm.synonym('_abbrev', descriptor=abbrev)
@@ -137,42 +131,42 @@ class Geo(BaseGeoModel, AutoTableMixin):
         if self.human_id is not None:  # Not during __init__()
             self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
                                            path_parent=val,
-                                           mcka=self.mcka)
+                                           alias_target=self.alias_target)
         self._path_parent = val
 
     path_parent = orm.synonym('_path_parent', descriptor=path_parent)
 
     @property
-    def mcka(self):
-        return self._mcka
+    def alias_target(self):
+        return self._alias_target
 
-    @mcka.setter
-    def mcka(self, val):
+    @alias_target.setter
+    def alias_target(self, val):
         if val is None:
-            self._mcka = val
+            self._alias_target = val
             return
 
-        akas = self.akas.all()
-        if akas:
-            if val in akas:
-                val.promote_to_mcka()
+        aliases = self.aliases.all()
+        if aliases:
+            if val in aliases:
+                val.promote_to_alias_target()
             else:
-                for aka in akas:
-                    aka.mcka = val  # recurse on each aka
-                self.mcka = val  # recurse on self w/o any aka
+                for alias in aliases:
+                    alias.alias_target = val  # recurse on each alias
+                self.alias_target = val  # recurse on self w/o any alias
             return
 
-        if val.mcka is not None:  # val is an aka, so redirect
-            val = val.mcka
-            # an aka cannot itself have an aka
-            assert val.mcka is None
+        if val.alias_target is not None:  # val is an alias, so redirect
+            val = val.alias_target
+            # an alias cannot itself have an alias
+            assert val.alias_target is None
 
         if val == self:
-            raise CircularReference(attr='mcka', inst=self, value=val)
+            raise CircularReference(attr='alias_target', inst=self, value=val)
 
-        self._mcka = val
+        self._alias_target = val
 
-    mcka = orm.synonym('_mcka', descriptor=mcka)
+    alias_target = orm.synonym('_alias_target', descriptor=alias_target)
 
     @property
     def human_id(self):
@@ -195,7 +189,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
         for pc in self.path_children:
             pc.human_id = Geo.create_key(name=pc.name, abbrev=pc.abbrev,
                                          path_parent=self,
-                                         mcka=pc.mcka)
+                                         alias_target=pc.alias_target)
 
     human_id = orm.synonym('_human_id', descriptor=human_id)
 
@@ -211,7 +205,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
     levels = orm.synonym('_levels', descriptor=levels)
 
     @staticmethod
-    def create_key(name=None, abbrev=None, path_parent=None, mcka=None,
+    def create_key(name=None, abbrev=None, path_parent=None, alias_target=None,
                    **kwds):
         '''Create key for a geo
 
@@ -219,11 +213,11 @@ class Geo(BaseGeoModel, AutoTableMixin):
         up a geo instance. The key is created by concatenating the
         human_id of the path_parent with the abbreviation or name
         provided, separated by the Geo delimiter. If no path_parent is
-        provided, but there is a mcka, the human_id of the mcka's
-        path_parent is used instead.
+        provided, but there is an alias_target, the human_id of the
+        alias_target's path_parent is used instead.
         '''
-        if path_parent is None and mcka is not None:
-            path_parent = mcka.path_parent
+        if path_parent is None and alias_target is not None:
+            path_parent = alias_target.path_parent
         string = '' if path_parent is None else (path_parent.human_id +
                                                  Geo.delimiter)
         string += (abbrev if abbrev else name).lower()
@@ -241,7 +235,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
     # TODO: add levels=[]  # a list of (level, designation, geo_ids) tuples,
     #                      # where geo_ids is a list of (standard, code) tuples
     # TODO: add data={}  # a dictionary of attribute/value pairs
-    def __init__(self, name, abbrev=None, path_parent=None, mcka=None,
+    def __init__(self, name, abbrev=None, path_parent=None, alias_target=None,
                  the_prefix=None, parents=[], children=[]):
                 # total_pop=None, urban_pop=None):
         '''Initialize a new geo'''
@@ -249,14 +243,14 @@ class Geo(BaseGeoModel, AutoTableMixin):
         if the_prefix is not None:  # Override calculated value, if provided
             self.the_prefix = the_prefix
         self.abbrev = abbrev
-        if path_parent is None and mcka is not None:
-            path_parent = mcka.path_parent
+        if path_parent is None and alias_target is not None:
+            path_parent = alias_target.path_parent
         self.path_parent = path_parent
-        self.mcka = mcka
+        self.alias_target = alias_target
         self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
                                        path_parent=self.path_parent,
-                                       mcka=self.mcka)
-        # if self.mcka is not None:
+                                       alias_target=self.alias_target)
+        # if self.alias_target is not None:
         #     return
         self.parents = parents
         self.children = children
@@ -265,28 +259,27 @@ class Geo(BaseGeoModel, AutoTableMixin):
         # self.total_pop = total_pop
         # self.urban_pop = urban_pop
 
-    def promote_to_mcka(self):
-        '''Promote aka geo to mcka geo
+    def promote_to_alias_target(self):
+        '''Promote alias to alias_target
 
-        Used to convert an aka (also known as) geo into a mcka (more
-        commonly known as) geo. The existing mcka geo is converted into
-        an aka of the new mcka. Has no effect if the geo is already a
-        mcka geo.
+        Used to convert an alias into an alias_target. The existing
+        alias_target is converted into an alias of the new alias_target.
+        Has no effect if the geo is already a alias_target.
         '''
-        mg = self.mcka
-        if mg is None:  # self is already a mcka
+        at = self.alias_target
+        if at is None:  # self is already an alias_target
             return
-        # an aka cannot itself have an aka
-        assert mg.mcka is None
+        # an alias cannot itself have an alias
+        assert at.alias_target is None
 
-        self.mcka = None
-        akas = mg.akas.all() + [mg]
-        for aka in akas:
-            aka.mcka = self
+        self.alias_target = None
+        aliases = at.aliases.all() + [at]
+        for alias in aliases:
+            alias.alias_target = self
 
-        # transfer all other references to new mcka geo:
+        # transfer all other references to new alias_target geo:
         # geodata, geolevels, ratings, follows, posts, ideas, projects
-        self.levels = mg.levels
+        self.levels = at.levels
 
     def display(self, show_the=True, show_abbrev=True, abbrev_path=True,
                 max_path=float('Inf')):
@@ -334,15 +327,16 @@ class Geo(BaseGeoModel, AutoTableMixin):
             display=self.display(max_path=0, show_the=True, show_abbrev=True,
                                  abbrev_path=True),
             human_id=self.human_id,
-            mcka=self.mcka.display() if self.mcka else None,
-            akas=[aka.display() for aka in self.akas],
+            alias_target=(self.alias_target.display() if self.alias_target
+                          else None),
+            aliases=[alias.display() for alias in self.aliases],
             levels=self.levels.values(),
             parents=[p.display() for p in self.parents],
             children=[c.display(max_path=0) for c in self.children],
         )
 
-        field_order = ['display', 'human_id', 'mcka', 'akas', 'levels',
-                       'parents', 'children']
+        field_order = ['display', 'human_id', 'alias_target', 'aliases',
+                       'levels', 'parents', 'children']
         string = []
         for field in field_order:
             data = fields[field]
@@ -365,6 +359,16 @@ class Geo(BaseGeoModel, AutoTableMixin):
             data_str = data_str.format(**fields)
             string.append(data_str)
         return '\n'.join(string)
+
+
+# TODO: Create GeoData class to store data related to the geo
+# class GeoData(BaseGeoModel, AutoTableMixin):
+#     geo_id (foreign key, 1:1)
+#     total_pop
+#     urban_pop
+#     longitude
+#     latitude
+#     other attributes related to demographics, geography, climate, etc.
 
 
 class GeoLevel(BaseGeoModel, AutoTableMixin):
@@ -506,7 +510,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
     # Format: GeoLevel[Geo[<human_id>], <level>]
 
     def __str__(self):
-        geo_level_str = '{cls}: {geo} is a {desc} ({level})'
+        geo_level_str = '{cls}: {geo} as a {desc} ({level})'
         return geo_level_str.format(cls=self.__class__.__name__,
                                     geo=self.geo.display(show_abbrev=False,
                                                          max_path=0),
@@ -518,12 +522,3 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
 #     geo_level_id (foreign key, M:1)
 #     standard - FIPS, ANSI, etc.
 #     code - 4805000, 02409761
-
-# TODO: Create GeoData class to store data related to the geo
-# class GeoData(BaseGeoModel, AutoTableMixin):
-#     geo_id (foreign key, 1:1)
-#     total_pop
-#     urban_pop
-#     longitude
-#     latitude
-#     other attributes related to demographics, geography, climate, etc.
