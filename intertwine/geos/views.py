@@ -6,17 +6,26 @@ import flask
 from flask import abort, render_template
 
 from . import blueprint, geo_db
-from .models import Geo
+from .models import Geo, GeoLevel
 
 
 @blueprint.route('/', methods=['GET'])
 def render():
     '''Generic page rendering for top level'''
-    geos = Geo.query.filter(Geo.path_parent == None).order_by(Geo.name).all()
+    geos = Geo.query.filter(Geo.path_parent == None,
+                            Geo.mcka == None).order_by(Geo.name).all()
+    # glvls = GeoLevel.query.filter(GeoLevel.level == 'country').all()
+    # geos = [glvl.geo for glvl in glvls]
     if len(geos) == 1:
-        by_name = sorted(geos[0].children.all(), key=attrgetter('name'))
-        by_descriptor = sorted(by_name, key=attrgetter('descriptor'))
-        geos += by_descriptor
+        geo = geos[0]
+        glvl = geo.levels.keys()[0]
+        dlvl = GeoLevel.down[glvl]
+
+        by_name = sorted(geo.children.all(), key=attrgetter('name'))
+        by_designation = sorted(by_name,
+                                key=lambda g: g.levels[dlvl].designation)
+
+        geos += by_designation
     template = render_template(
         'geos.html',
         current_app=flask.current_app,
@@ -40,15 +49,8 @@ def render_geo(geo_human_id):
         abort(404)
 
     # Austin, Texas, United States
-    # title = geo.display(shorthand=False)
-    title = geo.name
+    title = geo.display()
 
-    # Austin
-    # Boston
-    # Boston, CA
-    # Boston, Norfolk County, Ontario
-    # Texas
-    # Travis County, Texas
     geo = geo
 
     # get list of top problems in geo based on followers, activity, trending

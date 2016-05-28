@@ -9,7 +9,8 @@ from data.data_process import DataSessionManager
 from data.geos.models import (BaseGeoDataModel, State, CBSA, County, Place,
                               LSAD, Geoclass, GHR, F02)
 from intertwine.utils import Trackable
-from intertwine.geos.models import BaseGeoModel, Geo
+from intertwine.geos.models import (BaseGeoModel, Geo, GeoLevel,
+                                    geo_association_table)
 
 
 def load_geo_data():
@@ -31,9 +32,9 @@ def load_geo_data():
     Trackable.register_existing(session, Geo)
     Trackable.clear_updates()
 
-    us = Geo(name='United States', abbrev='U.S.',
-             # geo_type='country', descriptor='country'
-             )
+    us = Geo(name='United States', abbrev='U.S.')
+    usa = Geo(name='United States of America', abbrev='U.S.A.', mcka=us)
+    GeoLevel(geo=us, level='country', designation='federal republic')
 
     # States including PR and DC
     print 'Loading states and equivalents...'
@@ -41,41 +42,43 @@ def load_geo_data():
                                          GHR.geocomp == '00').all()
     for ghr in ghrs:
         state = ghr.state
-        Geo(name=state.name,
-            abbrev=state.stusps,
-            path_parent=us,
-            # geo_type='subdivision1',
-            # descriptor='state',
-            parents=[us],
-            # total_pop=ghr.f02.p0020001,
-            # urban_pop=ghr.f02.p0020002
-            )
+        g = Geo(name=state.name,
+                abbrev=state.stusps,
+                path_parent=us,
+                parents=[us],
+                # total_pop=ghr.f02.p0020001,
+                # urban_pop=ghr.f02.p0020002
+                )
+        GeoLevel(geo=g, level='subdivision1', designation='state')
 
     # Handle special cases
-    # pr = Geo['us' + Geo.delimiter + 'pr']
-    # pr.descriptor = 'territory'
-    usa = Geo(name='United States of America', abbrev='U.S.A.', mcka=us, the_prefix=True)
+    pr = Geo['us' + Geo.delimiter + 'pr']
+    pr.levels['subdivision1'].designation = 'territory'
+
     d_of_c = Geo['us' + Geo.delimiter + 'dc']
     d_of_c.abbrev = None
     d_of_c.parents = []
     dc = Geo(name='Washington, D.C.', abbrev='D.C.', path_parent=us,
              parents=[us])
     d_of_c.mcka = dc
-    w = Geo(name='Washington', mcka=dc)
 
-    # dc.geo_type = 'place'
-    # dc.descriptor = 'consolidated federal district'
+    dc.levels = d_of_c.levels
+    dc.levels['subdivision1'].designation = 'federal district'
+    GeoLevel(geo=dc, level='subdivision2', designation='consolidated county or equivalent')
+    GeoLevel(geo=dc, level='place', designation='city')
+
+    w = Geo(name='Washington', mcka=dc)
+    wdc = Geo(name='Washington', path_parent=dc, mcka=dc)
 
     # Remaining U.S. territories
     more_areas = geo_session.query(State).filter(
             State.stusps.in_(['AS', 'GU', 'MP', 'UM', 'VI'])).all()
     for area in more_areas:
-        Geo(name=area.name,
-            abbrev=area.stusps,
-            path_parent=us,
-            geo_type='subdivision1',
-            descriptor='territory',
-            parents=[us])
+        g = Geo(name=area.name,
+                abbrev=area.stusps,
+                path_parent=us,
+                parents=[us])
+        GeoLevel(geo=g, level='subdivision1', designation='territory')
 
     # Counties excluding independent cities and DC
     print 'Loading counties and equivalents in...'
@@ -92,34 +95,31 @@ def load_geo_data():
             print '\t' + state.name
             last_stusps = stusps
         name = ghr.county.name
-        Geo(name=name,
-            path_parent=state,
-            geo_type='subdivision2',
-            descriptor=ghr.countyclass.name.lower(),
-            parents=[state],
-            total_pop=ghr.f02.p0020001,
-            urban_pop=ghr.f02.p0020002)
+        g = Geo(name=name,
+                path_parent=state,
+                parents=[state],
+                # total_pop=ghr.f02.p0020001,
+                # urban_pop=ghr.f02.p0020002
+                )
+        GeoLevel(geo=g, level='subdivision2',
+                 designation=ghr.countyclass.name.lower())
 
     # Handle special cases
     ak = Geo['us' + Geo.delimiter + 'ak']
     anchorage = Geo[Geo.create_key(name='Anchorage Municipality',
                                    path_parent=ak)]
     anchorage.name = 'Anchorage'
-    anchorage.geo_type = 'place'
     juneau = Geo[Geo.create_key(name='Juneau City and Borough',
                                 path_parent=ak)]
     juneau.name = 'Juneau'
-    juneau.geo_type = 'place'
     sitka = Geo[Geo.create_key(name='Sitka City and Borough',
                                path_parent=ak)]
     sitka.name = 'Sitka'
-    sitka.geo_type = 'place'
 
     ca = Geo['us' + Geo.delimiter + 'ca']
     sf = Geo[Geo.create_key(name='San Francisco County',
                             path_parent=ca)]
     sf.name = 'San Francisco'
-    sf.geo_type = 'place'
 
     # Counties in remaining U.S. territories, except Guam, because Guam
     # has just a single coextensive county
@@ -135,11 +135,11 @@ def load_geo_data():
             print '\t' + territory.name
             last_stusps = stusps
         name = area.name
-        Geo(name=name,
-            path_parent=territory,
-            geo_type='subdivision2',
-            descriptor=area.geoclass.name.lower(),
-            parents=[territory])
+        g = Geo(name=name,
+                path_parent=territory,
+                parents=[territory])
+        GeoLevel(geo=g, level='subdivision2',
+                 designation=area.geoclass.name.lower())
 
 
 

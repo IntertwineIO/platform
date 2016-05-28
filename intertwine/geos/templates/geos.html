@@ -25,7 +25,7 @@
     <div class="indent">
         {% for geo in geos %}
         <div class="geo-name"><p><a href={{ geo.derive_key() }}>
-            {% if geo.the_prefix %}The {% endif %}{{ geo.name }}</a></p></div>
+            {{ geo.display(show_abbrev=False, max_path=0) }}</a></p></div>
         {% endfor %}
     </div>
 </section>

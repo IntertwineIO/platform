@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from alchy.model import ModelBase, make_declarative_base
 from sqlalchemy import orm, types, Column, ForeignKey, Index, Table
+from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from ..utils import AutoTableMixin, Trackable
 from ..exceptions import CircularReference
@@ -45,6 +46,11 @@ class Geo(BaseGeoModel, AutoTableMixin):
     # e.g. 'The United States'
     the_prefix = Column(types.Boolean)
 
+    # TODO: Rename akas/mcka to aliases/alias_target because the former
+    # is hard to say and may be confused with 'best_known', a planned
+    # flag for geos that need no qualification (e.g. 'Austin' for
+    # Austin, TX vs. Austin, IN)
+    #
     # mcka: more commonly known as
     # akas: also known as's (plural)
     # if geo.mcka is None, geo is the one more commonly known
@@ -56,6 +62,13 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 backref=orm.backref('akas', lazy='dynamic'),
                 lazy='joined',
                 post_update=True)  # Needed to avoid CircularDependencyError
+
+    # _levels is a dictionary where GeoLevel.level is the key
+    _levels = orm.relationship(
+                'GeoLevel',
+                collection_class=attribute_mapped_collection('level'),
+                cascade='all, delete-orphan',
+                backref='_geo')
 
     # geo_type      us geo      us parents
     # country       US          None
@@ -74,7 +87,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
     # geo_type = Column(types.String(30))
 
     # # city, town, village, parish, etc.; based on lsad for places
-    # descriptor = Column(types.String(60))
+    # designation = Column(types.String(60))
 
     # # enables population-based prioritization and urban/rural designation
     # total_pop = Column(types.Integer)
@@ -169,10 +182,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
     def human_id(self, val):
         if val is None:
             raise ValueError('human_id cannot be set to None')
-        if val == self.human_id:
-            return
         # check if it's already registered by a different geo
-        geo = Geo._instances.get(val, None)
+        geo = Geo[val]
         if geo is not None and geo is not self:
             raise NameError("'{}' is already registered.".format(val))
         if hasattr(self, '_human_id'):  # unregister old human_id
@@ -187,6 +198,17 @@ class Geo(BaseGeoModel, AutoTableMixin):
                                          mcka=pc.mcka)
 
     human_id = orm.synonym('_human_id', descriptor=human_id)
+
+    @property
+    def levels(self):
+        return self._levels
+
+    @levels.setter
+    def levels(self, val):
+        for geo_level in val.values():
+            geo_level.geo = self  # invoke GeoLevel.geo setter
+
+    levels = orm.synonym('_levels', descriptor=levels)
 
     @staticmethod
     def create_key(name=None, abbrev=None, path_parent=None, mcka=None,
@@ -216,10 +238,13 @@ class Geo(BaseGeoModel, AutoTableMixin):
         '''
         return self.human_id
 
+    # TODO: add levels=[]  # a list of (level, designation, geo_ids) tuples,
+    #                      # where geo_ids is a list of (standard, code) tuples
+    # TODO: add data={}  # a dictionary of attribute/value pairs
     def __init__(self, name, abbrev=None, path_parent=None, mcka=None,
                  the_prefix=None, parents=[], children=[]):
-                # geo_type=None, descriptor=None,
                 # total_pop=None, urban_pop=None):
+        '''Initialize a new geo'''
         self.name = name
         if the_prefix is not None:  # Override calculated value, if provided
             self.the_prefix = the_prefix
@@ -236,16 +261,17 @@ class Geo(BaseGeoModel, AutoTableMixin):
         self.parents = parents
         self.children = children
         # self.geo_type = geo_type
-        # self.descriptor = descriptor
+        # self.designation = designation
         # self.total_pop = total_pop
         # self.urban_pop = urban_pop
 
     def promote_to_mcka(self):
-        '''Promote geo to the mcka (more commonly known as)
+        '''Promote aka geo to mcka geo
 
-        Used to convert an aka geo into a mcka geo. The existing mcka
-        geo is converted into an aka of the new mcka. Has no effect if
-        the geo is already a mcka geo.
+        Used to convert an aka (also known as) geo into a mcka (more
+        commonly known as) geo. The existing mcka geo is converted into
+        an aka of the new mcka. Has no effect if the geo is already a
+        mcka geo.
         '''
         mg = self.mcka
         if mg is None:  # self is already a mcka
@@ -259,41 +285,50 @@ class Geo(BaseGeoModel, AutoTableMixin):
             aka.mcka = self
 
         # transfer all other references to new mcka geo:
-        # ratings, follows, posts, ideas, projects
+        # geodata, geolevels, ratings, follows, posts, ideas, projects
+        self.levels = mg.levels
 
     def display(self, show_the=True, show_abbrev=True, abbrev_path=True,
                 max_path=float('Inf')):
+        '''Generate text for displaying a geo to a user
+
+        Returns a string derived from the name, abbrev, the_prefix, and
+        the geo path established by the path_parent. The following
+        parameters affect the output:
+        - show_the=True: The name of the geo is prefixed by 'The' if the
+          geo has the flag (geo.the_prefix == True)
+        - show_abbrev=True: The abbrev is displayed in parentheses after
+          the geo name if the geo has an abbrev
+        - abbrev_path=True: Any path geos appearing after the geo are
+          displayed in abbrev form, if one exists
+        - max_path=Inf: Determines the number of levels in the geo path
+          beyond the current geo that should be included. A value of 0
+          limits the display to just the geo, a value of 1 includes the
+          immediate path_parent, etc.
+        '''
         geostr = ''
         geo = self
-        level = 0
-        while geo is not None and level <= max_path:
-            the = ('The ' if geo.the_prefix and show_the and level < 1 else '')
-            if geo.abbrev is None:
+        plvl = 0
+        while geo is not None and plvl <= max_path:
+            the = ('The ' if geo.the_prefix and show_the else '')
+            if plvl == 0:
                 geostr += '{the}{name}'.format(the=the, name=geo.name)
-            elif show_abbrev and level < 1:
-                geostr += '{the}{name} ({abbrev})'.format(the=the,
-                                                         name=geo.name,
-                                                         abbrev=geo.abbrev)
-            elif abbrev_path and level > 0:
+                if geo.abbrev and show_abbrev:
+                    geostr += ' ({abbrev})'.format(abbrev=geo.abbrev)
+            elif abbrev_path:
                 geostr += '{abbrev}'.format(abbrev=geo.abbrev)
+            else:
+                geostr += '{name}'.format(name=geo.name)
 
-            if geo.path_parent is not None and level < max_path:
+            if geo.path_parent is not None and plvl < max_path:
                 geostr += ', '
-
             geo = geo.path_parent
-            level += 1
+            plvl += 1
         return geostr
 
-    def __repr__(self):
-        cls_name = self.__class__.__name__
-        return '{cls}[{geo!r}]'.format(cls=cls_name, geo=self.human_id)
+    # Use default __repr__() from Trackable, e.g. Geo[<human_id>]
 
     def __str__(self):
-        # return '{prefix}{name}{abbrev}'.format(
-        #         prefix='The ' if self.the_prefix else '',
-        #         name=self.name,
-        #         abbrev=(' (' + self.abbrev + ')') if self.abbrev else '')
-
         indent = ' ' * 4
         fields = dict(
             display=self.display(max_path=0, show_the=True, show_abbrev=True,
@@ -301,11 +336,12 @@ class Geo(BaseGeoModel, AutoTableMixin):
             human_id=self.human_id,
             mcka=self.mcka.display() if self.mcka else None,
             akas=[aka.display() for aka in self.akas],
+            levels=self.levels.values(),
             parents=[p.display() for p in self.parents],
             children=[c.display(max_path=0) for c in self.children],
         )
 
-        field_order = ['display', 'human_id', 'mcka', 'akas',
+        field_order = ['display', 'human_id', 'mcka', 'akas', 'levels',
                        'parents', 'children']
         string = []
         for field in field_order:
@@ -331,21 +367,163 @@ class Geo(BaseGeoModel, AutoTableMixin):
         return '\n'.join(string)
 
 
-# TODO: Create GeoType class to track geo types and descriptors
-# class GeoType(BaseGeoModel, AutoTableMixin):
-#     geo_id (foreign key, M to 1)
-#     name - country, subdivision1, subdivision2, place, csa, cbsa
-#     descriptor - state, county, city, etc. (lsad for place)
+class GeoLevel(BaseGeoModel, AutoTableMixin):
+    '''Base class for geo levels
 
-# TODO: Create GeoID class to map geos (by type) to 3rd party IDs
-# class GeoMap(BaseGeoModel, AutoTableMixin):
-#     geo_type_id (foreign key, M to 1)
-#     id_type - FIPS, ANSI, etc.
-#     id - 4805000, 02409761
+    A geo level contains level information for a particular geo, where
+    the level indicates the type of geo and/or where the geo fits in the
+    geo tree. The levels were designed to allow global normalization and
+    include country, subdivision1..subdivisionN, place, csa, and cbsa.
+
+    The designation indicates how the geo is described at the given
+    level. For example, in the U.S., the subdivision1 geos are mainly
+    states, but also includes some territories (e.g. Puerto Rico) and a
+    federal district (DC).
+
+    A single geo may have multiple levels. For example, San Francisco
+    has a consolidated government that is both a county (subdivision2)
+    and a city (place). DC is simultaneously a federal district
+    (subdivision1), a county equivalent (subdivision2), and a city
+    (place).
+    '''
+    geo_id = Column(types.Integer, ForeignKey('geo.id'))
+    # _geo relationship defined via backref on Geo._levels
+
+    # level values: country, subdivision1, subdivision2, place, csa, cbsa
+    _level = Column('level', types.String(30))
+
+    # designation values: state, county, city, etc. (lsad for place)
+    designation = Column(types.String(60))
+
+    # Querying use cases:
+    #
+    # 1. Fetch a particular level (e.g. subdivision2) for a particular
+    #    geo (e.g. Travis County) to determine designation (e.g. county)
+    #    or to map to 3rd-party IDs (e.g. FIPS codes)
+    #    cols: level, geo_id
+    # 2. For a particular level (e.g. subdivision2), obtain all the geos
+    #    (this will often be a large number).
+    #    cols: level
+    # 3. For a particular geo (e.g. Washington, D.C.), obtain all the
+    #    levels (e.g. subdivision1, subdivision2, place)
+    #    cols: geo_id
+    __table_args__ = (Index('ux_geo_level',
+                            # ux for unique index
+                            'level',
+                            'geo_id',
+                            unique=True),)
+
+    down = {
+        'country': 'subdivision1',
+        'subdivision1': ('subdivision2', 'csa', 'cbsa', 'place'),
+        'subdivision2': 'place',
+        'csa': ('subdivision2', 'cbsa', 'place'),
+        'cbsa': ('subdivision2', 'place'),
+        'place': None
+    }
+
+    up = {
+        'country': None,
+        'subdivision1': 'country',
+        'subdivision2': ('cbsa', 'csa', 'subdivision1'),
+        'csa': 'subdivision1',
+        'cbsa': ('csa', 'subdivision1'),
+        'place': ('cbsa', 'csa', 'subdivision2', 'subdivision1')
+    }
+
+    @property
+    def geo(self):
+        return self._geo
+
+    @geo.setter
+    def geo(self, val):
+        if val is None:
+            raise ValueError('Cannot be set to None')
+
+        if self._geo is not None:  # Not during __init__()
+            # ensure new key is not already registered
+            key = GeoLevel.create_key(geo=val, level=self.level)
+            inst = Geo[key]
+            if inst is not None and inst is not self:
+                raise NameError('{} is already registered.'.format(key))
+            # update registry with new key
+            GeoLevel._instances.pop(self.derive_key(), None)
+            GeoLevel[key] = self  # register the new key
+
+        self._geo = val  # set new value last
+
+    geo = orm.synonym('_geo', descriptor=geo)
+
+    @property
+    def level(self):
+        return self._level
+
+    @level.setter
+    def level(self, val):
+        if val is None:
+            raise ValueError('Cannot be set to None')
+
+        if self._level is not None:  # Not during __init__()
+            # ensure new key is not already registered
+            key = GeoLevel.create_key(geo=self.geo, level=val)
+            inst = Geo[key]
+            if inst is not None and inst is not self:
+                raise NameError('{} is already registered.'.format(key))
+            # update registry with new key
+            GeoLevel._instances.pop(self.derive_key(), None)
+            GeoLevel[key] = self  # register the new key
+
+        self._level = val  # set new value last
+
+    level = orm.synonym('_level', descriptor=level)
+
+    @staticmethod
+    def create_key(geo, level, **kwds):
+        '''Create key for a geo level
+
+        Return a key allowing the Trackable metaclass to register a geo
+        level instance. The key is a tuple containing the geo and level.
+        '''
+        return (geo, level)
+
+    def derive_key(self):
+        '''Derive key from a geo level instance
+
+        Return the registry key used by the Trackable metaclass from a
+        geo instance. The key is a tuple of the geo and level fields.
+        '''
+        return (self.geo, self.level)
+
+    def __init__(self, geo, level, designation=None):
+        '''Initialize a new geo level'''
+        self.level = level
+        self.designation = designation
+
+        # Must follow level assignment to provide key for Geo.levels
+        self.geo = geo
+
+    # Use default __repr__() from Trackable
+    # Format: GeoLevel[Geo[<human_id>], <level>]
+
+    def __str__(self):
+        geo_level_str = '{cls}: {geo} is a {desc} ({level})'
+        return geo_level_str.format(cls=self.__class__.__name__,
+                                    geo=self.geo.display(show_abbrev=False,
+                                                         max_path=0),
+                                    desc=self.designation,
+                                    level=self.level)
+
+# TODO: Create GeoID class to map geos (by level) to 3rd party IDs
+# class GeoID(BaseGeoModel, AutoTableMixin):
+#     geo_level_id (foreign key, M:1)
+#     standard - FIPS, ANSI, etc.
+#     code - 4805000, 02409761
 
 # TODO: Create GeoData class to store data related to the geo
 # class GeoData(BaseGeoModel, AutoTableMixin):
-#     geo_id (foreign key, 1 to 1)
+#     geo_id (foreign key, 1:1)
 #     total_pop
 #     urban_pop
+#     longitude
+#     latitude
 #     other attributes related to demographics, geography, climate, etc.
