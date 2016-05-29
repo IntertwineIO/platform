@@ -1,0 +1,11 @@
+version: '2'
+services:
+  platform:
+    build: .
+    image: intertwineio/platform
+    volumes:
+      - .:/opt/repos/platform
+    ports:
+      - 80:8000
+      - 9191:9191
+

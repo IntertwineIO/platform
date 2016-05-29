@@ -30,10 +30,12 @@ def main(**options):
         os.system('rm {}'.format(fp))
         print('Removed file: {}'.format(fp))
     app = create_app(options.get('config'))
-    host = app.config.get('HOST') or options.get('host')
-    port = app.config.get('PORT') or options.get('port')
-    debug = app.config.get('DEBUG') or options.get('debug')
-    app.run(host=host, port=int(port), debug=debug)
+    if options.get('_run_', False):
+        debug = app.config.get('DEBUG') or options.get('debug')
+        host = app.config.get('HOST') or options.get('host')
+        port = int(app.config.get('PORT') or options.get('port'))
+        app.run(host=host, port=port, debug=debug)
+    return app
 
 
 if __name__ == '__main__':
@@ -59,4 +61,5 @@ if __name__ == '__main__':
         'local': LocalDemoConfig
     }
     options['config'] = config_mapping.get(options['config'], DemoConfig)
+    options['_run_'] = True
     main(**options)

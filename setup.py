@@ -10,142 +10,146 @@ Copyright (c) 2015, 2016
 
 License:  Proprietary.
 '''
+
+import os
 import re
+from setuptools import setup, find_packages
 
-from setuptools import setup
 
-package_name = 'intertwine'
-# Grab package information without importing
-with open('{}/__init__.py'.format(package_name), 'r') as fd:
-    pattern = '^__(?P<key>[0-9_A-Za-z]+)__\s+\=\s+[\'"]?(?P<value>.*)[\'"]?$'
-    eng = re.compile(pattern)
-    data = {}
-    for line in fd:
-        if eng.search(line):
-            group_data = [m.groupdict() for m in eng.finditer(line)][0]
-            key = group_data['key']
-            value = group_data['value']
-            if value.endswith("'"):
-                value = value.rstrip("'")
-            data[key] = value
+project_name = 'intertwine'
 
-# Setup README documentation in RST format if pypandoc exists
-try:
-    import pypandoc
-    long_description = pypandoc.convert('README.md', 'rst')
-except ImportError:
-    with open('README.md', 'r') as fd:
-        long_description = fd.read()
-
+classifiers = [
+    'Intended Audience :: Developers',
+    'License :: Other/Proprietary License',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Programming Language :: Python :: Implementation :: PyPy'
+]
 
 ###############################################################################
 #  Requirements
 ###############################################################################
-# Identifies what is needed to prior to running setup
-setup_requires = [
-    'pip',
-    'pytest-runner',
-    'libsass >= 0.6.0',
-]
+requirements = {
+    # Identifies what is needed to prior to running setup
+    'setup': [
+        'pip',
+        'pytest-runner',
+        'libsass >= 0.6.0',
+    ],
 
-# Identifies what is needed to run this package
-install_requires = [
-    'alchy>2.0.1',
-    'flask',
-    'flask-bootstrap',
-    'flask-security',
-    'flask-sqlalchemy',
-    'flask-wtf',
-    'future',
-    'titlecase',
-    'urlnorm',
-]
+    # Identifies what is needed to run this package
+    'install': [
+        'alchy>2.0.1',
+        'docopt',
+        'flask',
+        'flask-bootstrap',
+        'flask-security',
+        'flask-sqlalchemy',
+        'flask-wtf',
+        'future',
+        'titlecase',
+        'urlnorm',
+    ],
 
-# Identifies what is needed to run this package as a developer
-dev_requires = [
-    'flask-debugtoolbar',
-]
+    # Identifies what is needed to run this package as a developer
+    'debug': [
+        'flask-debugtoolbar',
+        'ipython',
+        'ipdb',
+    ],
 
-# Identifies what is needed to run the scripts included
-script_requires = [
-    'docopt',
-    'pyyaml',
-]
+    # Identifies what is needed for generating documentation
+    'doc': [
+        'sphinx',
+    ],
 
-# Identifies what is needed for tests to run
-testing_requires = [
-    'detox',
-    'flask-debugtoolbar',
-    'pytest',
-    'pytest-cov',
-    'pytest-flake8',
-    'pytest-xdist',
-    'tox',
-]
+    # Identifies what is needed for docker runs
+    'docker': [
+        'docker-py',
+        'GitPython',
+    ],
 
+    # Identifies what is needed to run the scripts included
+    'script': [
+        'pyyaml',
+    ],
 
-# Identifies what is needed for deployment
-deploy_requires = [
-]
-
-
-# Identifies what is used for debugging
-debug_requires = [
-    'ipython',
-    'ipdb',
-    'pdbpp'
-]
-
-# Identifies what is needed for generating documentation
-doc_requires = [
-    'sphinx',
-]
-
-extras_requires = {
-    'dev': (install_requires +
-            script_requires +
-            dev_requires +
-            testing_requires +
-            debug_requires +
-            deploy_requires),
-    'docs': doc_requires,
-    'deploy': deploy_requires,
-    'script': script_requires,
-    'tests': testing_requires,
+    # Identifies what is needed for tests to run
+    'tests': [
+        'detox',
+        'flask-debugtoolbar',
+        'pytest',
+        'pytest-cov',
+        'pytest-flake8',
+        'pytest-xdist',
+        'tox',
+    ],
 }
 
+# Developers should probably run:  pip install .[dev]
+requirements['dev'] = [
+    r for k, reqs in requirements.items() for r in reqs
+    if k not in ['install']
+]
+
+# All is for usability:  pip install .[all]
+requirements['all'] = [
+    r for k, reqs in requirements.items() for r in reqs
+]
+
+# Find package files
+packages = find_packages()
+cwd = os.path.abspath(os.path.dirname(__file__))
+
+# Capture project metadata
+engine = re.compile(r"^__(?P<key>(.*?))__ = '(?P<value>([^']*))'")
+with open(os.path.join(cwd, project_name, '__init__.py'), 'r') as fd:
+    metadata = {
+        data['key']: data['value']
+        for line in fd
+        for data in [m.groupdict() for m in engine.finditer(line)]
+    }
+
+# Read License for setup
+with open(os.path.join(cwd, 'LICENSE.txt'), 'rb') as fd:
+    lic = fd.read()
+    # Decode didn't chain with read
+    lic = lic.decode('utf-8')
+
+# Setup README documentation in RST format if pypandoc exists
+with open('README.rst', 'r') as fd:
+    long_description = fd.read()
+
+# Build static sass
 sass_manifests = {
-    data.get('title'): (
+    metadata.get('title'): (
         'static/sass', 'static/css', '/static/css'
     )
 }
 
 setup(
-    name=data.get('title'),
-    version=data.get('version'),
-    author=data.get('author'),
-    author_email=data.get('email'),
-    description=data.get('shortdesc'),
+    name=metadata.get('title'),
+    version=metadata.get('version'),
+    author=metadata.get('author'),
+    author_email=metadata.get('email'),
+    description=metadata.get('shortdesc'),
     long_description=long_description,
-    license=data.get('license'),
-    url=data.get('url'),
-    packages=[package_name],
+    license=metadata.get('license'),
+    url=metadata.get('url'),
+    packages=[project_name],
     package_data={},
-    classifiers=[
-        'Intended Audience :: Developers',
-        'License :: Other/Proprietary License',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: Implementation :: CPython',
-        'Programming Language :: Python :: Implementation :: PyPy'
-    ],
-    install_requires=install_requires,
-    setup_requires=setup_requires,
+    classifiers=classifiers,
+    install_requires=requirements['install'],
+    setup_requires=requirements['setup'],
     sass_manifests=sass_manifests,
-    extras_require=extras_requires,
-    tests_require=testing_requires,
+    extras_require=requirements,
+    tests_require=requirements['tests'],
     test_suite='tests',
     include_package_data=True,
     zip_safe=False,
+    dependency_links=[
+        'git+https://git@github.com/intertwine/urlnorm.git',
+    ],
 )

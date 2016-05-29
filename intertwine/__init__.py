@@ -50,8 +50,8 @@ def create_app(config):
 
     # Register all of the blueprints
     app.register_blueprint(main.blueprint, url_prefix='/')
-    app.register_blueprint(auth.blueprint, url_prefix='/auth')
-    app.register_blueprint(signup.blueprint, url_prefix='/signup')
+    # app.register_blueprint(auth.blueprint, url_prefix='/auth')
+    # app.register_blueprint(signup.blueprint, url_prefix='/signup')
     app.register_blueprint(problems.blueprint, url_prefix='/problems')
 
     # Auto-build SASS/SCSS for each request
