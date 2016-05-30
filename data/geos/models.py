@@ -232,6 +232,10 @@ class GHR(BaseGeoDataModel):
     __table_args__ = (
         ForeignKeyConstraint(['statefp', 'countyfp'],
                              ['county.statefp', 'county.countyfp']),
+        Index('ix_ghr',
+              # ix for index
+              'sumlev',
+              'geocomp'),
         {}
         )
 
@@ -253,3 +257,9 @@ class F02(BaseGeoDataModel):
     p0020004 = Column(types.Integer)
     p0020005 = Column(types.Integer)
     p0020006 = Column(types.Integer)
+
+    __table_args__ = (
+        Index('ix_f02',
+              # ix for index
+              'logrecno'),
+        )
