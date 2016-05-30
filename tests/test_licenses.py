@@ -56,6 +56,7 @@ def test_licenses(**options):
         'intertwine',     # Proprietary
         'dominate',       # LGPL
         'pbr',            # Apache 2.0
+        'stevedore',      # Apache 2.0
     ]
 
     accepted_licenses = [
