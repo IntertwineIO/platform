@@ -46,7 +46,7 @@ before_install:
   - sudo make -C libsass -j5 install
 
 install:
-   - pip install .
+   - pip install --process-dependency-links .
 
 before_script:
   # Required for running a test
