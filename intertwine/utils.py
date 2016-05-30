@@ -45,34 +45,32 @@ class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
 
 def __trepr__(self, indent_level=0):
     indent = ' '*4*indent_level
-    if self is None:
-        return '{indent}{none}'.format(indent=indent, none=str(None))
-    if isinstance(self, (type(unicode()), type(str()))):
-        return "{indent}{self!r}".format(indent=indent, self=self)
-    key = self.derive_key()
-    if isinstance(key, (type(unicode()), type(str()))):
-        return "{indent}{cls}[{key!r}]".format(indent=indent,
-                                               cls=self.__class__.__name__,
-                                               key=key)
-    if isinstance(key, tuple):
-        repr_beg = '{indent}{cls}[('.format(indent=indent,
-                                            cls=self.__class__.__name__)
-        treprs = map(lambda x: __trepr__(x, indent_level+1), key)
-        all_on_1_line = repr_beg + ', '.join(map(str.strip, treprs)) + ')]'
-        if len(all_on_1_line) <= Trackable.max_width:
-            return all_on_1_line
-        else:
-            return (repr_beg + '\n' + ',\n'.join(treprs) +
-                    '\n{indent})]'.format(indent=indent))
 
-    return '{indent}{cls}[{key}]'.format(indent=indent,
-                                         cls=self.__class__.__name__,
-                                         key=__trepr__(key, indent_level+1))
+    if self is None or isinstance(self, (type(unicode()), type(str()))):
+        return "{indent}{self!r}".format(indent=indent, self=self)
+
+    key = self.derive_key()
+    cls = '{indent}{cls}'.format(indent=indent, cls=self.__class__.__name__)
+
+    if isinstance(key, tuple):
+        ob, cb = '[(', ')]'
+    else:
+        key = (key,)
+        ob, cb = '[', ']'
+
+    treprs = map(lambda x: __trepr__(x, indent_level+1), key)
+    all_on_1_line = cls + ob + ', '.join(map(str.strip, treprs)) + cb
+
+    if len(all_on_1_line) <= Trackable.max_width:
+        return all_on_1_line
+    else:
+        return (cls + ob + '\n' + ',\n'.join(treprs) +
+                '\n{indent}'.format(indent=indent) + cb)
 
 
 def __repr__(self):
     '''Default repr for Trackable classes'''
-    # Prefix with newline due to ipython pprint bug related to lists
+    # Prefix newline due to ipython pprint bug related to lists
     return '\n' + self.__trepr__()
 
 
