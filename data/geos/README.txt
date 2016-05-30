@@ -228,7 +228,7 @@ tail -n +2 "Gaz_places_national_utf-8.txt" > "Gaz_places_national_utf-8.txt.tmp"
 
 cd us2010.ur1.utf-8
 tail -n +2 "usgeo2010.ur1.utf-8.csv" > "usgeo2010.ur1.utf-8.csv.tmp"
-tail -n +2 "us000022010.ur1.utf-8.csv" > "us000022010.ur1.utf-8.csv.tmp"
+# Note: "us000022010.ur1.utf-8.csv" is already missing the header row
 
 # If following steps sequentially (strongly recommended):
 cd ../..
@@ -444,6 +444,6 @@ CREATE TABLE f02(
 .import lsad.csv.tmp lsad
 .import geoclass.csv.tmp geoclass
 .import tmp/us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv.tmp ghr
-.import tmp/us2010.ur1.utf-8/us000022010.ur1.utf-8.csv.tmp f02
+.import tmp/us2010.ur1.utf-8/us000022010.ur1.utf-8.csv f02
 
 
