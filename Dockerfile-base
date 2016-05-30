@@ -1,0 +1,116 @@
+FROM debian:jessie
+
+# ======================================================================
+#  Environment setup
+# ======================================================================
+ENV DEBIAN_FRONTEND noninteractive
+ENV PYTHON2_VERSION 2.7.11
+ENV PYTHON3_VERSION 3.5.1
+ENV PYPY_VERSION 5.0.1
+ENV LANG C.UTF-8
+
+# ======================================================================
+#  System setup
+# ======================================================================
+RUN set -ex \
+    && apt-get update && apt-get install -qq --no-install-recommends \
+        ca-certificates \
+        curl \
+        openssh-client \
+        \
+        procps \
+        autoconf \
+        automake \
+        bzip2 \
+        file \
+        g++ \
+        gcc \
+        imagemagick \
+        libbz2-dev \
+        libc6-dev \
+        libcurl4-openssl-dev \
+        libevent-dev \
+        libffi-dev \
+        libgeoip-dev \
+        libglib2.0-dev \
+        libjpeg-dev \
+        liblzma-dev \
+        libmagickcore-dev \
+        libmagickwand-dev \
+        libmysqlclient-dev \
+        libncurses-dev \
+        libpng-dev \
+        libpq-dev \
+        libreadline-dev \
+        libsqlite3-dev \
+        libssl-dev \
+        libtool \
+        libwebp-dev \
+        libxml2-dev \
+        libxslt-dev \
+        libyaml-dev \
+        locales \
+        make \
+        patch \
+        xz-utils \
+        zlib1g-dev \
+    && apt-get clean \
+    && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
+    && apt-get purge -y python.* \
+
+# ======================================================================
+#  Python 2.7.11
+# ======================================================================
+    && curl -fSL "https://www.python.org/ftp/python/${PYTHON2_VERSION%%[a-z]*}/Python-$PYTHON2_VERSION.tar.xz" -o python.tar.xz \
+    && mkdir -p /usr/src/python \
+    && tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
+    && rm python.tar.xz \
+    && (cd /usr/src/python && ./configure --enable-shared --enable-unicode=ucs4 --prefix=/usr/local && make -j$(expr `nproc` + 1) && make install && ldconfig) \
+    && curl -fSL 'https://bootstrap.pypa.io/get-pip.py' | python2 \
+
+# ======================================================================
+#  Python 3.5.1
+# ======================================================================
+    && curl -fSL "https://www.python.org/ftp/python/${PYTHON3_VERSION%%[a-z]*}/Python-$PYTHON3_VERSION.tar.xz" -o python3.tar.xz \
+    && mkdir -p /usr/src/python3 \
+    && tar -xJC /usr/src/python3 --strip-components=1 -f python3.tar.xz \
+    && rm python3.tar.xz \
+    && (cd /usr/src/python3 && ./configure --enable-shared --enable-unicode=ucs4 --prefix=/usr/local && make -j$(expr `nproc` + 1) && make install && ldconfig) \
+
+# ======================================================================
+#  Pypy 5.0.1  (Python 2.7 compatible)
+# ======================================================================
+    && curl -fSL "https://bitbucket.org/squeaky/portable-pypy/downloads/pypy-$PYPY_VERSION-linux_x86_64-portable.tar.bz2" -o pypy.tbz2 \
+    && mkdir -p /usr/local/pypy \
+    && tar -xjC /usr/local/pypy --strip-components=1 -f pypy.tbz2 \
+    && rm -f pypy.tbz2 \
+    && ln -s /usr/local/pypy/bin/libpypy-c.so /usr/lib/x86_64-linux-gnu/ \
+    && (cd /usr/local/pypy && ldconfig) \
+    && cp -R /usr/local/pypy/virtualenv_support /usr/local \
+    && ln -s /usr/local/pypy/bin/pypy /usr/local/bin/pypy \
+    && curl -fSL 'https://bootstrap.pypa.io/get-pip.py' | pypy \
+
+# ======================================================================
+#  Virtualenvironment setup for Python3 and Python2
+# ======================================================================
+    && pypy -m pip install --upgrade --force pip virtualenv virtualenvwrapper \
+    && python3 -m pip install --no-cache-dir --upgrade --force pip virtualenv virtualenvwrapper \
+    && python -m pip install --no-cache-dir --upgrade --force pip virtualenv virtualenvwrapper \
+
+# ======================================================================
+#  Python cleanup
+# ======================================================================
+    && find /usr/local -depth \
+        \( \
+            \( -type d -a -name test -o -name tests \) \
+            -o \
+            \( -type f -a -name '*.pyc' -o -name '*.pyo' \) \
+        \) -exec rm -rf '{}' + \
+    && rm -rf /usr/src/python ~/.cache \
+    && apt-get clean autoclean \
+    && apt-get autoremove -y \
+    && apt-get purge -qq git subversion wget \
+    && rm -rf /tmp/* /var/tmp/* \
+    && rm -rf /var/lib/{apt,dpkg,cache,log}/
+
+CMD ["/bin/bash"]

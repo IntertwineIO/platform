@@ -112,15 +112,12 @@ with open(os.path.join(cwd, project_name, '__init__.py'), 'r') as fd:
         for data in [m.groupdict() for m in engine.finditer(line)]
     }
 
-# Read License for setup
-with open(os.path.join(cwd, 'LICENSE.txt'), 'rb') as fd:
-    lic = fd.read()
-    # Decode didn't chain with read
-    lic = lic.decode('utf-8')
-
 # Setup README documentation in RST format if pypandoc exists
-with open('README.rst', 'r') as fd:
-    long_description = fd.read()
+if os.path.exists('README.rst'):
+    with open('README.rst', 'r') as fd:
+        long_description = fd.read()
+else:
+    long_description = metadata.get('shortdesc')
 
 # Build static sass
 sass_manifests = {
