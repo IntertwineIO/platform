@@ -93,8 +93,13 @@ class Image(BaseProblemModel, AutoTableMixin):
         self.url = urlnorm.norm(url)
         self.problem = problem
 
-    # Use default __repr__() from Trackable
-    # Format: Image[(Problem[<human_id>], <url>)]
+    # Use default __repr__() from Trackable:
+    # Image[(Problem[<human_id>], <url>)]
+    # or if over 79 chars:
+    # Image[(
+    #     Problem[<human_id>],
+    #     <url>
+    # )]
 
     def __str__(self):
         return '{url}'.format(url=self.url)
@@ -264,27 +269,18 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
             self.weight = weight
             self._modified.add(self)
 
-    # Use default __repr__() from Trackable
-    # Format: AggregateProblemConnectionRating[(
-    #             Problem[<human_id>],
-    #             ProblemConnection[(<conn_type>, Problem[<human_id>], Problem[<human_id>])],
-    #             <org>,
-    #             Geo[<human_id>],
-    #             <aggregation>)]
-    #
-    # def __repr__(self):
-    #     cls_name = self.__class__.__name__
-    #     s = '<{cls}: {rating:.4f} weight: {weight:.4f}\n'.format(
-    #                                                     cls=cls_name,
-    #                                                     rating=self.rating,
-    #                                                     weight=self.weight)
-    #     s += '  problem: {prob!r}\n'.format(prob=self.problem)
-    #     s += '  connection: {conn!r}\n'.format(conn=self.connection)
-    #     s += '  org_scope: {org!r}\n'.format(org=self.org_scope)
-    #     s += '  geo_scope: {geo!r}\n'.format(geo=self.geo_scope)
-    #     s += '  aggregation: {agg!r}\n'.format(agg=self.aggregation)
-    #     s += '>'
-    #     return s
+    # Use default __repr__() from Trackable:
+    # AggregateProblemConnectionRating[(
+    #     Problem[<human_id>],
+    #     ProblemConnection[(
+    #         <conn_type>,
+    #         Problem[<human_id>],
+    #         Problem[<human_id>]
+    #     )],
+    #     <org>,
+    #     Geo[<human_id>],
+    #     <aggregation>
+    # )]
 
     def __str__(self):
         cls_name = self.__class__.__name__
@@ -481,24 +477,18 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
                                                  rating=new_r,
                                                  weight=new_w)
 
-    # Use default __repr__() from Trackable
-    # Format: ProblemConnectionRating[(
-    #             Problem[<human_id>],
-    #             ProblemConnection[(<conn_type>, Problem[<human_id>], Problem[<human_id>])],
-    #             <org>,
-    #             Geo[<human_id>],
-    #             <user>)]
-    #
-    # def __repr__(self):
-    #     cls_name = self.__class__.__name__
-    #     s = '<{cls}: {rating!r}\n'.format(cls=cls_name, rating=self.rating)
-    #     s += '  problem: {prob!r}\n'.format(prob=self.problem)
-    #     s += '  connection: {conn!r}\n'.format(conn=self.connection)
-    #     s += '  org_scope: {org!r}\n'.format(org=self.org_scope)
-    #     s += '  geo_scope: {geo!r}\n'.format(geo=self.geo_scope)
-    #     s += '  user: {user!r}\n'.format(user=self.user)
-    #     s += '>'
-    #     return s
+    # Use default __repr__() from Trackable:
+    # ProblemConnectionRating[(
+    #     Problem[<human_id>],
+    #     ProblemConnection[(
+    #         <conn_type>,
+    #         Problem[<human_id>],
+    #         Problem[<human_id>])
+    #     )],
+    #     <org>,
+    #     Geo[<human_id>],
+    #     <user>
+    # )]
 
     def __str__(self):
         cls_name = self.__class__.__name__
@@ -686,17 +676,14 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
                 session.commit()
         return aggregate_rating
 
-    # Use default __repr__() from Trackable
-    # Format: ProblemConnection[(<conn_type>, Problem[<human_id>], Problem[<human_id>])]
-    #
-    # def __repr__(self):
-    #     is_causal = self.connection_type == 'causal'
-    #     ct = '->' if is_causal else '::'
-    #     p_a = self.driver.human_id if is_causal else self.broader.human_id
-    #     p_b = self.impact.human_id if is_causal else self.narrower.human_id
-    #     return '<{cls}: ({conn_type}) {p_a!r} {ct} {p_b!r}>'.format(
-    #         cls=self.__class__.__name__,
-    #         conn_type=self.connection_type, p_a=p_a, ct=ct, p_b=p_b)
+    # Use default __repr__() from Trackable:
+    # ProblemConnection[(<conn_type>, Problem[<human_id>], Problem[<human_id>])]
+    # or if over 79 chars:
+    # ProblemConnection[(
+    #     <conn_type>,
+    #     Problem[<human_id>],
+    #     Problem[<human_id>]
+    # )]
 
     def __str__(self):
         is_causal = self.connection_type == 'causal'
@@ -950,8 +937,8 @@ class Problem(BaseProblemModel, AutoTableMixin):
                                                     reverse=True)
         return connections_with_ratings
 
-    # Use default __repr__() from Trackable
-    # Format: Problem[<human_id>]
+    # Use default __repr__() from Trackable:
+    # Problem[<human_id>]
 
     def __str__(self):
         indent = ' ' * 4
