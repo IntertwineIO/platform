@@ -1,11 +1,11 @@
 version: '2'
 services:
   platform:
+    restart: on-failure:3
     build: .
     image: intertwineio/platform
     volumes:
       - .:/opt/repos/platform
     ports:
-      - 80:8000
+      - 8000:8000
       - 9191:9191
-

@@ -106,7 +106,7 @@ RUN set -ex \
             -o \
             \( -type f -a -name '*.pyc' -o -name '*.pyo' \) \
         \) -exec rm -rf '{}' + \
-    && rm -rf /usr/src/python ~/.cache \
+    && rm -rf /usr/src/python* ~/.cache \
     && apt-get clean autoclean \
     && apt-get autoremove -y \
     && apt-get purge -qq git subversion wget \
