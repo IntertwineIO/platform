@@ -55,6 +55,7 @@ def test_licenses(**options):
         'itsdangerous',   # BSD
         'intertwine',     # Proprietary
         'dominate',       # LGPL
+        'pbr',            # Apache 2.0
     ]
 
     accepted_licenses = [
