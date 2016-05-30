@@ -23,17 +23,17 @@ And then point your window to:
 
 We use (or WIP will use) the following tech stack:
 
-   * Debian
-   * Docker
-   * Ansible
-   * NginX
-   * uWSGI
-   * PostgreSQL
-   * Flask (python 2 currently, with plans to move to 3 soon)
-   * Bootstrap
-   * React
-   * Sass
-   * Sphinx
+   * `Ansible <https://www.ansible.com>`_
+   * `Bootstrap <http://getbootstrap.com>`_
+   * `Debian <https://www.debian.org>`_
+   * `Docker <https://www.docker.com>`_
+   * `Flask <http://flask.pocoo.org>`_ (moving to `Python 3 <>`_ soon)
+   * `NginX <https://www.nginx.com>`_
+   * `PostgreSQL 9.5 <https://www.postgresql.org>`_
+   * `React <https://facebook.github.io/react/>`_
+   * `Sass <http://sass-lang.com>`_
+   * `Sphinx <http://www.sphinx-doc.org/>`_
+   * `uWSGI <https://uwsgi-docs.readthedocs.io/en/latest/>`_
 
 Installation
 ------------
