@@ -9,7 +9,7 @@ from data.data_process import DataSessionManager
 from data.geos.models import (BaseGeoDataModel, State, CBSA, County, Place,
                               LSAD, Geoclass, GHR, F02)
 from intertwine.utils import Trackable
-from intertwine.geos.models import (BaseGeoModel, Geo, GeoLevel,
+from intertwine.geos.models import (BaseGeoModel, Geo, GeoData, GeoLevel,
                                     geo_association_table)
 
 
@@ -46,10 +46,12 @@ def load_geo_data():
         g = Geo(name=state.name,
                 abbrev=state.stusps,
                 path_parent=us,
-                parents=[us],
-                # total_pop=ghr.f02.p0020001,
-                # urban_pop=ghr.f02.p0020002
-                )
+                parents=[us])
+        GeoData(geo=g,
+                total_pop=ghr.f02.p0020001,
+                urban_pop=ghr.f02.p0020002,
+                longitude=ghr.intptlat,
+                latitude=ghr.intptlon)
         GeoLevel(geo=g, level='subdivision1', designation='state')
 
     # Handle special cases
@@ -63,7 +65,6 @@ def load_geo_data():
              parents=[us])
     d_of_c.alias_target = dc
 
-    dc.levels = d_of_c.levels
     dc.levels['subdivision1'].designation = 'federal district'
     GeoLevel(geo=dc, level='subdivision2',
              designation='consolidated county or equivalent')
@@ -103,6 +104,11 @@ def load_geo_data():
                 # total_pop=ghr.f02.p0020001,
                 # urban_pop=ghr.f02.p0020002
                 )
+        GeoData(geo=g,
+                total_pop=ghr.f02.p0020001,
+                urban_pop=ghr.f02.p0020002,
+                longitude=ghr.intptlat,
+                latitude=ghr.intptlon)
         GeoLevel(geo=g, level='subdivision2',
                  designation=ghr.countyclass.name.lower())
 

@@ -20,8 +20,7 @@ class DataProcessException(Exception):
 
 
 class AttributeConflict(DataProcessException):
-    '''{attr1!s} value of {attr1_val!s} conflicts with {attr2!s} value
-    of {attr2_val!s} on {inst!r}'''
+    '''{inst1!r}.{attr1!s} conflicts with {inst2!r}.{attr2!s}'''
 
 
 class CircularReference(DataProcessException):

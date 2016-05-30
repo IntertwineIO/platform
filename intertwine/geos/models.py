@@ -5,7 +5,7 @@ from sqlalchemy import orm, types, Column, ForeignKey, Index, Table
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from ..utils import AutoTableMixin, Trackable
-from ..exceptions import CircularReference
+from ..exceptions import AttributeConflict, CircularReference
 
 
 BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
@@ -57,6 +57,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 lazy='joined',
                 post_update=True)  # Needed to avoid CircularDependencyError
 
+    _data = orm.relationship('GeoData', uselist=False, back_populates='_geo')
+
     # _levels is a dictionary where GeoLevel.level is the key
     _levels = orm.relationship(
                 'GeoLevel',
@@ -78,15 +80,6 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 backref=orm.backref('children', lazy='dynamic'),
                 lazy='joined')
 
-    # geo_type = Column(types.String(30))
-
-    # # city, town, village, parish, etc.; based on lsad for places
-    # designation = Column(types.String(60))
-
-    # # enables population-based prioritization and urban/rural designation
-    # total_pop = Column(types.Integer)
-    # urban_pop = Column(types.Integer)
-
     delimiter = '>'
 
     @property
@@ -103,7 +96,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
         nstr = val.lower()
         self.the_prefix = (nstr.find('states') > -1 or
                            nstr.find('islands') > -1 or
-                           nstr.find('republic') > -1)
+                           nstr.find('republic') > -1 or
+                           nstr.find('district') > -1)
         self._name = val  # set name last
 
     name = orm.synonym('_name', descriptor=name)
@@ -143,7 +137,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
     @alias_target.setter
     def alias_target(self, val):
         if val is None:
-            self._alias_target = val
+            self._alias_target = None
             return
 
         aliases = self.aliases.all()
@@ -163,6 +157,9 @@ class Geo(BaseGeoModel, AutoTableMixin):
 
         if val == self:
             raise CircularReference(attr='alias_target', inst=self, value=val)
+
+        if self.alias_target is None:
+            self.transfer_references(val)
 
         self._alias_target = val
 
@@ -192,6 +189,19 @@ class Geo(BaseGeoModel, AutoTableMixin):
                                          alias_target=pc.alias_target)
 
     human_id = orm.synonym('_human_id', descriptor=human_id)
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, val):
+        if val is None:
+            self._data = None
+            return
+        val.geo = self  # invoke GeoData.geo setter
+
+    data = orm.synonym('_data', descriptor=data)
 
     @property
     def levels(self):
@@ -254,17 +264,34 @@ class Geo(BaseGeoModel, AutoTableMixin):
         #     return
         self.parents = parents
         self.children = children
-        # self.geo_type = geo_type
-        # self.designation = designation
-        # self.total_pop = total_pop
-        # self.urban_pop = urban_pop
+
+    def transfer_references(self, geo):
+        attributes = {'parents': ('not dynamic', []),
+                      'children': ('dynamic', []),
+                      'data': ('not dynamic', None),
+                      'levels': ('not dynamic', {})}
+
+        for attr, (load, empty) in attributes.iteritems():
+            # load, rel = attributes[attr]
+            self_attr_val = getattr(self, attr)
+            if load == 'dynamic':
+                self_attr_val = self_attr_val.all()
+            if self_attr_val:
+                geo_attr_val = getattr(geo, attr)
+                if load == 'dynamic':
+                    geo_attr_val = geo_attr_val.all()
+                if geo_attr_val:
+                    raise AttributeConflict(inst1=self, attr1=attr,
+                                            inst2=geo, attr2=attr)
+                setattr(geo, attr, self_attr_val)
+                setattr(self, attr, empty)
 
     def promote_to_alias_target(self):
         '''Promote alias to alias_target
 
         Used to convert an alias into an alias_target. The existing
         alias_target is converted into an alias of the new alias_target.
-        Has no effect if the geo is already a alias_target.
+        Has no effect if the geo is already an alias_target.
         '''
         at = self.alias_target
         if at is None:  # self is already an alias_target
@@ -275,11 +302,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
         self.alias_target = None
         aliases = at.aliases.all() + [at]
         for alias in aliases:
+            # transfer references when alias_target setter called on at
             alias.alias_target = self
-
-        # transfer all other references to new alias_target geo:
-        # geodata, geolevels, ratings, follows, posts, ideas, projects
-        self.levels = at.levels
 
     def display(self, show_the=True, show_abbrev=True, abbrev_path=True,
                 max_path=float('Inf')):
@@ -319,7 +343,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
             plvl += 1
         return geostr
 
-    # Use default __repr__() from Trackable, e.g. Geo[<human_id>]
+    # Use default __repr__() from Trackable:
+    # Geo[<human_id>]
 
     def __str__(self):
         indent = ' ' * 4
@@ -330,13 +355,15 @@ class Geo(BaseGeoModel, AutoTableMixin):
             alias_target=(self.alias_target.display() if self.alias_target
                           else None),
             aliases=[alias.display() for alias in self.aliases],
+            data=('\n' + indent).join(
+                    [''] + map(str.strip, str(self.data).split('\n')[1:])),
             levels=self.levels.values(),
             parents=[p.display() for p in self.parents],
             children=[c.display(max_path=0) for c in self.children],
         )
 
         field_order = ['display', 'human_id', 'alias_target', 'aliases',
-                       'levels', 'parents', 'children']
+                       'data', 'levels', 'parents', 'children']
         string = []
         for field in field_order:
             data = fields[field]
@@ -361,14 +388,106 @@ class Geo(BaseGeoModel, AutoTableMixin):
         return '\n'.join(string)
 
 
-# TODO: Create GeoData class to store data related to the geo
-# class GeoData(BaseGeoModel, AutoTableMixin):
-#     geo_id (foreign key, 1:1)
-#     total_pop
-#     urban_pop
-#     longitude
-#     latitude
-#     other attributes related to demographics, geography, climate, etc.
+class GeoData(BaseGeoModel, AutoTableMixin):
+    '''Base class for geo data'''
+
+    geo_id = Column(types.Integer, ForeignKey('geo.id'))
+    _geo = orm.relationship('Geo', back_populates='_data')
+
+    # enables population-based prioritization and urban/rural flagging
+    total_pop = Column(types.Integer)
+    urban_pop = Column(types.Integer)
+
+    longitude = Column(types.Float)
+    latitude = Column(types.Float)
+    # future: demographics, geography, climate, etc.
+
+    @property
+    def geo(self):
+        return self._geo
+
+    @geo.setter
+    def geo(self, val):
+        if val is None:
+            raise ValueError('Cannot be set to None')
+
+        if self._geo is not None:  # Not during __init__()
+            # ensure new key is not already registered
+            key = GeoData.create_key(geo=val)
+            inst = GeoData[key]
+            if inst is not None and inst is not self:
+                raise NameError('{} is already registered.'.format(key))
+            # update registry with new key
+            GeoLevel._instances.pop(self.derive_key(), None)
+            GeoLevel[key] = self  # register the new key
+
+        self._geo = val  # set new value last
+
+    geo = orm.synonym('_geo', descriptor=geo)
+
+    @staticmethod
+    def create_key(geo, **kwds):
+        '''Create key for geo data
+
+        Return a key allowing the Trackable metaclass to register a geo
+        data instance. The key is the corresponding geo.
+        '''
+        return geo
+
+    def derive_key(self):
+        '''Derive key from a geo data instance
+
+        Return the registry key used by the Trackable metaclass from a
+        geo data instance. The key is the geo to which it is linked.
+        '''
+        return self.geo
+
+    def __init__(self, geo, total_pop=None, urban_pop=None,
+                 longitude=None, latitude=None):
+        '''Initialize a new geo level'''
+        self.geo = geo
+        self.total_pop = total_pop
+        self.urban_pop = urban_pop
+        self.longitude = longitude
+        self.latitude = latitude
+
+    # Use default __repr__() from Trackable:
+    # GeoData[Geo[<human_id>]]
+
+    def __str__(self):
+        indent = ' ' * 4
+        fields = dict(
+            geo=self.geo.display(show_abbrev=False, max_path=0),
+            total_pop='{:,}'.format(self.total_pop),
+            urban_pop='{:,}'.format(self.urban_pop),
+            longitude=self.longitude,
+            latitude=self.latitude,
+        )
+
+        field_order = ['geo', 'total_pop', 'urban_pop',
+                       'longitude', 'latitude']
+        string = []
+        for field in field_order:
+            data = fields[field]
+            if data is None:
+                continue
+            if isinstance(data, basestring) and not data.strip():
+                continue
+            if not data:
+                continue
+            if field == 'geo':
+                data_str = 'Geo: {' + field + '}'
+            else:
+                if isinstance(data, (list, type(iter(list())))):
+                    data_str = '  {field}:\n'.format(field=field)
+                    data = '\n'.join(indent + '{}'.format(v) for v in data)
+                    fields[field] = data
+                else:
+                    data_str = '  {field}: '.format(field=field)
+                data_str += '{' + field + '}'
+            data_str = data_str.format(**fields)
+            string.append(data_str)
+        return '\n'.join(string)
 
 
 class GeoLevel(BaseGeoModel, AutoTableMixin):
@@ -396,7 +515,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
     # level values: country, subdivision1, subdivision2, place, csa, cbsa
     _level = Column('level', types.String(30))
 
-    # designation values: state, county, city, etc. (lsad for place)
+    # designations: state, county, city, etc. (lsad for place)
     designation = Column(types.String(60))
 
     # Querying use cases:
@@ -447,7 +566,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         if self._geo is not None:  # Not during __init__()
             # ensure new key is not already registered
             key = GeoLevel.create_key(geo=val, level=self.level)
-            inst = Geo[key]
+            inst = GeoLevel[key]
             if inst is not None and inst is not self:
                 raise NameError('{} is already registered.'.format(key))
             # update registry with new key
@@ -470,7 +589,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         if self._level is not None:  # Not during __init__()
             # ensure new key is not already registered
             key = GeoLevel.create_key(geo=self.geo, level=val)
-            inst = Geo[key]
+            inst = GeoLevel[key]
             if inst is not None and inst is not self:
                 raise NameError('{} is already registered.'.format(key))
             # update registry with new key
@@ -494,7 +613,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         '''Derive key from a geo level instance
 
         Return the registry key used by the Trackable metaclass from a
-        geo instance. The key is a tuple of the geo and level fields.
+        geo level instance. The key is a tuple of geo and level.
         '''
         return (self.geo, self.level)
 
@@ -506,15 +625,18 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         # Must follow level assignment to provide key for Geo.levels
         self.geo = geo
 
-    # Use default __repr__() from Trackable
-    # Format: GeoLevel[Geo[<human_id>], <level>]
+    # Use default __repr__() from Trackable:
+    # GeoLevel[(Geo[<human_id>], <level>)]
 
     def __str__(self):
-        geo_level_str = '{cls}: {geo} as a {desc} ({level})'
+        designation = self.designation
+        article = 'an' if designation[0] in ('a', 'e', 'i', 'o', 'u') else 'a'
+        geo_level_str = '{cls}: {geo} as {article} {designation} ({level})'
         return geo_level_str.format(cls=self.__class__.__name__,
                                     geo=self.geo.display(show_abbrev=False,
                                                          max_path=0),
-                                    desc=self.designation,
+                                    article=article,
+                                    designation=designation,
                                     level=self.level)
 
 # TODO: Create GeoID class to map geos (by level) to 3rd party IDs
