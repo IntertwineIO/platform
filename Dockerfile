@@ -6,7 +6,8 @@ WORKDIR /opt/repos/platform
 
 # Setup environment
 RUN python -m pip install uwsgi uwsgitop \
-    && python -m pip install --process-dependency-links -e /opt/repos/platform \
+    && python -m pip install --process-dependency-links -e . \
+    && python -m pip install --process-dependency-links .[tests] \
     && apt-get clean autoclean \
     && apt-get autoremove -y \
     && rm -rf /var/lib/{apt,dpkg,cache,log}/

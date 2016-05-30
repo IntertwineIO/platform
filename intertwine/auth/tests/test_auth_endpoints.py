@@ -3,6 +3,7 @@
 import pytest
 
 
+@pytest.skip("Auth is currently disabled")
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_auth_admin_(options):
@@ -29,6 +30,7 @@ def test_auth_admin_(options):
         assert rule.rule.endswith(url)
 
 
+@pytest.skip("Auth is currently disabled")
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_auth_table_generation(options):

@@ -47,10 +47,14 @@ def test_licenses(**options):
         'tox',            # MIT
         'virtualenv',     # MIT
 
+        # Deployment packages added
+        'uWSGI',          # GPL2
+        'click',          # BSD
+
         # Known licenses that do not register with this test
         'itsdangerous',   # BSD
         'intertwine',     # Proprietary
-        # 'dominate',       # LGPL
+        'dominate',       # LGPL
     ]
 
     accepted_licenses = [
