@@ -293,7 +293,7 @@ CREATE TABLE place(
 
 CREATE TABLE lsad(
     "lsad_code" TEXT,
-    "description" TEXT,
+    "display" TEXT,
     "geo_entity_type" TEXT
 );
 
@@ -445,5 +445,15 @@ CREATE TABLE f02(
 .import geoclass.csv.tmp geoclass
 .import tmp/us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv.tmp ghr
 .import tmp/us2010.ur1.utf-8/us000022010.ur1.utf-8.csv f02
+# Note this last file is a .csv, not a .tmp
 
+#______________________________________________________________________
+#
+# STEP 5: POST-UPLOAD PROCESSING
+#______________________________________________________________________
+#
 
+# dir: intertwine/platform/data/geos
+# sqlite3 geo.db
+CREATE TABLE ghrp AS
+SELECT * FROM ghr LEFT OUTER JOIN f02 ON ghr.LOGRECNO = f02.LOGRECNO;

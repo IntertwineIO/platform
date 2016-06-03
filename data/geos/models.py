@@ -83,7 +83,7 @@ class Place(BaseGeoDataModel, AutoTablenameMixin):
 
 class LSAD(BaseGeoDataModel, AutoTablenameMixin):
     lsad_code = Column(types.String(2), primary_key=True)  # 25
-    description = Column(types.String(60))              # 'city (suffix)'
+    display = Column(types.String(60))                  # 'city (suffix)'
     geo_entity_type = Column(types.String(600))         # 'Consolidated City,
     # County or Equivalent Feature, County Subdivision, Economic Census Place,
     # Incorporated Place'
@@ -98,8 +98,13 @@ class Geoclass(BaseGeoDataModel, AutoTablenameMixin):
     # incorporated place that does not serve as a county subdivision equivalent
 
 
-class GHR(BaseGeoDataModel):
-    __tablename__ = 'ghr'
+class GHRP(BaseGeoDataModel):
+    '''Base class for Geographic Header Row Plus
+
+    Contains all columns from the Geographic Header Row (GHR) plus
+    a geoid column which is the concatenation of statefp and placefp
+    plus all columns from File 02.'''
+    __tablename__ = 'ghrp'
 
     # RECORD CODES
     fileid = Column(types.String(6))
@@ -109,7 +114,7 @@ class GHR(BaseGeoDataModel):
     chariter = Column(types.String(3))
     cifsn = Column(types.String(2))
     logrecno = Column(types.Integer, primary_key=True)  # Changed to Integer
-    f02 = orm.relationship('F02', back_populates='ghr', uselist=False)
+    # f02 = orm.relationship('F02', back_populates='ghrp', uselist=False)
 
     # GEOGRAPHIC AREA CODES
     region = Column(types.String(1))
@@ -124,7 +129,7 @@ class GHR(BaseGeoDataModel):
     county = orm.relationship('County')
 
     countycc = Column(types.String(2), ForeignKey('geoclass.geoclassfp'))
-    countyclass = orm.relationship('Geoclass', foreign_keys='GHR.countycc')
+    countyclass = orm.relationship('Geoclass', foreign_keys='GHRP.countycc')
 
     countysc = Column(types.String(2))
     cousub = Column(types.String(5))
@@ -136,7 +141,7 @@ class GHR(BaseGeoDataModel):
     place = orm.relationship('Place')
 
     placecc = Column(types.String(2), ForeignKey('geoclass.geoclassfp'))
-    placeclass = orm.relationship('Geoclass', foreign_keys='GHR.placecc')
+    placeclass = orm.relationship('Geoclass', foreign_keys='GHRP.placecc')
 
     placesc = Column(types.String(2))
     tract = Column(types.String(6))
@@ -229,28 +234,7 @@ class GHR(BaseGeoDataModel):
     # Added - concatenation of statefp and placefp
     geoid = Column(types.String(7), ForeignKey('place.geoid'))
 
-    __table_args__ = (
-        ForeignKeyConstraint(['statefp', 'countyfp'],
-                             ['county.statefp', 'county.countyfp']),
-        Index('ix_ghr',
-              # ix for index
-              'sumlev',
-              'geocomp'),
-        {}
-        )
-
-
-class F02(BaseGeoDataModel):
-    __tablename__ = 'f02'
-    fileid = Column(types.String(6))
-    stusab = Column(types.String(2))
-    chariter = Column(types.String(3))
-    cifsn = Column(types.String(2))
-    logrecno = Column(types.Integer,
-                      ForeignKey('ghr.logrecno'),
-                      primary_key=True)
-    ghr = orm.relationship('GHR', back_populates='f02')
-
+    # Added File 02 columns:
     p0020001 = Column(types.Integer)
     p0020002 = Column(types.Integer)
     p0020003 = Column(types.Integer)
@@ -259,7 +243,36 @@ class F02(BaseGeoDataModel):
     p0020006 = Column(types.Integer)
 
     __table_args__ = (
-        Index('ix_f02',
+        ForeignKeyConstraint(['statefp', 'countyfp'],
+                             ['county.statefp', 'county.countyfp']),
+        Index('ix_ghrp',
               # ix for index
-              'logrecno'),
+              'sumlev',
+              'geocomp'),
+        {}
         )
+
+
+# class F02(BaseGeoDataModel):
+#     __tablename__ = 'f02'
+#     fileid = Column(types.String(6))
+#     stusab = Column(types.String(2))
+#     chariter = Column(types.String(3))
+#     cifsn = Column(types.String(2))
+#     logrecno = Column(types.Integer,
+#                       ForeignKey('ghrp.logrecno'),
+#                       primary_key=True)
+#     ghrp = orm.relationship('GHRP', back_populates='f02')
+
+#     p0020001 = Column(types.Integer)
+#     p0020002 = Column(types.Integer)
+#     p0020003 = Column(types.Integer)
+#     p0020004 = Column(types.Integer)
+#     p0020005 = Column(types.Integer)
+#     p0020006 = Column(types.Integer)
+
+#     __table_args__ = (
+#         Index('ix_f02',
+#               # ix for index
+#               'logrecno'),
+#         )

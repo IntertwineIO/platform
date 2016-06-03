@@ -1,11 +1,10 @@
 LSAD,LSAD Description,Associated Geographic Entity
-0,,"American Indian Area, Congressional District, Consolidated City, County or Equivalent Feature, County Subdivision, Economic Census Place, Elementary School District, Incorporated Place, Local/Tribal Legislative District, Military Installation, Nation, Secondary School District, Special School Administrative Area, Special-Purpose District, State Legislative District (Lower Chamber), State Legislative District (Upper Chamber), State or Equivalent Feature, Tribal Subdivision, Unified School District, Voting District"
-3,City and Borough (suffix),County or Equivalent Feature
-4,Borough (suffix),County or Equivalent Feature
-5,Census Area (suffix),County or Equivalent Feature
-6,Balance of County EC Place,Economic Census Place
-6,County (suffix),County or Equivalent Feature
-7,District (suffix),County or Equivalent Feature
+00,,"American Indian Area, Congressional District, Consolidated City, County or Equivalent Feature, County Subdivision, Economic Census Place, Elementary School District, Incorporated Place, Local/Tribal Legislative District, Military Installation, Nation, Secondary School District, Special School Administrative Area, Special-Purpose District, State Legislative District (Lower Chamber), State Legislative District (Upper Chamber), State or Equivalent Feature, Tribal Subdivision, Unified School District, Voting District"
+03,City and Borough (suffix),County or Equivalent Feature
+04,Borough (suffix),County or Equivalent Feature
+05,Census Area (suffix),County or Equivalent Feature
+06,County (suffix),County or Equivalent Feature
+07,District (suffix),County or Equivalent Feature
 10,Island (suffix),"County or Equivalent Feature, Economic Census Place"
 12,Municipality (suffix),County or Equivalent Feature
 13,Municipio (suffix),County or Equivalent Feature

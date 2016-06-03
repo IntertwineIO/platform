@@ -77,7 +77,9 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 'Geo', secondary='geo_association',
                 primaryjoin='Geo.id==geo_association.c.child_id',
                 secondaryjoin='Geo.id==geo_association.c.parent_id',
-                backref=orm.backref('children', lazy='dynamic'),
+                backref=orm.backref('children',
+                                    lazy='dynamic',
+                                    order_by='Geo.name'),
                 lazy='joined')
 
     delimiter = '>'
@@ -231,6 +233,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
         string = '' if path_parent is None else (path_parent.human_id +
                                                  Geo.delimiter)
         string += (abbrev if abbrev else name).lower()
+        # TODO: Replace ',' with '' too?
         string = string.replace('.', '').replace(' ', '_')
         return string
 
@@ -264,6 +267,12 @@ class Geo(BaseGeoModel, AutoTableMixin):
         #     return
         self.parents = parents
         self.children = children
+
+    def __getitem__(self, key):
+        return Geo[Geo.create_key(name=key, path_parent=self)]
+
+    # __setitem__ is unnecessary and would be awkward since the key must
+    # always be derived from the value
 
     def transfer_references(self, geo):
         attributes = {'parents': ('not dynamic', []),

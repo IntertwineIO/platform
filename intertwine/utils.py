@@ -154,6 +154,11 @@ class Trackable(ModelMeta):
         for inst in cls._instances.values():
             yield inst
 
+    def unregister(cls, inst):
+        key = inst.derive_key()
+        cls._instances.pop(key)  # Throw exception if key not found
+        cls._updates.discard(key)  # Fail silently if key not found
+
     @classmethod
     def register_existing(meta, session, *args):
         '''Register existing instances of Trackable classes (in the DB)
