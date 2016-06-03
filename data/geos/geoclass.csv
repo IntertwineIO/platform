@@ -1,0 +1,40 @@
+CLASSFP,CATEGORY,NAME,DESCRIPTION
+C1,Incorporated Place,Incorporated Place,An active incorporated place that does not serve as a county subdivision equivalent
+C2,Incorporated Place,Incorporated Place Independent of Coextensive County Subdivision,An active incorporated place that is legally coextensive with a county subdivision but treated as independent of any county subdivision (an independent place)
+C3,Incorporated Place,Consolidated City,Consolidated City
+C5,Incorporated Place,Incorporated Place and County Subdivision Equivalent,An active incorporated place that is independent of any county subdivision and serves as a county subdivision equivalent (an independent place)
+C6,Incorporated Place,Incorporated Place That is Partially Independent,An active incorporated place that is partially independent of any county subdivision and partially dependent within a legal county subdivision (exists in Iowa and Ohio only)
+C7,Incorporated Place,Independent City,An incorporated place that is independent of any county (an independent city)
+C8,Incorporated Place,Consolidated City Remainder,The balance of a consolidated city excluding the separately incorporated place(s) within that consolidated government
+C9,Incorporated Place,Inactive Incorporated Place,An inactive or nonfunctioning incorporated place
+U1,Populated Place (Non-Facility),Census Designated Place With Officially Recognized Name,A census designated place (CDP) with a name officially recognized by the U.S. Board on Geographic Names for a populated place
+U2,Populated Place (Non-Facility),Census Designated Place Without Officially Recognized Name,A census designated place (CDP) with a name not officially recognized by the U.S. Board on Geographic Names for a populated place
+D0,American Indian Area,Area Claimed by Multiple American Indian tribes,Statistical or legal area administered and/or claimed by two or more American Indian tribes
+D1,American Indian Area,Federal American Indian Reservation with Off-Reservation Land Trust,Legal federally recognized American Indian area consisting of reservation and associated off-reservation trust land
+D2,American Indian Area,Federal American Indian Reservation Only,Legal federally recognized American Indian area consisting of reservation only
+D3,American Indian Area,Federal American Indian Off-Reservation Land Trust Only,Legal federally recognized American Indian area consisting of off-reservation trust land only
+D4,American Indian Area,State American Indian Reservation,Legal state-recognized American Indian reservation
+D5,American Indian Area,Off-Reservation Land Trust Portion of D1,The off-reservation trust land portion of an American Indian area with both a reservation and off-reservation trust land
+D6,American Indian Area,Federal Tribal Designated Statistical Area,"Statistical American Indian area defined for a federally recognized tribe that does not have a reservation or off-reservation trust land, specifically a tribal designated statistical area (TDSA) or Oklahoma tribal statistical area (OTSA)"
+D7,American Indian Area,American Indian Tribal Subdivision,American Indian Tribal Subdivision
+D8,American Indian Area,Reservation Portion of D1,The reservation portion of an American Indian area with both a reservation and off-reservation trust land
+D9,American Indian Area,State Designated Tribal Statistical Area,"Statistical American Indian area defined for a state-recognized tribe that does not have a reservation or off-reservation trust land, specifically a state designated tribal statistical area"
+E1,Alaska Native Area,Alaska Native Village Statistical Area,Alaska Native Village Statistical Area
+E7,Alaska Native Area,Alaska Native Regional Corporation,Alaska Native Regional Corporation
+F1,Hawaiian Home Land,Hawaiian Home Land,Hawaiian Home Land
+H1,County or County Equivalent,Active County or Equivalent,An active county or equivalent area
+H4,County or County Equivalent,Inactive County or Equivalent,An inactive county or equivalent area
+H5,County or County Equivalent,Statistical County Equivalent,A statistical county equivalent area
+H6,County or County Equivalent,Consolidated County or Equivalent,A county or equivalent feature that has consolidated its government with an incorporated place
+T1,Active Minor Civil Division,County Subdivision not Coextensive with Incorporated Place,An active county subdivision that is not coextensive with an incorporated place
+T2,Active Minor Civil Division,County Subdivision Coextensive with Census Designated Place,An active county subdivision that is coextensive with a census designated place
+T5,Active Minor Civil Division,County Subdivision Coextensive with Incorporated Place,An active county subdivision that is coextensive with an incorporated place
+T9,Active Minor Civil Division,Inactive County Subdivision,An inactive county subdivision
+Z1,Inactive or Nonfunctioning County Subdivision,Nonfunctioning County Subdivision,A nonfunctioning county subdivision
+Z2,Inactive or Nonfunctioning County Subdivision,County Subdivision Wholly Contained in Legal Native American Area,"A county subdivision that is coextensive with or wholly contained within a legal American Indian, Alaska Native, or Native Hawaiian area and is independent of any other county subdivision"
+Z3,Inactive or Nonfunctioning County Subdivision,Statistical Unorganized Territory,A county subdivision defined as a statistical unorganized territory
+Z5,Inactive or Nonfunctioning County Subdivision,Census County Division or Census Subarea,A statistical census county division (CCD) or census subarea (Alaska only)
+Z6,Inactive or Nonfunctioning County Subdivision,Subbarrio (Puerto Rico Only),Subbarrio (Puerto Rico Only)
+Z7,Inactive or Nonfunctioning County Subdivision,Independent Incorporated Place,An active incorporated place that is legally coextensive with or independent of any county subdivision in a state with only nonfunctioning county subdivisions (an independent place)
+Z9,Inactive or Nonfunctioning County Subdivision,Water Area Not Assigned to County Subdivision,Water area not assigned to a county subdivision
+M2,Federal Facility,Military Installation Census Designated Place,A census designated place (CDP) defined within a military or Coast Guard installation

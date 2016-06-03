@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block styles %}
+{{ super() }}
+<link href="{{ url_for('geos.static', filename='css/normalize.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('geos.static', filename='css/general.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('geos.static', filename='css/geos.css') }}"
+      rel="stylesheet" type="text/css">
+ {% endblock %}
+
+{% block content %}
+<div class="nav-spacer"></div>
+<header>
+    <h1>
+        <span class="page-title">Geos</span>
+        <span class="page-scope"></span>
+    </h1>
+    <span class="page-tagline"></span>
+</header>
+
+<section id="geo-list-section">
+    <div class="indent">
+        {% for geo in geos %}
+        <div class="geo-name"><p><a href={{ geo.derive_key() }}>
+            {{ geo.display(show_abbrev=False, max_path=0) }}</a></p></div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

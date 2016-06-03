@@ -20,12 +20,13 @@ import os.path
 import sys
 
 from sqlalchemy import create_engine
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 
 from config import DevConfig
 from intertwine.utils import Trackable
+from intertwine.auth.models import BaseAuthModel
+from intertwine.geos.models import BaseGeoModel
 from intertwine.problems.models import (BaseProblemModel, Problem)
 from intertwine.problems.exceptions import InvalidJSONPath
 
@@ -42,15 +43,14 @@ class DataSessionManager(object):
     session_factory = None
     session = None
 
-    def __init__(self, db_config=DevConfig.DATABASE):
+    def __init__(self, db_config=DevConfig.DATABASE,
+                 ModelBases=[BaseAuthModel, BaseGeoModel, BaseProblemModel]):
         DSM = DataSessionManager
         if DSM.engine is None:
             DSM.engine = create_engine(db_config)
-        # Only create tables if they don't exist
-        inspector = Inspector.from_engine(DSM.engine)
-        if len(inspector.get_table_names()) == 0:
-            # TODO: update to include all models/tables
-            BaseProblemModel.metadata.create_all(DSM.engine)
+        # Create tables if they don't exist
+        for ModelBase in ModelBases:
+            ModelBase.metadata.create_all(DSM.engine)
         if DSM.session_factory is None:
             DSM.session_factory = sessionmaker(bind=DSM.engine)
         if DSM.session is None:
@@ -99,8 +99,8 @@ def decode(session, json_path, *args, **options):
     >>> p0 = Problem('poverty')  # get existing 'Poverty' problem
     >>> p1 = Problem('homelessness')  # get existing 'Homelessness' problem
     >>> p2 = Problem['domestic_violence']  # Problem is subscriptable
-    >>> for k in Problem:  # Problem is iterable
-    ...    print(Problem[k])
+    >>> for p in Problem:  # Problem is iterable
+    ...    print(p)
     '''
     # Gather valid json_paths based on the given file or directory
     json_paths = []

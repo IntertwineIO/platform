@@ -19,5 +19,19 @@ class DataProcessException(Exception):
         Exception.__init__(self, message)
 
 
+class AttributeConflict(DataProcessException):
+    '''{inst1!r}.{attr1!s} conflicts with {inst2!r}.{attr2!s}'''
+
+
+class CircularReference(DataProcessException):
+    '''Setting {attr!s} on {inst!r} to {value!r} would create a
+    circular reference'''
+
+
 class InvalidRegistryKey(DataProcessException):
     '''{key!r} is not a valid registry key for class {classname}'''
+
+
+class KeyRegisteredAndNoModify(DataProcessException):
+    '''{key!r} has already been registered for class {classname} and
+    {classname}.modify() has not been implemented'''

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from .Default import DefaultConfig, DevelopmentConfig, TestingConfig, ProductionConfig, DeployableConfig
 from .Environment import LocalConfig, HerokuConfig, VagrantConfig, EBConfig, EC2Config
-from .Database import InMemoryConfig, SqlLiteConfig, PostgresConfig
+from .Database import InMemoryConfig, SqlLiteConfig, PostgresConfig, GeoSqlLiteConfig
 
 __all__ = ['DemoConfig', 'LocalDemoConfig', 'DevConfig', 'ToxConfig']
 
@@ -15,7 +15,8 @@ class LocalDemoConfig(DeployableConfig, LocalConfig, SqlLiteConfig):
     '''Configures for local demo'''
 
 
-class DevConfig(DevelopmentConfig, LocalConfig, SqlLiteConfig):
+class DevConfig(DevelopmentConfig, LocalConfig, SqlLiteConfig,
+                GeoSqlLiteConfig):
     '''Standard development environment configuration'''
 
 

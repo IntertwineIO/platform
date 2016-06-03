@@ -28,3 +28,11 @@ class PostgresConfig(DefaultDatabaseConfig):
     '''Connect to a postgres database'''
     DATABASE = 'Not Implemented'
     SQLALCHEMY_DATABASE_URI = DATABASE
+
+
+class GeoSqlLiteConfig(DefaultDatabaseConfig):
+    '''Local SqlLite file'''
+    GEO_DATABASE = 'sqlite:///{}'.format(
+        os.path.join(os.path.abspath(os.getcwd()), 'data/geos/geo.db')
+    )
+    GEO_SQLALCHEMY_DATABASE_URI = GEO_DATABASE

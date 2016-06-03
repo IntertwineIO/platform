@@ -1,0 +1,17 @@
+#geo-list-section {
+    margin-top: 1em;
+    color: #1A1A1A;
+    vertical-align: top;
+    text-align: left;
+}
+
+.indent {
+    font-size: 1em;
+    width: 80%;
+    margin: 0 auto;
+}
+
+.geo-name {
+    font-size: 1em;
+}
+

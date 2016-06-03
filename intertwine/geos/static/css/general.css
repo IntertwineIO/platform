@@ -1,0 +1,367 @@
+
+
+body {
+	margin: 0;
+	padding: 0;
+	/*font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;*/
+	font-size: 100%;
+	background-color: white; /* #EBF0FC #bed2fa; */
+	min-width: 1em; /* preserves network structure */
+	width: auto !important;  /* Firefox will set width as auto */
+    width: 1000px;             /* As IE ignores !important it will set width as 1000px; */
+}
+
+header {
+	/*margin-top: 5em;*/
+	margin-left: 1em;
+}
+
+section {
+	color: #1A1A1A;
+	margin-top: 1em;
+	/*background-color: white;*/
+	/*border: 0.05em solid #1A1A1A;*/
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+	color: #1A1A1A;
+}
+
+h1 {
+	margin-top: 0em;
+	margin-bottom: 0em;
+	/*line-height: 1.1;*/
+}
+
+h2 {
+	margin-top: 0em;
+	margin-bottom: 0em;
+}
+
+.page-title {
+	/*margin-top: 0em;*/
+	font-size: 1.5em;
+}
+
+.page-scope {
+	font-size: 0.8em;
+	/*padding-left: 0.75em;*/
+}
+
+.page-tagline {
+	margin-top: 0.2em;
+	font-size: 1.2em;
+	line-height: 1;
+	text-align: left;
+}
+
+/* 320px */
+@media (min-width: 20em) {
+    header, section {
+        font-size: 1.2em;
+    }
+}
+
+/* 448px */
+@media (min-width: 28em) {
+    header, section {
+        font-size: 1.3em;
+    }
+}
+
+/* 512px */
+@media (min-width: 32em) {
+    header, section {
+        font-size: 1.5em;
+    }
+}
+
+/* 768px */
+@media (min-width: 48em) {
+    header, section {
+        font-size: 1.75em;
+    }
+}
+
+.nav-spacer {
+	padding: 3em 0;
+}
+
+.h-x-small-spacer {
+	margin: 0 0.0625em;
+}
+
+.h-small-spacer {
+	margin: 0 0.125em;
+}
+
+.h-medium-spacer {
+	margin: 0 0.25em;
+}
+
+.h-large-spacer {
+	margin: 0 0.5em;
+}
+
+.v-x-small-spacer {
+	margin: 0.0625em 0;
+}
+
+.v-small-spacer {
+	margin: 0.125em 0;
+}
+
+.v-medium-spacer {
+	margin: 0.25em 0;
+}
+
+.v-large-spacer {
+	margin: 0.5em 0;
+}
+
+.v-1x-large-spacer {
+	margin: 1.0em 0;
+}
+
+.v-2x-large-spacer {
+	margin: 2.0em 0;
+}
+
+.v-3x-large-spacer {
+	margin: 3.0em 0;
+}
+
+/* helper is used by an empty span to allow other images in the same div to be vertically aligned */
+.img-v-align-helper {
+	display: inline-block;
+	height: 100%;
+	vertical-align: middle;
+	margin: 0 auto;
+}
+
+.v-ghost-center-outer {
+	text-align: center;
+
+	/*in case container may be narrower than content*/
+	white-space: nowrap;
+}
+
+.v-ghost-center-outer::before {
+	content: '';
+	display: inline-block;
+	height: 100%;
+	vertical-align: middle;;
+	margin-right: -0.25em; /* Adjusts for spacing */
+}
+
+.v-ghost-center-inner {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.v-ghost-center-before {
+	position: relative;
+}
+.v-ghost-center-before::before {
+	display: inline-block;
+	vertical-align: middle;
+	height: 100%;
+	content: "";
+	margin-right: -1em;
+}
+.v-ghost-center-before div {
+	display: inline-block;
+	vertical-align: middle;
+	text-align: right;
+	width: 95%;
+}
+
+.v-ghost-center-after {
+	position: relative;
+}
+.v-ghost-center-after::after {
+	display: inline-block;
+	vertical-align: middle;
+	height: 100%;
+	content: "";
+	margin-left: -1em;
+}
+.v-ghost-center-after div {
+	display: inline-block;
+	vertical-align: middle;
+	width: 95%;
+}
+
+.center-outer {
+	position: relative;
+}
+
+.center-inner {
+	width: 100%;
+	height: 100%;
+	overflow: auto;
+	margin: auto;
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+}
+
+.v-align-outer {
+	display: table;
+	height: 100%;
+	margin: 0 auto;
+/*	overflow: hidden; */
+}
+
+.v-align-inner {
+	display: table-cell;
+	vertical-align: middle;
+	margin: 0 auto;
+}
+
+.v-align-inner-top {
+	display: table-cell;
+	vertical-align: top;
+	margin: 0 auto;
+}
+
+.v-align-inner-bottom {
+	display: table-cell;
+	vertical-align: bottom;
+	margin: 0 auto;
+}
+
+.h-align-outer {
+	display: table;
+	width: 100%;
+	margin: 0 auto;
+/*	overflow: hidden; */
+}
+
+.h-align-inner {
+	display: table-cell;
+	text-align: center;
+	margin: 0 auto;
+}
+
+.h-align-inner-left {
+	display: table-cell;
+	text-align: left;
+	margin: 0 auto;
+}
+
+.h-align-inner-right {
+	display: table-cell;
+	text-align: right;
+	margin: 0 auto;
+}
+
+.center-outer {
+	display: table;
+	height: 100%;
+	width: 100%;
+	margin: 0 auto;
+}
+
+.center-inner {
+	display: table-cell;
+	vertical-align: middle;
+	text-align: center;
+	margin: 0 auto;
+}
+
+.h-resizable {
+	resize: horizontal;
+}
+
+.not-resizable {
+	resize: none;
+}
+
+.invisible {
+    /* Fallback for web browsers that don't support RGBa */
+    background: rgb(0, 0, 0);
+    /* RGBa with 0 opacity */
+    background: rgba(0, 0, 0, 0);
+}
+
+div.arrow-left {
+	width: 0;
+	height: 0;
+	border-bottom: 1em solid transparent;
+	border-top: 1em solid transparent;
+	border-right: 1em solid #1A1A1A;
+}
+
+div.arrow-right {
+	width: 0;
+	height: 0;
+	border-bottom: 1em solid transparent;
+	border-top: 1em solid transparent;
+	border-left: 1em solid #1A1A1A;
+}
+
+div.arrow-up {
+	width: 0;
+	height: 0;
+	border-left: 1em solid transparent;
+	border-right: 1em solid transparent;
+	border-bottom: 1em solid #1A1A1A;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+div.arrow-down {
+	width: 0;
+	height: 0;
+	border-left: 1em solid transparent;
+	border-right: 1em solid transparent;
+	border-top: 1em solid #1A1A1A;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.rotate {
+  -webkit-transform: rotate(-90deg);
+  -moz-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  -o-transform: rotate(-90deg);
+  transform: rotate(-90deg);
+
+  /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
+  -webkit-transform-origin: 50% 50%;
+  -moz-transform-origin: 50% 50%;
+  -ms-transform-origin: 50% 50%;
+  -o-transform-origin: 50% 50%;
+  transform-origin: 50% 50%;
+
+  /* Should be unset in IE9+ I think. */
+  filter: progid: DXImageTransform.Microsoft.BasicImage(rotation=3);
+}
+
+.word-break {
+  /* These are technically the same, but use both */
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+
+  -ms-word-break: break-all;
+  /* This is the dangerous one in WebKit, as it breaks things wherever */
+  /*word-break: break-all;*/
+
+  /* Instead use this non-standard one: */
+  /* Incompatible with Firefox hyphens? */
+  word-break: break-word;
+
+  /* Adds a hyphen where the word breaks, if supported (No Blink) */
+  -webkit-hyphens: auto;
+  -moz-hyphens: auto;
+  -ms-hyphens: auto;
+  hyphens: auto;
+}
