@@ -37,8 +37,8 @@ def create_app(config):
     if app.config['DEBUG']:
         app.config['SQLALCHEMY_ECHO'] = True
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-        from flask_debugtoolbar import DebugToolbarExtension
-        toolbar = DebugToolbarExtension()
+    #     from flask_debugtoolbar import DebugToolbarExtension
+    #     toolbar = DebugToolbarExtension()
 
     # Auto-build SASS/SCSS for each request
     # app.wsgi_app = SassMiddleware(app.wsgi_app, {
@@ -60,7 +60,7 @@ def create_app(config):
     #     __name__: ('problems/static/sass', 'problems/static/css', 'problems/static/css')
     # })
 
-    if app.config['DEBUG']:
-        toolbar.init_app(app)
+    # if app.config['DEBUG']:
+    #     toolbar.init_app(app)
 
     return app

@@ -55,3 +55,8 @@ __pycache__
 
 # Linux trash folder which might appear on any partition or disk
 .Trash-*
+
+# ----------------------------------------------------------------------
+#  Large data binary files
+# ----------------------------------------------------------------------
+data/geos/automation/files
