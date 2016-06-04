@@ -74,6 +74,7 @@ requirements = {
     # Identifies what is needed to run the scripts included
     'script': [
         'pyyaml',
+        'python-magic',
     ],
 
     # Identifies what is needed for tests to run
