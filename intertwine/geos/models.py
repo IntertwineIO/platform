@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import json
+
 from alchy.model import ModelBase, make_declarative_base
 from sqlalchemy import orm, types, Column, ForeignKey, Index, Table
 from sqlalchemy.orm.collections import attribute_mapped_collection
@@ -338,13 +340,13 @@ class Geo(BaseGeoModel, AutoTableMixin):
         while geo is not None and plvl <= max_path:
             the = ('The ' if geo.the_prefix and show_the else '')
             if plvl == 0:
-                geostr += '{the}{name}'.format(the=the, name=geo.name)
+                geostr += u'{the}{name}'.format(the=the, name=geo.name)
                 if geo.abbrev and show_abbrev:
-                    geostr += ' ({abbrev})'.format(abbrev=geo.abbrev)
+                    geostr += u' ({abbrev})'.format(abbrev=geo.abbrev)
             elif abbrev_path:
-                geostr += '{abbrev}'.format(abbrev=geo.abbrev)
+                geostr += u'{abbrev}'.format(abbrev=geo.abbrev)
             else:
-                geostr += '{name}'.format(name=geo.name)
+                geostr += u'{name}'.format(name=geo.name)
 
             if geo.path_parent is not None and plvl < max_path:
                 geostr += ', '
@@ -356,6 +358,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
     # Geo[<human_id>]
 
     def __str__(self):
+        limit = 10
         indent = ' ' * 4
         fields = dict(
             display=self.display(max_path=0, show_the=True, show_abbrev=True,
@@ -364,10 +367,10 @@ class Geo(BaseGeoModel, AutoTableMixin):
             alias_target=(self.alias_target.display() if self.alias_target
                           else None),
             aliases=[alias.display() for alias in self.aliases],
-            data=('\n' + indent).join(
-                    [''] + map(str.strip, str(self.data).split('\n')[1:])),
+            data=('\n' + indent).join([''] + map(
+                    unicode.strip, unicode(self.data).split('\n')[1:])),
             levels=self.levels.values(),
-            parents=[p.display() for p in self.parents],
+            parents=[p.display(max_path=0) for p in self.parents],
             children=[c.display(max_path=0) for c in self.children],
         )
 
@@ -383,18 +386,64 @@ class Geo(BaseGeoModel, AutoTableMixin):
             if not data:
                 continue
             if field == 'display':
-                data_str = 'Geo: {' + field + '}'
+                data_str = u'Geo: {' + field + '}'
             else:
                 if isinstance(data, (list, type(iter(list())))):
-                    data_str = '  {field}:\n'.format(field=field)
-                    data = '\n'.join(indent + '{}'.format(v) for v in data)
+                    data_str = u'  {field}:\n'.format(field=field)
+                    len_d = len(data)
+                    if len_d > limit:
+                        data = data[:min(len_d, limit)] + [
+                            '({limit} of {total})'.format(limit=limit,
+                                                          total=len_d)]
+                    data = '\n'.join(indent + u'{}'.format(v) for v in data)
                     fields[field] = data
                 else:
-                    data_str = '  {field}: '.format(field=field)
+                    data_str = u'  {field}: '.format(field=field)
                 data_str += '{' + field + '}'
             data_str = data_str.format(**fields)
             string.append(data_str)
         return '\n'.join(string)
+
+    def json(self, limit=10, compact=True):
+        is_alias = self.alias_target is not None
+        has_data = self.data is not None
+        has_path_p = self.path_parent is not None
+        cq = self.children
+        d = {
+            'human_id': self.human_id,
+            'display': self.display(max_path=1, show_the=True,
+                                    show_abbrev=False, abbrev_path=True),
+            'name': self.name,
+            'the_prefix': self.the_prefix,
+            'abbrev': self.abbrev,
+            'alias_target': self.alias_target.human_id if is_alias else None,
+            'data': {
+                'total_pop': self.data.total_pop if has_data else None,
+                'urban_pop': self.data.urban_pop if has_data else None,
+                'latitude': self.data.latitude if has_data else None,
+                'longitude': self.data.longitude if has_data else None
+            },
+            'levels': {
+                lvl: {
+                    'level': glvl.level,
+                    'designation': glvl.designation
+                } for lvl, glvl in self.levels.iteritems()
+            },
+            'path_parent': self.path_parent.human_id if has_path_p else None,
+            'parents': [p.human_id for p in self.parents],
+            'children': {
+                lvl: [c.human_id for c in
+                      cq.join(Geo.data).join(Geo.levels).filter(
+                            GeoLevel.level == lvl).limit(limit).all()
+                      ] for lvl in GeoLevel.down
+            }
+        }
+        if compact:
+            ret = json.dumps(d, separators=(',', ':'))
+        else:
+            ret = json.dumps(d, sort_keys=True, indent=4,
+                             separators=(',', ': '))
+        return ret
 
 
 class GeoData(BaseGeoModel, AutoTableMixin):
@@ -407,9 +456,17 @@ class GeoData(BaseGeoModel, AutoTableMixin):
     total_pop = Column(types.Integer)
     urban_pop = Column(types.Integer)
 
-    longitude = Column(types.Float)
     latitude = Column(types.Float)
+    longitude = Column(types.Float)
     # future: demographics, geography, climate, etc.
+
+    __table_args__ = (Index('ux_geo_data:geo_id',
+                            # ux for unique index
+                            'geo_id',
+                            unique=True),
+                      Index('ix_geo_data:total_pop',
+                            # ix for index
+                            'total_pop'),)
 
     @property
     def geo(self):
@@ -457,8 +514,8 @@ class GeoData(BaseGeoModel, AutoTableMixin):
         self.geo = geo
         self.total_pop = total_pop
         self.urban_pop = urban_pop
-        self.longitude = longitude
         self.latitude = latitude
+        self.longitude = longitude
 
     # Use default __repr__() from Trackable:
     # GeoData[Geo[<human_id>]]
@@ -469,12 +526,12 @@ class GeoData(BaseGeoModel, AutoTableMixin):
             geo=self.geo.display(show_abbrev=False, max_path=0),
             total_pop='{:,}'.format(self.total_pop),
             urban_pop='{:,}'.format(self.urban_pop),
-            longitude=self.longitude,
             latitude=self.latitude,
+            longitude=self.longitude,
         )
 
         field_order = ['geo', 'total_pop', 'urban_pop',
-                       'longitude', 'latitude']
+                       'latitude', 'longitude']
         string = []
         for field in field_order:
             data = fields[field]
@@ -485,14 +542,14 @@ class GeoData(BaseGeoModel, AutoTableMixin):
             if not data:
                 continue
             if field == 'geo':
-                data_str = 'Geo: {' + field + '}'
+                data_str = u'Geo: {' + field + '}'
             else:
                 if isinstance(data, (list, type(iter(list())))):
-                    data_str = '  {field}:\n'.format(field=field)
-                    data = '\n'.join(indent + '{}'.format(v) for v in data)
+                    data_str = u'  {field}:\n'.format(field=field)
+                    data = '\n'.join(indent + u'{}'.format(v) for v in data)
                     fields[field] = data
                 else:
-                    data_str = '  {field}: '.format(field=field)
+                    data_str = u'  {field}: '.format(field=field)
                 data_str += '{' + field + '}'
             data_str = data_str.format(**fields)
             string.append(data_str)
@@ -546,19 +603,19 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
                             unique=True),)
 
     down = {
-        'country': 'subdivision1',
+        'country': ('subdivision1',),
         'subdivision1': ('subdivision2', 'csa', 'cbsa', 'place'),
-        'subdivision2': 'place',
+        'subdivision2': ('place',),
         'csa': ('subdivision2', 'cbsa', 'place'),
         'cbsa': ('subdivision2', 'place'),
-        'place': None
+        'place': ()
     }
 
     up = {
-        'country': None,
-        'subdivision1': 'country',
+        'country': (),
+        'subdivision1': ('country',),
         'subdivision2': ('cbsa', 'csa', 'subdivision1'),
-        'csa': 'subdivision1',
+        'csa': ('subdivision1',),
         'cbsa': ('csa', 'subdivision1'),
         'place': ('cbsa', 'csa', 'subdivision2', 'subdivision1')
     }
@@ -640,7 +697,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
     def __str__(self):
         designation = self.designation
         article = 'an' if designation[0] in ('a', 'e', 'i', 'o', 'u') else 'a'
-        geo_level_str = '{cls}: {geo} as {article} {designation} ({level})'
+        geo_level_str = u'{cls}: {geo} as {article} {designation} ({level})'
         return geo_level_str.format(cls=self.__class__.__name__,
                                     geo=self.geo.display(show_abbrev=False,
                                                          max_path=0),

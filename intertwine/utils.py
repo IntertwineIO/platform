@@ -47,10 +47,10 @@ def __trepr__(self, indent_level=0):
     indent = ' '*4*indent_level
 
     if self is None or isinstance(self, (type(unicode()), type(str()))):
-        return "{indent}{self!r}".format(indent=indent, self=self)
+        return u'{indent}{self!r}'.format(indent=indent, self=self)
 
     key = self.derive_key()
-    cls = '{indent}{cls}'.format(indent=indent, cls=self.__class__.__name__)
+    cls = u'{indent}{cls}'.format(indent=indent, cls=self.__class__.__name__)
 
     if isinstance(key, tuple):
         ob, cb = '[(', ')]'
@@ -59,13 +59,13 @@ def __trepr__(self, indent_level=0):
         ob, cb = '[', ']'
 
     treprs = map(lambda x: __trepr__(x, indent_level+1), key)
-    all_on_1_line = cls + ob + ', '.join(map(str.strip, treprs)) + cb
+    all_on_1_line = cls + ob + ', '.join(map(unicode.strip, treprs)) + cb
 
     if len(all_on_1_line) <= Trackable.max_width:
-        return all_on_1_line
+        return unicode(all_on_1_line)
     else:
-        return (cls + ob + '\n' + ',\n'.join(treprs) +
-                '\n{indent}'.format(indent=indent) + cb)
+        return unicode(cls + ob + '\n' + ',\n'.join(treprs) +
+                       '\n{indent}'.format(indent=indent) + cb)
 
 
 def __repr__(self):

@@ -230,8 +230,7 @@ def load_geo_data():
                         continue
                     else:
                         raise NameError('key conflict with geo that is '
-                                         'neither a place nor subdivision2')
-
+                                        'neither a place nor subdivision2')
 
                 assert len(counties) > 0
                 place_name += ' (' + desig + ' in ' + counties[0].name + ')'
@@ -275,7 +274,8 @@ def load_geo_data():
 
     # Clean up consolidated counties with only one place
     for county, places in consolidated.iteritems():
-        if len(places) == 1:
+        county_parents = [p for p in places[0].parents if p.levels.get('subdivision2', None) is not None]
+        if len(places) == 1 and len(county_parents) == 1:
             place = places[0]
             # GeoData.unregister(place.data)
             place.data = None

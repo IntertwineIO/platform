@@ -19,7 +19,7 @@ def render():
     if len(geos) == 1:
         geo = geos[0]
         glvl = geo.levels.keys()[0]
-        dlvl = GeoLevel.down[glvl]
+        dlvl = GeoLevel.down[glvl][0]
 
         by_name = sorted(geo.children.all(), key=attrgetter('name'))
         by_designation = sorted(by_name,
