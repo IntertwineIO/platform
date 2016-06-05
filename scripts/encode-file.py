@@ -33,7 +33,7 @@ def main(**opts):
         print('File encoding: {}'.format(encoding))
         print('File output: {}'.format(decoding))
     with open(opts.get('filepath'), 'r') as fd:
-        for idx, line in enumerate(fd.readlines()):
+        for idx, line in enumerate(fd):
             try:
                 print(line.strip().decode(encoding).encode(decoding))
             except Exception:
