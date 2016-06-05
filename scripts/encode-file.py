@@ -11,6 +11,8 @@ Options:
    -d --decoding DECODE    Describes the final file format desired  [default: utf-8]
    -v --verbose            More spam
 '''
+from __future__ import print_function
+
 import os
 
 import docopt
@@ -33,7 +35,7 @@ def main(**opts):
     with open(opts.get('filepath'), 'r') as fd:
         for idx, line in enumerate(fd.readlines()):
             try:
-                print(line.decode(encoding).encode(decoding))
+                print(line.strip().decode(encoding).encode(decoding))
             except Exception:
                 print('Error on line: {} of file "{}".'.format(idx, filepath))
                 try:
