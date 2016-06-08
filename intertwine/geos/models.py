@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from collections import OrderedDict
 import json
 
 from alchy.model import ModelBase, make_declarative_base
@@ -84,7 +85,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
                                     order_by='Geo.name'),
                 lazy='joined')
 
-    delimiter = '>'
+    delimiter = '/'
 
     @property
     def name(self):
@@ -232,12 +233,12 @@ class Geo(BaseGeoModel, AutoTableMixin):
         '''
         if path_parent is None and alias_target is not None:
             path_parent = alias_target.path_parent
-        string = '' if path_parent is None else (path_parent.human_id +
-                                                 Geo.delimiter)
-        string += (abbrev if abbrev else name).lower()
-        # TODO: Replace ',' with '' too?
-        string = string.replace('.', '').replace(' ', '_')
-        return string
+        path = '' if path_parent is None else (path_parent.human_id +
+                                               Geo.delimiter)
+        qualifier = abbrev if abbrev else name
+        qualifier = (qualifier.replace('.', '').replace(', ', '-')
+                     ).replace('/', '-').replace(' ', '_').lower()
+        return path + qualifier
 
     def derive_key(self):
         '''Derive key from a geo instance
@@ -247,13 +248,17 @@ class Geo(BaseGeoModel, AutoTableMixin):
         '''
         return self.human_id
 
-    # TODO: add levels=[]  # a list of (level, designation, geo_ids) tuples,
-    #                      # where geo_ids is a list of (standard, code) tuples
-    # TODO: add data={}  # a dictionary of attribute/value pairs
     def __init__(self, name, abbrev=None, path_parent=None, alias_target=None,
-                 the_prefix=None, parents=[], children=[]):
-                # total_pop=None, urban_pop=None):
-        '''Initialize a new geo'''
+                 the_prefix=None, data=None, levels={},
+                 parents=[], children=[]):
+        '''Initialize a new geo
+
+        The data parameter is the GeoData JSON, though the geo need not
+        be specified since the geo should be self. The levels parameter
+        is a dictionary of GeoLevel JSON keyed by level, where the geo
+        and level need not be specified in the GeoLevel JSON since the
+        geo should be self and the level should match the key.
+        '''
         self.name = name
         if the_prefix is not None:  # Override calculated value, if provided
             self.the_prefix = the_prefix
@@ -267,6 +272,46 @@ class Geo(BaseGeoModel, AutoTableMixin):
                                        alias_target=self.alias_target)
         # if self.alias_target is not None:
         #     return
+
+        new_data = data
+        if new_data is not None:
+            # The geo for the data should always be self. If a geo key
+            # is provided, make sure it matches and remove it.
+            data_geo = new_data.get('geo', None)
+            if data_geo == repr(self):
+                new_data = data.copy()
+                new_data.pop('geo')
+            elif data_geo is not None:
+                raise KeyError('Geo data json contains a geo key that '
+                               'does not match geo being created')
+        self.data = (GeoData(geo=self, **new_data)
+                     if new_data is not None else None)
+
+        self.levels = {}
+        for lvl, glvl in levels.iteritems():
+            new_glvl = glvl
+            # The geo for the geolevel should always be self. If a geo
+            # key is provided, make sure it matches and remove it.
+            glvl_geo = new_glvl.get('geo', None)
+            if glvl_geo == repr(self):
+                new_glvl = glvl.copy()
+                new_glvl.pop('geo')
+            elif glvl_geo is not None:
+                raise KeyError('Geo level json contains a geo key that '
+                               'does not match geo being created')
+            # The level for the geolevel should always be the key. If a
+            # level is provided, make sure it matches and remove it.
+            glvl_level = new_glvl.get('level', None)
+            if glvl_level == lvl:
+                if new_glvl == glvl:
+                    new_glvl = glvl.copy()
+                new_glvl.pop('level')
+
+            elif glvl_level is not None:
+                raise KeyError('Geo level json contains a level that '
+                               'does not match key for the geo level')
+            self.levels[lvl] = GeoLevel(geo=self, level=lvl, **new_glvl)
+
         self.parents = parents
         self.children = children
 
@@ -360,24 +405,22 @@ class Geo(BaseGeoModel, AutoTableMixin):
     def __str__(self):
         limit = 10
         indent = ' ' * 4
-        fields = dict(
-            display=self.display(max_path=0, show_the=True, show_abbrev=True,
-                                 abbrev_path=True),
-            human_id=self.human_id,
-            alias_target=(self.alias_target.display() if self.alias_target
-                          else None),
-            aliases=[alias.display() for alias in self.aliases],
-            data=('\n' + indent).join([''] + map(
-                    unicode.strip, unicode(self.data).split('\n')[1:])),
-            levels=self.levels.values(),
-            parents=[p.display(max_path=0) for p in self.parents],
-            children=[c.display(max_path=0) for c in self.children],
-        )
+        fields = OrderedDict((
+            ('display', self.display(max_path=0, show_the=True,
+                                     show_abbrev=True, abbrev_path=True)),
+            ('human_id', self.human_id),
+            ('alias_target', (self.alias_target.display()
+                              if self.alias_target else None)),
+            ('aliases', [alias.display() for alias in self.aliases]),
+            ('data', ('\n' + indent).join([''] + map(
+                        unicode.strip, unicode(self.data).split('\n')[1:]))),
+            ('levels', self.levels.values()),
+            ('parents', [p.display(max_path=0) for p in self.parents]),
+            ('children', [c.display(max_path=0) for c in self.children]),
+        ))
 
-        field_order = ['display', 'human_id', 'alias_target', 'aliases',
-                       'data', 'levels', 'parents', 'children']
         string = []
-        for field in field_order:
+        for field in fields:
             data = fields[field]
             if data is None:
                 continue
@@ -404,46 +447,53 @@ class Geo(BaseGeoModel, AutoTableMixin):
             string.append(data_str)
         return '\n'.join(string)
 
-    def json(self, limit=10, compact=True):
-        is_alias = self.alias_target is not None
-        has_data = self.data is not None
-        has_path_p = self.path_parent is not None
+    # change compact default to True
+    def json(self, limit=10, compact=False, mute=[], level=0):
         cq = self.children
-        d = {
-            'human_id': self.human_id,
-            'display': self.display(max_path=1, show_the=True,
-                                    show_abbrev=False, abbrev_path=True),
-            'name': self.name,
-            'the_prefix': self.the_prefix,
-            'abbrev': self.abbrev,
-            'alias_target': self.alias_target.human_id if is_alias else None,
-            'data': {
-                'total_pop': self.data.total_pop if has_data else None,
-                'urban_pop': self.data.urban_pop if has_data else None,
-                'latitude': self.data.latitude if has_data else None,
-                'longitude': self.data.longitude if has_data else None
-            },
-            'levels': {
-                lvl: {
-                    'level': glvl.level,
-                    'designation': glvl.designation
-                } for lvl, glvl in self.levels.iteritems()
-            },
-            'path_parent': self.path_parent.human_id if has_path_p else None,
-            'parents': [p.human_id for p in self.parents],
-            'children': {
-                lvl: [c.human_id for c in
-                      cq.join(Geo.data).join(Geo.levels).filter(
-                            GeoLevel.level == lvl).limit(limit).all()
-                      ] for lvl in GeoLevel.down
-            }
-        }
-        if compact:
-            ret = json.dumps(d, separators=(',', ':'))
+        od = OrderedDict()
+        od['human_id'] = self.human_id
+        od['display'] = self.display(max_path=1, show_the=True,
+                                     show_abbrev=False, abbrev_path=True)
+        od['name'] = self.name
+        od['the_prefix'] = self.the_prefix
+        od['abbrev'] = self.abbrev
+        od['path_parent'] = (self.path_parent.human_id
+                             if self.path_parent is not None else None)
+        od['alias_target'] = (self.alias_target.human_id
+                              if self.alias_target else None)
+
+        od['data'] = (self.data.json(limit=limit, compact=compact,
+                      mute=mute+['geo'], level=level+1)
+                      if self.data else {})
+
+        od['levels'] = OrderedDict(
+            (lvl, self.levels[lvl].json(limit=limit, compact=compact,
+                                        mute=mute+['geo'],
+                                        level=level+1))
+            for lvl in GeoLevel.down if self.levels.get(lvl, None))
+
+        od['parents'] = [p.human_id for p in self.parents]
+
+        od['children'] = OrderedDict(
+            (lvl, [c.human_id for c in
+                   cq.join(Geo.data).join(Geo.levels).filter(
+                        GeoLevel.level == lvl).limit(limit).all()
+                   ]) for lvl in GeoLevel.down
+        )
+        for lvl, glvl in od['children'].iteritems():
+            if len(glvl) == 0:
+                od['children'].pop(lvl)
+
+        for field in mute:
+            od.pop(field, None)  # fail silently if field not present
+
+        if level == 0:
+            if compact:
+                return json.dumps(od, separators=(',', ':'))
+            else:
+                return json.dumps(od, separators=(',', ': '), indent=4)
         else:
-            ret = json.dumps(d, sort_keys=True, indent=4,
-                             separators=(',', ': '))
-        return ret
+            return od
 
 
 class GeoData(BaseGeoModel, AutoTableMixin):
@@ -482,7 +532,7 @@ class GeoData(BaseGeoModel, AutoTableMixin):
             key = GeoData.create_key(geo=val)
             inst = GeoData[key]
             if inst is not None and inst is not self:
-                raise NameError('{} is already registered.'.format(key))
+                raise NameError('{!r} is already registered.'.format(key))
             # update registry with new key
             GeoLevel._instances.pop(self.derive_key(), None)
             GeoLevel[key] = self  # register the new key
@@ -522,18 +572,16 @@ class GeoData(BaseGeoModel, AutoTableMixin):
 
     def __str__(self):
         indent = ' ' * 4
-        fields = dict(
-            geo=self.geo.display(show_abbrev=False, max_path=0),
-            total_pop='{:,}'.format(self.total_pop),
-            urban_pop='{:,}'.format(self.urban_pop),
-            latitude=self.latitude,
-            longitude=self.longitude,
-        )
+        fields = OrderedDict((
+            ('geo', self.geo.display(show_abbrev=False, max_path=0)),
+            ('total_pop', '{:,}'.format(self.total_pop)),
+            ('urban_pop', '{:,}'.format(self.urban_pop)),
+            ('latitude', self.latitude),
+            ('longitude', self.longitude),
+        ))
 
-        field_order = ['geo', 'total_pop', 'urban_pop',
-                       'latitude', 'longitude']
         string = []
-        for field in field_order:
+        for field in fields:
             data = fields[field]
             if data is None:
                 continue
@@ -554,6 +602,27 @@ class GeoData(BaseGeoModel, AutoTableMixin):
             data_str = data_str.format(**fields)
             string.append(data_str)
         return '\n'.join(string)
+
+    # change compact default to True
+    def json(self, limit=10, compact=False, mute=[], level=0):
+        od = OrderedDict((
+            ('geo', repr(self.geo)),
+            ('total_pop', self.total_pop),
+            ('urban_pop', self.urban_pop),
+            ('latitude', self.latitude),
+            ('longitude', self.longitude)
+        ))
+
+        for field in mute:
+            od.pop(field, None)  # fail silently if field not present
+
+        if level == 0:
+            if compact:
+                return json.dumps(od, separators=(',', ':'))
+            else:
+                return json.dumps(od, separators=(',', ': '), indent=4)
+        else:
+            return od
 
 
 class GeoLevel(BaseGeoModel, AutoTableMixin):
@@ -602,23 +671,23 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
                             'geo_id',
                             unique=True),)
 
-    down = {
-        'country': ('subdivision1',),
-        'subdivision1': ('subdivision2', 'csa', 'cbsa', 'place'),
-        'subdivision2': ('place',),
-        'csa': ('subdivision2', 'cbsa', 'place'),
-        'cbsa': ('subdivision2', 'place'),
-        'place': ()
-    }
+    down = OrderedDict((
+        ('country', ('subdivision1',)),
+        ('subdivision1', ('subdivision2', 'csa', 'cbsa', 'place')),
+        ('subdivision2', ('place',)),
+        ('csa', ('subdivision2', 'cbsa', 'place')),
+        ('cbsa', ('subdivision2', 'place')),
+        ('place', ())
+        ))
 
-    up = {
-        'country': (),
-        'subdivision1': ('country',),
-        'subdivision2': ('cbsa', 'csa', 'subdivision1'),
-        'csa': ('subdivision1',),
-        'cbsa': ('csa', 'subdivision1'),
-        'place': ('cbsa', 'csa', 'subdivision2', 'subdivision1')
-    }
+    up = OrderedDict((
+        ('place', ('cbsa', 'csa', 'subdivision2', 'subdivision1')),
+        ('cbsa', ('csa', 'subdivision1')),
+        ('csa', ('subdivision1',)),
+        ('subdivision2', ('cbsa', 'csa', 'subdivision1')),
+        ('subdivision1', ('country',)),
+        ('country', ())
+        ))
 
     @property
     def geo(self):
@@ -704,6 +773,26 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
                                     article=article,
                                     designation=designation,
                                     level=self.level)
+
+    # change compact default to True
+    def json(self, limit=10, compact=False, mute=[], level=0):
+        od = OrderedDict((
+                ('geo', repr(self.geo)),
+                ('level', self.level),
+                ('designation', self.designation)
+            ))
+
+        for field in mute:
+            od.pop(field, None)  # fail silently if field not present
+
+        if level == 0:
+            if compact:
+                return json.dumps(od, separators=(',', ':'))
+            else:
+                return json.dumps(od, separators=(',', ': '), indent=4)
+        else:
+            return od
+
 
 # TODO: Create GeoID class to map geos (by level) to 3rd party IDs
 # class GeoID(BaseGeoModel, AutoTableMixin):

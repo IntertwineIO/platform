@@ -204,10 +204,10 @@ def load_geo_data():
             key = Geo.create_key(name=place_name, path_parent=state)
             existing = Geo[key]
             if existing is not None:
-                # if not an alias, rename it and make an alias to it
                 # TODO: add an optional 'qualifier' attribute to Geo
                 if existing.alias_target is None:
-                    # TODO: make sure it's a county name
+                    # if existing conflict is a place, rename it, make
+                    # an alias to it, and keep track of its population
                     if (existing.levels.get('place', None) is not None):
                         existing_desig = existing.levels['place'].designation
                         existing.name += (' (' + existing_desig + ' in ' +
@@ -216,9 +216,11 @@ def load_geo_data():
                                     path_parent=state,
                                     alias_target=existing)
                         conflicts[key] = existing.data.total_pop
+                    # if existing conflict is a parent county, just add
+                    # a geo level for the place to the county
                     elif (existing.levels.get(
                                             'subdivision2', None) is not None):
-                        if existing != county:
+                        if existing not in counties:
                             raise NameError('place key conflicts with '
                                             'subdivision2 key, yet place is '
                                             'not in subdivision2')
@@ -246,6 +248,8 @@ def load_geo_data():
             GeoLevel(geo=g, level='place', designation=desig)
 
             # update alias to point at the geo with the largest pop
+            # TODO: convert alias_target to alias_targets and order by
+            # population, descending
             if (existing is not None and total_pop > conflicts[key]):
                 alias.alias_target = g
                 conflicts[key] = total_pop
@@ -274,23 +278,34 @@ def load_geo_data():
 
     # Clean up consolidated counties with only one place
     for county, places in consolidated.iteritems():
-        county_parents = [p for p in places[0].parents if p.levels.get('subdivision2', None) is not None]
-        if len(places) == 1 and len(county_parents) == 1:
-            place = places[0]
-            # GeoData.unregister(place.data)
-            place.data = None
-            assert len(place.levels) == 1
-            place.levels['place'].geo = county
-            place.parents = []
-            # Move any children of the place to the county
-            for child in place.children.all():
-                if county not in child.parents:
-                    child.parents = [county] + child.parents
+        if len(places) != 1:
+            continue
+        place = places[0]
+        county_parents = [p for p in place.parents if
+                          p.levels.get('subdivision2', None) is not None]
+        if len(county_parents) != 1:
+            continue
+        assert county_parents[0] == county
 
-            # Make the place an alias for the county
-            place.alias_target = county
-            # Reverse the relationship, making the county the alias
-            place.promote_to_alias_target()
+        # This could currently occur because county remainders are not
+        # yet loaded
+        if place.data.total_pop != county.data.total_pop:
+            continue
+
+        GeoData.unregister(place.data)
+        place.data = None
+        for glvl in place.levels.values():
+            glvl.geo = county
+        place.parents = []
+        # Move any children of the place to the county
+        for child in place.children.all():
+            if county not in child.parents:
+                child.parents = [county] + child.parents
+
+        # Make the place an alias for the county
+        place.alias_target = county
+        # Reverse the relationship, making the county the alias
+        place.promote_to_alias_target()
 
     # Combine DC again
     w = dc['washington']

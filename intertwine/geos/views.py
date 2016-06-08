@@ -34,7 +34,7 @@ def render():
     return template
 
 
-@blueprint.route('/<geo_human_id>', methods=['GET'])
+@blueprint.route('/<path:geo_human_id>', methods=['GET'])
 def render_geo(geo_human_id):
     '''Problem Page'''
     human_id = geo_human_id.lower()
