@@ -30,7 +30,7 @@ def load_geo_data():
     extend_declarative_base(BaseGeoModel, session=session)
     db.create_all()
 
-    Trackable.register_existing(session, Geo)
+    Trackable.register_existing(session, Geo, GeoData, GeoLevel)
     Trackable.clear_updates()
 
     us = Geo(name='United States', abbrev='U.S.')
@@ -57,6 +57,13 @@ def load_geo_data():
                 latitude=ghrp.intptlat,
                 longitude=ghrp.intptlon)
         GeoLevel(geo=g, level='subdivision1', designation='state')
+
+    states = us.children.all()
+    GeoData(geo=us,
+            total_pop=sum((s.data.total_pop for s in states if s.data)),
+            urban_pop=sum((s.data.urban_pop for s in states if s.data)),
+            latitude=39.8333333,
+            longitude=-98.585522)
 
     # Handle special cases
     pr = us['pr']

@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
-import json
 
 from alchy.model import ModelBase, make_declarative_base
-from sqlalchemy import orm, types, Column, ForeignKey, Index, Table
+from sqlalchemy import desc, orm, types, Column, ForeignKey, Index, Table
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-from ..utils import AutoTableMixin, Trackable
+from ..utils import AutoTableMixin, stringify, Trackable
 from ..exceptions import AttributeConflict, CircularReference
 
 
@@ -82,8 +81,9 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 secondaryjoin='Geo.id==geo_association.c.parent_id',
                 backref=orm.backref('children',
                                     lazy='dynamic',
-                                    order_by='Geo.name'),
-                lazy='joined')
+                                    # order_by='Geo.name'
+                                    ),
+                lazy='dynamic')
 
     delimiter = '/'
 
@@ -322,7 +322,11 @@ class Geo(BaseGeoModel, AutoTableMixin):
     # always be derived from the value
 
     def transfer_references(self, geo):
-        attributes = {'parents': ('not dynamic', []),
+        '''Transfer references
+
+        Utility function for transfering references to another geo, for
+        example, when making a geo an alias of another geo.'''
+        attributes = {'parents': ('dynamic', []),
                       'children': ('dynamic', []),
                       'data': ('not dynamic', None),
                       'levels': ('not dynamic', {})}
@@ -399,101 +403,111 @@ class Geo(BaseGeoModel, AutoTableMixin):
             plvl += 1
         return geostr
 
-    # Use default __repr__() from Trackable:
-    # Geo[<human_id>]
+    def related_geos_by_level(self, relation, tight=True, raw=False, limit=10):
+        '''Related geos by level
 
-    def __str__(self):
-        limit = 10
-        indent = ' ' * 4
-        fields = OrderedDict((
-            ('display', self.display(max_path=0, show_the=True,
-                                     show_abbrev=True, abbrev_path=True)),
-            ('human_id', self.human_id),
-            ('alias_target', (self.alias_target.display()
+        Given a relation (e.g. parent/child), returns an ordered
+        dictionary of geos stratified (keyed) by level. The levels are
+        ordered top to bottom for children and bottom to top for
+        parents.
+
+        The following inputs may be specified:
+        tight=True: make all repr values tight (without whitespace)
+        raw=False: when True, adds extra escapes (for printing)
+        limit=10: caps the number of list items within any geo level;
+                  a negative limit indicates no cap
+        '''
+        if relation not in set(('parents', 'children')):
+            raise ValueError('{rel} is not an allowed value for '
+                             'relation'.format(rel=relation))
+
+        base_q = getattr(self, relation).join(Geo.data).join(Geo.levels)
+        levels = (lvl for lvl in (
+            GeoLevel.up if relation == 'parents' else GeoLevel.down))
+
+        if limit < 0:
+            od = OrderedDict(
+                (lvl, [g.__trepr__(tight=tight, raw=raw) for g in
+                 base_q.filter(GeoLevel.level == lvl).order_by(
+                 desc(GeoData.total_pop)).all()]) for lvl in levels)
+        else:
+            od = OrderedDict(
+                (lvl, [g.__trepr__(tight=tight, raw=raw) for g in
+                 base_q.filter(GeoLevel.level == lvl).order_by(
+                 desc(GeoData.total_pop)).limit(limit).all()
+                 ]) for lvl in levels)
+
+        for lvl, geos in od.iteritems():
+            if len(geos) == 0:
+                od.pop(lvl)
+
+        return od
+
+    def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
+        '''JSON structure for a geo data instance
+
+        Returns a structure for the given geo data instance that will
+        serialize to JSON.
+
+        The following inputs may be specified:
+        mute=[]: mutes (excludes) any field names listed
+        wrap=True: wrap the instance in a dictionary keyed by repr
+        tight=True: make all repr values tight (without whitespace)
+        raw=False: when True, adds extra escapes (for printing)
+        limit=10: caps the number of list or dictionary items beneath
+                  the main level; a negative limit indicates no cap
+        '''
+        od = OrderedDict((
+            # ('repr', self.__trepr__(tight=tight, raw=raw)),
+            ('key', self.__trepr__(tight=tight, raw=raw, outclassed=False)),
+            ('display', self.display(max_path=1, show_the=True,
+                                     show_abbrev=False, abbrev_path=True)),
+            ('name', self.name),
+            ('the_prefix', self.the_prefix),
+            ('abbrev', self.abbrev),
+
+            ('path_parent', (self.path_parent.__trepr__(tight=tight, raw=raw)
+                             if self.path_parent is not None else None)),
+
+            ('alias_target', (self.alias_target.__trepr__(tight=tight, raw=raw)
                               if self.alias_target else None)),
-            ('aliases', [alias.display() for alias in self.aliases]),
-            ('data', ('\n' + indent).join([''] + map(
-                        unicode.strip, unicode(self.data).split('\n')[1:]))),
-            ('levels', self.levels.values()),
-            ('parents', [p.display(max_path=0) for p in self.parents]),
-            ('children', [c.display(max_path=0) for c in self.children]),
+
+            ('aliases', [alias.__trepr__(tight=tight, raw=raw)
+                         for alias in self.aliases.all()]),
+
+            ('data', (self.data.json(mute=mute+['key', 'geo'], wrap=False,
+                                     tight=tight, raw=raw, limit=limit)
+                      if self.data else {})),
+
+            ('levels', OrderedDict(
+                (lvl, self.levels[lvl].json(mute=mute+['key', 'geo', 'level'],
+                                            wrap=False, tight=tight, raw=raw,
+                                            limit=limit))
+                for lvl in GeoLevel.down if self.levels.get(lvl, None))),
+
+            ('parents', self.related_geos_by_level(
+                relation='parents', tight=tight, raw=raw, limit=limit)),
+
+            ('children', self.related_geos_by_level(
+                relation='children', tight=tight, raw=raw, limit=limit))
         ))
-
-        string = []
-        for field in fields:
-            data = fields[field]
-            if data is None:
-                continue
-            if isinstance(data, basestring) and not data.strip():
-                continue
-            if not data:
-                continue
-            if field == 'display':
-                data_str = u'Geo: {' + field + '}'
-            else:
-                if isinstance(data, (list, type(iter(list())))):
-                    data_str = u'  {field}:\n'.format(field=field)
-                    len_d = len(data)
-                    if len_d > limit:
-                        data = data[:min(len_d, limit)] + [
-                            '({limit} of {total})'.format(limit=limit,
-                                                          total=len_d)]
-                    data = '\n'.join(indent + u'{}'.format(v) for v in data)
-                    fields[field] = data
-                else:
-                    data_str = u'  {field}: '.format(field=field)
-                data_str += '{' + field + '}'
-            data_str = data_str.format(**fields)
-            string.append(data_str)
-        return '\n'.join(string)
-
-    # change compact default to True
-    def json(self, limit=10, compact=False, mute=[], level=0):
-        cq = self.children
-        od = OrderedDict()
-        od['human_id'] = self.human_id
-        od['display'] = self.display(max_path=1, show_the=True,
-                                     show_abbrev=False, abbrev_path=True)
-        od['name'] = self.name
-        od['the_prefix'] = self.the_prefix
-        od['abbrev'] = self.abbrev
-        od['path_parent'] = (self.path_parent.human_id
-                             if self.path_parent is not None else None)
-        od['alias_target'] = (self.alias_target.human_id
-                              if self.alias_target else None)
-
-        od['data'] = (self.data.json(limit=limit, compact=compact,
-                      mute=mute+['geo'], level=level+1)
-                      if self.data else {})
-
-        od['levels'] = OrderedDict(
-            (lvl, self.levels[lvl].json(limit=limit, compact=compact,
-                                        mute=mute+['geo'],
-                                        level=level+1))
-            for lvl in GeoLevel.down if self.levels.get(lvl, None))
-
-        od['parents'] = [p.human_id for p in self.parents]
-
-        od['children'] = OrderedDict(
-            (lvl, [c.human_id for c in
-                   cq.join(Geo.data).join(Geo.levels).filter(
-                        GeoLevel.level == lvl).limit(limit).all()
-                   ]) for lvl in GeoLevel.down
-        )
-        for lvl, glvl in od['children'].iteritems():
-            if len(glvl) == 0:
-                od['children'].pop(lvl)
 
         for field in mute:
             od.pop(field, None)  # fail silently if field not present
 
-        if level == 0:
-            if compact:
-                return json.dumps(od, separators=(',', ':'))
-            else:
-                return json.dumps(od, separators=(',', ': '), indent=4)
-        else:
-            return od
+        rv = (OrderedDict(((self.__trepr__(tight=tight, raw=raw), od),))
+              if wrap else od)
+        return rv
+
+    # Use default __repr__() from Trackable:
+    # Geo[<human_id>]
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        return stringify(
+            self.json(wrap=True, tight=False, raw=True, limit=-1), limit=20)
 
 
 class GeoData(BaseGeoModel, AutoTableMixin):
@@ -567,46 +581,23 @@ class GeoData(BaseGeoModel, AutoTableMixin):
         self.latitude = latitude
         self.longitude = longitude
 
-    # Use default __repr__() from Trackable:
-    # GeoData[Geo[<human_id>]]
+    def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
+        '''JSON structure for a geo data instance
 
-    def __str__(self):
-        indent = ' ' * 4
-        fields = OrderedDict((
-            ('geo', self.geo.display(show_abbrev=False, max_path=0)),
-            ('total_pop', '{:,}'.format(self.total_pop)),
-            ('urban_pop', '{:,}'.format(self.urban_pop)),
-            ('latitude', self.latitude),
-            ('longitude', self.longitude),
-        ))
+        Returns a structure for the given geo data instance that will
+        serialize to JSON.
 
-        string = []
-        for field in fields:
-            data = fields[field]
-            if data is None:
-                continue
-            if isinstance(data, basestring) and not data.strip():
-                continue
-            if not data:
-                continue
-            if field == 'geo':
-                data_str = u'Geo: {' + field + '}'
-            else:
-                if isinstance(data, (list, type(iter(list())))):
-                    data_str = u'  {field}:\n'.format(field=field)
-                    data = '\n'.join(indent + u'{}'.format(v) for v in data)
-                    fields[field] = data
-                else:
-                    data_str = u'  {field}: '.format(field=field)
-                data_str += '{' + field + '}'
-            data_str = data_str.format(**fields)
-            string.append(data_str)
-        return '\n'.join(string)
-
-    # change compact default to True
-    def json(self, limit=10, compact=False, mute=[], level=0):
+        The following inputs may be specified:
+        mute=[]: mutes (excludes) any field names listed
+        wrap=True: wrap the instance in a dictionary keyed by repr
+        tight=True: make all repr values tight (without whitespace)
+        raw=False: when True, adds extra escapes (for printing)
+        limit=10: caps the number of list or dictionary items beneath
+                  the main level; a negative limit indicates no cap
+        '''
         od = OrderedDict((
-            ('geo', repr(self.geo)),
+            ('key', self.__trepr__(tight=tight, raw=raw, outclassed=False)),
+            ('geo', self.geo.__trepr__(tight=tight, raw=raw)),
             ('total_pop', self.total_pop),
             ('urban_pop', self.urban_pop),
             ('latitude', self.latitude),
@@ -616,13 +607,19 @@ class GeoData(BaseGeoModel, AutoTableMixin):
         for field in mute:
             od.pop(field, None)  # fail silently if field not present
 
-        if level == 0:
-            if compact:
-                return json.dumps(od, separators=(',', ':'))
-            else:
-                return json.dumps(od, separators=(',', ': '), indent=4)
-        else:
-            return od
+        rv = (OrderedDict(((self.__trepr__(tight=tight, raw=raw), od),))
+              if wrap else od)
+        return rv
+
+    # Use default __repr__() from Trackable:
+    # GeoData[Geo[<human_id>]]
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        return stringify(
+            self.json(wrap=True, tight=False, raw=True, limit=-1), limit=20)
 
 
 class GeoLevel(BaseGeoModel, AutoTableMixin):
@@ -760,38 +757,43 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         # Must follow level assignment to provide key for Geo.levels
         self.geo = geo
 
-    # Use default __repr__() from Trackable:
-    # GeoLevel[(Geo[<human_id>], <level>)]
+    def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
+        '''JSON structure for a geo level instance
 
-    def __str__(self):
-        designation = self.designation
-        article = 'an' if designation[0] in ('a', 'e', 'i', 'o', 'u') else 'a'
-        geo_level_str = u'{cls}: {geo} as {article} {designation} ({level})'
-        return geo_level_str.format(cls=self.__class__.__name__,
-                                    geo=self.geo.display(show_abbrev=False,
-                                                         max_path=0),
-                                    article=article,
-                                    designation=designation,
-                                    level=self.level)
+        Returns a structure for the given geo level instance that will
+        serialize to JSON.
 
-    # change compact default to True
-    def json(self, limit=10, compact=False, mute=[], level=0):
+        The following inputs may be specified:
+        mute=[]: mutes (excludes) any field names listed
+        wrap=True: wrap the instance in a dictionary keyed by repr
+        tight=True: make all repr values tight (without whitespace)
+        raw=False: when True, adds extra escapes (for printing)
+        limit=10: caps the number of list or dictionary items beneath
+                  the main level; a negative limit indicates no cap
+        '''
         od = OrderedDict((
-                ('geo', repr(self.geo)),
-                ('level', self.level),
-                ('designation', self.designation)
-            ))
+            ('key', self.__trepr__(tight=tight, raw=raw, outclassed=False)),
+            ('geo', self.geo.__trepr__(tight=tight, raw=raw)),
+            ('level', self.level),
+            ('designation', self.designation)
+        ))
 
         for field in mute:
             od.pop(field, None)  # fail silently if field not present
 
-        if level == 0:
-            if compact:
-                return json.dumps(od, separators=(',', ':'))
-            else:
-                return json.dumps(od, separators=(',', ': '), indent=4)
-        else:
-            return od
+        rv = (OrderedDict(((self.__trepr__(tight=tight, raw=raw), od),))
+              if wrap else od)
+        return rv
+
+    # Use default __repr__() from Trackable:
+    # GeoLevel[(Geo[<human_id>], <level>)]
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        return stringify(
+            self.json(wrap=True, tight=False, raw=True, limit=-1), limit=20)
 
 
 # TODO: Create GeoID class to map geos (by level) to 3rd party IDs
