@@ -7,8 +7,8 @@
 # STEP 0: DOWNLOADS
 #______________________________________________________________________
 #
-
 # dir: intertwine/platform
+
 cd data/geos
 mkdir tmp
 cd tmp
@@ -23,7 +23,7 @@ unzip Gaz_places_national.zip
 curl "https://www2.census.gov/census_2010/04-Summary_File_1/Urban_Rural_Update/National/us2010.ur1.zip" -o "us2010.ur1.zip"
 unzip us2010.ur1.zip -d us2010.ur1
 
-# If following steps sequentially (strongly recommended):
+# Go to intertwine/platform/data/geos
 cd ..
 
 #______________________________________________________________________
@@ -31,9 +31,9 @@ cd ..
 # STEP 1: PRE-PROCESS GEOGRAPHIC HEADER RECORD (GHR) FILE
 #______________________________________________________________________
 #
+# dir: intertwine/platform/data/geos
 
 # Load Geographic Header Record (GHR)
-# dir: intertwine/platform/data/geos
 sqlite3 geo.db
 CREATE TABLE ghr_bulk (full_string CHAR);
 .import tmp/us2010.ur1/usgeo2010.ur1 ghr_bulk
@@ -160,46 +160,40 @@ DROP TABLE ghr_txt;
 
 .quit
 
+# Go to intertwine/platform/data/geos/tmp
+cd tmp
+
 #______________________________________________________________________
 #
 # STEP 2: UNICODE CONVERSION AND HEADER REMOVAL
 #______________________________________________________________________
 #
+# dir: intertwine/platform/data/geos/tmp
 
 # Convert files from ISO-8859-15 to UTF-8:
-# dir: intertwine/platform/data/geos
-../../scripts/encode-file.py -e iso-8859-1 cbsa.csv > cbsa.utf-8.csv
-
-cd tmp
+../../../scripts/encode-file.py -e iso-8859-1 ../cbsa.csv > cbsa_utf-8.csv
 ../../../scripts/encode-file.py -e iso-8859-1 Gaz_places_national.txt > Gaz_places_national_utf-8.txt
 
-# iconv -f ISO-8859-15 -t UTF-8 Gaz_places_national.txt > Gaz_places_national_utf-8.txt
 mkdir us2010.ur1.utf-8
 ../../../scripts/encode-file.py -e iso-8859-1 us2010.ur1/usgeo2010.ur1.csv > us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv
 ../../../scripts/encode-file.py -e iso-8859-1 us2010.ur1/us000022010.ur1 > us2010.ur1.utf-8/us000022010.ur1.utf-8.csv
 
-# iconv -f ISO-8859-15 -t UTF-8 us2010.ur1/usgeo2010.ur1.csv > us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv
-# iconv -f ISO-8859-15 -t UTF-8 us2010.ur1/us000022010.ur1 > us2010.ur1.utf-8/us000022010.ur1.utf-8.csv
-
-# If following steps sequentially (strongly recommended):
-cd ..
-
 # Create copies without first row as we create the table first to handle non-text types:
 # dir: intertwine/platform/data/geos
-tail -n +2 "state.txt" > "state.txt.tmp"
-tail -n +2 "national_county.txt" > "national_county.txt.tmp"
-tail -n +2 "cbsa.utf-8.csv" > "cbsa.utf-8.csv.tmp"
-tail -n +2 "lsad.csv" > "lsad.csv.tmp"
-tail -n +2 "geoclass.csv" > "geoclass.csv.tmp"
+tail -n +2 "../state.txt" > "state.txt.tmp"
+tail -n +2 "../national_county.txt" > "national_county.txt.tmp"
+tail -n +2 "../lsad.csv" > "lsad.csv.tmp"
+tail -n +2 "../geoclass.csv" > "geoclass.csv.tmp"
 
-cd tmp
+tail -n +2 "cbsa_utf-8.csv" > "cbsa_utf-8.csv.tmp"
 tail -n +2 "Gaz_places_national_utf-8.txt" > "Gaz_places_national_utf-8.txt.tmp"
 
 cd us2010.ur1.utf-8
 tail -n +2 "usgeo2010.ur1.utf-8.csv" > "usgeo2010.ur1.utf-8.csv.tmp"
-# Note: "us000022010.ur1.utf-8.csv" is already missing the header row
+cp "us000022010.ur1.utf-8.csv" "us000022010.ur1.utf-8.csv.tmp"
+# Note: "us000022010.ur1.utf-8.csv" lacks a header row, so cp instead of tail
 
-# If following steps sequentially (strongly recommended):
+# Go to intertwine/platform/data/geos
 cd ../..
 
 #______________________________________________________________________
@@ -402,19 +396,18 @@ CREATE TABLE f02(
 # sqlite3 geo.db
 
 .separator "|"
-.import state.txt.tmp state
+.import tmp/state.txt.tmp state
 
 .separator "\t"
 .import tmp/Gaz_places_national_utf-8.txt.tmp place
 
 .separator ","
-.import national_county.txt.tmp county
-.import cbsa.utf-8.csv.tmp cbsa
-.import lsad.csv.tmp lsad
-.import geoclass.csv.tmp geoclass
+.import tmp/national_county.txt.tmp county
+.import tmp/cbsa_utf-8.csv.tmp cbsa
+.import tmp/lsad.csv.tmp lsad
+.import tmp/geoclass.csv.tmp geoclass
 .import tmp/us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv.tmp ghr
-.import tmp/us2010.ur1.utf-8/us000022010.ur1.utf-8.csv f02
-# Note this last file is a .csv, not a .tmp
+.import tmp/us2010.ur1.utf-8/us000022010.ur1.utf-8.csv.tmp f02
 
 #______________________________________________________________________
 #
@@ -426,6 +419,7 @@ CREATE TABLE f02(
 # sqlite3 geo.db
 CREATE TABLE ghrp AS
 SELECT * FROM ghr LEFT OUTER JOIN f02 ON ghr.LOGRECNO = f02.LOGRECNO;
+
 
 
 
