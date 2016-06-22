@@ -196,9 +196,6 @@ DROP TABLE ghr_txt;
 
 .quit
 
-# If following steps sequentially (strongly recommended):
-cd tmp
-
 #______________________________________________________________________
 #
 # STEP 2: UNICODE CONVERSION AND HEADER REMOVAL
@@ -206,7 +203,10 @@ cd tmp
 #
 
 # Convert files from ISO-8859-15 to UTF-8:
-# dir: intertwine/platform/data/geos/tmp
+# dir: intertwine/platform/data/geos
+../../scripts/encode-file.py -e iso-8859-1 cbsa.csv > cbsa.utf-8.csv
+
+cd tmp
 ../../../scripts/encode-file.py -e iso-8859-1 Gaz_places_national.txt > Gaz_places_national_utf-8.txt
 
 # iconv -f ISO-8859-15 -t UTF-8 Gaz_places_national.txt > Gaz_places_national_utf-8.txt
@@ -224,7 +224,7 @@ cd ..
 # dir: intertwine/platform/data/geos
 tail -n +2 "state.txt" > "state.txt.tmp"
 tail -n +2 "national_county.txt" > "national_county.txt.tmp"
-tail -n +2 "cbsa.csv" > "cbsa.csv.tmp"
+tail -n +2 "cbsa.utf-8.csv" > "cbsa.utf-8.csv.tmp"
 tail -n +2 "lsad.csv" > "lsad.csv.tmp"
 tail -n +2 "geoclass.csv" > "geoclass.csv.tmp"
 
@@ -445,7 +445,7 @@ CREATE TABLE f02(
 
 .separator ","
 .import national_county.txt.tmp county
-.import cbsa.csv.tmp cbsa
+.import cbsa.utf-8.csv.tmp cbsa
 .import lsad.csv.tmp lsad
 .import geoclass.csv.tmp geoclass
 .import tmp/us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv.tmp ghr
