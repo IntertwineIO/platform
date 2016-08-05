@@ -43,7 +43,29 @@ class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
     '''Standardizes automatic tables'''
 
 
-def stringify(thing, limit=20, level=0):
+class PeekableIterator(object):
+    def __init__(self, it, sentinel=object()):
+        self.it = iter(it)
+        self.sentinel = sentinel
+        self.next_item = next(self.it, self.sentinel)
+
+    def next(self):
+        rv = self.next_item
+        self.next_item = next(self.it, self.sentinel)
+        return rv
+
+    def has_next(self):
+        return self.next_item is not self.sentinel
+
+    def peek(self):
+        return self.next_item
+
+    def __iter__(self):
+        while self.has_next():
+            yield self.next()
+
+
+def stringify(thing, limit=10, level=0):
     '''Stringify
 
     Converts things into nicely formatted unicode strings for printing.
@@ -57,9 +79,9 @@ def stringify(thing, limit=20, level=0):
     are a single line are included on the same line as the key. Multi-
     line values are listed below the key and indented further.
 
-    An optional 'limit' parameter caps the number of list/tuple/dict
-    items to include. If capped, the cap and total number of items is
-    noted. If the limit is negative, no cap is applied.
+    An optional 'limit' parameter caps the number of list/tuple items to
+    include. If capped, the cap and total number of items is noted. If
+    the limit is negative, no cap is applied.
     '''
     limit = float('inf') if limit < 0 else limit
     indent = level*4*' '
@@ -76,11 +98,7 @@ def stringify(thing, limit=20, level=0):
 
     # If a dict, add each key and stringify + further indent each value
     elif isinstance(thing, dict):
-        len_thing = len(thing)  # Used for limit message later
-        i = 0
         for k, v in thing.iteritems():
-            if i == limit:
-                break
             v_str = stringify(v, limit, level+1)
             # If key has an empty value, don't include it
             if len(v_str.strip()) == 0:
@@ -93,7 +111,6 @@ def stringify(thing, limit=20, level=0):
             else:
                 strings.append(u'{indent}{key}:\n{value}'.format(
                                 indent=indent, key=k, value=v_str))
-            i += 1
 
     # If a custom object, use its __unicode__ method, but indent it
     elif hasattr(thing, '__dict__'):
@@ -111,7 +128,7 @@ def stringify(thing, limit=20, level=0):
     return '\n'.join(strings)
 
 
-def __trepr__(self, tight=False, raw=True, outclassed=True, level=0):
+def trepr(self, tight=False, raw=True, outclassed=True, level=0):
     ''''Trackable Representation', Default repr for Trackable classes
 
     Returns a string that when evaluated returns the instance. It works
@@ -162,7 +179,7 @@ def __trepr__(self, tight=False, raw=True, outclassed=True, level=0):
         op = cp = ''
         key = (key,)
 
-    treprs = map(lambda x: __trepr__(x, tight, raw, outclassed, level+1), key)
+    treprs = map(lambda x: trepr(x, tight, raw, outclassed, level+1), key)
     all_1_line = (cls + osqb + op +
                   (',' + space).join(map(unicode.strip, treprs)) + cp + csqb)
 
@@ -176,7 +193,7 @@ def __trepr__(self, tight=False, raw=True, outclassed=True, level=0):
 def __repr__(self):
     '''Default repr for Trackable classes'''
     # Prefix newline due to ipython pprint bug related to lists
-    return '\n' + self.__trepr__()
+    return '\n' + self.trepr()
 
 
 class Trackable(ModelMeta):
@@ -218,7 +235,7 @@ class Trackable(ModelMeta):
         if repr_fn is None:
             # Provide default __repr__()
             attr['__repr__'] = __repr__
-            attr['__trepr__'] = __trepr__
+            attr['trepr'] = trepr
         new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
         if new_cls.__name__ != 'Base':
             meta._classes[name] = new_cls
@@ -256,8 +273,15 @@ class Trackable(ModelMeta):
         cls._instances[key] = value
 
     def __iter__(cls):
-        for inst in cls._instances.values():
+        for inst in cls._instances.itervalues():
             yield inst
+
+    def register(cls, inst):
+        key = inst.derive_key()
+        existing = cls[key]
+        if existing is not None and existing is not inst:
+            raise ValueError('{} is already registered.'.format(key))
+        cls[key] = inst
 
     def unregister(cls, inst):
         key = inst.derive_key()
@@ -329,5 +353,6 @@ class Trackable(ModelMeta):
         for cls in classes:
             if cls.__name__ not in meta._classes:
                 raise TypeError('{} not Trackable.'.format(cls.__name__))
-            updates[cls.__name__] = cls._updates
+            if len(cls._updates) > 0:
+                updates[cls.__name__] = cls._updates
         return updates
