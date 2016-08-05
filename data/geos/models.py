@@ -26,38 +26,34 @@ class CBSA(BaseGeoDataModel, AutoTablenameMixin):
     csa_name = Column(types.String(60))
     county_name = Column(types.String(60))              # Travis County
     state_name = Column(types.String(60))               # Texas
-    statefp = Column(types.String(2))                   # 48
+    statefp = Column(types.String(2), ForeignKey('state.statefp'))  # 48
+    state = orm.relationship('State', viewonly=True)
+
     countyfp = Column(types.String(3))                  # 453
-    county = orm.relationship('County', back_populates='cbsa', uselist=False)
     county_type = Column(types.String(30))              # Central (vs Outlying)
 
-    __table_args__ = (
-        PrimaryKeyConstraint('statefp', 'countyfp'),
-        {}
-        )
+    countyid = Column(types.String(5), ForeignKey('county.geoid'),
+                      primary_key=True)
+    county = orm.relationship('County', uselist=False, back_populates='cbsa')
 
 
 class County(BaseGeoDataModel, AutoTablenameMixin):
     stusps = Column(types.String(2),                    # TX
                     ForeignKey('state.stusps'))
     state = orm.relationship('State')
-    statefp = Column(types.String(2))                   # 48
-    countyfp = Column(types.String(3))                  # 453
-    cbsa = orm.relationship('CBSA', back_populates='county')
+    geoid = Column(types.String(5), primary_key=True)   # 48453
+    cbsa = orm.relationship('CBSA', uselist=False, back_populates='county')
 
+    ansicode = Column(types.String(8), unique=True)     # 01384012
     name = Column(types.String(60))                     # Travis County
-
-    # renamed from classfp
-    geoclassfp = Column(types.String(2),                # H1
-                        ForeignKey('geoclass.geoclassfp'))
-    geoclass = orm.relationship('Geoclass')
-
-    __table_args__ = (
-        PrimaryKeyConstraint('statefp', 'countyfp'),
-        ForeignKeyConstraint(['statefp', 'countyfp'],
-                             ['cbsa.statefp', 'cbsa.countyfp']),
-        {}
-        )
+    pop10 = Column(types.Integer)                       # 1024266
+    hu10 = Column(types.Integer)                        # 441240
+    aland = Column(types.Integer)                       # 2564612388
+    awater = Column(types.Integer)                      # 84967219
+    aland_sqmi = Column(types.Float)                    # 990.202
+    awater_sqmi = Column(types.Float)                   # 32.806
+    intptlat = Column(types.Float)                      # 30.239513
+    intptlong = Column(types.Float)                     # -97.69127
 
 
 class Place(BaseGeoDataModel, AutoTablenameMixin):
@@ -101,9 +97,10 @@ class Geoclass(BaseGeoDataModel, AutoTablenameMixin):
 class GHRP(BaseGeoDataModel):
     '''Base class for Geographic Header Row Plus
 
-    Contains all columns from the Geographic Header Row (GHR) plus
-    a geoid column which is the concatenation of statefp and placefp
-    plus all columns from File 02.'''
+    Contains all columns from the Geographic Header Row (GHR) plus a
+    county_id column, the concatenation of statefp and countyfp, plus
+    a place_id column, the concatenation of statefp and placefp, plus
+    all columns from File 02.'''
     __tablename__ = 'ghrp'
 
     # RECORD CODES
@@ -126,8 +123,6 @@ class GHRP(BaseGeoDataModel):
 
     # Renamed from county
     countyfp = Column(types.String(3))
-    county = orm.relationship('County')
-
     countycc = Column(types.String(2), ForeignKey('geoclass.geoclassfp'))
     countyclass = orm.relationship('Geoclass', foreign_keys='GHRP.countycc')
 
@@ -138,8 +133,6 @@ class GHRP(BaseGeoDataModel):
 
     # Renamed from place
     placefp = Column(types.String(5))
-    place = orm.relationship('Place')
-
     placecc = Column(types.String(2), ForeignKey('geoclass.geoclassfp'))
     placeclass = orm.relationship('Geoclass', foreign_keys='GHRP.placecc')
 
@@ -190,8 +183,8 @@ class GHRP(BaseGeoDataModel):
     sduni = Column(types.String(5))
 
     # AREA CHARACTERISTICS
-    arealand = Column(types.Integer)
-    areawatr = Column(types.Integer)
+    arealand = Column(types.Integer)  # in sq. meters
+    areawatr = Column(types.Integer)  # in sq. meters
     name = Column(types.String(90))
     funcstat = Column(types.String(1))
     gcuni = Column(types.String(1))
@@ -232,7 +225,12 @@ class GHRP(BaseGeoDataModel):
     reserved = Column(types.String(18))
 
     # Added - concatenation of statefp and placefp
-    geoid = Column(types.String(7), ForeignKey('place.geoid'))
+    countyid = Column(types.String(5), ForeignKey('county.geoid'))
+    county = orm.relationship('County')
+
+    # Added - concatenation of statefp and placefp
+    placeid = Column(types.String(7), ForeignKey('place.geoid'))
+    place = orm.relationship('Place')
 
     # Added File 02 columns:
     p0020001 = Column(types.Integer)
@@ -243,8 +241,6 @@ class GHRP(BaseGeoDataModel):
     p0020006 = Column(types.Integer)
 
     __table_args__ = (
-        ForeignKeyConstraint(['statefp', 'countyfp'],
-                             ['county.statefp', 'county.countyfp']),
         Index('ix_ghrp',
               # ix for index
               'sumlev',

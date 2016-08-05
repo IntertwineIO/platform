@@ -13,7 +13,12 @@ cd data/geos
 mkdir tmp
 cd tmp
 
-# Download 2010 US Census National Places Gazetteer Files (1.2MB)
+# Download 2010 US Census Counties National Gazetteer Files (163k)
+# dir: intertwine/platform/data/geos/tmp
+curl "http://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_counties_national.zip" -o "Gaz_counties_national.zip"
+unzip Gaz_counties_national.zip
+
+# Download 2010 US Census Places National Gazetteer Files (1.2MB)
 # dir: intertwine/platform/data/geos/tmp
 curl "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_places_national.zip" -o "Gaz_places_national.zip"
 unzip Gaz_places_national.zip
@@ -143,7 +148,8 @@ SELECT
     trim(SUBSTR(full_string,477,1)) AS NMEMI,
     trim(SUBSTR(full_string,478,5)) AS PUMA,
     trim(SUBSTR(full_string,483,18)) AS RESERVED,
-    trim(SUBSTR(full_string,28,2) || SUBSTR(full_string,46,5)) AS GEOID
+    trim(SUBSTR(full_string,28,2) || SUBSTR(full_string,30,3)) AS COUNTYID,
+    trim(SUBSTR(full_string,28,2) || SUBSTR(full_string,46,5)) AS PLACEID
 FROM ghr_bulk;
 
 # Export GHR to CSV
@@ -171,7 +177,7 @@ cd tmp
 # dir: intertwine/platform/data/geos/tmp
 
 # Convert files from ISO-8859-15 to UTF-8:
-../../../scripts/encode-file.py -e iso-8859-1 ../cbsa.csv > cbsa_utf-8.csv
+../../../scripts/encode-file.py -e iso-8859-1 Gaz_counties_national.txt > Gaz_counties_national_utf-8.txt
 ../../../scripts/encode-file.py -e iso-8859-1 Gaz_places_national.txt > Gaz_places_national_utf-8.txt
 
 mkdir us2010.ur1.utf-8
@@ -179,14 +185,17 @@ mkdir us2010.ur1.utf-8
 ../../../scripts/encode-file.py -e iso-8859-1 us2010.ur1/us000022010.ur1 > us2010.ur1.utf-8/us000022010.ur1.utf-8.csv
 
 # Create copies without first row as we create the table first to handle non-text types:
-# dir: intertwine/platform/data/geos
 tail -n +2 "../state.txt" > "state.txt.tmp"
 tail -n +2 "../national_county.txt" > "national_county.txt.tmp"
 tail -n +2 "../lsad.csv" > "lsad.csv.tmp"
 tail -n +2 "../geoclass.csv" > "geoclass.csv.tmp"
-
-tail -n +2 "cbsa_utf-8.csv" > "cbsa_utf-8.csv.tmp"
+tail -n +2 "Gaz_counties_national_utf-8.txt" > "Gaz_counties_national_utf-8.txt.tmp"
 tail -n +2 "Gaz_places_national_utf-8.txt" > "Gaz_places_national_utf-8.txt.tmp"
+
+# Create copy without first 3 rows:
+tail -n +4 "../cbsa.csv" > "cbsa.csv.tmp"
+# Remove the last 3 rows; requires truncate (brew install truncate):
+tail -n 3 "cbsa.csv.tmp" | tee >(wc -c | xargs -I {} truncate "cbsa.csv.tmp" -s -{})
 
 cd us2010.ur1.utf-8
 tail -n +2 "usgeo2010.ur1.utf-8.csv" > "usgeo2010.ur1.utf-8.csv.tmp"
@@ -214,7 +223,7 @@ CREATE TABLE state(
     "statens" TEXT
 );
 
-CREATE TABLE cbsa(
+CREATE TABLE cbsa_tmp(
     "cbsa_code" TEXT,
     "metro_division_code" TEXT,
     "csa_code" TEXT,
@@ -231,10 +240,17 @@ CREATE TABLE cbsa(
 
 CREATE TABLE county(
     "stusps" TEXT,
-    "statefp" TEXT,
-    "countyfp" TEXT,
+    "geoid" TEXT,
+    "ansicode" TEXT,
     "name" TEXT,
-    "geoclassfp" TEXT
+    "pop10" INTEGER,
+    "hu10" INTEGER,
+    "aland" INTEGER,
+    "awater" INTEGER,
+    "aland_sqmi" REAL,
+    "awater_sqmi" REAL,
+    "intptlat" REAL,
+    "intptlong" REAL
 );
 
 CREATE TABLE place(
@@ -369,7 +385,8 @@ CREATE TABLE ghr(
     "nmemi" TEXT,
     "puma" TEXT,
     "reserved" TEXT,
-    "geoid" TEXT
+    "countyid" TEXT,
+    "placeid" TEXT
 );
 
 CREATE TABLE f02(
@@ -399,11 +416,12 @@ CREATE TABLE f02(
 .import tmp/state.txt.tmp state
 
 .separator "\t"
+.import tmp/Gaz_counties_national_utf-8.txt.tmp county
 .import tmp/Gaz_places_national_utf-8.txt.tmp place
 
 .separator ","
 .import tmp/national_county.txt.tmp county
-.import tmp/cbsa_utf-8.csv.tmp cbsa
+.import tmp/cbsa.csv.tmp cbsa_tmp
 .import tmp/lsad.csv.tmp lsad
 .import tmp/geoclass.csv.tmp geoclass
 .import tmp/us2010.ur1.utf-8/usgeo2010.ur1.utf-8.csv.tmp ghr
@@ -417,6 +435,10 @@ CREATE TABLE f02(
 
 # dir: intertwine/platform/data/geos
 # sqlite3 geo.db
+CREATE TABLE cbsa AS
+SELECT *, statefp || countyfp AS countyid
+FROM cbsa_tmp;
+
 CREATE TABLE ghrp AS
 SELECT * FROM ghr LEFT OUTER JOIN f02 ON ghr.LOGRECNO = f02.LOGRECNO;
 
