@@ -5,7 +5,7 @@ import re
 from sqlalchemy import Column, Integer
 from sqlalchemy.ext.declarative import declared_attr
 from alchy.model import ModelMeta
-from .exceptions import InvalidRegistryKey, KeyRegisteredAndNoModify
+from intertwine.exceptions import InvalidRegistryKey, KeyRegisteredAndNoModify
 
 
 def camelCaseTo_snake_case(string):
@@ -43,35 +43,157 @@ class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
     '''Standardizes automatic tables'''
 
 
-def __trepr__(self, indent_level=0):
-    indent = ' '*4*indent_level
+class PeekableIterator(object):
+    def __init__(self, it, sentinel=object()):
+        self.it = iter(it)
+        self.sentinel = sentinel
+        self.next_item = next(self.it, self.sentinel)
 
-    if self is None or isinstance(self, (type(unicode()), type(str()))):
-        return u'{indent}{self!r}'.format(indent=indent, self=self)
+    def next(self):
+        rv = self.next_item
+        self.next_item = next(self.it, self.sentinel)
+        return rv
+
+    def has_next(self):
+        return self.next_item is not self.sentinel
+
+    def peek(self):
+        return self.next_item
+
+    def __iter__(self):
+        while self.has_next():
+            yield self.next()
+
+
+def stringify(thing, limit=10, level=0):
+    '''Stringify
+
+    Converts things into nicely formatted unicode strings for printing.
+    The input, 'thing', may be a 'literal' (e.g. integer, boolean,
+    string, etc.), a custom object, a list/tuple, or a dictionary.
+    Custom objects are included using their own unicode methods, but are
+    appropriately indented. Lists, tuples and dictionaries recursively
+    stringify their items.
+
+    Dictionary keys with empty values are excluded. Values that
+    are a single line are included on the same line as the key. Multi-
+    line values are listed below the key and indented further.
+
+    An optional 'limit' parameter caps the number of list/tuple items to
+    include. If capped, the cap and total number of items is noted. If
+    the limit is negative, no cap is applied.
+    '''
+    limit = float('inf') if limit < 0 else limit
+    indent = level*4*' '
+    len_thing = -1
+    strings = []
+
+    # If a list/tuple, stringify and add each item
+    if isinstance(thing, (list, tuple)):
+        len_thing = len(thing)  # Used for limit message later
+        for i, t in enumerate(thing):
+            if i == limit:
+                break
+            strings.append(stringify(t, limit, level))
+
+    # If a dict, add each key and stringify + further indent each value
+    elif isinstance(thing, dict):
+        for k, v in thing.iteritems():
+            v_str = stringify(v, limit, level+1)
+            # If key has an empty value, don't include it
+            if len(v_str.strip()) == 0:
+                continue
+            # If there's one value, put the key and value on one line
+            elif len(v_str.split('\n')) == 1:
+                strings.append(u'{indent}{key}: {value}'.format(
+                                indent=indent, key=k, value=v_str.strip()))
+            # There are multiple values, so list them below the key
+            else:
+                strings.append(u'{indent}{key}:\n{value}'.format(
+                                indent=indent, key=k, value=v_str))
+
+    # If a custom object, use its __unicode__ method, but indent it
+    elif hasattr(thing, '__dict__'):
+        strings.append(
+            (('\n' + indent).join('' + unicode(thing).split('\n')))[1:])
+
+    # It is a 'primitive' (e.g. integer, boolean, string, etc.)
+    else:
+        strings.append(u'{indent}{thing}'.format(indent=indent, thing=thing))
+
+    if len_thing > limit:
+        strings.append('{indent}({limit} of {total})'.format(
+                        indent=indent, limit=limit, total=len_thing))
+
+    return '\n'.join(strings)
+
+
+def trepr(self, tight=False, raw=True, outclassed=True, level=0):
+    ''''Trackable Representation', Default repr for Trackable classes
+
+    Returns a string that when evaluated returns the instance. It works
+    by utilizing the registry and indexability provided by Trackable.
+    The following inputs may be specified:
+
+    tight=False:     By default, newlines/indents are added when a line
+                     exceeds max_width. Excludes whitespace when True.
+
+    raw=True:        By default, escaped values are escaped again to
+                     display raw values properly when printed. Set to
+                     False if the trepr needs to be correct when not
+                     printed, such as when embedding in JSON.
+
+    outclassed=True: By default, the outer class and []'s are included
+                     in the string to uniquely identify the instance and
+                     so the string evals to the instance. Set to False
+                     to return a string that evals to just the key.
+
+    Usage:
+    >>> from intertwine.problems.models import Problem
+    >>> p1 = Problem('Homelessness')
+    >>> p1  # interpreter calls repr(p1)
+    <BLANKLINE>
+    Problem['homelessness']
+    >>> p2 = eval(repr(p1))
+    >>> p1 is p2
+    True
+    '''
+    if tight:
+        indent = space = ''
+    else:
+        indent, space = ' '*4*level, ' '
+
+    if self is None or isinstance(self, basestring):
+        # repr adds u''s and extra escapes for printing unicode
+        selfie = repr(self) if raw else u"u'{}'".format(self)
+        return u'{indent}{selfie}'.format(indent=indent, selfie=selfie)
 
     key = self.derive_key()
     cls = u'{indent}{cls}'.format(indent=indent, cls=self.__class__.__name__)
 
-    if isinstance(key, tuple):
-        ob, cb = '[(', ')]'
-    else:
+    osqb, op, cp, csqb = '[', '(', ')', ']'
+    if not outclassed and level == 0:
+        cls = osqb = csqb = ''
+
+    if not isinstance(key, tuple):
+        op = cp = ''
         key = (key,)
-        ob, cb = '[', ']'
 
-    treprs = map(lambda x: __trepr__(x, indent_level+1), key)
-    all_on_1_line = cls + ob + ', '.join(map(unicode.strip, treprs)) + cb
+    treprs = map(lambda x: trepr(x, tight, raw, outclassed, level+1), key)
+    all_1_line = (cls + osqb + op +
+                  (',' + space).join(map(unicode.strip, treprs)) + cp + csqb)
 
-    if len(all_on_1_line) <= Trackable.max_width:
-        return unicode(all_on_1_line)
+    if len(all_1_line) < Trackable.max_width or tight:
+        return unicode(all_1_line)
     else:
-        return unicode(cls + ob + '\n' + ',\n'.join(treprs) +
-                       '\n{indent}'.format(indent=indent) + cb)
+        return unicode(cls + osqb + op + '\n' + ',\n'.join(treprs) +
+                       '\n{indent}'.format(indent=indent) + cp + csqb)
 
 
 def __repr__(self):
     '''Default repr for Trackable classes'''
     # Prefix newline due to ipython pprint bug related to lists
-    return '\n' + self.__trepr__()
+    return '\n' + self.trepr()
 
 
 class Trackable(ModelMeta):
@@ -113,7 +235,7 @@ class Trackable(ModelMeta):
         if repr_fn is None:
             # Provide default __repr__()
             attr['__repr__'] = __repr__
-            attr['__trepr__'] = __trepr__
+            attr['trepr'] = trepr
         new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
         if new_cls.__name__ != 'Base':
             meta._classes[name] = new_cls
@@ -151,8 +273,15 @@ class Trackable(ModelMeta):
         cls._instances[key] = value
 
     def __iter__(cls):
-        for inst in cls._instances.values():
+        for inst in cls._instances.itervalues():
             yield inst
+
+    def register(cls, inst):
+        key = inst.derive_key()
+        existing = cls[key]
+        if existing is not None and existing is not inst:
+            raise ValueError('{} is already registered.'.format(key))
+        cls[key] = inst
 
     def unregister(cls, inst):
         key = inst.derive_key()
@@ -224,5 +353,6 @@ class Trackable(ModelMeta):
         for cls in classes:
             if cls.__name__ not in meta._classes:
                 raise TypeError('{} not Trackable.'.format(cls.__name__))
-            updates[cls.__name__] = cls._updates
+            if len(cls._updates) > 0:
+                updates[cls.__name__] = cls._updates
         return updates
