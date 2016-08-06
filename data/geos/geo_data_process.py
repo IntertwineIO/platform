@@ -162,8 +162,7 @@ def load_subdivision2_geos(geo_session, session):
     state = None
     stusps = prior_stusps = None
     print 'Loading counties and equivalents in...'
-    for record in records:
-        r = CountyRecord(*record)
+    for r in (CountyRecord(*record) for record in records):
         stusps = r.county_stusps
         if stusps != prior_stusps:
             state = us[stusps]
@@ -264,8 +263,7 @@ def load_place_geos(geo_session, session):
     conflicts = {}
     consolidated = {}
     print 'Loading places in...'
-    for record in records:
-        r = PlaceRecord(*record)
+    for r in (PlaceRecord(*record) for record in records):
 
         statefp = r.ghrp_statefp
         # If it's a new state, update variables
@@ -788,10 +786,11 @@ def load_cbsa_geos(geo_session, session):
 
                     new_csa_target.promote_to_alias_target()
 
-            # CBSA aliases
-
-            # Ensure we've just created a CSA or we're not in a CSA
-            if not (csa or csa_code == ''):
+            # Ensure we're not in a CSA or we've just created a CSA.
+            # CBSA aliases are created after the CSA (if any) because
+            # the CSA is named 'Greater X' and the largest CBSA in the
+            # CSA is named 'X Area' to distinguish it from the CSA.
+            if not (csa_code == '' or csa):
                 continue
 
             cbsa_targets = csa_cbsa_main_places.iterkeys() if csa else (cbsa, )
