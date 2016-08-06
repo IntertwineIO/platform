@@ -188,6 +188,7 @@ def load_subdivision2_geos(geo_session, session):
             GeoID(level=glvl, standard='ANSI', code=r.ghrp_countyns)
 
     # County equivalents in remaining U.S. territories
+    # TODO: Find and add data (they do not show up as children without data)
     more_areas = (
         # fips     ansi      stusps  name                desig
         ('60010', '01805240', 'AS', 'Eastern District', 'District'),
@@ -309,7 +310,8 @@ def load_place_geos(geo_session, session):
             key = Geo.create_key(name=place_name, path_parent=state)
             existing = Geo[key]
             if existing is not None:
-                # TODO: add an optional 'qualifier' attribute to Geo
+                # TODO: Add an optional 'qualifier' attribute to Geo
+                # TODO: Generalize 'qualifier' as 'pre' and 'post'
                 if existing.alias_target is None:
                     # if existing conflict is a place, rename it, make
                     # an alias to it, and keep track of its population
