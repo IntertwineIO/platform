@@ -61,10 +61,13 @@ def test_licenses(**options):
 
     accepted_licenses = [
         'BSD',
-        'MIT',
-        'Apache 2.0',
-        'PSF',
-        'DSF'
+        'MIT', 'Expat',
+        'ZPL', 'Zope',
+        'MPL', 'Mozilla Public License',
+        'Apache', 'Apache 2.0',
+        'PSF', 'Python Software Foundation',
+        'DSF', 'Django Software Foundation',
+        'ISC', 'ISCL', 'Internet Software Consortium',
     ]
 
     for installed_distribution in get_installed_distributions():
@@ -86,7 +89,8 @@ def test_licenses(**options):
                     if project_name in known_ignores:
                         skip = True
                     file = sys.stdout
-                    if not any(lic in license for lic in accepted_licenses):
+                    license = license.strip()
+                    if not any(lic.lower() in license.lower() for lic in accepted_licenses):
                         severity = '!!!'
                         file = sys.stderr
                         found_valid = False
