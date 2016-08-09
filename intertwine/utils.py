@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import inspect
+import numbers
 import re
 
 from sqlalchemy import Column, Integer
@@ -117,7 +118,11 @@ def stringify(thing, limit=10, level=0):
         strings.append(
             (('\n' + indent).join('' + unicode(thing).split('\n')))[1:])
 
-    # It is a 'primitive' (e.g. integer, boolean, string, etc.)
+    # If a number, use commas for readability
+    elif isinstance(thing, numbers.Number) and not isinstance(thing, bool):
+        strings.append(u'{indent}{thing:,}'.format(indent=indent, thing=thing))
+
+    # It is a non-numeric 'primitive' (e.g. boolean, string, etc.)
     else:
         strings.append(u'{indent}{thing}'.format(indent=indent, thing=thing))
 
