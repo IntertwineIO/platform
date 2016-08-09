@@ -845,12 +845,36 @@ def load_cbsa_geos(geo_session, session):
                                         if cbsa_mp_abbrev else None),
                                 path_parent=alias_state,
                                 alias_target=cbsa_target,
-                                the_prefix=True))
+                                uses_the=True))
 
                         if alias_state is cbsa_main_place.path_parent:
                             new_cbsa_target = greater_cbsa_alias
 
                 new_cbsa_target.promote_to_alias_target()
+
+    # Add proper DC CBSA alias and promote
+    dc_dc_area = Geo['us/dc/dc_area']
+    dc_area = Geo(name=dc_dc_area.name,
+                  abbrev=dc_dc_area.abbrev,
+                  path_parent=us,
+                  alias_target=dc_dc_area.alias_target,
+                  uses_the=True)
+    dc_area.promote_to_alias_target()
+
+    # Add proper DC CSA aliases and promote
+    dc_greater_dc = Geo['us/dc/greater_dc']
+    greater_dc = Geo(name=dc_greater_dc.name,
+                     abbrev=dc_greater_dc.abbrev,
+                     path_parent=us,
+                     alias_target=dc_greater_dc.alias_target,
+                     uses_the=False)
+    dc_greater_dc_area = Geo['us/dc/greater_dc_area']
+    greater_dc_area = Geo(name=dc_greater_dc_area.name,
+                          abbrev=dc_greater_dc_area.abbrev,
+                          path_parent=us,
+                          alias_target=dc_greater_dc_area.alias_target,
+                          uses_the=False)
+    greater_dc.promote_to_alias_target()
 
     print 'CBSAs with unnamed main places...'
     for cbsa, (cbsa_places, cbsa_main_place) in (
