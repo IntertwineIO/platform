@@ -301,6 +301,7 @@ def load_place_geos(geo_session, session):
             place_name = r.place_name
             if desig != '':
                 place_name = place_name.split(desig)[0].strip()
+            qualifier = None
 
             print '\t\t' + place_name + '(' + placeid + ')'
 
@@ -308,15 +309,13 @@ def load_place_geos(geo_session, session):
             key = Geo.create_key(name=place_name, path_parent=state)
             existing = Geo[key]
             if existing is not None:
-                # TODO: Add an optional 'qualifier' attribute to Geo
-                # TODO: Generalize 'qualifier' as 'pre' and 'post'
                 if existing.alias_target is None:
                     # if existing conflict is a place, rename it, make
                     # an alias to it, and keep track of its population
                     if (existing.levels.get('place', None) is not None):
                         existing_desig = existing.levels['place'].designation
-                        existing.name += (' (' + existing_desig + ' in ' +
-                                          existing.parents[0].name + ')')
+                        existing.qualifier = (existing_desig + ' in ' +
+                                              existing.parents[0].name)
                         alias = Geo(name=place_name,
                                     path_parent=state,
                                     alias_target=existing)
@@ -343,9 +342,10 @@ def load_place_geos(geo_session, session):
                                         'neither a place nor subdivision2')
 
                 assert len(counties) > 0
-                place_name += ' (' + desig + ' in ' + counties[0].name + ')'
+                qualifier = desig + ' in ' + counties[0].name
 
             g = Geo(name=place_name,
+                    qualifier=qualifier,
                     path_parent=state,
                     parents=counties + [state])
             GeoData(geo=g,
@@ -624,7 +624,7 @@ def load_cbsa_geos(geo_session, session):
                                                       code=cbsa_code)
 
             cbsa = Geo(name=cbsa_name + ' Area',
-                       the_prefix=True,
+                       uses_the=True,
                        path_parent=us,
                        parents=cbsa_states.keys(),
                        children=cbsa_counties.keys() + cbsa_places.keys(),
@@ -674,30 +674,9 @@ def load_cbsa_geos(geo_session, session):
             if not name_match:
                 cbsa_main_place = cbsa_main_places[0]
 
-            # what if there's only one place in the CBSA name?
-
             if cbsa_main_place is not None and not name_match:
                 cbsas_with_unnamed_main_places[cbsa] = (
                         cbsa_places, cbsa_main_place)
-
-            # Is this necessary?
-            # if cbsa_main_place is None:
-            #     cbsa_top_places = sorted(cbsa_places,
-            #                                 key=lambda p: p.data.total_pop,
-            #                                 reverse=True)
-            #     for i, place in enumerate(cbsa_places):
-            #         if cbsa_name.find(place.name) > -1:
-            #             cbsa_main_place = place
-            #         else:
-            #             for alias in place.aliases.all():
-            #                 if cbsa_name.find(alias.name) > -1:
-            #                     cbsa_main_place = place
-            #                     break
-            #         if cbsa_main_place == place:
-            #             # for testing:
-            #             if i > 0:
-            #                 cbsas_not_aliased_by_top_place[g] = cbsa_places[:i+1]
-            #             break
 
             if cbsa_main_place is None:
                 cbsas_without_main_places[cbsa] = (
@@ -741,7 +720,7 @@ def load_cbsa_geos(geo_session, session):
                                                              code=csa_code)
 
                     csa = Geo(name='Greater ' + csa_name + ' Area',
-                              the_prefix=True,
+                              uses_the=True,
                               path_parent=us,
                               parents=csa_states.keys(),
                               children=(csa_cbsa_main_places.keys() +
@@ -771,7 +750,7 @@ def load_cbsa_geos(geo_session, session):
                                         if csa_mp_abbrev else None),
                                 path_parent=csa_state,
                                 alias_target=csa,
-                                the_prefix=False))
+                                uses_the=False))
 
                         greater_csa_area_alias = (
                             Geo(name=('Greater ' + csa_mp_name + ' Area'),
@@ -779,7 +758,7 @@ def load_cbsa_geos(geo_session, session):
                                         if csa_mp_abbrev else None),
                                 path_parent=csa_state,
                                 alias_target=csa,
-                                the_prefix=True))
+                                uses_the=True))
 
                         if csa_state is csa_main_place.path_parent:
                             new_csa_target = greater_csa_alias
@@ -818,7 +797,7 @@ def load_cbsa_geos(geo_session, session):
                                         if cbsa_mp_abbrev else None),
                                 path_parent=alias_state,
                                 alias_target=cbsa_target,
-                                the_prefix=True))
+                                uses_the=True))
 
                         if alias_state is cbsa_main_place.path_parent:
                             new_cbsa_target = cbsa_area_alias
@@ -829,7 +808,7 @@ def load_cbsa_geos(geo_session, session):
                                         if cbsa_mp_abbrev else None),
                                 path_parent=alias_state,
                                 alias_target=cbsa_target,
-                                the_prefix=True))
+                                uses_the=True))
 
                         greater_cbsa_alias = (
                             Geo(name='Greater ' + cbsa_mp_name,
@@ -837,7 +816,7 @@ def load_cbsa_geos(geo_session, session):
                                         if cbsa_mp_abbrev else None),
                                 path_parent=alias_state,
                                 alias_target=cbsa_target,
-                                the_prefix=False))
+                                uses_the=False))
 
                         greater_cbsa_area_alias = (
                             Geo(name='Greater ' + cbsa_mp_name + ' Area',
@@ -845,12 +824,36 @@ def load_cbsa_geos(geo_session, session):
                                         if cbsa_mp_abbrev else None),
                                 path_parent=alias_state,
                                 alias_target=cbsa_target,
-                                the_prefix=True))
+                                uses_the=True))
 
                         if alias_state is cbsa_main_place.path_parent:
                             new_cbsa_target = greater_cbsa_alias
 
                 new_cbsa_target.promote_to_alias_target()
+
+    # Add proper DC CBSA alias and promote
+    dc_dc_area = Geo['us/dc/dc_area']
+    dc_area = Geo(name=dc_dc_area.name,
+                  abbrev=dc_dc_area.abbrev,
+                  path_parent=us,
+                  alias_target=dc_dc_area.alias_target,
+                  uses_the=True)
+    dc_area.promote_to_alias_target()
+
+    # Add proper DC CSA aliases and promote
+    dc_greater_dc = Geo['us/dc/greater_dc']
+    greater_dc = Geo(name=dc_greater_dc.name,
+                     abbrev=dc_greater_dc.abbrev,
+                     path_parent=us,
+                     alias_target=dc_greater_dc.alias_target,
+                     uses_the=False)
+    dc_greater_dc_area = Geo['us/dc/greater_dc_area']
+    greater_dc_area = Geo(name=dc_greater_dc_area.name,
+                          abbrev=dc_greater_dc_area.abbrev,
+                          path_parent=us,
+                          alias_target=dc_greater_dc_area.alias_target,
+                          uses_the=False)
+    greater_dc.promote_to_alias_target()
 
     print 'CBSAs with unnamed main places...'
     for cbsa, (cbsa_places, cbsa_main_place) in (

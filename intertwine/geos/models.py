@@ -23,20 +23,33 @@ geo_association_table = Table(
 class Geo(BaseGeoModel, AutoTableMixin):
     '''Base class for geos
 
-    human_id must be unique, so geos must be properly qualified. It
-    aligns to the path established by path_parent geos (abbreviated).
-    Distinguishes Austin, TX from Austin in AR, IN, MN, NV, or PA.
-    geo_type      geo                   path_parent  human_id
+    A 'geo' is geographical entity, legal or otherwise. Geos may have
+    GeoData and be tied to one or more GeoLevels (which in turn may be
+    tied to one or more GeoIDs)
+
+    The human_id is a human-readable unique for each geo and is composed
+    as follows:
+
+    path/(abbrev or name + qualifier)
+
+    The 'path' is established by the 'path_parent' field. If the geo has
+    an 'abbrev', it is used, otherwise the name is used. The 'qualifier'
+    is used to distinguish geos with the same name/abbrev with the same
+    path. Examples include Chula Vista, TX, Chevy Chase, MD, and many
+    others.
+
+    level         geo                   path_parent  human_id
     country       US                    (none)       us
     subdivision1  TX                    US           us/tx
-    csa           Greater Houston Area  TX           us/tx/greater_houston_area
-    cbsa          Austin Area           TX           us/tx/austin_area
+    csa           Greater Houston       TX           us/tx/greater_houston
+    cbsa          Greater Austin        TX           us/tx/greater_austin
     subdivision2  Travis County         TX           us/tx/travis_county
     place         Austin                TX           us/tx/austin
     '''
     _name = Column('name', types.String(60))
-    _abbrev = Column('abbrev', types.String(10))
-    _human_id = Column('human_id', types.String(100), index=True, unique=True)
+    _abbrev = Column('abbrev', types.String(20))
+    _qualifier = Column('qualifier', types.String(60))
+    _human_id = Column('human_id', types.String(200), index=True, unique=True)
     path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
     _path_parent = orm.relationship(
                 'Geo',
@@ -46,14 +59,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 lazy='joined')
 
     # e.g. 'The United States'
-    the_prefix = Column(types.Boolean)
-
-    # TODO: Add 'pre' and 'post' and rename 'the_prefix' to 'the' where
-    # human_id is based on (pre + (abbrev or name) + post) and display is
-    # based on (the + pre + (abbrev or name) + post)
-    # Use cases:
-    # a) CBSAs and CSAs, e.g. 'The Greater Austin Area'
-    # b) Duplicate names, e.g. 'Chula Vista CDP in Cameron County'
+    uses_the = Column(types.Boolean)
 
     # If geo.alias_target is None, the geo is not an alias, but it could
     # be the target of one or more aliases.
@@ -75,7 +81,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 cascade='all, delete-orphan',
                 backref='_geo')
 
-    # geo_type      us geo      us parents
+    # level         us geo      us parents
     # country       US          None
     # subdivision1  state       US
     # csa           csa         state(s)
@@ -103,13 +109,14 @@ class Geo(BaseGeoModel, AutoTableMixin):
         # Not during __init__() and there's no abbreviation used instead
         if self.human_id is not None and self.abbrev is None:
             self.human_id = Geo.create_key(name=val,
+                                           qualifier=self.qualifier,
                                            path_parent=self.path_parent,
                                            alias_target=self.alias_target)
         nstr = val.lower()
-        self.the_prefix = (nstr.find('states') > -1 or
-                           nstr.find('islands') > -1 or
-                           nstr.find('republic') > -1 or
-                           nstr.find('district') > -1)
+        self.uses_the = (nstr.find('states') > -1 or
+                         nstr.find('islands') > -1 or
+                         nstr.find('republic') > -1 or
+                         nstr.find('district') > -1)
         self._name = val  # set name last
 
     name = orm.synonym('_name', descriptor=name)
@@ -122,11 +129,27 @@ class Geo(BaseGeoModel, AutoTableMixin):
     def abbrev(self, val):
         if self.human_id is not None:  # Not during __init__()
             self.human_id = Geo.create_key(name=self.name, abbrev=val,
+                                           qualifier=self.qualifier,
                                            path_parent=self.path_parent,
                                            alias_target=self.alias_target)
         self._abbrev = val  # set abbrev last
 
     abbrev = orm.synonym('_abbrev', descriptor=abbrev)
+
+    @property
+    def qualifier(self):
+        return self._qualifier
+
+    @qualifier.setter
+    def qualifier(self, val):
+        if self.human_id is not None:  # Not during __init__()
+            self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
+                                           qualifier=val,
+                                           path_parent=self.path_parent,
+                                           alias_target=self.alias_target)
+        self._qualifier = val  # set qualifier last
+
+    qualifier = orm.synonym('_qualifier', descriptor=qualifier)
 
     @property
     def path_parent(self):
@@ -136,6 +159,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
     def path_parent(self, val):
         if self.human_id is not None:  # Not during __init__()
             self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
+                                           qualifier=self.qualifier,
                                            path_parent=val,
                                            alias_target=self.alias_target)
         self._path_parent = val
@@ -227,25 +251,29 @@ class Geo(BaseGeoModel, AutoTableMixin):
     levels = orm.synonym('_levels', descriptor=levels)
 
     @staticmethod
-    def create_key(name=None, abbrev=None, path_parent=None, alias_target=None,
-                   **kwds):
+    def create_key(name=None, abbrev=None, qualifier=None, path_parent=None,
+                   alias_target=None, **kwds):
         '''Create key for a geo
 
         Return a registry key allowing the Trackable metaclass to look
         up a geo instance. The key is created by concatenating the
-        human_id of the path_parent with the abbreviation or name
-        provided, separated by the Geo delimiter. If no path_parent is
-        provided, but there is an alias_target, the human_id of the
-        alias_target's path_parent is used instead.
+        human_id of the path_parent with the name, separated by the Geo
+        delimiter. If an abbreviation is provided, it is us used instead
+        of the name. If a qualifier is provided, it is added to the end,
+        separated by a space. If no path_parent is provided, but there
+        is an alias_target, the human_id of the alias_target's
+        path_parent is used instead. Prohibited characters and sequences
+        are either replaced or removed.
         '''
         if path_parent is None and alias_target is not None:
             path_parent = alias_target.path_parent
-        path = '' if path_parent is None else (path_parent.human_id +
-                                               Geo.delimiter)
-        qualifier = abbrev if abbrev else name
-        qualifier = (qualifier.replace('.', '').replace(', ', '-')
-                     ).replace('/', '-').replace(' ', '_').lower()
-        return path + qualifier
+        path = path_parent.human_id + Geo.delimiter if path_parent else ''
+        nametag = u'{a_or_n}{qualifier}'.format(
+                        a_or_n=abbrev if abbrev else name,
+                        qualifier=' ' + qualifier if qualifier else '')
+        nametag = (nametag.replace('.', '').replace(', ', '-')
+                   .replace('/', '-').replace(' ', '_').lower())
+        return path + nametag
 
     def derive_key(self):
         '''Derive key from a geo instance
@@ -255,8 +283,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
         '''
         return self.human_id
 
-    def __init__(self, name, abbrev=None, path_parent=None, alias_target=None,
-                 the_prefix=None, data=None, levels={},
+    def __init__(self, name, abbrev=None, qualifier=None, path_parent=None,
+                 alias_target=None, uses_the=None, data=None, levels={},
                  parents=[], children=[], data_level=None):
         '''Initialize a new geo
 
@@ -267,14 +295,16 @@ class Geo(BaseGeoModel, AutoTableMixin):
         geo should be self and the level should match the key.
         '''
         self.name = name
-        if the_prefix is not None:  # Override calculated value, if provided
-            self.the_prefix = the_prefix
+        if uses_the is not None:  # Override calculated value, if provided
+            self.uses_the = uses_the
         self.abbrev = abbrev
+        self.qualifier = qualifier
         if path_parent is None and alias_target is not None:
             path_parent = alias_target.path_parent
         self.path_parent = path_parent
         self.alias_target = alias_target
         self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
+                                       qualifier=self.qualifier,
                                        path_parent=self.path_parent,
                                        alias_target=self.alias_target)
         # if self.alias_target is not None:
@@ -387,17 +417,19 @@ class Geo(BaseGeoModel, AutoTableMixin):
             # transfer references when alias_target setter called on at
             alias.alias_target = self
 
-    def display(self, show_the=True, show_abbrev=True, abbrev_path=True,
-                max_path=float('Inf')):
+    def display(self, show_the=True, show_abbrev=True, show_qualifier=True,
+                abbrev_path=True, max_path=float('Inf')):
         '''Generate text for displaying a geo to a user
 
-        Returns a string derived from the name, abbrev, the_prefix, and
+        Returns a string derived from the name, abbrev, uses_the, and
         the geo path established by the path_parent. The following
         parameters affect the output:
         - show_the=True: The name of the geo is prefixed by 'The' if the
-          geo has the flag (geo.the_prefix == True)
+          geo has the flag (geo.uses_the == True)
         - show_abbrev=True: The abbrev is displayed in parentheses after
           the geo name if the geo has an abbrev
+        - show_qualifier=True: The qualifier is displayed after the geo
+          name/abbrev if the geo has a qualifier
         - abbrev_path=True: Any path geos appearing after the geo are
           displayed in abbrev form, if one exists
         - max_path=Inf: Determines the number of levels in the geo path
@@ -405,25 +437,27 @@ class Geo(BaseGeoModel, AutoTableMixin):
           limits the display to just the geo, a value of 1 includes the
           immediate path_parent, etc.
         '''
-        geostr = ''
+        geostr = []
         geo = self
         plvl = 0
         while geo is not None and plvl <= max_path:
-            the = ('The ' if geo.the_prefix and show_the else '')
+            the = ('The ' if geo.uses_the and show_the else '')
+            abbrev = (u' ({})'.format(geo.abbrev)
+                      if geo.abbrev and show_abbrev else '')
+            qualifier = (u' {}'.format(geo.qualifier)
+                         if geo.qualifier and show_qualifier else '')
             if plvl == 0:
-                geostr += u'{the}{name}'.format(the=the, name=geo.name)
-                if geo.abbrev and show_abbrev:
-                    geostr += u' ({abbrev})'.format(abbrev=geo.abbrev)
+                geostr.append(u'{the}{name}{abbrev}{qualifier}'.format(
+                            the=the, name=geo.name, abbrev=abbrev,
+                            qualifier=qualifier))
             elif abbrev_path:
-                geostr += u'{abbrev}'.format(abbrev=geo.abbrev)
+                geostr.append(u'{abbrev}'.format(abbrev=geo.abbrev))
             else:
-                geostr += u'{name}'.format(name=geo.name)
+                geostr.append(u'{name}'.format(name=geo.name))
 
-            if geo.path_parent is not None and plvl < max_path:
-                geostr += ', '
             geo = geo.path_parent
             plvl += 1
-        return geostr
+        return ', '.join(geostr)
 
     def related_geos_by_level(self, relation, tight=True, raw=False, limit=10):
         '''Related geos by level
@@ -431,7 +465,9 @@ class Geo(BaseGeoModel, AutoTableMixin):
         Given a relation (e.g. parent/child), returns an ordered
         dictionary of geo reprs stratified (keyed) by level. The levels
         are ordered top to bottom for children and bottom to top for
-        parents.
+        parents. Within each level, the geos are listed in descending
+        order by total population. Any geos that are missing data and/or
+        levels (e.g. aliases) are excluded.
 
         The following inputs may be specified:
         tight=True: make all repr values tight (without whitespace)
@@ -440,8 +476,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
                   a negative limit indicates no cap
         '''
         if relation not in set(('parents', 'children')):
-            raise ValueError('{rel} is not an allowed value for '
-                             'relation'.format(rel=relation))
+            raise ValueError('{rel} is not an allowed value for relation'
+                             .format(rel=relation))
 
         base_q = getattr(self, relation).join(Geo.data).join(Geo.levels)
         levels = (lvl for lvl in (
@@ -485,8 +521,9 @@ class Geo(BaseGeoModel, AutoTableMixin):
             ('display', self.display(max_path=1, show_the=True,
                                      show_abbrev=False, abbrev_path=True)),
             ('name', self.name),
-            ('the_prefix', self.the_prefix),
             ('abbrev', self.abbrev),
+            ('qualifier', self.qualifier),
+            ('uses_the', self.uses_the),
 
             ('path_parent', (self.path_parent.trepr(tight=tight, raw=raw)
                              if self.path_parent is not None else None)),
@@ -695,17 +732,17 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
     # 1. Fetch a particular level (e.g. subdivision2) for a particular
     #    geo (e.g. Travis County) to determine designation (e.g. county)
     #    or to map to 3rd-party IDs (e.g. FIPS codes)
-    #    cols: level, geo_id
-    # 2. For a particular level (e.g. subdivision2), obtain all the geos
-    #    (this will often be a large number).
-    #    cols: level
-    # 3. For a particular geo (e.g. Washington, D.C.), obtain all the
+    #    cols: geo_id, level
+    # 2. For a particular geo (e.g. Washington, D.C.), obtain all the
     #    levels (e.g. subdivision1, subdivision2, place)
     #    cols: geo_id
+    # 3. For a particular level (e.g. subdivision2), obtain all the geos
+    #    (this will often be a large number).
+    #    cols: level
     __table_args__ = (Index('ux_geo_level',
                             # ux for unique index
-                            'level',
                             'geo_id',
+                            'level',
                             unique=True),)
 
     down = OrderedDict((
