@@ -3,7 +3,7 @@
 from operator import attrgetter
 
 import flask
-from flask import abort, render_template
+from flask import abort, redirect, render_template
 
 from . import blueprint, geo_db
 from .models import Geo, GeoLevel
@@ -39,6 +39,7 @@ def render_geo(geo_human_id):
     '''Problem Page'''
     human_id = geo_human_id.lower()
     geo = Geo.query.filter_by(human_id=human_id).first()
+
     if geo is None:
         # TODO: Instead of aborting, reroute to geo_not_found page
         # Oops! 'X' is not a geo found in Intertwine.
@@ -48,6 +49,9 @@ def render_geo(geo_human_id):
         # <related_geo_3>
         abort(404)
 
+    if geo.alias_target:
+        target = geo.alias_target.human_id
+        return redirect('/geos/{}'.format(target), code=302)
     # Austin, Texas, United States
     title = geo.display()
 
