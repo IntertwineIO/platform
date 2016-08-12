@@ -331,82 +331,83 @@ def test_geo_aliases(options):
     assert session.query(GeoData).all() == []
     assert session.query(GeoLevel).all() == []
 
-    data_level = 'place'
+    geo_dict = {'total_pop': 100,
+                'urban_pop': 80,
+                'latitude': 42,
+                'longitude': -71,
+                'land_area': 321,
+                'water_area': 123}
 
-    child_a_dict = {'total_pop': 100,
-                    'urban_pop': 80,
-                    'latitude': 42,
-                    'longitude': -71,
-                    'land_area': 321,
-                    'water_area': 123}
+    level = 'place'
+    geo = Geo(name='Test Geo')
+    gdata = GeoData(geo=geo, **geo_dict)
+    glvl = GeoLevel(geo=geo, level=level, designation='city')
 
-    child_a_geo = Geo(name='Child Test Geo A')
-    GeoData(geo=child_a_geo, **child_a_dict)
-    GeoLevel(geo=child_a_geo, level='place', designation='village')
+    parent_geo = Geo(name='Test Parent Geo', abbrev='TPG')
+    geo.path_parent = parent_geo
+    geo.parents = [parent_geo]
 
-    child_b_dict = {'total_pop': 300,
-                    'urban_pop': 240,
-                    'latitude': 44,
-                    'longitude': -73,
-                    'land_area': 456,
-                    'water_area': 21}
+    peer_geo = Geo(name='Test Peer Geo')
+    peer_geo.path_parent = parent_geo
+    peer_geo.parents = [parent_geo]
 
-    child_b_geo = Geo(name='Child Test Geo B')
-    GeoData(geo=child_b_geo, **child_b_dict)
-    GeoLevel(geo=child_b_geo, level='place', designation='town')
+    child_geo = Geo(name='Test Child Geo')
+    child_geo.path_parent = geo
+    child_geo.parents = [geo]
 
-    child_c_dict = {'total_pop': 1000,
-                    'urban_pop': 800,
-                    'latitude': 30,
-                    'longitude': -97,
-                    'land_area': 4321,
-                    'water_area': 1234}
+    geo_alias_1 = Geo(name='Test Geo Alias 1', alias_target=geo,
+                      path_parent=geo)
+    geo_alias_2 = Geo(name='Test Geo Alias 2', alias_target=geo)
+    geo_alias_3 = Geo(name='Test Geo Alias 3', alias_target=geo)
 
-    child_c_geo = Geo(name='Child Test Geo C')
-    GeoData(geo=child_c_geo, **child_c_dict)
-    GeoLevel(geo=child_c_geo, level='subdivision2', designation='county')
-
-    sum_fields = ('total_pop', 'urban_pop', 'land_area', 'water_area')
-    weighted_average_fields = ('latitude', 'longitude')
-    aggregate_dict = {f: child_a_dict[f] + child_b_dict[f] for f in sum_fields}
-    child_a_area = child_a_dict['land_area'] + child_a_dict['water_area']
-    child_b_area = child_b_dict['land_area'] + child_b_dict['water_area']
-    for field in weighted_average_fields:
-        aggregate_dict[field] = (
-            (child_a_dict[field] * child_a_area +
-                child_b_dict[field] * child_b_area) * 1.0 /
-            (child_a_area + child_b_area))
-
-    parent_geo = Geo(name='Parent Test Geo',
-                     children=[child_a_geo, child_b_geo, child_c_geo],
-                     data_level=data_level)  # aggregate places only
-
-    session.add(parent_geo)
-    session.add(child_a_geo)
-    session.add(child_b_geo)
-    session.add(child_c_geo)
+    session.add(geo)
     session.commit()
 
-    parent_data = parent_geo.data
-    assert parent_data is not None
-    assert parent_data.total_pop == aggregate_dict['total_pop']
-    assert parent_data.urban_pop == aggregate_dict['urban_pop']
-    assert parent_data.latitude == aggregate_dict['latitude']
-    assert parent_data.longitude == aggregate_dict['longitude']
-    assert parent_data.land_area == aggregate_dict['land_area']
-    assert parent_data.water_area == aggregate_dict['water_area']
+    assert geo.data is gdata
+    assert geo.levels[level] is glvl
+    assert parent_geo in geo.parents
+    assert geo in child_geo.parents
 
-    parent_geo_data_from_db = session.query(GeoData).filter(
-        GeoData.geo == parent_geo).first()
+    assert geo.path_parent is parent_geo
+    assert child_geo.path_parent is geo
+    assert geo_alias_1.path_parent is geo
+    assert geo_alias_2.path_parent is parent_geo
+    assert geo_alias_3.path_parent is parent_geo
 
-    assert parent_geo_data_from_db is not None
-    assert parent_geo_data_from_db is parent_geo.data
-    assert parent_geo_data_from_db.total_pop == aggregate_dict['total_pop']
-    assert parent_geo_data_from_db.urban_pop == aggregate_dict['urban_pop']
-    assert parent_geo_data_from_db.latitude == aggregate_dict['latitude']
-    assert parent_geo_data_from_db.longitude == aggregate_dict['longitude']
-    assert parent_geo_data_from_db.land_area == aggregate_dict['land_area']
-    assert parent_geo_data_from_db.water_area == aggregate_dict['water_area']
+    assert geo_alias_1.alias_target is geo
+    assert geo_alias_2.alias_target is geo
+    assert geo_alias_3.alias_target is geo
+
+    aliases = geo.aliases.all()
+    assert geo_alias_1 in aliases
+    assert geo_alias_2 in aliases
+    assert geo_alias_3 in aliases
+
+    geo_from_db = session.query(Geo).filter(
+                            Geo.human_id == geo.derive_key()).first()
+
+    aliases = geo_from_db.aliases.all()
+    assert geo_alias_1 in aliases
+    assert geo_alias_2 in aliases
+    assert geo_alias_3 in aliases
+
+    geo_alias_1.promote_to_alias_target()
+    assert geo_alias_1.alias_target is None
+    assert geo_alias_2.alias_target is geo_alias_1
+    assert geo_alias_3.alias_target is geo_alias_1
+    assert geo.alias_target is geo_alias_1
+
+    assert geo_alias_1.data is gdata
+    assert geo_alias_1.levels[level] is glvl
+    assert parent_geo in geo_alias_1.parents
+    assert geo_alias_1 in child_geo.parents
+
+    # paths are unchanged by design
+    assert geo.path_parent is parent_geo
+    assert child_geo.path_parent is geo
+    assert geo_alias_1.path_parent is geo
+    assert geo_alias_2.path_parent is parent_geo
+    assert geo_alias_3.path_parent is parent_geo
 
     # Clean up after ourselves
     erase_data(session, confirm='ERASE')
