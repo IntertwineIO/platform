@@ -178,7 +178,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
 
         aliases = self.aliases.all()
         if aliases:
-            if val in aliases:
+            if val in aliases:  # val is an alias of self
                 val.promote_to_alias_target()
             else:
                 for alias in aliases:
@@ -186,7 +186,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 self.alias_target = val  # recurse on self w/o any alias
             return
 
-        if val.alias_target is not None:  # val is an alias, so redirect
+        # if val is an alias of some other geo, redirect to that geo
+        if val.alias_target is not None:
             val = val.alias_target
             # an alias cannot itself have an alias
             assert val.alias_target is None
@@ -194,7 +195,9 @@ class Geo(BaseGeoModel, AutoTableMixin):
         if val == self:
             raise CircularReference(attr='alias_target', inst=self, value=val)
 
-        if self.alias_target is None:
+        # if self is becoming an alias
+        if self.alias_target is None:  # and val is not None
+            # Transfer non-path references; aliases may be path parents
             self.transfer_references(val)
 
         self._alias_target = val
@@ -221,6 +224,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
         # recursively propagate change to path_children
         for pc in self.path_children:
             pc.human_id = Geo.create_key(name=pc.name, abbrev=pc.abbrev,
+                                         qualifier=pc.qualifier,
                                          path_parent=self,
                                          alias_target=pc.alias_target)
 
@@ -377,7 +381,8 @@ class Geo(BaseGeoModel, AutoTableMixin):
         '''Transfer references
 
         Utility function for transfering references to another geo, for
-        example, when making a geo an alias of another geo.'''
+        example, when making a geo an alias of another geo. Path
+        references remain unchanged.'''
         attributes = {'parents': ('dynamic', []),
                       'children': ('dynamic', []),
                       'data': ('not dynamic', None),

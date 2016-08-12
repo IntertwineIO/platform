@@ -20,6 +20,7 @@ import os.path
 import sys
 
 from sqlalchemy import create_engine
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 
@@ -153,7 +154,13 @@ def erase_data(session, confirm=None):
         print('Leaving data untouched.')
     else:
         print('Processing...')
-        classes = Trackable._classes.values()
+        # limit data to Trackable classes with existing tables
+        engine = session.bind
+        inspector = Inspector.from_engine(engine)
+        table_names = set(inspector.get_table_names())
+        classes = [x for x in Trackable._classes.values()
+                   if x.__tablename__ in table_names]
+
         Trackable.register_existing(session, *classes)
         for cls in classes:
             for inst in cls:
