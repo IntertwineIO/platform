@@ -1,0 +1,415 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import pytest
+
+
+@pytest.mark.unit
+@pytest.mark.smoke
+def test_geo_model(options):
+    '''Tests simple geo model interaction'''
+    from intertwine.geos.models import Geo
+    from data.data_process import DataSessionManager, erase_data
+    # To test in interpreter, use below:
+    # from config import DevConfig; config = DevConfig
+    config = options['config']
+    dsm = DataSessionManager(config.DATABASE)
+    session = dsm.session
+    assert session is not None
+    assert session.query(Geo).all() == []
+
+    parent_name = 'Parent Test Republic'
+    parent_abbrev = 'PTR'
+    parent = Geo(name=parent_name, abbrev=parent_abbrev)
+
+    child_name = 'Child Test Geo'
+    child = Geo(name=child_name,
+                path_parent=parent,
+                parents=[parent])
+
+    session.add(parent)
+    session.add(child)
+    session.commit()
+
+    assert Geo[parent.derive_key()] is parent
+    assert Geo[child.derive_key()] is child
+    assert parent[child_name] is child
+
+    parent_from_db = session.query(Geo).filter(
+                        Geo.human_id == parent.human_id).first()
+
+    child_from_db = session.query(Geo).filter(
+                        Geo.human_id == child.human_id).first()
+
+    assert parent_from_db is parent
+    assert parent_from_db.name == parent_name
+    assert parent_from_db.abbrev == parent_abbrev
+    assert parent_from_db.uses_the is True
+    assert parent_from_db.human_id == parent_abbrev.lower()
+    assert parent_from_db.path_children.all()[0] is child_from_db
+    assert parent_from_db.children.all()[0] is child_from_db
+
+    assert child_from_db is child
+    assert child_from_db.name == child_name
+    assert child_from_db.abbrev is None
+    assert child_from_db.uses_the is False
+    assert child_from_db.human_id == Geo.delimiter.join(
+                [child.path_parent.human_id,
+                 child.name.lower().replace(' ', '_')])
+
+    assert child_from_db.path_parent is parent_from_db
+    assert child_from_db.parents.all()[0] is parent_from_db
+
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Geo).all() == []
+
+
+@pytest.mark.unit
+@pytest.mark.smoke
+def test_geo_data_model(options):
+    '''Tests simple geo data model interaction'''
+    from intertwine.geos.models import Geo, GeoData
+    from data.data_process import DataSessionManager, erase_data
+    # To test in interpreter, use below:
+    # from config import DevConfig; config = DevConfig
+    config = options['config']
+    dsm = DataSessionManager(config.DATABASE)
+    session = dsm.session
+    assert session is not None
+    assert session.query(Geo).all() == []
+    assert session.query(GeoData).all() == []
+
+    total_pop, urban_pop = 1000, 800
+    latitude, longitude = 30, -97
+    land_area, water_area = 4321, 1234
+
+    geo = Geo(name='Test Geo')
+    GeoData(geo=geo,
+            total_pop=total_pop,
+            urban_pop=urban_pop,
+            latitude=latitude,
+            longitude=longitude,
+            land_area=land_area,
+            water_area=water_area)
+
+    session.add(geo)
+    session.commit()
+
+    assert geo.data.total_pop == total_pop
+    assert geo.data.urban_pop == urban_pop
+    assert geo.data.latitude == latitude
+    assert geo.data.longitude == longitude
+    assert geo.data.land_area == land_area
+    assert geo.data.water_area == water_area
+
+    assert GeoData[geo.data.derive_key()] is geo.data
+
+    geo_data_from_db = session.query(GeoData).filter(
+                            GeoData.geo == geo).first()
+
+    assert geo_data_from_db is geo.data
+    assert geo_data_from_db.total_pop == geo.data.total_pop
+    assert geo_data_from_db.urban_pop == geo.data.urban_pop
+    assert geo_data_from_db.latitude == geo.data.latitude
+    assert geo_data_from_db.longitude == geo.data.longitude
+    assert geo_data_from_db.land_area == geo.data.land_area
+    assert geo_data_from_db.water_area == geo.data.water_area
+
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Geo).all() == []
+    assert session.query(GeoData).all() == []
+
+
+@pytest.mark.unit
+@pytest.mark.smoke
+def test_geo_level_model(options):
+    '''Tests simple geo level model interaction'''
+    from intertwine.geos.models import Geo, GeoLevel
+    from data.data_process import DataSessionManager, erase_data
+    # To test in interpreter, use below:
+    # from config import DevConfig; config = DevConfig
+    config = options['config']
+    dsm = DataSessionManager(config.DATABASE)
+    session = dsm.session
+    assert session is not None
+    assert session.query(Geo).all() == []
+    assert session.query(GeoLevel).all() == []
+
+    level = 'place'
+    designation = 'city'
+    geo = Geo(name='Test Geo Place')
+    glvl = GeoLevel(geo=geo, level=level, designation=designation)
+
+    session.add(geo)
+    session.add(glvl)
+    session.commit()
+
+    assert geo.levels[level] is glvl
+    assert glvl.geo is geo
+    assert glvl.level == level
+    assert glvl.designation == designation
+
+    assert GeoLevel[glvl.derive_key()] is glvl
+
+    glvl_from_db = session.query(GeoLevel).filter(
+                    GeoLevel.geo == geo, GeoLevel.level == level).first()
+
+    assert glvl_from_db is glvl
+    assert glvl_from_db.geo is geo
+    assert glvl_from_db.level == level
+    assert glvl_from_db.designation == designation
+
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Geo).all() == []
+    assert session.query(GeoLevel).all() == []
+
+
+@pytest.mark.unit
+@pytest.mark.smoke
+def test_geo_id_model(options):
+    '''Tests simple geo id model interaction'''
+    from intertwine.geos.models import Geo, GeoLevel, GeoID
+    from data.data_process import DataSessionManager, erase_data
+    # To test in interpreter, use below:
+    # from config import DevConfig; config = DevConfig
+    config = options['config']
+    dsm = DataSessionManager(config.DATABASE)
+    session = dsm.session
+    assert session is not None
+    assert session.query(Geo).all() == []
+    assert session.query(GeoLevel).all() == []
+    assert session.query(GeoID).all() == []
+
+    standard = 'Test Standard'
+    code = '12345'
+    geo = Geo(name='Test Geo Place')
+    glvl = GeoLevel(geo=geo, level='place', designation='city')
+    gid = GeoID(level=glvl, standard=standard, code=code)
+
+    session.add(geo)
+    session.add(glvl)
+    session.add(gid)
+    session.commit()
+
+    assert gid.level is glvl
+    assert gid.standard == standard
+    assert gid.code == code
+
+    assert GeoID[gid.derive_key()] is gid
+    assert GeoID[(standard, code)] is gid
+
+    gid_from_db = session.query(GeoID).filter(
+                    GeoID.standard == standard, GeoID.code == code).first()
+
+    assert gid_from_db is gid
+    assert gid_from_db.level is glvl
+    assert gid_from_db.standard == standard
+    assert gid_from_db.code == code
+
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Geo).all() == []
+    assert session.query(GeoLevel).all() == []
+    assert session.query(GeoID).all() == []
+
+
+@pytest.mark.unit
+@pytest.mark.smoke
+def test_form_aggregate_geo(options):
+    '''Tests geo creation that aggregates children data at a geo level'''
+    from intertwine.geos.models import Geo, GeoData, GeoLevel
+    from data.data_process import DataSessionManager, erase_data
+    # To test in interpreter, use below:
+    # from config import DevConfig; config = DevConfig
+    config = options['config']
+    dsm = DataSessionManager(config.DATABASE)
+    session = dsm.session
+    assert session is not None
+    assert session.query(Geo).all() == []
+    assert session.query(GeoData).all() == []
+    assert session.query(GeoLevel).all() == []
+
+    data_level = 'place'
+
+    child_a_dict = {'total_pop': 100,
+                    'urban_pop': 80,
+                    'latitude': 42,
+                    'longitude': -71,
+                    'land_area': 321,
+                    'water_area': 123}
+
+    child_a_geo = Geo(name='Child Test Geo A')
+    GeoData(geo=child_a_geo, **child_a_dict)
+    GeoLevel(geo=child_a_geo, level='place', designation='village')
+
+    child_b_dict = {'total_pop': 300,
+                    'urban_pop': 240,
+                    'latitude': 44,
+                    'longitude': -73,
+                    'land_area': 456,
+                    'water_area': 21}
+
+    child_b_geo = Geo(name='Child Test Geo B')
+    GeoData(geo=child_b_geo, **child_b_dict)
+    GeoLevel(geo=child_b_geo, level='place', designation='town')
+
+    child_c_dict = {'total_pop': 1000,
+                    'urban_pop': 800,
+                    'latitude': 30,
+                    'longitude': -97,
+                    'land_area': 4321,
+                    'water_area': 1234}
+
+    child_c_geo = Geo(name='Child Test Geo C')
+    GeoData(geo=child_c_geo, **child_c_dict)
+    GeoLevel(geo=child_c_geo, level='subdivision2', designation='county')
+
+    sum_fields = ('total_pop', 'urban_pop', 'land_area', 'water_area')
+    weighted_average_fields = ('latitude', 'longitude')
+    aggregate_dict = {f: child_a_dict[f] + child_b_dict[f] for f in sum_fields}
+    child_a_area = child_a_dict['land_area'] + child_a_dict['water_area']
+    child_b_area = child_b_dict['land_area'] + child_b_dict['water_area']
+    for field in weighted_average_fields:
+        aggregate_dict[field] = (
+            (child_a_dict[field] * child_a_area +
+                child_b_dict[field] * child_b_area) * 1.0 /
+            (child_a_area + child_b_area))
+
+    parent_geo = Geo(name='Parent Test Geo',
+                     children=[child_a_geo, child_b_geo, child_c_geo],
+                     data_level=data_level)  # aggregate places only
+
+    session.add(parent_geo)
+    session.add(child_a_geo)
+    session.add(child_b_geo)
+    session.add(child_c_geo)
+    session.commit()
+
+    parent_data = parent_geo.data
+    assert parent_data is not None
+    assert parent_data.total_pop == aggregate_dict['total_pop']
+    assert parent_data.urban_pop == aggregate_dict['urban_pop']
+    assert parent_data.latitude == aggregate_dict['latitude']
+    assert parent_data.longitude == aggregate_dict['longitude']
+    assert parent_data.land_area == aggregate_dict['land_area']
+    assert parent_data.water_area == aggregate_dict['water_area']
+
+    parent_geo_data_from_db = session.query(GeoData).filter(
+        GeoData.geo == parent_geo).first()
+
+    assert parent_geo_data_from_db is not None
+    assert parent_geo_data_from_db is parent_geo.data
+    assert parent_geo_data_from_db.total_pop == aggregate_dict['total_pop']
+    assert parent_geo_data_from_db.urban_pop == aggregate_dict['urban_pop']
+    assert parent_geo_data_from_db.latitude == aggregate_dict['latitude']
+    assert parent_geo_data_from_db.longitude == aggregate_dict['longitude']
+    assert parent_geo_data_from_db.land_area == aggregate_dict['land_area']
+    assert parent_geo_data_from_db.water_area == aggregate_dict['water_area']
+
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Geo).all() == []
+    assert session.query(GeoData).all() == []
+    assert session.query(GeoLevel).all() == []
+
+
+@pytest.mark.unit
+@pytest.mark.smoke
+def test_geo_aliases(options):
+    '''Tests creation of geo aliases and promoting an alias'''
+    from intertwine.geos.models import Geo, GeoData, GeoLevel
+    from data.data_process import DataSessionManager, erase_data
+    # To test in interpreter, use below:
+    # from config import DevConfig; config = DevConfig
+    config = options['config']
+    dsm = DataSessionManager(config.DATABASE)
+    session = dsm.session
+    assert session is not None
+    assert session.query(Geo).all() == []
+    assert session.query(GeoData).all() == []
+    assert session.query(GeoLevel).all() == []
+
+    data_level = 'place'
+
+    child_a_dict = {'total_pop': 100,
+                    'urban_pop': 80,
+                    'latitude': 42,
+                    'longitude': -71,
+                    'land_area': 321,
+                    'water_area': 123}
+
+    child_a_geo = Geo(name='Child Test Geo A')
+    GeoData(geo=child_a_geo, **child_a_dict)
+    GeoLevel(geo=child_a_geo, level='place', designation='village')
+
+    child_b_dict = {'total_pop': 300,
+                    'urban_pop': 240,
+                    'latitude': 44,
+                    'longitude': -73,
+                    'land_area': 456,
+                    'water_area': 21}
+
+    child_b_geo = Geo(name='Child Test Geo B')
+    GeoData(geo=child_b_geo, **child_b_dict)
+    GeoLevel(geo=child_b_geo, level='place', designation='town')
+
+    child_c_dict = {'total_pop': 1000,
+                    'urban_pop': 800,
+                    'latitude': 30,
+                    'longitude': -97,
+                    'land_area': 4321,
+                    'water_area': 1234}
+
+    child_c_geo = Geo(name='Child Test Geo C')
+    GeoData(geo=child_c_geo, **child_c_dict)
+    GeoLevel(geo=child_c_geo, level='subdivision2', designation='county')
+
+    sum_fields = ('total_pop', 'urban_pop', 'land_area', 'water_area')
+    weighted_average_fields = ('latitude', 'longitude')
+    aggregate_dict = {f: child_a_dict[f] + child_b_dict[f] for f in sum_fields}
+    child_a_area = child_a_dict['land_area'] + child_a_dict['water_area']
+    child_b_area = child_b_dict['land_area'] + child_b_dict['water_area']
+    for field in weighted_average_fields:
+        aggregate_dict[field] = (
+            (child_a_dict[field] * child_a_area +
+                child_b_dict[field] * child_b_area) * 1.0 /
+            (child_a_area + child_b_area))
+
+    parent_geo = Geo(name='Parent Test Geo',
+                     children=[child_a_geo, child_b_geo, child_c_geo],
+                     data_level=data_level)  # aggregate places only
+
+    session.add(parent_geo)
+    session.add(child_a_geo)
+    session.add(child_b_geo)
+    session.add(child_c_geo)
+    session.commit()
+
+    parent_data = parent_geo.data
+    assert parent_data is not None
+    assert parent_data.total_pop == aggregate_dict['total_pop']
+    assert parent_data.urban_pop == aggregate_dict['urban_pop']
+    assert parent_data.latitude == aggregate_dict['latitude']
+    assert parent_data.longitude == aggregate_dict['longitude']
+    assert parent_data.land_area == aggregate_dict['land_area']
+    assert parent_data.water_area == aggregate_dict['water_area']
+
+    parent_geo_data_from_db = session.query(GeoData).filter(
+        GeoData.geo == parent_geo).first()
+
+    assert parent_geo_data_from_db is not None
+    assert parent_geo_data_from_db is parent_geo.data
+    assert parent_geo_data_from_db.total_pop == aggregate_dict['total_pop']
+    assert parent_geo_data_from_db.urban_pop == aggregate_dict['urban_pop']
+    assert parent_geo_data_from_db.latitude == aggregate_dict['latitude']
+    assert parent_geo_data_from_db.longitude == aggregate_dict['longitude']
+    assert parent_geo_data_from_db.land_area == aggregate_dict['land_area']
+    assert parent_geo_data_from_db.water_area == aggregate_dict['water_area']
+
+    # Clean up after ourselves
+    erase_data(session, confirm='ERASE')
+    assert session.query(Geo).all() == []
+    assert session.query(GeoData).all() == []
+    assert session.query(GeoLevel).all() == []
