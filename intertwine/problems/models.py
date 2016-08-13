@@ -750,13 +750,12 @@ class Problem(BaseProblemModel, AutoTableMixin):
                 backref='broader',
                 lazy='dynamic')
 
-    # could include:        -~`!@$%^&*()+=:;"'<>{}[]|,. a-zA-Z0-9
-    # definitely exclude:   #?/\_
-    # probably exclude:     `!@{}[]|
-    # could go either way:  +*=<>
-    # probably include:     ~^&()"':;
-    # definitely include:   -$%,. a-zA-Z0-9
-    name_pattern = re.compile(r'''^[-$%,. a-zA-Z0-9]+$''')
+    # URL Guidance: perishablepress.com/stop-using-unsafe-characters-in-urls
+    # Exclude unsafe:            "<>#%{}|\^~[]`
+    # Exclude reserved:          ;/?:@=&
+    # Potentially include:       !*_
+    # Include safe plus space:   $-.+'(), a-zA-Z0-9
+    name_pattern = re.compile(r'''^[$-.+'(), a-zA-Z0-9]+$''')
 
     @property
     def name(self):
