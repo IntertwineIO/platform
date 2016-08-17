@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from collections import namedtuple
 import inspect
 import numbers
 import re
@@ -66,7 +67,7 @@ class PeekableIterator(object):
             yield self.next()
 
 
-def stringify(thing, limit=10, level=0):
+def stringify(thing, limit=10, _lvl=0):
     '''Stringify
 
     Converts things into nicely formatted unicode strings for printing.
@@ -85,7 +86,7 @@ def stringify(thing, limit=10, level=0):
     the limit is negative, no cap is applied.
     '''
     limit = float('inf') if limit < 0 else limit
-    indent = level*4*' '
+    ind = _lvl*4*' '
     len_thing = -1
     strings = []
 
@@ -95,50 +96,53 @@ def stringify(thing, limit=10, level=0):
         for i, t in enumerate(thing):
             if i == limit:
                 break
-            strings.append(stringify(t, limit, level))
+            strings.append(stringify(t, limit, _lvl))
 
     # If a dict, add each key and stringify + further indent each value
     elif isinstance(thing, dict):
         for k, v in thing.iteritems():
-            v_str = stringify(v, limit, level+1)
+            v_str = stringify(v, limit, _lvl+1)
             # If key has an empty value, don't include it
             if len(v_str.strip()) == 0:
                 continue
             # If there's one value, put the key and value on one line
             elif len(v_str.split('\n')) == 1:
-                strings.append(u'{indent}{key}: {value}'.format(
-                                indent=indent, key=k, value=v_str.strip()))
+                strings.append(u'{ind}{key}: {value}'.format(
+                                ind=ind, key=k, value=v_str.strip()))
             # There are multiple values, so list them below the key
             else:
-                strings.append(u'{indent}{key}:\n{value}'.format(
-                                indent=indent, key=k, value=v_str))
+                strings.append(u'{ind}{key}:\n{value}'.format(
+                                ind=ind, key=k, value=v_str))
 
     # If a custom object, use its __unicode__ method, but indent it
     elif hasattr(thing, '__dict__'):
         strings.append(
-            (('\n' + indent).join('' + unicode(thing).split('\n')))[1:])
+            (('\n' + ind).join('' + unicode(thing).split('\n')))[1:])
 
     # If a number, use commas for readability
     elif isinstance(thing, numbers.Number) and not isinstance(thing, bool):
-        strings.append(u'{indent}{thing:,}'.format(indent=indent, thing=thing))
+        strings.append(u'{ind}{thing:,}'.format(ind=ind, thing=thing))
 
     # It is a non-numeric 'primitive' (e.g. boolean, string, etc.)
     else:
-        strings.append(u'{indent}{thing}'.format(indent=indent, thing=thing))
+        strings.append(u'{ind}{thing}'.format(ind=ind, thing=thing))
 
     if len_thing > limit:
-        strings.append('{indent}({limit} of {total})'.format(
-                        indent=indent, limit=limit, total=len_thing))
+        strings.append('{ind}({limit} of {total})'.format(
+                        ind=ind, limit=limit, total=len_thing))
 
     return '\n'.join(strings)
 
 
-def trepr(self, tight=False, raw=True, outclassed=True, level=0):
+def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
     ''''Trackable Representation', Default repr for Trackable classes
 
     Returns a string that when evaluated returns the instance. It works
     by utilizing the registry and indexability provided by Trackable.
     The following inputs may be specified:
+
+    named=False:     By default, named tuples are treated as regular
+                     tuples. Set to True to print named tuple info.
 
     tight=False:     By default, newlines/indents are added when a line
                      exceeds max_width. Excludes whitespace when True.
@@ -149,9 +153,8 @@ def trepr(self, tight=False, raw=True, outclassed=True, level=0):
                      printed, such as when embedding in JSON.
 
     outclassed=True: By default, the outer class and []'s are included
-                     in the string to uniquely identify the instance and
-                     so the string evals to the instance. Set to False
-                     to return a string that evals to just the key.
+                     in the return value so it evals to the instance.
+                     Set to False for a value that evals to the key.
 
     Usage:
     >>> from intertwine.problems.models import Problem
@@ -164,35 +167,51 @@ def trepr(self, tight=False, raw=True, outclassed=True, level=0):
     True
     '''
     if tight:
-        indent = space = ''
+        sp = ind = ''
     else:
-        indent, space = ' '*4*level, ' '
+        sp, ind, ind_p1 = ' ', ' '*4*_lvl, ' '*4*(_lvl+1)
 
     if self is None or isinstance(self, basestring):
         # repr adds u''s and extra escapes for printing unicode
         selfie = repr(self) if raw else u"u'{}'".format(self)
-        return u'{indent}{selfie}'.format(indent=indent, selfie=selfie)
+        return u'{selfie}'.format(ind=ind, selfie=selfie)
 
     key = self.derive_key()
-    cls = u'{indent}{cls}'.format(indent=indent, cls=self.__class__.__name__)
+    cls = unicode(self.__class__.__name__)
 
     osqb, op, cp, csqb = '[', '(', ')', ']'
-    if not outclassed and level == 0:
+    if not outclassed and _lvl == 0:
         cls = osqb = csqb = ''
 
     if not isinstance(key, tuple):
         op = cp = ''
         key = (key,)
 
-    treprs = map(lambda x: trepr(x, tight, raw, outclassed, level+1), key)
-    all_1_line = (cls + osqb + op +
-                  (',' + space).join(map(unicode.strip, treprs)) + cp + csqb)
+    try:
+        assert named
+        key_name = ('{cls_name}.{key_cls_name}'
+                    .format(cls_name=unicode(self.__class__.__name__),
+                            key_cls_name=type(key).__name__))
+        treprs = [u'{f}={trepr}'.format(
+                  f=f, trepr=trepr(getattr(key, f),
+                                   named, tight, raw, outclassed, _lvl+1))
+                  for f in key._fields]
 
-    if len(all_1_line) < Trackable.max_width or tight:
-        return unicode(all_1_line)
+    except (AssertionError, AttributeError):
+        key_name = ''
+        treprs = [trepr(v, named, tight, raw, outclassed, _lvl+1) for v in key]
+
+    all_1_line = (u'{cls}{osqb}{key_name}{op}{treprs}{cp}{csqb}'
+                  .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
+                          treprs=(',' + sp).join(treprs), cp=cp, csqb=csqb))
+
+    if len(ind) + len(all_1_line) < Trackable.max_width or tight:
+        return all_1_line
     else:
-        return unicode(cls + osqb + op + '\n' + ',\n'.join(treprs) +
-                       '\n{indent}'.format(indent=indent) + cp + csqb)
+        return (u'{cls}{osqb}{key_name}{op}\n{ind_p1}{treprs}\n{ind}{cp}{csqb}'
+                .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
+                        ind_p1=ind_p1, treprs=(',\n' + ind_p1).join(treprs),
+                        ind=ind, cp=cp, csqb=csqb))
 
 
 def __repr__(self):

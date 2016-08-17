@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from collections import namedtuple
 import re
 from numbers import Real
 
@@ -58,7 +59,7 @@ class Image(BaseProblemModel, AutoTableMixin):
     # added_by      # user who added
     # modified_by   # users who modified
     #
-    # ratings       # common Base for ContentRating and ProblemConnectionRating?
+    # ratings       # common Base for ContentRating & ProblemConnectionRating?
     #
     # image-specific:
     # caption       # additional text beyond title
@@ -67,14 +68,16 @@ class Image(BaseProblemModel, AutoTableMixin):
     # file          # local copy of image
     # dimensions    # in pixels
 
-    @staticmethod
-    def create_key(problem, url, **kwds):
+    Key = namedtuple('Key', 'problem, url')
+
+    @classmethod
+    def create_key(cls, problem, url, **kwds):
         '''Create key for an image
 
         Return a registry key allowing the Trackable metaclass to look
         up an image. The key is created from the given problem and url.
         '''
-        return (problem, urlnorm.norm(url))
+        return cls.Key(problem, urlnorm.norm(url))
 
     def derive_key(self):
         '''Derive key from an image instance
@@ -83,7 +86,7 @@ class Image(BaseProblemModel, AutoTableMixin):
         image instance. The key is derived from the problem and url
         fields.
         '''
-        return (self.problem, self.url)
+        return type(self).Key(self.problem, self.url)
 
     def __init__(self, url, problem):
         '''Initialize a new image from a url
@@ -126,7 +129,6 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
     allowing the aggregate rating to be updated without having to
     recalculate the aggregation across all the included ratings.
     '''
-
     problem_id = Column(types.Integer, ForeignKey('problem.id'))
     problem = orm.relationship('Problem')
 
@@ -146,6 +148,9 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
     rating = Column(types.Float)
     weight = Column(types.Float)
 
+    Key = namedtuple('Key', 'problem, connection, org_scope, geo_scope, '
+                            'aggregation')
+
     __table_args__ = (Index('ux_aggregate_problem_connection_rating',
                             # ux for unique index
                             'problem_id',
@@ -155,15 +160,15 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
                             'aggregation',
                             unique=True),)
 
-    @staticmethod
-    def create_key(problem, connection, org_scope=None, geo_scope=None,
+    @classmethod
+    def create_key(cls, problem, connection, org_scope=None, geo_scope=None,
                    aggregation='strict', **kwds):
         '''Create key for an aggregate rating
 
         Return a registry key allowing the Trackable metaclass to look
         up an aggregate problem connection rating instance.
         '''
-        return (problem, connection, org_scope, geo_scope, aggregation)
+        return cls.Key(problem, connection, org_scope, geo_scope, aggregation)
 
     def derive_key(self):
         '''Derive key from an aggregate rating instance
@@ -172,8 +177,8 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         aggregate problem connection rating instance. The key is derived
         from the problem, connection, org_scope, and geo_scope fields.
         '''
-        return (self.problem, self.connection, self.org_scope,
-                self.geo_scope, self.aggregation)
+        return type(self).Key(self.problem, self.connection, self.org_scope,
+                              self.geo_scope, self.aggregation)
 
     def __init__(self, problem, connection, org_scope=None, geo_scope=None,
                  aggregation='strict', rating=None, weight=None):
@@ -338,6 +343,8 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
 
     _rating = Column('rating', types.Integer)
 
+    Key = namedtuple('Key', 'problem, connection, org_scope, geo_scope, user')
+
     # Querying use cases:
     #
     # 1. The Problem Page needs weighted average ratings on each connection
@@ -394,15 +401,15 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
 
     rating = orm.synonym('_rating', descriptor=rating)
 
-    @staticmethod
-    def create_key(problem, connection, org_scope=None,
-                   geo_scope=None, user_id='Intertwine', **kwds):
+    @classmethod
+    def create_key(cls, problem, connection, org_scope=None,
+                   geo_scope=None, user='Intertwine', **kwds):
         '''Create key for a problem connection rating
 
         Return a registry key allowing the Trackable metaclass to look
         up a problem connection rating instance.
         '''
-        return (problem, connection, org_scope, geo_scope, user_id)
+        return cls.Key(problem, connection, org_scope, geo_scope, user)
 
     def derive_key(self):
         '''Derive key from a problem connection rating instance
@@ -411,8 +418,8 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         problem connection rating instance. The key is derived from the
         problem, connection, org_scope, geo_scope, and user fields.
         '''
-        return (self.problem, self.connection, self.org_scope,
-                self.geo_scope, self.user)
+        return type(self).Key(self.problem, self.connection, self.org_scope,
+                              self.geo_scope, self.user)
 
     def __init__(self, rating, problem, connection, org_scope=None,
                  geo_scope=None, user_id='Intertwine'):
@@ -549,6 +556,9 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
     aggregate_ratings = orm.relationship('AggregateProblemConnectionRating',
                                          back_populates='connection',
                                          lazy='dynamic')
+
+    Key = namedtuple('Key', 'connection_type, problem_a, problem_b')
+
     __table_args__ = (UniqueConstraint('problem_a_id',
                                        'problem_b_id',
                                        'connection_type',
@@ -557,14 +567,14 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
     # TODO: Add index for (connection_type, problem_a_id)
     # TODO: Add index for (connection_type, problem_b_id)
 
-    @staticmethod
-    def create_key(connection_type, problem_a, problem_b, **kwds):
+    @classmethod
+    def create_key(cls, connection_type, problem_a, problem_b, **kwds):
         '''Create key for a problem connection
 
         Return a registry key allowing the Trackable metaclass to look
         up a problem connection instance.
         '''
-        return (connection_type, problem_a, problem_b)
+        return cls.Key(connection_type, problem_a, problem_b)
 
     def derive_key(self):
         '''Derive key from a problem connection instance
@@ -577,7 +587,7 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
         is_causal = self.connection_type == 'causal'
         p_a = self.driver if is_causal else self.broader
         p_b = self.impact if is_causal else self.narrower
-        return (self.connection_type, p_a, p_b)
+        return type(self).Key(self.connection_type, p_a, p_b)
 
     def __init__(self, connection_type, problem_a, problem_b,
                  ratings_data=None, ratings_context_problem=None):
