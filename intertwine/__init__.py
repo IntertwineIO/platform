@@ -12,7 +12,8 @@ from . import auth, geos, main, problems, signup
 
 ###############################################################################
 __title__ = 'intertwine'
-__version__ = '0.3.0-dev'
+__version_str__ = '0.3.0-dev'
+__version__ = tuple([int(ver_i.split('-')[0]) for ver_i in __version_str__.split('.')])
 __author__ = 'Intertwine'
 __email__ = 'engineering@intertwine.io'
 __license__ = 'Proprietary'

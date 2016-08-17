@@ -21,13 +21,25 @@ def test_licenses(**options):
     known_ignores = [
         # Pip packages added
         'pip',            # MIT
-        'setuptools',     #
+        'setuptools',     # PSF
+
+        # Deployment packages
+        'ansible',        # GPL v3
+        'click',          # BSD
+        'docker-py',      # Apache 2.0
+        'uWSGI',          # GPL2
+
+        # Debug packages
+        'prompt-toolkit',  # BSD
 
         # Virtualenv packages added
         'wheel',          # MIT
 
         # Test packages added
         'apipkg',         # MIT
+        'astroid',        # LGPL - python linter package
+        'autopep8',       # Expat
+        'backports-abc',  # PSF
         'coverage',       # Apache 2.0
         'detox',          # MIT
         'eventlet',       # MIT
@@ -35,36 +47,53 @@ def test_licenses(**options):
         'flake8',         # MIT
         'greenlet',       # MIT
         'mccabe',         # Expat
+        'ordereddict',    # MIT
         'pep8',           # Expat
         'pluggy',         # MIT
         'py',             # MIT
+        'pycodestyle',    # Expat license
         'pyflakes',       # MIT
         'pytest',         # MIT
         'pytest-cache',   # MIT
         'pytest-cov',     # MIT
         'pytest-flake8',  # BSD
-        'pytest-xdist'    # MIT
+        'pytest-html',    # Mozilla Public License 2.0 (MPL 2.0)
+        'pytest-runner',  # MIT
+        'pytest-xdist',   # MIT
         'tox',            # MIT
         'virtualenv',     # MIT
 
-        # Deployment packages added
-        'uWSGI',          # GPL2
-        'click',          # BSD
+        # Docs
+        'alabaster',         # BSD  - From Sphinx
+
+        # Nagios plugin libraries
+        'inotify',        # GPL 2    - TODO: Alternatives?
+        'graphitesend',   # Apache
+
+        # Unknown - where did they come from?
+        'gnureadline',    # GPL 2    - TODO: Alternatives?
+        'ptyprocess',     # ISC
 
         # Known licenses that do not register with this test
-        'itsdangerous',   # BSD
+        'dominate',          # LGPL
+        'itsdangerous',      # BSD
+        'pbr',               # Apache 2.0
+        'stevedore',         # Apache 2.0
+        'websocket-client',  # LGPL
+
+        # Company owned licenses
         'intertwine',     # Proprietary
-        'dominate',       # LGPL
-        'pbr',            # Apache 2.0
-        'stevedore',      # Apache 2.0
     ]
 
     accepted_licenses = [
         'BSD',
-        'MIT',
-        'Apache 2.0',
-        'PSF',
-        'DSF'
+        'MIT', 'Expat',
+        'ZPL', 'Zope',
+        'MPL', 'Mozilla Public License',
+        'Apache', 'Apache 2.0',
+        'PSF', 'Python Software Foundation',
+        'DSF', 'Django Software Foundation',
+        'ISC', 'ISCL', 'Internet Software Consortium',
     ]
 
     for installed_distribution in get_installed_distributions():
@@ -86,7 +115,8 @@ def test_licenses(**options):
                     if project_name in known_ignores:
                         skip = True
                     file = sys.stdout
-                    if not any(lic in license for lic in accepted_licenses):
+                    license = license.strip()
+                    if not any(lic.lower() in license.lower() for lic in accepted_licenses):
                         severity = '!!!'
                         file = sys.stderr
                         found_valid = False
