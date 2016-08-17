@@ -10,17 +10,17 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     }
                 ]
@@ -30,22 +30,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -55,22 +55,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -80,22 +80,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -107,22 +107,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -132,22 +132,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -157,22 +157,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 2,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -182,22 +182,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 2,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 1,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -207,28 +207,28 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 2,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "org_scope": "Concordia University",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "org_scope": "University of Texas",
                         "geo_scope": "United States/Texas/Austin"
                     }
@@ -239,32 +239,32 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 1,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -274,32 +274,32 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 1,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -309,32 +309,32 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 1,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 1,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -344,32 +344,32 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 1,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 1,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 1,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -381,22 +381,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -406,22 +406,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -431,22 +431,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -456,22 +456,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 2,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -481,32 +481,32 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 2,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -518,22 +518,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -543,22 +543,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -568,22 +568,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -593,22 +593,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -618,22 +618,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 2,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -643,32 +643,32 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 1,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -678,32 +678,32 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 1,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -713,32 +713,32 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 1,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]
@@ -748,32 +748,32 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 3,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 1,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 2,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 3,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States/Texas"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }
                 ]

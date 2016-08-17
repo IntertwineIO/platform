@@ -422,7 +422,7 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
                               self.geo_scope, self.user)
 
     def __init__(self, rating, problem, connection, org_scope=None,
-                 geo_scope=None, user_id='Intertwine'):
+                 geo_scope=None, user='Intertwine'):
         '''Initialize a new problem connection rating
 
         Inputs problem and connection are instances while the rest
@@ -438,15 +438,15 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         if problem not in (p_a, p_b):
             raise InvalidProblemForConnection(problem=problem,
                                               connection=connection)
-        if user_id is None or user_id == '':
-            raise InvalidUser(user=user_id, connection=connection)
+        # TODO: take user instance in addition to user_id
+        if user is None or user == '':
+            raise InvalidUser(user=user, connection=connection)
         self.problem = problem
         self.connection = connection
         # TODO: make org and geo entities rather than strings
         self.org_scope = org_scope
         self.geo_scope = geo_scope
-        # TODO: assign user based on user_id
-        self.user = user_id
+        self.user = user
         self.rating = rating
 
     def modify(self, **kwds):

@@ -91,7 +91,7 @@ def test_problem_connection_rating_model(options):
                                      connection=connection,
                                      org_scope=org,
                                      geo_scope=geo,
-                                     user_id='new_user',
+                                     user='new_user',
                                      rating=2)
     session.add(problem1)
     session.add(problem2)
@@ -151,25 +151,25 @@ def test_aggregate_problem_connection_rating_model(options):
                                  connection=connection,
                                  org_scope=org1,
                                  geo_scope=geo1,
-                                 user_id='new_user',
+                                 user='new_user',
                                  rating=1)
     r2 = ProblemConnectionRating(problem=problem1,
                                  connection=connection,
                                  org_scope=org2,
                                  geo_scope=geo1,
-                                 user_id='new_user',
+                                 user='new_user',
                                  rating=2)
     r3 = ProblemConnectionRating(problem=problem1,
                                  connection=connection,
                                  org_scope=org1,
                                  geo_scope=geo2,
-                                 user_id='new_user',
+                                 user='new_user',
                                  rating=3)
     r4 = ProblemConnectionRating(problem=problem1,
                                  connection=connection,
                                  org_scope=org2,
                                  geo_scope=geo2,
-                                 user_id='new_user',
+                                 user='new_user',
                                  rating=4)
     session.add(problem1)
     session.add(problem2)
