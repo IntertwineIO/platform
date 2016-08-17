@@ -8,22 +8,22 @@
                 "problem_connection_ratings": [
                     {
                         "rating": 4,
-                        "user_id": "eli@intertwine.io",
+                        "user": "eli@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "brian@intertwine.io",
+                        "user": "brian@intertwine.io",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "Donald.Christian@concordia.edu",
+                        "user": "Donald.Christian@concordia.edu",
                         "geo_scope": "United States/Texas/Austin"
                     },
                     {
                         "rating": 4,
-                        "user_id": "sapanadonde@hotmail.com",
+                        "user": "sapanadonde@hotmail.com",
                         "geo_scope": "United States"
                     }                ]
             }
