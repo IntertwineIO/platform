@@ -777,7 +777,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         Return a key allowing the Trackable metaclass to register a geo
         level instance. The key is a namedtuple of geo and level.
         '''
-        return cls.Key(geo.trepr(), level.trepr())
+        return cls.Key(geo, level)
 
     def derive_key(self):
         '''Derive key from a geo level instance
