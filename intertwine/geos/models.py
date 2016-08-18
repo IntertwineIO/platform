@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from collections import OrderedDict
+from collections import namedtuple, OrderedDict
 
 from alchy.model import ModelBase, make_declarative_base
 from sqlalchemy import desc, orm, types, Column, ForeignKey, Index, Table
@@ -513,12 +513,12 @@ class Geo(BaseGeoModel, AutoTableMixin):
         serialize to JSON.
 
         The following inputs may be specified:
-        mute=[]: mutes (excludes) any field names listed
-        wrap=True: wrap the instance in a dictionary keyed by repr
+        mute=[]:    mutes (excludes) any field names listed
+        wrap=True:  wrap the instance in a dictionary keyed by repr
         tight=True: make all repr values tight (without whitespace)
-        raw=False: when True, adds extra escapes (for printing)
-        limit=10: caps the number of list or dictionary items beneath
-                  the main level; a negative limit indicates no cap
+        raw=False:  when True, adds extra escapes (for printing)
+        limit=10:   caps the number of list or dictionary items beneath
+                    the main level; a negative limit indicates no cap
         '''
         od = OrderedDict((
             # ('repr', self.trepr(tight=tight, raw=raw)),
@@ -768,6 +768,25 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         ('country', ())
         ))
 
+    Key = namedtuple('Key', 'geo, level')
+
+    @classmethod
+    def create_key(cls, geo, level, **kwds):
+        '''Create key for a geo level
+
+        Return a key allowing the Trackable metaclass to register a geo
+        level instance. The key is a namedtuple of geo and level.
+        '''
+        return cls.Key(geo.trepr(), level.trepr())
+
+    def derive_key(self):
+        '''Derive key from a geo level instance
+
+        Return the registry key used by the Trackable metaclass from a
+        geo level instance. The key is a namedtuple of geo and level.
+        '''
+        return type(self).Key(self.geo, self.level)
+
     @property
     def geo(self):
         return self._geo
@@ -814,23 +833,6 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
 
     level = orm.synonym('_level', descriptor=level)
 
-    @staticmethod
-    def create_key(geo, level, **kwds):
-        '''Create key for a geo level
-
-        Return a key allowing the Trackable metaclass to register a geo
-        level instance. The key is a tuple containing the geo and level.
-        '''
-        return (geo, level)
-
-    def derive_key(self):
-        '''Derive key from a geo level instance
-
-        Return the registry key used by the Trackable metaclass from a
-        geo level instance. The key is a tuple of geo and level.
-        '''
-        return (self.geo, self.level)
-
     def __init__(self, geo, level, designation=None):
         '''Initialize a new geo level'''
         self.level = level
@@ -855,7 +857,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         '''
         od = OrderedDict((
             ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
-            ('geo', self.geo.trepr(tight=tight, raw=raw)),
+            ('geo', self.geo.trepr(tight=tight, raw=raw, outclassed=True)),
             ('level', self.level),
             ('designation', self.designation),
             ('ids', OrderedDict(
@@ -914,6 +916,25 @@ class GeoID(BaseGeoModel, AutoTableMixin):
                       #       unique=True),
                       )
 
+    Key = namedtuple('Key', 'standard, code')
+
+    @classmethod
+    def create_key(cls, standard, code, **kwds):
+        '''Create key for a geo ID
+
+        Return a key allowing the Trackable metaclass to register a
+        geo ID instance. The key is a namedtuple of standard and code.
+        '''
+        return cls.Key(standard, code)
+
+    def derive_key(self):
+        '''Derive key from a geo ID instance
+
+        Return the registry key used by the Trackable metaclass from a
+        geo ID instance. The key is a namedtuple of standard and code.
+        '''
+        return type(self).Key(self.standard, self.code)
+
     @property
     def standard(self):
         return self._standard
@@ -960,24 +981,6 @@ class GeoID(BaseGeoModel, AutoTableMixin):
 
     code = orm.synonym('_code', descriptor=code)
 
-    @staticmethod
-    def create_key(standard, code, **kwds):
-        '''Create key for a geo ID
-
-        Return a key allowing the Trackable metaclass to register a
-        geo ID instance. The key is a tuple containing the standard and
-        the code.
-        '''
-        return (standard, code)
-
-    def derive_key(self):
-        '''Derive key from a geo ID instance
-
-        Return the registry key used by the Trackable metaclass from a
-        geo ID instance. The key is a tuple of standard and code.
-        '''
-        return (self.standard, self.code)
-
     def __init__(self, level, standard, code):
         '''Initialize a new geo ID'''
         self.standard = standard
@@ -1002,7 +1005,7 @@ class GeoID(BaseGeoModel, AutoTableMixin):
         '''
         od = OrderedDict((
             ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
-            ('level', self.level.trepr(tight=tight, raw=raw)),
+            ('level', self.level.trepr(tight=tight, raw=raw, outclassed=True)),
             ('standard', self.standard),
             ('code', self.code),
         ))
