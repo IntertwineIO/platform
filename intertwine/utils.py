@@ -177,7 +177,7 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
         return u'{selfie}'.format(ind=ind, selfie=selfie)
 
     key = self.derive_key()
-    cls = unicode(self.__class__.__name__)
+    cls = self.__class__.__name__
 
     osqb, op, cp, csqb = '[', '(', ')', ']'
     if not outclassed and _lvl == 0:
@@ -189,8 +189,8 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
 
     try:
         assert named
-        key_name = ('{cls_name}.{key_cls_name}'
-                    .format(cls_name=unicode(self.__class__.__name__),
+        key_name = (u'{cls_name}.{key_cls_name}'
+                    .format(cls_name=self.__class__.__name__,
                             key_cls_name=type(key).__name__))
         treprs = [u'{f}={trepr}'.format(
                   f=f, trepr=trepr(getattr(key, f),
@@ -203,18 +203,18 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
 
     all_1_line = (u'{cls}{osqb}{key_name}{op}{treprs}{cp}{csqb}'
                   .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
-                          treprs=(',' + sp).join(treprs), cp=cp, csqb=csqb))
+                          treprs=(u',' + sp).join(treprs), cp=cp, csqb=csqb))
 
     if len(ind) + len(all_1_line) < Trackable.max_width or tight:
         return all_1_line
     else:
         return (u'{cls}{osqb}{key_name}{op}\n{ind_p1}{treprs}\n{ind}{cp}{csqb}'
                 .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
-                        ind_p1=ind_p1, treprs=(',\n' + ind_p1).join(treprs),
+                        ind_p1=ind_p1, treprs=(u',\n' + ind_p1).join(treprs),
                         ind=ind, cp=cp, csqb=csqb))
 
 
-def __repr__(self):
+def _repr_(self):
     '''Default repr for Trackable classes'''
     # Prefix newline due to ipython pprint bug related to lists
     return '\n' + self.trepr()
@@ -255,11 +255,10 @@ class Trackable(ModelMeta):
         attr['_instances'] = {}
         # Track any new or modified instances
         attr['_updates'] = set()
-        repr_fn = attr.get('__repr__', None)
-        if repr_fn is None:
-            # Provide default __repr__()
-            attr['__repr__'] = __repr__
-            attr['trepr'] = trepr
+        # Provide default __repr__()
+        custom_repr = attr.get('__repr__', None)
+        attr['__repr__'] = _repr_ if custom_repr is None else custom_repr
+        attr['trepr'] = trepr
         new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
         if new_cls.__name__ != 'Base':
             meta._classes[name] = new_cls
