@@ -5,8 +5,8 @@ Base platform for intertwine.
 
 '''
 import flask
-# from sassutils.wsgi import SassMiddleware
 from flask_bootstrap import Bootstrap
+# from sassutils.wsgi import SassMiddleware
 
 from . import auth, geos, main, problems, signup
 

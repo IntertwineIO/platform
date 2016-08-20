@@ -4,15 +4,12 @@ from collections import namedtuple
 import re
 from numbers import Real
 
-from alchy.model import ModelBase, make_declarative_base
 from past.builtins import basestring
 from sqlalchemy import orm, types, Column, ForeignKey, Index, UniqueConstraint
-
 from titlecase import titlecase
 import urlnorm
 
-from ..utils import AutoTableMixin, Trackable
-
+from ..utils import AutoTableMixin, BaseIntertwineModel
 
 from .exceptions import (
     InconsistentArguments,
@@ -27,7 +24,7 @@ from .exceptions import (
 )
 
 
-BaseProblemModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
+BaseProblemModel = BaseIntertwineModel
 
 
 class Image(BaseProblemModel, AutoTableMixin):

@@ -2,15 +2,15 @@
 # -*- coding: utf-8 -*-
 from collections import namedtuple, OrderedDict
 
-from alchy.model import ModelBase, make_declarative_base
 from sqlalchemy import desc, orm, types, Column, ForeignKey, Index, Table
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-from ..utils import AutoTableMixin, stringify, Trackable
+from ..utils import AutoTableMixin, BaseIntertwineModel, stringify
 from ..exceptions import AttributeConflict, CircularReference
 
 
-BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
+# BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
+BaseGeoModel = BaseIntertwineModel
 
 
 geo_association_table = Table(
