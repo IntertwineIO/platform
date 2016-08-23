@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-Geo database.
+Community database
 '''
 from flask import Blueprint
 from alchy import Manager

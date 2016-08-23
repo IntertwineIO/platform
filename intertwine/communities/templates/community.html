@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('problems.static', filename='css/normalize.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('problems.static', filename='css/general.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('problems.static', filename='css/network.css') }}"
+      rel="stylesheet" type="text/css">
+<!-- <link href="{{ url_for('static', filename='css/network.scss.css') }}"
+      rel="stylesheet" type="text/css">-->
+<!--[if IE]>
+  <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<!-- Uncomment below for debugging --
+<style>
+  #network-section {background:white;}
+  div:nth-child(1) {background:crimson;}
+  div:nth-child(2) {background:tomato;}
+  div:nth-child(3) {background:salmon;}
+  div:nth-child(4) {background:goldenrod;}
+  div:nth-child(5) {background:gold;}
+  div:nth-child(6) {background:khaki;}
+  span:nth-child(1) {background:cornflowerblue;}
+  span:nth-child(2) {background:cyan;}
+  span:nth-child(3) {background:lightseagreen;}
+  span:nth-child(4) {background:palegreen;}
+</style>
+<!-- -->
+{% endblock %}
+
+{% block content %}
+<div class="nav-spacer"></div>
+<header>
+    <h1>
+        <span class="page-title">{{ problem.name }}</span>
+        {% if org_display is not none %}
+        <span class="page-scope">at {{ org_display }}</span>
+        {% endif %}
+        {% if geo_display is not none %}
+        <span class="page-scope">in {{ geo_display }}</span>
+        {% endif %}
+    </h1>
+    <div class="page-tagline">
+        <span>An open innovation space sponsored by</span>
+        {% if problem.sponsor is not none %}
+        <span>{{ problem.sponsor }}</span>
+        {% else %}
+        <span>Intertwine</span>
+        {% endif %}
+    </div>
+</header>
+<section id="network-section">
+    <div class="h-connection-label-container">
+        <i class="fa fa-circle add-problem-icon invisible"></i>
+        <div class="connection-label">Broader</div>
+        <a href="/problems/"><i class="fa fa-plus-circle add-problem-icon"></i></a>
+    </div>
+    <div class="h-problem-area">
+        <div class="v-margin"></div>
+        <div class="h-arrow-container">
+            <a href=""><div class="arrow-left h-large-spacer"></div></a>
+        </div>
+        <div class="h-problem-scroll-container">
+            <div class="h-problem-scroll broader-scroll broader-edge">
+                {% for connection, rating in connections['broader'] %}
+                <div class="h-problem broader-problem">
+                    <div class="h-problem-link-container word-break">
+                        <a href="/problems/{{ connection.broader.derive_key() }}" class="problem-link">
+                            {{ connection.broader.name }}
+                            ({{ '{:.1f}'.format(rating) }})
+                        </a>
+                    </div>
+                    <a href="/problems/{{ connection.broader.derive_key() }}">
+                        <i class="fa fa-circle problem-icon"></i>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="h-arrow-container">
+            <a href=""><div class="arrow-right h-large-spacer"></div></a>
+        </div>
+        <div class="v-margin"></div>
+    </div>
+    <div class="middle-network-area">
+        <div class="v-margin"></div>
+        <div class="v-connection-label-container">
+            <div class="connection-label rotate-drivers">Drivers</div>
+        </div>
+        <div class="v-problem-area">
+            <div class="v-arrow-container">
+                <a href=""><div class="arrow-up v-large-spacer"></div></a>
+            </div>
+            <div class="v-problem-scroll-container">
+                <div class="v-problem-scroll driver-scroll driver-edge">
+                    {% for connection, rating in connections['drivers'] %}
+                    <div class="v-problem">
+                        <div class="v-problem-link-container v-align-inner word-break">
+                            <a href="/problems/{{ connection.driver.derive_key() }}" class="problem-link">
+                                {{ connection.driver.name }}
+                                ({{ '{:.1f}'.format(rating) }})
+                            </a>
+                        </div>
+                        <div class="v-align-inner">
+                            <a href="/problems/{{ connection.driver.derive_key() }}">
+                                <i class="fa fa-circle problem-icon"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="v-arrow-container">
+                <a href=""><div class="arrow-down v-large-spacer"></div></a>
+            </div>
+        </div>
+        <div id="center-network-area">
+            <!-- <div class="v-connector"> -->
+                <!-- <div class="v-connector-left"></div> -->
+                <!-- <div class="v-connector-right"></div> -->
+            <!-- </div> -->
+            <div class="problem-focus-container">
+                <div class="problem-focus-label-container">
+                    <!-- <div > -->
+                        <a href="" class="problem-focus-label word-break">{{ problem.name }}</a>
+                    <!-- </div> -->
+                </div>
+                <a href=""><i class="fa fa-circle problem-focus-icon"></i></a>
+            </div>
+            <!-- <div class="v-connector"> -->
+                <!-- <div class="v-connector-left"></div> -->
+                <!-- <div class="v-connector-right"></div> -->
+            <!-- </div> -->
+        </div>
+        <div class="v-problem-area">
+            <div class="v-arrow-container">
+                <a href=""><div class="arrow-up v-large-spacer"></div></a>
+            </div>
+            <div class="v-problem-scroll-container">
+                <div class="v-problem-scroll impact-scroll impact-edge">
+                    {% for connection, rating in connections['impacts'] %}
+                    <div class="v-problem">
+                        <div class="v-align-inner">
+                            <a href="/problems/{{ connection.driver.derive_key() }}">
+                                <i class="fa fa-circle problem-icon"></i>
+                            </a>
+                        </div>
+                        <div class="v-problem-link-container v-align-inner word-break">
+                            <a href="/problems/{{ connection.impact.derive_key() }}" class="problem-link">
+                                {{ connection.impact.name }}
+                                ({{ '{:.1f}'.format(rating) }})
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="v-arrow-container">
+                <a href=""><div class="arrow-down v-large-spacer"></div></a>
+            </div>
+        </div>
+        <div class="v-connection-label-container">
+            <div class="connection-label rotate-impacts">Impacts</div>
+        </div>
+        <div class="v-margin"></div>
+    </div>
+    <div class="h-problem-area">
+        <div class="v-margin"></div>
+        <div class="h-arrow-container">
+            <a href=""><div class="arrow-left h-large-spacer"></div></a>
+        </div>
+        <div class="h-problem-scroll-container">
+            <div class="h-problem-scroll narrower-scroll narrower-edge">
+                {% for connection, rating in connections['narrower'] %}
+                <div class="h-problem narrower-problem">
+                    <a href="/problems/{{ connection.narrower.derive_key() }}">
+                        <i class="fa fa-circle problem-icon"></i>
+                    </a>
+                    <div class="h-problem-link-container word-break">
+                        <a href="/problems/{{ connection.narrower.derive_key() }}" class="problem-link">
+                            {{ connection.narrower.name }}
+                            ({{ '{:.1f}'.format(rating) }})
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="h-arrow-container">
+            <a href=""><div class="arrow-right h-large-spacer"></div></a>
+        </div>
+        <div class="v-margin"></div>
+    </div>
+    <div class="h-connection-label-container">
+        <i class="fa fa-circle add-problem-icon invisible"></i>
+        <div class="connection-label">Narrower</div>
+        <a href="/problems/"><i class="fa fa-plus-circle add-problem-icon"></i></a>
+    </div>
+</section> <!-- end network section -->
+
+{% endblock %}

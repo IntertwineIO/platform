@@ -1,0 +1,441 @@
+.v-margin {
+    /*width: 0.1em;*/
+    /*min-width: 0em;*/
+    flex: 1 1 0;
+}
+
+.middle-network-area {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+    align-items: center;
+    min-width: 0;
+}
+
+
+
+
+
+.h-connection-label-container {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+    align-items: center; /* vertically center icons (don't stretch) */
+}
+
+.connection-label {
+    font-size: 2em;
+    /*margin: 0.1em;*/
+}
+
+.h-problem-area {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-width: 15em;
+
+    > div > a {
+        display: none;
+    }
+    &:hover > div > a {
+        display: block;
+    }
+}
+
+.h-arrow-container {
+    width: 2em;
+    min-width: 2em;
+    max-width: 2em;
+    flex: 0 0 0;
+}
+
+.h-problem-scroll-container {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+    align-items: center;
+    flex: 8 8 4;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.h-problem-scroll {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    /*resize: horizontal;*/
+}
+
+.broader-scroll {
+    /* nowrap */
+    flex-wrap: nowrap;
+    align-items: flex-end;
+
+    /* wrap */
+    /*flex-wrap: wrap-reverse;*/
+    /*justify-content: center;*/
+}
+
+.narrower-scroll {
+    /* nowrap */
+    flex-wrap: nowrap;
+
+    /* wrap */
+    /*flex-wrap: wrap;*/
+    /*justify-content: center;*/
+}
+
+.h-problem {
+    min-width: 6em;
+    max-width: 16em;
+    /*max-height: 8.25em;*/
+    margin: 0 0.5em;
+    overflow: hidden;
+    resize: none;
+    text-align: center;
+
+    &:first-child {
+        margin-left: 0;
+    }
+    &:last-child {
+        margin-right: 0;
+    }
+}
+
+.broader-problem {
+    margin-top: 0.5em;
+}
+
+.narrower-problem {
+    margin-bottom: 0.5em;
+}
+
+.h-problem-link-container {
+    font-size: 1em;
+    line-height: 1.1em;
+    /* 3 lines per problem name */
+    max-height: 3.3em;
+    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    text-align: center;
+    /*white-space: nowrap;*/
+}
+
+
+
+
+
+.v-connection-label-container {
+    max-width: 3em;
+}
+
+.v-problem-area {
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: center;
+    align-items: stretch;
+    flex: 2 2 16em;
+    /*min-width: 8em;*/
+
+    > div > a {
+        display: none;
+    }
+    &:hover > div > a {
+        display: block;
+    }
+}
+
+.v-problem-scroll-container {
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: center;
+    align-items: stretch;
+
+    /* capped height */
+    height: 20em;
+    /* override with vh if available */
+    /*height: 35vh;*/
+    /* override with vmax if available */
+    /*height: 30vmax;*/
+
+    /* uncapped height */
+    /*height: auto;*/
+}
+
+.v-problem-scroll {
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: flex-start;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.driver-scroll {
+    align-items: flex-end;
+    text-align: right;
+}
+
+.impact-scroll {
+    align-items: flex-start;
+    text-align: left;
+}
+
+.v-arrow-container {
+    height: 2em;
+}
+
+/* cannot be flexbox as it breaks scrolling in chrome */
+.v-problem {
+    margin: 0.5em 0;
+
+    &:first-child {
+        margin-top: 0;
+    }
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.v-problem-link-container {
+    font-size: 1em;
+    line-height: 1.1em;
+}
+
+
+
+
+
+
+.problem-link {
+    color: #1A1A1A;
+}
+
+.problem-icon {
+    color: #1A1A1A;
+    font-size: 1.2em;
+    margin: 0.15em;
+}
+
+.add-problem-icon {
+    color: #1A1A1A;
+    font-size: 1.2em;
+    margin: 0.3em;
+}
+
+.problem-focus-icon {
+    color: #1A1A1A;
+    font-size: 4em;
+    margin: 0 0.05em -0.025em 0.05em;
+    padding: 0 0;
+    /*margin: 0.25em;*/
+}
+
+
+
+
+
+#center-network-area {
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: center;
+    align-items: center;
+    flex: 6 6 16em;
+    /*min-width: 8em;*/
+    /*height: 24em;*/
+    text-align: center;
+}
+
+.problem-focus-container {
+    position: relative;
+    /*margin: 0 2em;*/
+}
+
+.problem-focus-label-container {
+    position: absolute;
+    margin: auto;
+    /*padding: 0 1%;*/
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    width: 80%;
+    /*height: 50%;*/
+    max-height: 50%;
+    overflow: hidden;
+
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.problem-focus-label {
+    line-height: 1.1em;
+    color: white;
+
+    &:hover {
+        text-decoration: underline;
+        color: white;
+    }
+}
+
+.v-connector {
+/*    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+*/
+    /*display: table;*/
+}
+
+.v-connector-left {
+    /*display: inline-block;*/
+    /*height: 16em;*/
+
+    display: table-cell;
+    /*width: 1em;*/
+    height: 16em;
+    border-right: 0.2em solid #1A1A1A;
+}
+
+.v-connector-right {
+    /*display: inline-block;*/
+    /*height: 16em;*/
+
+    display: table-cell;
+    /*width: 1em;*/
+    height: 16em;
+    border-left: 0.2em solid #1A1A1A;
+}
+
+.broader-edge {
+    border-bottom: 0.2em solid #1A1A1A;
+}
+
+.narrower-edge {
+    border-top: 0.2em solid #1A1A1A;
+}
+
+.driver-edge {
+    border-right: 0.2em solid #1A1A1A;
+}
+
+.impact-edge {
+    border-left: 0.2em solid #1A1A1A;
+}
+
+
+
+
+
+/* 320px */
+@media (min-width: 20em) {
+    .problem-focus-icon {
+        font-size: 4em;
+    }
+}
+
+/* 448px */
+@media (min-width: 28em) {
+    .problem-focus-icon {
+        font-size: 5em;
+    }
+}
+
+/* 512px */
+@media (min-width: 32em) {
+    .problem-focus-icon {
+        font-size: 6em;
+    }
+}
+
+/* 768px */
+@media (min-width: 48em) {
+    .problem-focus-icon {
+        /*display: none;*/
+        font-size: 12em
+    }
+    .problem-focus-label {
+        font-size: 1.2em;
+    }
+}
+
+/* 1024px */
+@media (min-width: 64em) {
+    .problem-focus-icon {
+        font-size: 16em
+    }
+    .problem-focus-label {
+        font-size: 1.6em;
+    }
+}
+
+/* 1280px */
+@media (min-width: 80em) {
+    .problem-focus-icon {
+        font-size: 20em
+    }
+    .problem-focus-label {
+        font-size: 2em;
+    }
+}
+
+/* 768px */
+@media (max-width: 48em) {
+    .problem-focus-label {
+        display: none;
+    }
+}
+
+
+header, section, .problem-focus-icon .problem-focus-label {
+    -moz-transition: font-size 1s ease-in-out;
+    -webkit-transition: font-size 1s ease-in-out;
+    -moz-transition: font-size 1s ease-in-out;
+    -o-transition: font-size 1s ease-in-out;
+    transition: font-size 1s ease-in-out;
+}
+
+
+.rotate-drivers {
+  -webkit-transform: rotate(-90deg);
+  -moz-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  -o-transform: rotate(-90deg);
+  transform: rotate(-90deg);
+
+  /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
+  -webkit-transform-origin: 100% 90%;
+  -moz-transform-origin: 100% 90%;
+  -ms-transform-origin: 100% 90%;
+  -o-transform-origin: 100% 90%;
+  transform-origin: 80% 79%;
+
+  /* Should be unset in IE9+ I think. */
+  filter: progid: DXImageTransform.Microsoft.BasicImage(rotation=3);
+}
+
+.rotate-impacts {
+  -webkit-transform: rotate(90deg);
+  -moz-transform: rotate(90deg);
+  -ms-transform: rotate(90deg);
+  -o-transform: rotate(90deg);
+  transform: rotate(90deg);
+
+  /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
+  -webkit-transform-origin: 120% 10%;
+  -moz-transform-origin: 120% 10%;
+  -ms-transform-origin: 120% 10%;
+  -o-transform-origin: 120% 10%;
+  transform-origin: 86% 10%;
+
+  /* Should be unset in IE9+ I think. */
+  filter: progid: DXImageTransform.Microsoft.BasicImage(rotation=3);
+}

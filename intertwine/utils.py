@@ -2,7 +2,9 @@
 import numbers
 import re
 
-from alchy.model import make_declarative_base, ModelBase
+from alchy import Manager
+from alchy.model import (make_declarative_base, extend_declarative_base,
+                         ModelBase)
 from sqlalchemy import Column, Integer
 from sqlalchemy.ext.declarative import declared_attr
 
@@ -10,6 +12,11 @@ from .trackable import Trackable
 
 
 BaseIntertwineModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
+
+intertwine_db = Manager(Model=BaseIntertwineModel)
+
+# Attach query property to base model
+extend_declarative_base(BaseIntertwineModel, session=intertwine_db.session)
 
 
 def camelCaseTo_snake_case(string):
