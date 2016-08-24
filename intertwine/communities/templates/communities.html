@@ -25,7 +25,11 @@
     <div class="indent">
         {% for community in communities %}
         <div class="community-display"><p>
-            {{ community.problem.name }} at {{ community.org }} in {{ community.geo.display(show_abbrev=False, max_path=0) }}</p></div>
+            {{ community.problem.name }}
+            {% if community.org %}
+              at {{ community.org }}
+            {% endif %}
+            in {{ community.geo.display(show_abbrev=False, max_path=0) }}</p></div>
         {% endfor %}
     </div>
 </section>
