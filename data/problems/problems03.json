@@ -11,17 +11,17 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     }
                 ]
             },
@@ -31,22 +31,22 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -56,22 +56,22 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -81,22 +81,22 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             }
@@ -108,22 +108,22 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -133,22 +133,22 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -158,22 +158,22 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -183,22 +183,22 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -208,29 +208,29 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
                         "org_scope": "Concordia University",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "org_scope": "University of Texas",
-                        "geo_scope": "United States/Texas/Austin"
+                        "org_scope": "The University of Texas",
+                        "geo_scope": "us/tx/austin"
                     }
                 ]
             },
@@ -240,32 +240,32 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas"
+                        "geo_scope": "us/tx"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -275,32 +275,32 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas"
+                        "geo_scope": "us/tx"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -310,32 +310,32 @@
                     {
                         "rating": 1,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas"
+                        "geo_scope": "us/tx"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -345,32 +345,32 @@
                     {
                         "rating": 1,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas"
+                        "geo_scope": "us/tx"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             }
@@ -382,22 +382,22 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -407,22 +407,22 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -432,22 +432,22 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -457,22 +457,22 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -482,32 +482,32 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas"
+                        "geo_scope": "us/tx"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             }
@@ -519,22 +519,22 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -544,22 +544,22 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -569,22 +569,22 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -594,22 +594,22 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -619,22 +619,22 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -644,32 +644,32 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas"
+                        "geo_scope": "us/tx"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -679,32 +679,32 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas"
+                        "geo_scope": "us/tx"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -714,32 +714,32 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas"
+                        "geo_scope": "us/tx"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             },
@@ -749,32 +749,32 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo_scope": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States/Texas"
+                        "geo_scope": "us/tx"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
+                        "geo_scope": "us"
                     }
                 ]
             }
