@@ -21,7 +21,7 @@ extend_declarative_base(models.BaseCommunityModel,
                         session=community_db.session)
 
 # Must come later as we use blueprint and query property in views
-from . import views  # TODO: uncomment once view exists
+from . import views
 
 
 @blueprint.record_once

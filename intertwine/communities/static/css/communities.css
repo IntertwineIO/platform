@@ -1,4 +1,4 @@
-#problem-list-section {
+#community-list-section {
     margin-top: 1em;
     color: #1A1A1A;
     vertical-align: top;
@@ -11,7 +11,7 @@
     margin: 0 auto;
 }
 
-.problem-name {
+.community-display {
     font-size: 1em;
 }
 
