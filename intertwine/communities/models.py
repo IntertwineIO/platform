@@ -14,12 +14,18 @@ class Community(BaseCommunityModel, AutoTableMixin):
     '''Base class for communities
 
     A 'community' resides at the intersection of a (social) problem, a
-    geo, and an org and is uniquely defined by them. A problem and geo
-    must always be defined, whereas an org may each be None, indicating
-    no org affiliation. There is a single top-level entity for each:
-    'All Problems', 'The World', and 'Any Organization (or None)'. There
-    is also an 'All Organizations' org that does not include None.
+    geo, and an org and is uniquely defined by them. Each term may have
+    a value of None, indicating the scope encompasses all values:
+    - problem is None: 'All Problems'
+    - org is None: 'Any Organization (or None)'
+    - geo is None: 'The World'
     '''
+    # Future: Create a top-level entity for each and let None mean None?
+    # 'All Problems', 'Any Organization (or None)', and 'The World'.
+    # There could also be an 'All Organizations' org that does not
+    # include None. A problem and geo must always be defined, whereas an
+    # org may each be None, indicating no org affiliation.
+
     problem_id = Column(types.Integer, ForeignKey('problem.id'))
     _problem = orm.relationship('Problem', lazy='joined')
 
@@ -39,9 +45,7 @@ class Community(BaseCommunityModel, AutoTableMixin):
 
     @problem.setter
     def problem(self, val):
-        if val is None:
-            raise ValueError('Cannot be set to None')
-
+        # val is None is valid and means 'All Problems'
         if self._problem is not None:  # Not during __init__()
             # ensure new key is not already registered
             key = Community.create_key(problem=val, org=self.org, geo=self.geo)
@@ -51,7 +55,6 @@ class Community(BaseCommunityModel, AutoTableMixin):
             # update registry with new key
             Community.unregister(self)
             Community[key] = self
-
         self._problem = val  # set new value last
 
     problem = orm.synonym('_problem', descriptor=problem)
@@ -62,8 +65,7 @@ class Community(BaseCommunityModel, AutoTableMixin):
 
     @org.setter
     def org(self, val):
-        # Okay if val is None
-
+        # val is None is valid and means 'Any Organization (or None)'
         if self._org is not None:  # Not during __init__()
             # ensure new key is not already registered
             key = Community.create_key(problem=self.problem, org=val,
@@ -74,7 +76,6 @@ class Community(BaseCommunityModel, AutoTableMixin):
             # update registry with new key
             Community.unregister(self)
             Community[key] = self
-
         self._org = val  # set new value last
 
     org = orm.synonym('_org', descriptor=org)
@@ -85,9 +86,7 @@ class Community(BaseCommunityModel, AutoTableMixin):
 
     @geo.setter
     def geo(self, val):
-        if val is None:
-            raise ValueError('Cannot be set to None')
-
+        # if val is None is valid and means 'The World'
         if self._geo is not None:  # Not during __init__()
             # ensure new key is not already registered
             key = Community.create_key(problem=self.problem, geo=val,
@@ -98,7 +97,6 @@ class Community(BaseCommunityModel, AutoTableMixin):
             # update registry with new key
             Community.unregister(self)
             Community[key] = self
-
         self._geo = val  # set new value last
 
     geo = orm.synonym('_geo', descriptor=geo)
@@ -194,9 +192,9 @@ class Community(BaseCommunityModel, AutoTableMixin):
 
     # Use default __repr__() from Trackable:
     # Community[(
-    #     Problem[<problem>],
+    #     Problem[<problem_human_id>],
     #     <org>
-    #     Geo[<geo>],
+    #     Geo[<geo_human_id>],
     # )]
 
     def __str__(self):
