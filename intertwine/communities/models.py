@@ -23,13 +23,13 @@ class Community(BaseCommunityModel, AutoTableMixin):
     problem_id = Column(types.Integer, ForeignKey('problem.id'))
     _problem = orm.relationship('Problem', lazy='joined')
 
-    geo_id = Column(types.Integer, ForeignKey('geo.id'))
-    _geo = orm.relationship('Geo', lazy='joined')
-
     # TODO: Replace with Org model relationship
     _org = Column(types.String)
     # org_id = Column(types.Integer, ForeignKey('org.id'))
     # _org = orm.relationship('Org', lazy='joined')
+
+    geo_id = Column(types.Integer, ForeignKey('geo.id'))
+    _geo = orm.relationship('Geo', lazy='joined')
 
     num_followers = Column(types.Integer)
 
@@ -44,7 +44,7 @@ class Community(BaseCommunityModel, AutoTableMixin):
 
         if self._problem is not None:  # Not during __init__()
             # ensure new key is not already registered
-            key = Community.create_key(problem=val, geo=self.geo, org=self.org)
+            key = Community.create_key(problem=val, org=self.org, geo=self.geo)
             inst = Community[key]
             if inst is not None and inst is not self:
                 raise ValueError('{!r} is already registered.'.format(key))
@@ -55,6 +55,29 @@ class Community(BaseCommunityModel, AutoTableMixin):
         self._problem = val  # set new value last
 
     problem = orm.synonym('_problem', descriptor=problem)
+
+    @property
+    def org(self):
+        return self._org
+
+    @org.setter
+    def org(self, val):
+        # Okay if val is None
+
+        if self._org is not None:  # Not during __init__()
+            # ensure new key is not already registered
+            key = Community.create_key(problem=self.problem, org=val,
+                                       geo=self.val)
+            inst = Community[key]
+            if inst is not None and inst is not self:
+                raise ValueError('{!r} is already registered.'.format(key))
+            # update registry with new key
+            Community.unregister(self)
+            Community[key] = self
+
+        self._org = val  # set new value last
+
+    org = orm.synonym('_org', descriptor=org)
 
     @property
     def geo(self):
@@ -80,34 +103,11 @@ class Community(BaseCommunityModel, AutoTableMixin):
 
     geo = orm.synonym('_geo', descriptor=geo)
 
-    @property
-    def org(self):
-        return self._org
-
-    @org.setter
-    def org(self, val):
-        # Okay if val is None
-
-        if self._org is not None:  # Not during __init__()
-            # ensure new key is not already registered
-            key = Community.create_key(problem=self.problem, geo=self.val,
-                                       org=val)
-            inst = Community[key]
-            if inst is not None and inst is not self:
-                raise ValueError('{!r} is already registered.'.format(key))
-            # update registry with new key
-            Community.unregister(self)
-            Community[key] = self
-
-        self._org = val  # set new value last
-
-    org = orm.synonym('_org', descriptor=org)
-
     # Querying use cases:
     #
-    # 1. Fetch the community for a particular problem, geo, and org to
+    # 1. Fetch the community for a particular problem, org, and geo, to
     #    display on community page
-    #    cols: problem, geo, org
+    #    cols: problem, org, geo
     # 2. Fetch all communities for a particular problem to circulate
     #    (problem-focused) content across geos
     #    cols: problem, geo
@@ -117,11 +117,11 @@ class Community(BaseCommunityModel, AutoTableMixin):
     # 4. Fetch all communities for a particular org to display top/
     #    trending problems and circulate content to related problems
     #    cols: org, problem
-    __table_args__ = (Index('ux_community:problem+geo+org',
+    __table_args__ = (Index('ux_community:problem+org+geo',
                             # ux for unique index
                             'problem_id',
-                            'geo_id',
                             '_org',
+                            'geo_id',
                             unique=True),
                       Index('ix_community:geo+problem',
                             # ix for index
@@ -133,32 +133,32 @@ class Community(BaseCommunityModel, AutoTableMixin):
                             'problem_id'),
                       )
 
-    Key = namedtuple('Key', 'problem, geo, org')
+    Key = namedtuple('Key', 'problem, org, geo')
 
     @classmethod
-    def create_key(cls, problem, geo, org, **kwds):
+    def create_key(cls, problem, org, geo, **kwds):
         '''Create key for a community
 
         Return a key allowing the Trackable metaclass to register a
-        community instance. The key is a namedtuple of problem, geo, and
-        org.
+        community instance. The key is a namedtuple of problem, org, and
+        geo.
         '''
-        return cls.Key(problem, geo, org)
+        return cls.Key(problem, org, geo)
 
     def derive_key(self):
         '''Derive key from a community instance
 
         Return the registry key used by the Trackable metaclass from a
-        community instance. The key is a namedtuple of problem, geo, and
+        community instance. The key is a namedtuple of problem, org, and
         org.
         '''
-        return type(self).Key(self.problem, self.geo, self.org)
+        return type(self).Key(self.problem, self.org, self.geo)
 
-    def __init__(self, problem=None, geo=None, org=None):
+    def __init__(self, problem=None, org=None, geo=None):
         '''Initialize a new community'''
         self.problem = problem
-        self.geo = geo
         self.org = org
+        self.geo = geo
         self.num_followers = 0
 
     def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
@@ -178,9 +178,10 @@ class Community(BaseCommunityModel, AutoTableMixin):
         od = OrderedDict((
             ('class', type(self).__name__),
             ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
-            ('problem', self.problem.trepr(tight=tight, raw=raw, outclassed=True)),
+            ('problem', self.problem.trepr(tight=tight, raw=raw,
+                                           outclassed=True)),
+            ('org', self.org),
             ('geo', self.geo.trepr(tight=tight, raw=raw, outclassed=True)),
-            ('org', self.org.trepr(tight=tight, raw=raw, outclassed=True)),
             ('num_followers', self.num_followers)
         ))
 
@@ -194,8 +195,8 @@ class Community(BaseCommunityModel, AutoTableMixin):
     # Use default __repr__() from Trackable:
     # Community[(
     #     Problem[<problem>],
-    #     Geo[<geo>],
     #     <org>
+    #     Geo[<geo>],
     # )]
 
     def __str__(self):
