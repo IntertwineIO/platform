@@ -24,12 +24,17 @@
 <section id="community-list-section">
     <div class="indent">
         {% for community in communities %}
-        <div class="community-display"><p>
+        <div class="community-display"><p><a href={{ community.problem.derive_key() }}{% if community.geo %}/{{ community.geo.derive_key() }}{% endif %}>
             {{ community.problem.name }}
             {% if community.org %}
               at {{ community.org }}
             {% endif %}
-            in {{ community.geo.display(show_abbrev=False, max_path=0) }}</p></div>
+            {% if community.geo %}
+              in {{ community.geo.display(show_abbrev=False, max_path=0) }}
+            {% else %}
+              (global)
+            {% endif %}
+            </a></p></div>
         {% endfor %}
     </div>
 </section>

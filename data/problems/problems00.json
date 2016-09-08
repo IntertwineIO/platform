@@ -9,22 +9,22 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "us/tx/austin"
+                        "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "us/tx/austin"
+                        "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "us/tx/austin"
+                        "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "us"
+                        "geo": "us"
                     }
                 ]
             }

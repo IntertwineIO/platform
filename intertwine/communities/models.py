@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from collections import namedtuple, OrderedDict
+from operator import attrgetter
+from itertools import groupby, imap, tee
 
-from sqlalchemy import orm, types, Column, ForeignKey, Index
+from sqlalchemy import desc, orm, types, Column, ForeignKey, Index
 
-from ..utils import AutoTableMixin, BaseIntertwineModel, stringify
+from .. import BaseIntertwineModel
+from ..utils import (AutoTableMixin, PeekableIterator, stringify)
+from ..problems.models import (AggregateProblemConnectionRating as APCR,
+                               ProblemConnectionRating as PCR)
 
+from ..problems.exceptions import InvalidAggregation
 
 BaseCommunityModel = BaseIntertwineModel
 
@@ -38,6 +44,10 @@ class Community(BaseCommunityModel, AutoTableMixin):
     _geo = orm.relationship('Geo', lazy='joined')
 
     num_followers = Column(types.Integer)
+
+    aggregate_ratings = orm.relationship('AggregateProblemConnectionRating',
+                                         back_populates='community',
+                                         lazy='dynamic')
 
     @property
     def problem(self):
@@ -158,6 +168,124 @@ class Community(BaseCommunityModel, AutoTableMixin):
         self.org = org
         self.geo = geo
         self.num_followers = 0
+
+    def update_inclusive_aggregate_ratings(self, connection, user,
+                                           new_user_rating,
+                                           old_user_rating=None):
+        '''Update inclusive aggregate ratings
+
+        Works by updating the inclusive aggregate ratings for the
+        current community and then recursively calling itself on
+        immediately encompassing communities.
+        '''
+        # TODO
+        pass
+
+    def update_aggregate_ratings(self, connection, user,
+                                 new_user_rating, new_user_weight,
+                                 old_user_rating=None, old_user_weight=None):
+        '''Update aggregate ratings
+
+        Given a connection, a user, and new/old rating and weight
+        values, updates all affected aggregate ratings. Intended to be
+        called in conjunction with or shortly after the rating has been
+        updated.
+        '''
+        # Update the strict aggregate rating for this community
+        apcr = APCR.query.filter_by(community=self, connection=connection,
+                                    aggregation='strict').first()
+        if apcr:
+            APCR.update_values(new_user_rating=new_user_rating,
+                               new_user_weight=new_user_weight,
+                               old_user_rating=old_user_rating,
+                               old_user_weight=old_user_weight)
+        # Update inclusive aggregate ratings in encompassing communities
+        self.update_inclusive_aggregate_ratings(
+            connection=connection, user=user,
+            new_user_rating=new_user_rating, old_user_rating=old_user_rating)
+
+    def aggregate_connection_ratings(self, aggregation='strict'):
+        '''Aggregate connection ratings
+
+        Aggregates a community's connection ratings using the specified
+        aggregation method and returns them. If an aggregate rating
+        already exists, it is updated; otherwise, a new aggregate rating
+        is created. Aggregate ratings are also created for connections
+        without ratings and given no rating and no weight.
+        '''
+        apcrs = []
+
+        pcrs = (PCR.query.filter_by(
+                problem=self.problem, org=self.org, geo=self.geo)
+                .order_by(PCR.connection_category, PCR.connection_id))
+
+        if aggregation not in ('strict'):
+            raise InvalidAggregation(aggregation=aggregation)
+
+        # TODO: give Trackable fine-grained registration and then
+        # register any aggregate ratings associated with the community.
+        # This will enable the APCR constructor to fail over to modify
+        # any existing aggregate ratings
+
+        # Create aggregate ratings from ratings
+        for connection, ratings in groupby(pcrs, key=attrgetter('connection')):
+            rating, weight = APCR.calculate_values(ratings)
+            # If an aggregate rating already exists, it will be modified
+            aggregate_rating = APCR(community=self,
+                                    connection=connection,
+                                    aggregation=aggregation,
+                                    rating=rating,
+                                    weight=weight)
+            apcrs.append(aggregate_rating)
+
+        # Create aggregate ratings for connections without ratings
+        connections = set(self.problem.connections())
+        rated_connections = set(map(attrgetter('connection'), apcrs))
+        unrated_connections = connections - rated_connections
+        for connection in unrated_connections:
+            aggregate_rating = APCR(community=self,
+                                    connection=connection,
+                                    aggregation=aggregation,
+                                    rating=APCR.NO_RATING,
+                                    weight=APCR.NO_WEIGHT)
+            apcrs.append(aggregate_rating)
+
+        # Persist aggregate ratings
+        if len(apcrs) > 0:
+            session = apcrs[0].session()
+            session.add_all(apcrs)
+            session.commit()
+
+        return apcrs
+
+    def assemble_connections_with_ratings(self, aggregation='strict'):
+        '''Assemble connections with ratings
+
+        Returns a dictionary keyed by connection category ('drivers',
+        'impacts', 'broader', 'narrower') where values are [generators
+        for (?)] connection/aggregate rating tuples in descending order.
+
+        Searches for existing aggregate connection ratings first, and if
+        none are found, aggregates them from ratings. Assumes there is
+        an aggregate rating per connection, whether or not it is rated.
+        '''
+        apcrs = (self.aggregate_ratings.filter_by(aggregation=aggregation)
+                 .order_by(APCR.connection_category, desc(APCR.rating)))
+
+        canary, aggregate_ratings = tee(apcrs, 2)
+
+        canary = PeekableIterator(canary)
+        if not canary.has_next():
+            aggregate_ratings = self.aggregate_connection_ratings(
+                                    aggregation=aggregation)
+            aggregate_ratings.sort(
+                key=attrgetter('connection_category', 'rating'), reverse=True)
+
+        rv = {category: map(attrgetter('connection', 'rating'), ars)
+              for category, ars in groupby(
+              aggregate_ratings, key=attrgetter('connection_category'))}
+
+        return rv
 
     def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
         '''JSON structure for a community instance

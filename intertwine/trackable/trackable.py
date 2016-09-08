@@ -99,7 +99,7 @@ class Trackable(ModelMeta):
     instances can be updated with new data using the constructor if a
     'modify' method has been defined.
 
-    A 'create_key' staticmethod must be defined on each Trackable class
+    A 'create_key' static method must be defined on each Trackable class
     that returns a registry key based on the classes constructor input.
     A 'derive_key' (instance) method must also be defined on each
     Trackable class that returns the registry key based on the

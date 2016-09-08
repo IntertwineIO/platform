@@ -89,8 +89,8 @@ def test_problem_connection_rating_model(options):
     geo = 'United States/Texas/Austin'
     rating = ProblemConnectionRating(problem=problem1,
                                      connection=connection,
-                                     org_scope=org,
-                                     geo_scope=geo,
+                                     org=org,
+                                     geo=geo,
                                      user='new_user',
                                      rating=2)
     session.add(problem1)
@@ -104,8 +104,8 @@ def test_problem_connection_rating_model(options):
     assert r == rating
     assert r.problem == problem1
     assert r.connection == connection
-    assert r.org_scope == org
-    assert r.geo_scope == geo
+    assert r.org == org
+    assert r.geo == geo
     assert r.rating == 2
     # Clean up after ourselves
     erase_data(session, confirm='ERASE')
@@ -149,26 +149,26 @@ def test_aggregate_problem_connection_rating_model(options):
     geo2 = None
     r1 = ProblemConnectionRating(problem=problem1,
                                  connection=connection,
-                                 org_scope=org1,
-                                 geo_scope=geo1,
+                                 org=org1,
+                                 geo=geo1,
                                  user='new_user',
                                  rating=1)
     r2 = ProblemConnectionRating(problem=problem1,
                                  connection=connection,
-                                 org_scope=org2,
-                                 geo_scope=geo1,
+                                 org=org2,
+                                 geo=geo1,
                                  user='new_user',
                                  rating=2)
     r3 = ProblemConnectionRating(problem=problem1,
                                  connection=connection,
-                                 org_scope=org1,
-                                 geo_scope=geo2,
+                                 org=org1,
+                                 geo=geo2,
                                  user='new_user',
                                  rating=3)
     r4 = ProblemConnectionRating(problem=problem1,
                                  connection=connection,
-                                 org_scope=org2,
-                                 geo_scope=geo2,
+                                 org=org2,
+                                 geo=geo2,
                                  user='new_user',
                                  rating=4)
     session.add(problem1)
@@ -180,23 +180,23 @@ def test_aggregate_problem_connection_rating_model(options):
     session.commit()
     ar1 = AggregateProblemConnectionRating(problem=problem1,
                                            connection=connection,
-                                           org_scope=org1,
-                                           geo_scope=geo1,
+                                           org=org1,
+                                           geo=geo1,
                                            aggregation='strict')
     ar2 = AggregateProblemConnectionRating(problem=problem1,
                                            connection=connection,
-                                           org_scope=org2,
-                                           geo_scope=geo1,
+                                           org=org2,
+                                           geo=geo1,
                                            aggregation='strict')
     ar3 = AggregateProblemConnectionRating(problem=problem1,
                                            connection=connection,
-                                           org_scope=org1,
-                                           geo_scope=geo2,
+                                           org=org1,
+                                           geo=geo2,
                                            aggregation='strict')
     ar4 = AggregateProblemConnectionRating(problem=problem1,
                                            connection=connection,
-                                           org_scope=org2,
-                                           geo_scope=geo2,
+                                           org=org2,
+                                           geo=geo2,
                                            aggregation='strict')
     for ar in connection.aggregate_ratings:
         session.add(ar)

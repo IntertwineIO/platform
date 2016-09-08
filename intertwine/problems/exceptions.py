@@ -20,9 +20,9 @@ class InvalidEntity(DataProcessException):
     ''''{variable}' value of {value!r} is not a valid {classname}.'''
 
 
-class InvalidConnectionType(DataProcessException):
-    '''Connection type '{connection_type}' is not valid. Must be
-    'causal' or 'scoped'.'''
+class InvalidConnectionAxis(DataProcessException):
+    '''Connection axis '{axis}' is not valid. Must be 'causal' or
+    'scoped'.'''
 
 
 class CircularConnection(DataProcessException):
@@ -32,6 +32,11 @@ class CircularConnection(DataProcessException):
 class InvalidProblemConnectionRating(DataProcessException):
     '''Rating of {rating} on {connection!r} is not valid. Must be an int
     between 0 and 4 (inclusive).'''
+
+
+class InvalidProblemConnectionWeight(DataProcessException):
+    '''Weight {weight} for {user} rating on {connection!r}
+    for {problem!r} at {org!r} in {geo!r} is not valid.'''
 
 
 class InvalidAggregateConnectionRating(DataProcessException):

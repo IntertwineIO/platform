@@ -7,7 +7,7 @@ from flask import Blueprint
 from alchy import Manager
 from alchy.model import extend_declarative_base
 
-from ..utils import BaseIntertwineModel
+from .. import BaseIntertwineModel
 
 
 modname = __name__.split('.')[-1]

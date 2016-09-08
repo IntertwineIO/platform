@@ -38,11 +38,11 @@
 <header>
     <h1>
         <span class="page-title">{{ problem.name }}</span>
-        {% if org_display is not none %}
-        <span class="page-scope">at {{ org_display }}</span>
+        {% if org is not none %}
+        <span class="page-scope">at {{ org }}</span>
         {% endif %}
-        {% if geo_display is not none %}
-        <span class="page-scope">in {{ geo_display }}</span>
+        {% if geo is not none %}
+        <span class="page-scope">in {{ geo.display(show_abbrev=False, max_path=0) }}</span>
         {% endif %}
     </h1>
     <div class="page-tagline">
@@ -58,7 +58,7 @@
     <div class="h-connection-label-container">
         <i class="fa fa-circle add-problem-icon invisible"></i>
         <div class="connection-label">Broader</div>
-        <a href="/problems/"><i class="fa fa-plus-circle add-problem-icon"></i></a>
+        <a href="/communities/"><i class="fa fa-plus-circle add-problem-icon"></i></a>
     </div>
     <div class="h-problem-area">
         <div class="v-margin"></div>
@@ -70,12 +70,12 @@
                 {% for connection, rating in connections['broader'] %}
                 <div class="h-problem broader-problem">
                     <div class="h-problem-link-container word-break">
-                        <a href="/problems/{{ connection.broader.derive_key() }}" class="problem-link">
+                        <a href="/communities/{{ connection.broader.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}" class="problem-link">
                             {{ connection.broader.name }}
                             ({{ '{:.1f}'.format(rating) }})
                         </a>
                     </div>
-                    <a href="/problems/{{ connection.broader.derive_key() }}">
+                    <a href="/communities/{{ connection.broader.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}">
                         <i class="fa fa-circle problem-icon"></i>
                     </a>
                 </div>
@@ -101,13 +101,13 @@
                     {% for connection, rating in connections['drivers'] %}
                     <div class="v-problem">
                         <div class="v-problem-link-container v-align-inner word-break">
-                            <a href="/problems/{{ connection.driver.derive_key() }}" class="problem-link">
+                            <a href="/communities/{{ connection.driver.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}" class="problem-link">
                                 {{ connection.driver.name }}
                                 ({{ '{:.1f}'.format(rating) }})
                             </a>
                         </div>
                         <div class="v-align-inner">
-                            <a href="/problems/{{ connection.driver.derive_key() }}">
+                            <a href="/communities/{{ connection.driver.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}">
                                 <i class="fa fa-circle problem-icon"></i>
                             </a>
                         </div>
@@ -146,12 +146,12 @@
                     {% for connection, rating in connections['impacts'] %}
                     <div class="v-problem">
                         <div class="v-align-inner">
-                            <a href="/problems/{{ connection.driver.derive_key() }}">
+                            <a href="/communities/{{ connection.driver.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}">
                                 <i class="fa fa-circle problem-icon"></i>
                             </a>
                         </div>
                         <div class="v-problem-link-container v-align-inner word-break">
-                            <a href="/problems/{{ connection.impact.derive_key() }}" class="problem-link">
+                            <a href="/communities/{{ connection.impact.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}" class="problem-link">
                                 {{ connection.impact.name }}
                                 ({{ '{:.1f}'.format(rating) }})
                             </a>
@@ -178,11 +178,11 @@
             <div class="h-problem-scroll narrower-scroll narrower-edge">
                 {% for connection, rating in connections['narrower'] %}
                 <div class="h-problem narrower-problem">
-                    <a href="/problems/{{ connection.narrower.derive_key() }}">
+                    <a href="/communities/{{ connection.narrower.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}">
                         <i class="fa fa-circle problem-icon"></i>
                     </a>
                     <div class="h-problem-link-container word-break">
-                        <a href="/problems/{{ connection.narrower.derive_key() }}" class="problem-link">
+                        <a href="/communities/{{ connection.narrower.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}" class="problem-link">
                             {{ connection.narrower.name }}
                             ({{ '{:.1f}'.format(rating) }})
                         </a>
@@ -199,7 +199,7 @@
     <div class="h-connection-label-container">
         <i class="fa fa-circle add-problem-icon invisible"></i>
         <div class="connection-label">Narrower</div>
-        <a href="/problems/"><i class="fa fa-plus-circle add-problem-icon"></i></a>
+        <a href="/communities/"><i class="fa fa-plus-circle add-problem-icon"></i></a>
     </div>
 </section> <!-- end network section -->
 

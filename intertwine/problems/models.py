@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 import re
 from numbers import Real
 
-from past.builtins import basestring
-from sqlalchemy import orm, types, Column, ForeignKey, Index, UniqueConstraint
+# from past.builtins import basestring
+from sqlalchemy import or_, orm, types, Column, ForeignKey, Index
 from titlecase import titlecase
 import urlnorm
 
-from ..utils import AutoTableMixin, BaseIntertwineModel
+from .. import BaseIntertwineModel
+from ..utils import AutoTableMixin
+from ..geos.models import Geo
 
 from .exceptions import (
     InconsistentArguments,
     InvalidEntity,
-    InvalidConnectionType,
+    InvalidConnectionAxis,
     CircularConnection,
     InvalidProblemConnectionRating,
+    InvalidProblemConnectionWeight,
     InvalidAggregateConnectionRating,
     InvalidAggregation,
     InvalidUser,
@@ -114,102 +117,138 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
 
     An 'aggregation' parameter allows for different aggregation
     algorithms. The default implementation is 'strict' in that only
-    ratings with matching problem, org scope, and geo scope are
-    included. Other implementations may include:
+    ratings in the associated community are included. Other
+    implementations may include:
         - 'inclusive' to include all ratings within sub-orgs/geos
         - 'inherited' to point to a different context for ratings
 
     Currently, aggregations are only created when the problem network is
-    first rendered within a given problem/org/geo context. The
-    cumulative weight across all the ratings aggregated is also stored,
-    allowing the aggregate rating to be updated without having to
-    recalculate the aggregation across all the included ratings.
+    first rendered within a given community. The cumulative weight
+    across all the ratings aggregated is also stored, allowing the
+    aggregate rating to be updated without having to recalculate the
+    aggregation across all the included ratings.
     '''
-    problem_id = Column(types.Integer, ForeignKey('problem.id'))
-    problem = orm.relationship('Problem')
+    community_id = Column(types.Integer, ForeignKey('community.id'))
+    community = orm.relationship('Community',
+                                 back_populates='aggregate_ratings')
 
     connection_id = Column(types.Integer, ForeignKey('problem_connection.id'))
     connection = orm.relationship('ProblemConnection',
                                   back_populates='aggregate_ratings')
 
-    # TODO: rename org_scope to org_scope_id, make it a foreign key, and
-    #       create an org_scope relationship
-    org_scope = Column(types.String(256))
-
-    # TODO: rename geo_scope to geo_scope_id, make it a foreign key, and
-    #       create a geo_scope relationship
-    geo_scope = Column(types.String(256))
-
+    connection_category = Column(types.String(16))
     aggregation = Column(types.String(16))
     rating = Column(types.Float)
     weight = Column(types.Float)
 
-    __table_args__ = (Index('ux_aggregate_problem_connection_rating',
-                            # ux for unique index
-                            'problem_id',
-                            'connection_id',
-                            'org_scope',
-                            'geo_scope',
-                            'aggregation',
-                            unique=True),)
+    __table_args__ = (
+        Index('ux_aggregate_problem_connection_rating',
+              # ux for unique index
+              'community_id',
+              'aggregation',
+              'connection_id',
+              unique=True),
+        Index('ix_aggregate_problem_connection_rating:by_category',
+              # ix for index
+              'community_id',
+              'aggregation',
+              'connection_category'),)
 
-    Key = namedtuple('Key', 'problem, connection, org_scope, geo_scope, '
-                            'aggregation')
+    NO_RATING = -1
+    NO_WEIGHT = 0
+
+    Key = namedtuple('Key', 'community, connection, aggregation')
 
     @classmethod
-    def create_key(cls, problem, connection, org_scope=None, geo_scope=None,
-                   aggregation='strict', **kwds):
+    def create_key(cls, community, connection, aggregation='strict', **kwds):
         '''Create key for an aggregate rating
 
         Return a key allowing the Trackable metaclass to register an
         aggregate problem connection rating instance. The key is a
-        namedtuple of problem, connection, org_scope, geo_scope, and
-        aggregation.
+        namedtuple of community, connection, and aggregation.
         '''
-        return cls.Key(problem, connection, org_scope, geo_scope, aggregation)
+        return cls.Key(community, connection, aggregation)
 
     def derive_key(self):
         '''Derive key from an aggregate rating instance
 
         Return the registry key used by the Trackable metaclass from an
         aggregate problem connection rating instance. The key is a
-        namedtuple of problem, connection, org_scope, geo_scope, and
-        aggregation fields.
+        namedtuple of community, connection, and aggregation fields.
         '''
-        return type(self).Key(self.problem, self.connection, self.org_scope,
-                              self.geo_scope, self.aggregation)
+        return type(self).Key(self.community, self.connection, self.aggregation)
 
-    def __init__(self, problem, connection, org_scope=None, geo_scope=None,
-                 aggregation='strict', rating=None, weight=None):
+    @classmethod
+    def calculate_values(cls, ratings):
+        '''Calculate values
+
+        Given an iterable of ratings, returns a tuple consisting of the
+        aggregate rating and the aggregate weight. If ratings is empty,
+        the aggregate rating defaults to -1 and the aggregate weight
+        defaults to 0.
+        '''
+        weighted_rating_total = aggregate_weight = cls.NO_WEIGHT
+        for r in ratings:
+            weighted_rating_total += r.rating * r.weight
+            # Sub w/ r.user.expertise(problem, org, geo)
+            aggregate_weight += r.weight
+
+        aggregate_rating = ((weighted_rating_total * 1.0 / aggregate_weight)
+                            if aggregate_weight > 0 else cls.NO_RATING)
+
+        return (aggregate_rating, aggregate_weight)
+
+    def update_values(self, new_user_rating, new_user_weight,
+                      old_user_rating=None, old_user_weight=None):
+        '''Update values'''
+
+        old_user_rating = 0 if old_user_rating is None else old_user_rating
+        old_user_weight = 0 if old_user_weight is None else old_user_weight
+
+        increase = new_user_rating * new_user_weight
+        decrease = old_user_rating * old_user_weight
+
+        new_aggregate_weight = (
+            self.weight + new_user_weight - old_user_weight)
+        new_aggregate_rating = (
+            (self.rating * self.weight + increase - decrease) * 1.0 /
+            new_aggregate_weight)
+
+        self.rating, self.weight = new_aggregate_rating, new_aggregate_weight
+
+    def __init__(self, community, connection, aggregation='strict',
+                 rating=None, weight=None):
         '''Initialize a new aggregate rating
 
-        Inputs connection and problem are instances while org_scope,
-        geo_scope, aggregation, rating, and weight are literals based on
-        the JSON aggregate problem connection rating schema.
+        Inputs community and connection are instances while aggregation,
+        rating, and weight are literals.
 
         The rating must be a real number between 0 and 4 inclusive. The
         weight reflects the total weight of all the ratings included and
         must also be a real number. Rating and weight must both be
         provided or both be None.
 
-        If both rating and weight are None, The value and weight are
+        If both rating and weight are None, the value and weight are
         calculated from the set of problem connection ratings using the
         method specified in the aggregation argument.
 
-        The default aggregation is 'strict', which only includes those
-        ratings which exactly match the problem, org_scope, and
-        geo_scope. However, note that org_scope of None includes all
-        orgs and geo_scope of None includes all geos.
+        The default aggregation is 'strict', which only includes ratings
+        in the associated community.
         '''
-        if not isinstance(connection, ProblemConnection):
-            raise InvalidEntity(variable='connection', value=connection,
-                                classname='ProblemConnection')
-        is_causal = connection.connection_type == 'causal'
+        problem, org, geo = community.derive_key()
+        is_causal = connection.axis == 'causal'
         p_a = connection.driver if is_causal else connection.broader
         p_b = connection.impact if is_causal else connection.narrower
         if problem not in (p_a, p_b):
             raise InvalidProblemForConnection(problem=problem,
                                               connection=connection)
+        if is_causal:
+            self.connection_category = ('drivers' if problem is p_b
+                                        else 'impacts')
+        else:
+            self.connection_category = ('broader' if problem is p_b
+                                        else 'narrower')
+
         # TODO: add 'inclusive' to include all ratings within sub-orgs/geos
         # TODO: add 'inherited' to point to a different context for ratings
         if aggregation not in ('strict'):
@@ -221,34 +260,28 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         if rating is None:
             if aggregation == 'strict':
                 rq = ProblemConnectionRating.query.filter_by(
-                                                        problem=problem,
-                                                        connection=connection)
-                rq = rq.filter_by(org_scope=org_scope) if org_scope else rq
-                rq = rq.filter_by(geo_scope=geo_scope) if geo_scope else rq
-                ratings = rq.all()
-                # ratings = (r for r in connection.ratings.all() if
-                #            r.problem == problem and
-                #            (org_scope is None or r.org_scope == org_scope) and
-                #            (geo_scope is None or r.geo_scope == geo_scope))
-                weighted_rating_total = weight_total = 0
-                r_user_expertise = 1  # Placeholder - see below
-                for r in ratings:
-                    weighted_rating_total += r.rating * r_user_expertise
-                    # Sub w/ r.user.expertise(problem, org_scope, geo_scope)
-                    weight_total += r_user_expertise
-                rating = (weighted_rating_total * 1.0 / weight_total if
-                          weight_total > 0 else 0)
-                weight = weight_total
-        if (not isinstance(rating, Real) or rating < 0 or rating > 4):
+                        problem=problem, org=org, geo=geo,
+                        connection=connection)
+                # TODO: implement inclusive aggregation
+                # Removed since it is not strict:
+                # rq = rq.filter_by(org=org) if org else rq
+                # rq = rq.filter_by(geo=geo) if geo else rq
+                # ratings = rq.all()
+                rating, weight = (
+                    AggregateProblemConnectionRating.calculate_values(rq))
+
+        for field, value in (('Rating', rating), ('Weight', weight)):
+            if not isinstance(value, Real):
+                raise TypeError(
+                    '{field} value of {value} is not a Real number.'
+                    .format(field=field, value=value))
+
+        if not ((rating >= 0 and rating <= 4) or rating == -1):
             raise InvalidAggregateConnectionRating(rating=rating,
                                                    connection=connection)
-        if not isinstance(weight, Real):
-            raise TypeError('Weight must be a Real number.')
-        self.problem = problem
+
+        self.community = community
         self.connection = connection
-        # TODO: make org and geo entities rather than strings
-        self.org_scope = org_scope
-        self.geo_scope = geo_scope
         self.aggregation = aggregation
         self.rating = rating
         self.weight = weight
@@ -261,53 +294,57 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         Required by the Trackable metaclass.
         '''
         rating = kwds.get('rating', None)
-        if (not isinstance(rating, Real) or
-                rating < 0 or rating > 4):
+        weight = kwds.get('weight', None)
+
+        for field, value in (('Rating', rating), ('Weight', weight)):
+            if not isinstance(value, Real):
+                raise TypeError(
+                    '{field} value of {value} is not a Real number.'
+                    .format(field=field, value=value))
+
+        if not ((rating >= 0 and rating <= 4) or rating == -1):
             raise InvalidAggregateConnectionRating(rating=rating,
                                                    connection=self.connection)
-        weight = kwds.get('weight', None)
-        if not isinstance(weight, Real):
-            raise TypeError('Argument weight must be a Real number.')
         if rating != self.rating or weight != self.weight:
-            self.rating = rating
-            self.weight = weight
+            self.rating, self.weight = rating, weight
             self._modified.add(self)
 
     # Use default __repr__() from Trackable:
     # AggregateProblemConnectionRating[(
-    #     Problem[<human_id>],
-    #     ProblemConnection[(
-    #         <conn_type>,
-    #         Problem[<human_id>],
-    #         Problem[<human_id>]
+    #     Community[(
+    #         Problem[<problem_human_id>],
+    #         <org>
+    #         Geo[<geo_human_id>],
     #     )],
-    #     <org>,
-    #     Geo[<human_id>],
+    #     ProblemConnection[(
+    #         <axis>,
+    #         Problem[<problem_a_human_id>],
+    #         Problem[<problem_b_human_id>]
+    #     )],
     #     <aggregation>
     # )]
 
     def __str__(self):
         cls_name = self.__class__.__name__
+        problem, org, geo = self.community.derive_key()
         p_name = self.problem.name
         conn = self.connection
-        is_causal = conn.connection_type == 'causal'
+        is_causal = conn.axis == 'causal'
         p_a = conn.driver.name if is_causal else conn.broader.name
         if p_name == p_a:
             conn_str = str(conn).replace(p_name, '@' + p_name, 1)
         else:
             conn_str = ('@' + p_name).join(str(conn).rsplit(p_name, 1))
-        org = self.org_scope
-        geo = self.geo_scope
-        s = '{cls}: {rating:.2f} with {weight:.2f} weight ({agg})\n'.format(
-                                                        cls=cls_name,
-                                                        rating=self.rating,
-                                                        weight=self.weight,
-                                                        agg=self.aggregation)
-        s += '  on {conn}\n'.format(conn=conn_str)
-        s += '  at {org} '.format(org=org) if org is not None else '  '
-        # TODO: convert to more friendly geo
-        s += 'in {geo}'.format(geo=geo) if geo is not None else '(globally)'
-        return s
+        return ('{cls}: {rating:.2f} with {weight:.2f} weight ({agg})\n'
+                '  on {conn}\n'
+                '  {org}{geo}'.format(
+                   cls=cls_name,
+                   rating=self.rating,
+                   weight=self.weight,
+                   agg=self.aggregation,
+                   conn=conn_str,
+                   org=''.join(('at ', org, ' ')) if org is not None else '',
+                   geo=''.join(('in ', geo)) if geo is not None else ''))
 
 
 class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
@@ -319,43 +356,50 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
     of problem A vs. problem B because the perceived importance of B as
     an impact of A may be quite different from the perceived importance
     of A as a driver of B.
-    '''
 
+    Maintain problem/org/geo rather than substitute with community as
+    this will most likely become a separate microservice and this extra
+    granularity may be useful.
+    '''
+    # TODO: replace with problem_human_id and remove relationship
     problem_id = Column(types.Integer, ForeignKey('problem.id'))
     problem = orm.relationship('Problem')
 
+    # TODO: replace with org_human_id
+    org = Column(types.String(256))
+
+    # TODO: replace with geo_human_id and remove relationship
+    geo_id = Column(types.Integer, ForeignKey('geo.id'))
+    geo = orm.relationship('Geo')
+
+    # TODO: replace with other_problem_human_id and connection_category
+    # and remove relationship. Connection category values include
+    # drivers, impacts, broader, narrower; allows retrieving all ratings
+    # in a community with a single query
     connection_id = Column(types.Integer, ForeignKey('problem_connection.id'))
     connection = orm.relationship('ProblemConnection',
                                   back_populates='ratings')
 
-    # TODO: rename org_scope to org_scope_id, make it a foreign key, and
-    #       create an org_scope relationship
-    org_scope = Column(types.String(256))
+    connection_category = Column(types.String(16))
 
-    # TODO: rename geo_scope to geo_scope_id, make it a foreign key, and
-    #       create a geo_scope relationship
-    geo_scope = Column(types.String(256))
-
-    # TODO: rename user to user_id, make it a foreign key, and create a
-    #       user relationship
+    # TODO: replace with user_id
     user = Column(types.String(60))
 
     _rating = Column('rating', types.Integer)
+    _weight = Column('weight', types.Integer)
 
     # Querying use cases:
     #
     # 1. The Problem Page needs weighted average ratings on each connection
     #    to order them and modulate how they are displayed. This may end
     #    up being pre-processed, but it must be queried when calculated.
-    #    cols: problem_id, connection_id, org_scope, geo_scope
-    #       where most commonly org_scope == None
-    #    cols: problem_id, connection_id, org_scope
-    #    cols: problem_id, connection_id
-    #    cols: problem_id (if faster to query all together)
+    #    cols: problem_id, org, geo, connection_id
+    #       where most commonly org == None
+    #    cols: problem_id, org, geo
     #
     # 2. The Problem Page needs to ask the user to rate connections that
     #    the user has not yet rated).
-    #    cols: user, problem_id
+    #    cols: user, problem_id, org, geo
     #
     # 3. The Personal Dashboard needs to track history of all the user's
     #    inputs including connection ratings.
@@ -363,8 +407,8 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
     #
     # __table_args__ = (UniqueConstraint('problem_id',
     #                                    'connection_id',
-    #                                    'org_scope',
-    #                                    'geo_scope',
+    #                                    'org',
+    #                                    'geo',
     #                                    'user',
     #                                    name='uq_problem_connection_rating'),)
     #
@@ -372,81 +416,152 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
                             # ux for unique index
                             'problem_id',
                             'connection_id',
-                            'org_scope',
-                            'geo_scope',
+                            'org',
+                            'geo_id',
                             'user',
                             unique=True),
                       Index('ix_problem_connection_rating:user+problem_id',
                             # ix for index
                             'user',
-                            'problem_id'),)
+                            'problem_id',
+                            'org',
+                            'geo_id'),)
 
-    Key = namedtuple('Key', 'problem, connection, org_scope, geo_scope, user')
+    Key = namedtuple('Key', 'connection, problem, org, geo, user')
 
     @classmethod
-    def create_key(cls, problem, connection, org_scope=None,
-                   geo_scope=None, user='Intertwine', **kwds):
+    def create_key(cls, connection, problem, org=None, geo=None,
+                   user='Intertwine', **kwds):
         '''Create key for a problem connection rating
 
         Return a key allowing the Trackable metaclass to register a
         problem connection rating instance. The key is a namedtuple of
-        problem, connection, org_scope, geo_scope, and user.
+        connection, problem, org, geo, and user.
         '''
-        return cls.Key(problem, connection, org_scope, geo_scope, user)
+        return cls.Key(connection, problem, org, geo, user)
 
     def derive_key(self):
         '''Derive key from a problem connection rating instance
 
         Return the registry key used by the Trackable metaclass from a
         problem connection rating instance. The key is a namedtuple of
-        problem, connection, org_scope, geo_scope, and user.
+        connection, problem, org, geo, and user.
         '''
-        return type(self).Key(self.problem, self.connection, self.org_scope,
-                              self.geo_scope, self.user)
+        return type(self).Key(self.connection, self.problem, self.org,
+                              self.geo, self.user)
+
     @property
     def rating(self):
         return self._rating
 
     @rating.setter
     def rating(self, val):
-        if not isinstance(val, int) or val < 0 or val > 4:
-            raise InvalidProblemConnectionRating(rating=val,
-                                                 connection=self.connection)
-        old_val = self.rating if hasattr(self, '_rating') else None
-        if (val != old_val):
-            # Update aggregate ratings affected by this rating
-            self._rating = val
-            self.update_aggregate_ratings(new_rating=val, old_rating=old_val)
+        self.update_values(rating=val)
 
     rating = orm.synonym('_rating', descriptor=rating)
 
-    def __init__(self, rating, problem, connection, org_scope=None,
-                 geo_scope=None, user='Intertwine'):
+    @property
+    def weight(self):
+        return self._weight
+
+    @weight.setter
+    def weight(self, val):
+        self.update_values(weight=val)
+
+    weight = orm.synonym('_weight', descriptor=weight)
+
+    def update_values(self, rating=None, weight=None):
+        '''Update values
+
+        Provides way to update both rating and weight at same time,
+        since any change must be propagated to all affected aggregate
+        ratings via the relevant communities.
+        '''
+        if rating is None and weight is None:
+            raise ValueError('rating and weight cannot both be None')
+
+        has_updated = False
+
+        if rating is None:
+            rating = self.rating
+        elif not isinstance(rating, int) or rating < 0 or rating > 4:
+            raise InvalidProblemConnectionRating(rating=rating,
+                                                 *self.derive_key())
+        else:
+            old_rating = self.rating if hasattr(self, '_rating') else None
+            if rating != old_rating:
+                self._rating = rating
+                has_updated = True
+
+        if weight is None:
+            weight = self.weight
+        elif not isinstance(weight, int) or weight < 0:
+            raise InvalidProblemConnectionWeight(weight=weight,
+                                                 *self.derive_key())
+        else:
+            old_weight = self.weight if hasattr(self, '_weight') else None
+            if weight != old_weight:
+                self._weight = weight
+                has_updated = True
+
+        if has_updated:
+            from ..communities.models import Community
+
+            community = Community.query.filter_by(problem=self.problem,
+                                                  org=self.org,
+                                                  geo=self.geo).first()
+            if community:
+                community.update_aggregate_ratings(connection=self.connection,
+                                                   user=self.user,
+                                                   new_user_rating=rating,
+                                                   new_user_weight=weight,
+                                                   old_user_rating=old_rating,
+                                                   old_user_weight=old_weight)
+
+    def __init__(self, rating, problem, connection, org=None, geo=None,
+                 user='Intertwine', weight=None):
         '''Initialize a new problem connection rating
 
-        Inputs problem and connection are instances while the rest
-        are literals based on the JSON problem connection rating schema.
-        The rating parameter must be an integer between 0 and 4
-        inclusive.'''
+        The connection parameter is an instance, problem and geo
+        may be either instances or human_ids, and the rest are literals
+        based on the JSON problem connection rating schema. The rating
+        parameter must be an integer between 0 and 4 inclusive.
+        '''
         if not isinstance(connection, ProblemConnection):
             raise InvalidEntity(variable='connection', value=connection,
                                 classname='ProblemConnection')
-        is_causal = connection.connection_type == 'causal'
+        is_causal = connection.axis == 'causal'
         p_a = connection.driver if is_causal else connection.broader
         p_b = connection.impact if is_causal else connection.narrower
+        if is_causal:
+            self.connection_category = ('drivers' if problem is p_b
+                                        else 'impacts')
+        else:
+            self.connection_category = ('broader' if problem is p_b
+                                        else 'narrower')
+
+        if isinstance(problem, basestring):
+            problem = Problem.query.filter_by(human_id=problem).one()
         if problem not in (p_a, p_b):
             raise InvalidProblemForConnection(problem=problem,
                                               connection=connection)
+
+        if isinstance(geo, basestring):
+            geo = Geo.query.filter_by(human_id=geo).one()
+
         # TODO: take user instance in addition to user_id
         if user is None or user == '':
             raise InvalidUser(user=user, connection=connection)
+
         self.problem = problem
         self.connection = connection
-        # TODO: make org and geo entities rather than strings
-        self.org_scope = org_scope
-        self.geo_scope = geo_scope
+        # TODO: make org an entity rather than a string
+        self.org = org
+        self.geo = geo
         self.user = user
-        self.rating = rating
+        # weight = user.expertise(problem, org, geo)
+        weight = 1 if weight is None else weight
+        self.update_values(rating=rating, weight=weight)
 
     def modify(self, **kwds):
         '''Modify an existing problem connection rating
@@ -456,76 +571,54 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         metaclass.
         '''
         rating = kwds.get('rating', None)
-        if rating != self.rating:
-            self.rating = rating
+        weight = kwds.get('weight', None)
+        try:
+            self.update_values(rating=rating, weight=weight)
             self._modified.add(self)
-
-    def update_aggregate_ratings(self, new_rating, old_rating=None):
-        # Update strict aggregate ratings
-        ars = [ar for ar in self.connection.aggregate_ratings.all() if
-               ar.problem == self.problem and
-               (ar.org_scope is None or ar.org_scope == self.org_scope) and
-               (ar.geo_scope is None or ar.geo_scope == self.geo_scope) and
-               ar.aggregation == 'strict']
-        if ars:
-            # user.expertise(self.problem, self.org_scope, self.geo_scope)
-            user_w = user_expertise = 1
-            deduction = (old_rating * user_w) if old_rating else 0
-            addition = new_rating * user_w
-            for ar in ars:
-                new_w = ar.weight + (user_w if old_rating is None else 0)
-                new_r = ((ar.rating*ar.weight - deduction + addition) / new_w)
-                AggregateProblemConnectionRating(problem=ar.problem,
-                                                 connection=ar.connection,
-                                                 org_scope=ar.org_scope,
-                                                 geo_scope=ar.geo_scope,
-                                                 aggregation='strict',
-                                                 rating=new_r,
-                                                 weight=new_w)
+        except ValueError:
+            pass
 
     # Use default __repr__() from Trackable:
     # ProblemConnectionRating[(
-    #     Problem[<human_id>],
-    #     ProblemConnection[(
-    #         <conn_type>,
-    #         Problem[<human_id>],
-    #         Problem[<human_id>])
-    #     )],
+    #     Problem[<problem_human_id>],
     #     <org>,
-    #     Geo[<human_id>],
+    #     Geo[<geo_human_id>],
+    #     ProblemConnection[(
+    #         <axis>,
+    #         Problem[<problem_a_human_id>],
+    #         Problem[<problem_b_human_id>])
+    #     )],
     #     <user>
     # )]
 
     def __str__(self):
-        cls_name = self.__class__.__name__
         p_name = self.problem.name
         conn = self.connection
-        is_causal = conn.connection_type == 'causal'
+        is_causal = conn.axis == 'causal'
         p_a = conn.driver.name if is_causal else conn.broader.name
         if p_name == p_a:
             conn_str = str(conn).replace(p_name, '@' + p_name, 1)
         else:
             conn_str = ('@' + p_name).join(str(conn).rsplit(p_name, 1))
-        rating = self.rating
-        user = self.user
-        org = self.org_scope
-        geo = self.geo_scope
-        s = '{cls}: {rating} by {user}\n'.format(cls=cls_name,
-                                                 rating=rating,
-                                                 user=user)
-        s += '  on {conn}\n'.format(conn=conn_str)
-        s += '  at {org} '.format(org=org) if org is not None else '  '
-        # TODO: convert to more friendly geo
-        s += 'in {geo}'.format(geo=geo) if geo is not None else '(globally)'
-        return s
+        org = self.org
+        geo = self.geo
+        return ('{cls}: {rating} by {user} with {weight} weight\n'
+                '  on {conn}\n'
+                '  {org}{geo}'.format(
+                   cls=self.__class__.__name__,
+                   rating=self.rating,
+                   user=self.user,
+                   weight=self.weight,
+                   conn=conn_str,
+                   org=''.join('at ', org, ' ') if org is not None else '',
+                   geo=''.join('in ', geo) if geo is not None else ''))
 
 
 class ProblemConnection(BaseProblemModel, AutoTableMixin):
     '''Base class for problem connections
 
-    A problem connection is uniquely defined by its connection_type
-    ('causal' or 'scoped') and the two problems it connects: problem_a
-    and problem_b.
+    A problem connection is uniquely defined by its axis ('causal' or
+    'scoped') and the two problems it connects: problem_a and problem_b.
 
     In causal connections, problem_a drives problem_b, so problem_a is
     the 'driver' and problem_b is the 'impact' in the database
@@ -546,70 +639,74 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
                                                    ('narrower')
     '''
 
-    connection_type = Column(types.String(6))
+    axis = Column(types.String(6))
     problem_a_id = Column(types.Integer, ForeignKey('problem.id'))
     problem_b_id = Column(types.Integer, ForeignKey('problem.id'))
+    # TODO: remove ratings relationship
     ratings = orm.relationship('ProblemConnectionRating',
                                back_populates='connection',
                                lazy='dynamic')
+    # TODO: remove aggregate ratings relationship?
     aggregate_ratings = orm.relationship('AggregateProblemConnectionRating',
                                          back_populates='connection',
                                          lazy='dynamic')
 
-    __table_args__ = (UniqueConstraint('problem_a_id',
-                                       'problem_b_id',
-                                       'connection_type',
-                                       name='uq_problem_connection'),)
+    __table_args__ = (Index('ux_problem_connection',
+                            # ux for unique index
+                            'problem_a_id',
+                            'axis',
+                            'problem_b_id',
+                            unique=True),
+                      Index('ix_problem_connection:problem_b_id+axis',
+                            # ix for index
+                            'problem_b_id',
+                            'axis'),)
 
-    # TODO: Add index for (problem_a_id, connection_type)
-    # TODO: Add index for (problem_b_id, connection_type)
-
-    Key = namedtuple('Key', 'connection_type, problem_a, problem_b')
+    Key = namedtuple('Key', 'axis, problem_a, problem_b')
 
     @classmethod
-    def create_key(cls, connection_type, problem_a, problem_b, **kwds):
+    def create_key(cls, axis, problem_a, problem_b, **kwds):
         '''Create key for a problem connection
 
         Return a key allowing the Trackable metaclass to register a
-        problem connection instance. The key is a namedtuple of
-        connection_type, problem_a, and problem_b.
+        problem connection instance. The key is a namedtuple of axis,
+        problem_a, and problem_b.
         '''
-        return cls.Key(connection_type, problem_a, problem_b)
+        return cls.Key(axis, problem_a, problem_b)
 
     def derive_key(self):
         '''Derive key from a problem connection instance
 
         Return the registry key used by the Trackable metaclass from a
-        problem connection instance. The key is a namedtuple of
-        connection_type, problem_a, and problem_b.
+        problem connection instance. The key is a namedtuple of axis,
+        problem_a, and problem_b.
         '''
-        is_causal = self.connection_type == 'causal'
+        is_causal = self.axis == 'causal'
         p_a = self.driver if is_causal else self.broader
         p_b = self.impact if is_causal else self.narrower
-        return type(self).Key(self.connection_type, p_a, p_b)
+        return type(self).Key(self.axis, p_a, p_b)
 
-    def __init__(self, connection_type, problem_a, problem_b,
+    def __init__(self, axis, problem_a, problem_b,
                  ratings_data=None, ratings_context_problem=None):
         '''Initialize a new problem connection
 
-        Required inputs include connection_type, a string with value
-        'causal' or 'scoped' and two problem instances. A connection_type
-        of 'causal' means problem_a is a driver of problem_b, while a
-        connection_type of 'scoped' means problem_a is broader than
-        problem_b.
+        Required inputs include axis, a string with value 'causal' or
+        'scoped' and two problem instances. An axis of 'causal' means
+        problem_a is a driver of problem_b, while an axis of 'scoped'
+        means problem_a is broader than problem_b.
 
         The optional ratings_data parameter is a list of ratings based
         on the JSON problem connection rating schema. The problem
         parameter must be provided if ratings_data is specified, as it
         is required to define a problem connection rating.
         '''
-        # TODO: make connection_type an Enum
-        if connection_type not in ('causal', 'scoped'):
-            raise InvalidConnectionType(connection_type=connection_type)
+        # TODO: make axis an Enum
+        if axis not in ('causal', 'scoped'):
+            raise InvalidConnectionAxis(axis=axis)
         if problem_a is problem_b:
             raise CircularConnection(problem=problem_a)
-        self.connection_type = connection_type
-        is_causal = self.connection_type == 'causal'
+        self.axis = axis
+        is_causal = self.axis == 'causal'
         self.driver = problem_a if is_causal else None
         self.impact = problem_b if is_causal else None
         self.broader = problem_a if not is_causal else None
@@ -645,57 +742,25 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
         rating_added = False
         for rating_data in ratings_data:
             connection_rating = ProblemConnectionRating(
-                problem=ratings_context_problem,
                 connection=self,
+                problem=ratings_context_problem,
                 **rating_data)
+            # TODO: add tracking of new to Trackable and check it here
             if connection_rating not in self.ratings:
                 self.ratings.append(connection_rating)
                 rating_added = True
         if rating_added and hasattr(self, '_modified'):
             self._modified.add(self)
 
-    def aggregate_rating_in_context(self, problem, org_scope=None,
-                                    geo_scope=None, aggregation='strict',
-                                    session=None):
-        '''Emit aggregate rating for the connection within a context
-
-        Given a problem, org_scope, geo_scope, aggregation, and a
-        session, return an aggregate problem connection rating. If an
-        aggregate rating matching the criteria already exists, it is
-        returned. If not, a new one is created and persisted to the
-        database.
-        '''
-        aggregate_ratings = [ar for ar in self.aggregate_ratings.all() if
-                             ar.problem == problem and
-                             ar.org_scope == org_scope and
-                             ar.geo_scope == geo_scope and
-                             ar.aggregation == aggregation]
-        assert(len(aggregate_ratings) < 2)
-        if len(aggregate_ratings) == 1:
-            aggregate_rating = aggregate_ratings[0]
-        else:
-            aggregate_rating = AggregateProblemConnectionRating(
-                                                problem=problem,
-                                                connection=self,
-                                                org_scope=org_scope,
-                                                geo_scope=geo_scope,
-                                                aggregation=aggregation)
-            if session is not None:
-                session.add(aggregate_rating)
-                session.commit()
-        return aggregate_rating
-
     # Use default __repr__() from Trackable:
-    # ProblemConnection[(<conn_type>, Problem[<human_id>], Problem[<human_id>])]
-    # or if over 79 chars:
     # ProblemConnection[(
-    #     <conn_type>,
-    #     Problem[<human_id>],
-    #     Problem[<human_id>]
+    #     <axis>,
+    #     Problem[<human_id_a>],
+    #     Problem[<human_id_b>]
     # )]
 
     def __str__(self):
-        is_causal = self.connection_type == 'causal'
+        is_causal = self.axis == 'causal'
         ct = '->' if is_causal else '::'
         p_a = self.driver.name if is_causal else self.broader.name
         p_b = self.impact.name if is_causal else self.narrower.name
@@ -737,25 +802,25 @@ class Problem(BaseProblemModel, AutoTableMixin):
     drivers = orm.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
-                            "ProblemConnection.connection_type=='causal')",
+                            "ProblemConnection.axis=='causal')",
                 backref='impact',
                 lazy='dynamic')
     impacts = orm.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
-                            "ProblemConnection.connection_type=='causal')",
+                            "ProblemConnection.axis=='causal')",
                 backref='driver',
                 lazy='dynamic')
     broader = orm.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
-                            "ProblemConnection.connection_type=='scoped')",
+                            "ProblemConnection.axis=='scoped')",
                 backref='narrower',
                 lazy='dynamic')
     narrower = orm.relationship(
                 'ProblemConnection',
                 primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
-                            "ProblemConnection.connection_type=='scoped')",
+                            "ProblemConnection.axis=='scoped')",
                 backref='broader',
                 lazy='dynamic')
 
@@ -826,7 +891,8 @@ class Problem(BaseProblemModel, AutoTableMixin):
         '''
         self.name = name
         self.definition = definition.strip() if definition else None
-        self.definition_url = definition_url.strip() if definition_url else None
+        self.definition_url = (definition_url.strip()
+                               if definition_url else None)
         self.sponsor = sponsor.strip() if sponsor else None
         self.images = []
         self.drivers = []
@@ -907,15 +973,16 @@ class Problem(BaseProblemModel, AutoTableMixin):
             'narrower': ('scoped', 'self', 'adjacent_problem', 'broader'),
         }
         assert category in derived_vars
-        conn_type, p_a, p_b, inverse_name = derived_vars[category]
+        axis, p_a, p_b, inverse_name = derived_vars[category]
         connections = getattr(self, category)
 
         for connection_data in data:
             adjacent_name = connection_data.get('adjacent_problem', None)
             adjacent_problem = Problem(name=adjacent_name)
-            ratings_data = connection_data.get('problem_connection_ratings', [])
+            ratings_data = connection_data.get('problem_connection_ratings',
+                                               [])
             connection = ProblemConnection(
-                connection_type=conn_type,
+                axis=axis,
                 problem_a=locals()[p_a],
                 problem_b=locals()[p_b],
                 ratings_data=ratings_data,
@@ -928,22 +995,30 @@ class Problem(BaseProblemModel, AutoTableMixin):
         if len(self._modified) > 0:
             self._modified.add(self)
 
-    def connections_with_ratings(self, org_scope=None, geo_scope=None,
-                                 aggregation='strict', session=None):
-        '''Pair connections with ratings and sort by connection category
+    def connections(self):
+        '''Connections
+
+        Returns a generator that iterates through all the problem's
+        connections
         '''
-        connections_with_ratings = {}
-        for category in ['drivers', 'impacts', 'broader', 'narrower']:
-            connections_with_ratings[category] = [
-                    (c, c.aggregate_rating_in_context(problem=self,
-                                                      org_scope=org_scope,
-                                                      geo_scope=geo_scope,
-                                                      aggregation=aggregation,
-                                                      session=session).rating)
-                    for c in getattr(self, category).all()]
-            connections_with_ratings[category].sort(key=lambda c: c[1],
-                                                    reverse=True)
-        return connections_with_ratings
+        categories = ('impact', 'driver', 'narrower', 'broader')
+
+        return ProblemConnection.query.filter(or_(
+            *map(lambda x: getattr(ProblemConnection, x) == self, categories)))
+
+    def connections_by_category(self):
+        '''Connections
+
+        Returns an ordered dictionary of generators that iterate through
+        the problem's connections, keyed by category in this order:
+            drivers, impacts, broader, narrower
+        '''
+        categories = ('drivers', 'impacts', 'broader', 'narrower')
+        connections = OrderedDict()
+        for category in categories:
+            connections[category] = (c for c in getattr(self, category))
+
+        return connections
 
     # Use default __repr__() from Trackable:
     # Problem[<human_id>]

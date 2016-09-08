@@ -44,9 +44,9 @@ def render_geo(geo_human_id):
         # TODO: Instead of aborting, reroute to geo_not_found page
         # Oops! 'X' is not a geo found in Intertwine.
         # Did you mean:
-        # <related_geo_1>
-        # <related_geo_2>
-        # <related_geo_3>
+        # <geo_1>
+        # <geo_2>
+        # <geo_3>
         abort(404)
 
     if geo.alias_target:

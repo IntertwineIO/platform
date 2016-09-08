@@ -25,8 +25,9 @@ from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 
 from config import DevConfig
-from intertwine.utils import Trackable
+from intertwine.trackable import Trackable
 from intertwine.auth.models import BaseAuthModel
+from intertwine.communities.models import BaseCommunityModel
 from intertwine.geos.models import BaseGeoModel
 from intertwine.problems.models import (BaseProblemModel, Problem)
 from intertwine.problems.exceptions import InvalidJSONPath
@@ -45,7 +46,8 @@ class DataSessionManager(object):
     session = None
 
     def __init__(self, db_config=DevConfig.DATABASE,
-                 ModelBases=[BaseAuthModel, BaseGeoModel, BaseProblemModel]):
+                 ModelBases=[BaseAuthModel, BaseGeoModel, BaseProblemModel,
+                             BaseCommunityModel]):
         DSM = DataSessionManager
         if DSM.engine is None:
             DSM.engine = create_engine(db_config)

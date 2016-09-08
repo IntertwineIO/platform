@@ -37,11 +37,12 @@
             "type": "object",
             "properties": {
                 "rating": {"type": "integer", "minimum": 0, "maximum": 4},
+                "weight": {"type": "integer", "minimum": 0},
                 "user": {"type": "string", "default": ""},
-                "geo_scope": {"type": "string", "default": "global"},
-                "org_scope": {"type": "string", "default": ""}
+                "org": {"type": "string", "default": ""},
+                "geo": {"type": "string", "default": "global"}
             },
-            "required": ["rating", "user_id", "geo_scope", "org_scope"],
+            "required": ["rating", "user", "org", "geo"],
             "additionalProperties": false
         }
     }

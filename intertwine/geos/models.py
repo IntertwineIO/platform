@@ -5,7 +5,8 @@ from collections import namedtuple, OrderedDict
 from sqlalchemy import desc, orm, types, Column, ForeignKey, Index, Table
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-from ..utils import AutoTableMixin, BaseIntertwineModel, stringify
+from .. import BaseIntertwineModel
+from ..utils import AutoTableMixin, stringify
 from ..exceptions import AttributeConflict, CircularReference
 
 
@@ -422,15 +423,17 @@ class Geo(BaseGeoModel, AutoTableMixin):
             # transfer references when alias_target setter called on at
             alias.alias_target = self
 
-    def display(self, show_the=True, show_abbrev=True, show_qualifier=True,
-                abbrev_path=True, max_path=float('Inf')):
+    def display(self, show_the=True, show_The=False, show_abbrev=True,
+                show_qualifier=True, abbrev_path=True, max_path=float('Inf')):
         '''Generate text for displaying a geo to a user
 
         Returns a string derived from the name, abbrev, uses_the, and
         the geo path established by the path_parent. The following
         parameters affect the output:
-        - show_the=True: The name of the geo is prefixed by 'The' if the
-          geo has the flag (geo.uses_the == True)
+        - show_the=True: The name of the geo is prefixed by 'the'
+          (lowercase) if geo.uses_the; overriden by show_The (uppercase)
+        - show_The=False: The name of the geo is prefixed by 'The'
+          (uppercase) if geo.uses_the; overrides show_the (lowercase)
         - show_abbrev=True: The abbrev is displayed in parentheses after
           the geo name if the geo has an abbrev
         - show_qualifier=True: The qualifier is displayed after the geo
@@ -446,7 +449,9 @@ class Geo(BaseGeoModel, AutoTableMixin):
         geo = self
         plvl = 0
         while geo is not None and plvl <= max_path:
-            the = ('The ' if geo.uses_the and show_the else '')
+
+            the = ('The ' if geo.uses_the and show_The else (
+                   'the ' if geo.uses_the and show_the else ''))
             abbrev = (u' ({})'.format(geo.abbrev)
                       if geo.abbrev and show_abbrev else '')
             qualifier = (u' {}'.format(geo.qualifier)
