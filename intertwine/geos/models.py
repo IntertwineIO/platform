@@ -491,7 +491,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
 
         base_q = getattr(self, relation).join(Geo.data).join(Geo.levels)
         levels = (lvl for lvl in (
-            GeoLevel.up if relation == 'parents' else GeoLevel.down))
+            GeoLevel.UP if relation == 'parents' else GeoLevel.DOWN))
 
         if limit < 0:
             od = OrderedDict(
@@ -552,7 +552,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 (lvl, self.levels[lvl].json(mute=mute+['key', 'geo', 'level'],
                                             wrap=False, tight=tight, raw=raw,
                                             limit=limit))
-                for lvl in GeoLevel.down if self.levels.get(lvl, None))),
+                for lvl in GeoLevel.DOWN if self.levels.get(lvl, None))),
 
             ('parents', self.related_geos_by_level(
                 relation='parents', tight=tight, raw=raw, limit=limit)),
@@ -755,7 +755,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
                             'level',
                             unique=True),)
 
-    down = OrderedDict((
+    DOWN = OrderedDict((
         ('country', ('subdivision1',)),
         ('subdivision1', ('csa', 'cbsa', 'subdivision2', 'place')),
         ('csa', ('cbsa', 'subdivision2', 'place')),
@@ -764,7 +764,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         ('place', ())
         ))
 
-    up = OrderedDict((
+    UP = OrderedDict((
         ('place', ('subdivision2', 'cbsa', 'csa', 'subdivision1')),
         ('subdivision2', ('cbsa', 'csa', 'subdivision1')),
         ('cbsa', ('csa', 'subdivision1')),

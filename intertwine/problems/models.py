@@ -3,6 +3,7 @@
 from collections import namedtuple, OrderedDict
 import re
 from numbers import Real
+from operator import attrgetter
 
 # from past.builtins import basestring
 from sqlalchemy import or_, orm, types, Column, ForeignKey, Index
@@ -115,18 +116,26 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
     recalculated on each request. Ratings are aggregated across users
     within a community context of problem, org, and geo.
 
-    An 'aggregation' parameter allows for different aggregation
-    algorithms. The default implementation is 'strict' in that only
-    ratings in the associated community are included. Other
-    implementations may include:
-        - 'inclusive' to include all ratings within sub-orgs/geos
-        - 'inherited' to point to a different context for ratings
-
     Currently, aggregations are only created when the problem network is
     first rendered within a given community. The cumulative weight
     across all the ratings aggregated is also stored, allowing the
     aggregate rating to be updated without having to recalculate the
     aggregation across all the included ratings.
+
+    Args:
+        community: Community context for the aggregate rating
+        connection: Connection being rated
+        aggregation='strict': String specifying the aggregation method:
+            - 'strict': include only ratings in the associated community
+            - 'inclusive': include all ratings within sub-orgs/geos
+            - 'inherited': include ratings from a different community
+        rating=None: Real number between 0 and 4 inclusive; rating and
+            weight must both be defined or both be None
+        weight=None: Real number greater than or equal to 0 that
+            reflects the cumulative weight of all aggregated ratings
+        ratings=None: Iterable of ProblemConnectionRating specifying the
+            set of ratings to be aggregated. Ratings and rating/weight
+            cannot both be specified.
     '''
     community_id = Column(types.Integer, ForeignKey('community.id'))
     community = orm.relationship('Community',
@@ -217,24 +226,7 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         self.rating, self.weight = new_aggregate_rating, new_aggregate_weight
 
     def __init__(self, community, connection, aggregation='strict',
-                 rating=None, weight=None):
-        '''Initialize a new aggregate rating
-
-        Inputs community and connection are instances while aggregation,
-        rating, and weight are literals.
-
-        The rating must be a real number between 0 and 4 inclusive. The
-        weight reflects the total weight of all the ratings included and
-        must also be a real number. Rating and weight must both be
-        provided or both be None.
-
-        If both rating and weight are None, the value and weight are
-        calculated from the set of problem connection ratings using the
-        method specified in the aggregation argument.
-
-        The default aggregation is 'strict', which only includes ratings
-        in the associated community.
-        '''
+                 rating=None, weight=None, ratings=None):
         problem, org, geo = community.derive_key()
         is_causal = connection.axis == 'causal'
         p_a = connection.driver if is_causal else connection.broader
@@ -257,7 +249,18 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
                 (rating is not None and weight is None)):
             raise InconsistentArguments(arg1_name='rating', arg1_value=rating,
                                         art2_name='weight', arg2_value=weight)
-        if rating is None:
+        if (ratings is not None and rating is not None):
+            ratings_str = '<{type} of length {length}>'.format(
+                                type=type(ratings), length=len(list(ratings)))
+            raise InconsistentArguments(
+                                arg1_name='ratings', arg1_value=ratings_str,
+                                art2_name='rating', arg2_value=rating)
+
+        if ratings:
+            rating, weight = (
+                AggregateProblemConnectionRating.calculate_values(ratings))
+
+        elif rating is None:
             if aggregation == 'strict':
                 rq = ProblemConnectionRating.query.filter_by(
                         problem=problem, org=org, geo=geo,
@@ -662,6 +665,25 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
                             'problem_b_id',
                             'axis'),)
 
+    CategoryMapRecord = namedtuple(
+        'CategoryMapRecord', 'axis, category, component, ab_id, relative_a, '
+                             'relative_b, i_ab_id, i_component, i_category')
+
+    CATEGORY_MAP = OrderedDict((
+        ('drivers', CategoryMapRecord(
+            'causal', 'drivers', 'driver', 'problem_a_id', 'adjacent_problem',
+            'self', 'problem_b_id', 'impact', 'impacts')),
+        ('impacts', CategoryMapRecord(
+            'causal', 'impacts', 'impact', 'problem_b_id', 'self',
+            'adjacent_problem', 'problem_a_id', 'driver', 'drivers')),
+        ('broader', CategoryMapRecord(
+            'scoped', 'broader', 'broader', 'problem_a_id', 'adjacent_problem',
+            'self', 'problem_b_id', 'narrower', 'narrower')),
+        ('narrower', CategoryMapRecord(
+            'scoped', 'narrower', 'narrower', 'problem_b_id', 'self',
+            'adjacent_problem', 'problem_a_id', 'broader', 'broader'))
+    ))
+
     Key = namedtuple('Key', 'axis, problem_a, problem_b')
 
     @classmethod
@@ -952,7 +974,7 @@ class Problem(BaseProblemModel, AutoTableMixin):
                     if image not in self.images:
                         self.images.append(image)
                         self._modified.add(self)
-            elif k in ['drivers', 'impacts', 'broader', 'narrower']:
+            elif k in ProblemConnection.CATEGORY_MAP.keys():
                 self.load_connections(category=k, data=v)
             else:
                 raise NameError('{} not found.'.format(k))
@@ -966,14 +988,10 @@ class Problem(BaseProblemModel, AutoTableMixin):
         The method loads the data and flags the set of problems
         modified in the process (including those that are also new).
         '''
-        derived_vars = {
-            'drivers': ('causal', 'adjacent_problem', 'self', 'impacts'),
-            'impacts': ('causal', 'self', 'adjacent_problem', 'drivers'),
-            'broader': ('scoped', 'adjacent_problem', 'self', 'narrower'),
-            'narrower': ('scoped', 'self', 'adjacent_problem', 'broader'),
-        }
-        assert category in derived_vars
-        axis, p_a, p_b, inverse_name = derived_vars[category]
+        cat_map = ProblemConnection.CATEGORY_MAP[category]
+        axis, inverse_name = cat_map.axis, cat_map.i_category
+        p_a, p_b = cat_map.relative_a, cat_map.relative_b
+
         connections = getattr(self, category)
 
         for connection_data in data:
@@ -1001,23 +1019,27 @@ class Problem(BaseProblemModel, AutoTableMixin):
         Returns a generator that iterates through all the problem's
         connections
         '''
-        categories = ('impact', 'driver', 'narrower', 'broader')
+        # ['impact', 'driver', 'narrower', 'broader']
+        categories = map(attrgetter('i_component'),
+                         ProblemConnection.CATEGORY_MAP.values())
 
         return ProblemConnection.query.filter(or_(
             *map(lambda x: getattr(ProblemConnection, x) == self, categories)))
 
     def connections_by_category(self):
-        '''Connections
+        '''Connections by category
 
-        Returns an ordered dictionary of generators that iterate through
-        the problem's connections, keyed by category in this order:
-            drivers, impacts, broader, narrower
+        Returns an ordered dictionary of connection queries keyed by
+        category that iterate alphabetically by the name of the
+        adjoining problem. The category order is specified by the
+        problem connection category map.
         '''
-        categories = ('drivers', 'impacts', 'broader', 'narrower')
+        PC = ProblemConnection
         connections = OrderedDict()
-        for category in categories:
-            connections[category] = (c for c in getattr(self, category))
-
+        for category in PC.CATEGORY_MAP:
+            component = getattr(PC, PC.CATEGORY_MAP[category].component)
+            connections[category] = (getattr(self, category).join(component)
+                                     .order_by(Problem.name))
         return connections
 
     # Use default __repr__() from Trackable:

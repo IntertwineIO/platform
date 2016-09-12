@@ -50,7 +50,7 @@ def render_community(problem_human_id, geo_human_id):
     if geo_human_id and geo_human_id[-1] == '/':
         return redirect('/communities/{problem}/{geo}'
                         .format(problem=problem_human_id,
-                                geo=geo_human_id[:-1]), code=302)
+                                geo=geo_human_id.rstrip('/')), code=302)
 
     if geo_human_id:
         geo = Geo.query.filter_by(human_id=geo_human_id).first()
@@ -71,18 +71,13 @@ def render_community(problem_human_id, geo_human_id):
     else:
         geo = None
 
-    community = Community.query.filter_by(problem=problem,
-                                          org=org,
-                                          geo=geo).first()
+    community = Community.query.filter_by(
+                                    problem=problem, org=org, geo=geo).first()
 
-    if not community:
-        community = Community(problem=problem, org=org, geo=geo)
-        session = community.session()
-        session.add(community)
-        session.commit()
+    connections = Community.assemble_connections_with_ratings_x(
+                                    problem=problem, org=org, geo=geo,
+                                    community=community, aggregation='strict')
 
-    connections = community.assemble_connections_with_ratings(
-                                                    aggregation='strict')
     template = render_template(
         'community.html',
         current_app=flask.current_app,

@@ -35,6 +35,7 @@
     align-items: center;
     width: 100%;
     min-width: 15em;
+    min-height: 3.3em;
 }
 .h-problem-area > div > a {
     display: none;
