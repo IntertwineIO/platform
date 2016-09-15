@@ -163,14 +163,15 @@ class Community(BaseCommunityModel, AutoTableMixin):
         community instance. The key is a namedtuple of problem, org, and
         org.
         '''
-        return type(self).Key(self.problem, self.org, self.geo)
+        # Use __class__ instead of type() to support mocks
+        return self.__class__.Key(self.problem, self.org, self.geo)
 
-    def __init__(self, problem=None, org=None, geo=None):
+    def __init__(self, problem=None, org=None, geo=None, num_followers=0):
         '''Initialize a new community'''
         self.problem = problem
         self.org = org
         self.geo = geo
-        self.num_followers = 0
+        self.num_followers = num_followers
 
     def update_inclusive_aggregate_ratings(self, connection, user,
                                            new_user_rating,
@@ -343,8 +344,10 @@ class Community(BaseCommunityModel, AutoTableMixin):
         limit=10:   caps the number of list or dictionary items beneath
                     the main level; a negative limit indicates no cap
         '''
+        import ipdb; ipdb.set_trace
+
         od = OrderedDict((
-            ('class', type(self).__name__),
+            ('class', self.__class__.__name__),
             ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
             ('problem', self.problem.trepr(tight=tight, raw=raw,
                                            outclassed=True)),
