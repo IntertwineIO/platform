@@ -62,7 +62,7 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
         assert named
         key_name = (u'{cls_name}.{key_cls_name}'
                     .format(cls_name=self.__class__.__name__,
-                            key_cls_name=type(key).__name__))
+                            key_cls_name=key.__class__.__name__))
         treprs = [u'{f}={trepr}'.format(
                   f=f, trepr=trepr(getattr(key, f),
                                    named, tight, raw, outclassed, _lvl+1))
