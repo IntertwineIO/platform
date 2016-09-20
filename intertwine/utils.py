@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+from functools import partial
+from itertools import chain, groupby
+from mock import create_autospec
 import numbers
 import re
 
@@ -128,3 +131,46 @@ def stringify(thing, limit=10, _lvl=0):
                         ind=ind, limit=limit, total=len_thing))
 
     return '\n'.join(strings)
+
+
+def make_vardygr(cls, **kwds):
+    u'''Make vardygr
+
+    From Wikipedia (https://en.wikipedia.org/wiki/Vard%C3%B8ger):
+
+        Vardoger, also known as vardyvle or vardyger, is a spirit
+        predecessor in Scandinavian folklore. Stories typically include
+        instances that are nearly deja vu in substance, but in reverse,
+        where a spirit with the subject's footsteps, voice, scent, or
+        appearance and overall demeanor precedes them in a location or
+        activity, resulting in witnesses believing they've seen or heard
+        the actual person before the person physically arrives. This
+        bears a subtle difference from a doppelganger, with a less
+        sinister connotation. It has been likened to being a phantom
+        double, or form of bilocation.
+
+    A convenience method for creating non-persisted mock instances of
+    other classes. Adds method mimicry capabilities on top of Mock.
+    '''
+    EXCLUDED_METHODS = set(('__new__', '__init__', '__repr__'))
+
+    vardygr = create_autospec(cls, spec_set=False, instance=True)
+
+    # import ipdb; ipdb.set_trace()
+    for k, v in kwds.iteritems():
+        setattr(vardygr, k, v)
+
+    def type_f(x):
+        return type(x[1])
+    sorted_dict_items = sorted(cls.__dict__.items(), key=type_f)
+    dict_by_type = {k.__name__: list(v)
+                    for k, v in groupby(sorted_dict_items, key=type_f)}
+
+    for f in dict_by_type['function']:
+        if f[0] not in EXCLUDED_METHODS:
+            setattr(vardygr, f[0], partial(getattr(cls, f[0]), vardygr))
+
+    for f in chain(dict_by_type['classmethod'], dict_by_type['staticmethod']):
+        setattr(vardygr, f[0], getattr(cls, f[0]))
+
+    return vardygr
