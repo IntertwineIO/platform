@@ -329,8 +329,6 @@ class Community(BaseCommunityModel, AutoTableMixin):
         limit=10:   caps the number of list or dictionary items beneath
                     the main level; a negative limit indicates no cap
         '''
-        import ipdb; ipdb.set_trace
-
         od = OrderedDict((
             ('class', self.__class__.__name__),
             ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
