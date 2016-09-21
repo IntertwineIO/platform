@@ -166,11 +166,13 @@ def make_vardygr(cls, **kwds):
     dict_by_type = {k.__name__: list(v)
                     for k, v in groupby(sorted_dict_items, key=type_f)}
 
-    for f in dict_by_type['function']:
-        if f[0] not in EXCLUDED_METHODS:
-            setattr(vardygr, f[0], partial(getattr(cls, f[0]), vardygr))
-
-    for f in chain(dict_by_type['classmethod'], dict_by_type['staticmethod']):
-        setattr(vardygr, f[0], getattr(cls, f[0]))
+    for type_name, attributes in dict_by_type.iteritems():
+        if type_name == 'function':
+            for f in attributes:
+                if f[0] not in EXCLUDED_METHODS:
+                    setattr(vardygr, f[0], partial(getattr(cls, f[0]), vardygr))
+        elif type_name in ('classmethod', 'staticmethod'):
+            for f in attributes:
+                setattr(vardygr, f[0], getattr(cls, f[0]))
 
     return vardygr

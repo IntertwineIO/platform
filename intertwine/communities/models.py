@@ -209,24 +209,19 @@ class Community(BaseCommunityModel, AutoTableMixin):
             new_user_rating=new_user_rating, old_user_rating=old_user_rating)
 
     def aggregate_connection_ratings(self, aggregation='strict'):
-        return Community.aggregate_connection_ratings_x(
-                                community=self, aggregation=aggregation)
-
-    @staticmethod
-    def aggregate_connection_ratings_x(problem=None, org=None, geo=None,
-                                       community=None, aggregation='strict'):
-        '''Aggregate connection ratings (external)
+        '''Aggregate connection ratings
 
         Aggregates a community's connection ratings using the specified
         aggregation method and returns them. If an aggregate rating
         already exists, it is updated; otherwise, a new aggregate rating
         is created.
         '''
+        community = self
+        community_exists = type(self) is Community
+        problem, org, geo = self.derive_key()
+
         if aggregation not in ('strict'):
             raise InvalidAggregation(aggregation=aggregation)
-
-        if community:
-            problem, org, geo = community.derive_key()
 
         pcrs = (PCR.query.filter_by(
                 problem=problem, org=org, geo=geo)
@@ -234,7 +229,7 @@ class Community(BaseCommunityModel, AutoTableMixin):
 
         pcrs = PeekableIterator(pcrs)
 
-        if not community and pcrs.has_next():
+        if not community_exists and pcrs.has_next():
             community = Community(problem=problem, org=org, geo=geo)
             session = community.session()
             session.add(community)
@@ -245,23 +240,22 @@ class Community(BaseCommunityModel, AutoTableMixin):
         # This will enable the APCR constructor to fail over to modify
         # any existing aggregate ratings
 
-        rv = []
+        ars = []
 
         # Create aggregate ratings from ratings
         for connection, ratings in groupby(pcrs, key=attrgetter('connection')):
             # If an aggregate rating already exists, it will be modified
-            rv.append(APCR(community=community, connection=connection,
-                           aggregation=aggregation, ratings=ratings))
+            ars.append(APCR(community=community, connection=connection,
+                            aggregation=aggregation, ratings=ratings))
         # Persist aggregate ratings
-        if len(rv) > 0:
-            session = rv[0].session()
-            session.add_all(rv)
+        if len(ars) > 0:
+            session = ars[0].session()
+            session.add_all(ars)
             session.commit()
 
-        return rv
+        return ars
 
-    @staticmethod
-    def prepare_connections_x(problem, category, aggregate_ratings=[]):
+    def prepare_connections(self, problem, category, aggregate_ratings=[]):
         '''Prepare connections
         '''
         rated_connections = set()
@@ -278,15 +272,7 @@ class Community(BaseCommunityModel, AutoTableMixin):
                 yield (connection, APCR.NO_RATING)
 
     def assemble_connections_with_ratings(self, aggregation='strict'):
-        '''Assemble connections with ratings for the community (self)'''
-        return Community.assemble_connections_with_ratings_x(
-                                community=self, aggregation=aggregation)
-
-    @staticmethod
-    def assemble_connections_with_ratings_x(problem=None, org=None, geo=None,
-                                            community=None,
-                                            aggregation='strict'):
-        '''Assemble connections with ratings (external)
+        '''Assemble connections with ratings
 
         Returns a dictionary keyed by connection category ('drivers',
         'impacts', 'broader', 'narrower') where values are [generators
@@ -296,36 +282,35 @@ class Community(BaseCommunityModel, AutoTableMixin):
         none are found, aggregates them from ratings. Connections
         without ratings are included last in alphabetical order by the
         name of the adjoining problem.
-
-        The 'x' indicates this method is the 'external' version that
-        does not require a community instance. However, if a community
-        exists for the given problem/org/geo, it must be passed. This
-        enables community pages without ratings to be rendered without
-        creating a community instance, which is important due to bots.
         '''
-        if community:
-            problem, org, geo = community.derive_key()
-            aggregate_ratings = (APCR.query.filter_by(community=community,
+        community = self
+        community_exists = type(self) is Community
+        problem, org, geo = self.derive_key()
+        if community_exists:
+            aggregate_ratings = (APCR.query.filter_by(community=self,
                                                       aggregation=aggregation)
                                  .order_by(APCR.connection_category,
                                            desc(APCR.rating)))
             aggregate_ratings = PeekableIterator(aggregate_ratings)
 
-        if not community or not aggregate_ratings.has_next():
-            aggregate_ratings = Community.aggregate_connection_ratings_x(
-                                problem=problem, org=org, geo=geo,
-                                community=community, aggregation=aggregation)
-            aggregate_ratings.sort(
-                key=attrgetter('connection_category', 'rating'), reverse=True)
+        if not community_exists or not aggregate_ratings.has_next():
+            aggregate_ratings = self.aggregate_connection_ratings(
+                                                    aggregation=aggregation)
+            if aggregate_ratings:
+                community = aggregate_ratings[0].community
 
-        rv = {category: list(Community.prepare_connections_x(
+                aggregate_ratings.sort(
+                    key=attrgetter('connection_category', 'rating'),
+                    reverse=True)
+
+        rv = {category: list(community.prepare_connections(
                                                     problem, category, ars))
               for category, ars in groupby(
               aggregate_ratings, key=attrgetter('connection_category'))}
 
         for category in PC.CATEGORY_MAP:
             if category not in rv:
-                rv[category] = list(Community.prepare_connections_x(
+                rv[category] = list(community.prepare_connections(
                                                     problem, category, []))
 
         return rv
