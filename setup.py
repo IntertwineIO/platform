@@ -49,6 +49,7 @@ requirements = {
         'flask-sqlalchemy',
         'flask-wtf',
         'future',
+        'mock',
         'titlecase',
         'urlnorm',
     ],
