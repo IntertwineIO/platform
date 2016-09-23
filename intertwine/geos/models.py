@@ -773,7 +773,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         ('country', ())
         ))
 
-    Key = namedtuple('Key', 'geo, level')
+    Key = namedtuple('GeoLevelKey', 'geo, level')
 
     @classmethod
     def create_key(cls, geo, level, **kwds):
@@ -790,7 +790,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         Return the registry key used by the Trackable metaclass from a
         geo level instance. The key is a namedtuple of geo and level.
         '''
-        return self.__class__.Key(self.geo, self.level)
+        return self.Key(self.geo, self.level)
 
     @property
     def geo(self):
@@ -921,7 +921,7 @@ class GeoID(BaseGeoModel, AutoTableMixin):
                       #       unique=True),
                       )
 
-    Key = namedtuple('Key', 'standard, code')
+    Key = namedtuple('GeoIDKey', 'standard, code')
 
     @classmethod
     def create_key(cls, standard, code, **kwds):
@@ -938,7 +938,7 @@ class GeoID(BaseGeoModel, AutoTableMixin):
         Return the registry key used by the Trackable metaclass from a
         geo ID instance. The key is a namedtuple of standard and code.
         '''
-        return self.__class__.Key(self.standard, self.code)
+        return self.Key(self.standard, self.code)
 
     @property
     def standard(self):

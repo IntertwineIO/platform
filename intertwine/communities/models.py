@@ -144,7 +144,7 @@ class Community(BaseCommunityModel, AutoTableMixin):
                             'problem_id'),
                       )
 
-    Key = namedtuple('Key', 'problem, org, geo')
+    Key = namedtuple('CommunityKey', 'problem, org, geo')
 
     @classmethod
     def create_key(cls, problem, org, geo, **kwds):

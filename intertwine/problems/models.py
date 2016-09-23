@@ -69,7 +69,7 @@ class Image(BaseProblemModel, AutoTableMixin):
     # file          # local copy of image
     # dimensions    # in pixels
 
-    Key = namedtuple('Key', 'problem, url')
+    Key = namedtuple('ImageKey', 'problem, url')
 
     @classmethod
     def create_key(cls, problem, url, **kwds):
@@ -86,7 +86,7 @@ class Image(BaseProblemModel, AutoTableMixin):
         Return the registry key used by the Trackable metaclass from an
         image instance. The key is a namedtuple of problem and url.
         '''
-        return self.__class__.Key(self.problem, self.url)
+        return self.Key(self.problem, self.url)
 
     def __init__(self, url, problem):
         '''Initialize a new image from a url
@@ -166,7 +166,8 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
     NO_RATING = -1
     NO_WEIGHT = 0
 
-    Key = namedtuple('Key', 'community, connection, aggregation')
+    Key = namedtuple('AggregateProblemConnectionRatingKey',
+                     'community, connection, aggregation')
 
     @classmethod
     def create_key(cls, community, connection, aggregation='strict', **kwds):
@@ -185,8 +186,7 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         aggregate problem connection rating instance. The key is a
         namedtuple of community, connection, and aggregation fields.
         '''
-        return self.__class__.Key(self.community, self.connection,
-                                  self.aggregation)
+        return self.Key(self.community, self.connection, self.aggregation)
 
     @classmethod
     def calculate_values(cls, ratings):
@@ -473,7 +473,8 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
                             'org',
                             'geo_id'),)
 
-    Key = namedtuple('Key', 'connection, problem, org, geo, user')
+    Key = namedtuple('ProblemConnectionRatingKey',
+                     'connection, problem, org, geo, user')
 
     @classmethod
     def create_key(cls, connection, problem, org=None, geo=None,
@@ -493,8 +494,8 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         problem connection rating instance. The key is a namedtuple of
         connection, problem, org, geo, and user.
         '''
-        return self.__class__.Key(self.connection, self.problem, self.org,
-                                  self.geo, self.user)
+        return self.Key(self.connection, self.problem, self.org, self.geo,
+                        self.user)
 
     @property
     def rating(self):
@@ -709,8 +710,9 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
                             'axis'),)
 
     CategoryMapRecord = namedtuple(
-        'CategoryMapRecord', 'axis, category, component, ab_id, relative_a, '
-                             'relative_b, i_ab_id, i_component, i_category')
+        'ProblemConnectionCategoryMapRecord',
+            'axis, category, component, ab_id, relative_a, '
+            'relative_b, i_ab_id, i_component, i_category')
 
     CATEGORY_MAP = OrderedDict((
         ('drivers', CategoryMapRecord(
@@ -727,7 +729,7 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
             'adjacent_problem', 'problem_a_id', 'broader', 'broader'))
     ))
 
-    Key = namedtuple('Key', 'axis, problem_a, problem_b')
+    Key = namedtuple('ProblemConnectionKey', 'axis, problem_a, problem_b')
 
     @classmethod
     def create_key(cls, axis, problem_a, problem_b, **kwds):
@@ -749,7 +751,7 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
         is_causal = self.axis == 'causal'
         p_a = self.driver if is_causal else self.broader
         p_b = self.impact if is_causal else self.narrower
-        return self.__class__.Key(self.axis, p_a, p_b)
+        return self.Key(self.axis, p_a, p_b)
 
     def __init__(self, axis, problem_a, problem_b,
                  ratings_data=None, ratings_context_problem=None):
