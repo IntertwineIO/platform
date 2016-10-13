@@ -239,6 +239,90 @@ class InsertableOrderedDict(object):
         return not self.__eq__(other)
 
 
+def derive_fields(model):
+    '''Derives fields and associated properties for a SQLAlchemy model
+
+    Given a model, nets out SQLAlchemy column, relationship, and synonym
+    properties, plus any regular Python properties, and returns an
+    insertable ordered dictionary keyed by name, sequenced as follows:
+    - SA properties initially follow class_mapper iterate_property order
+    - If there is an 'id' column, it is relocated to the first position
+    - Relationships w/ local foreign keys replace first matching columns
+    - Group self-referential relationships with fields they backpopulate
+    - Relationships w/ local primary key follow all prior properties
+    - Synonyms replace their mapped column/relationship properties
+    - Regular Python properties follow in alphabetical order
+
+    I/O:
+    model:  SQLAlchemy model from which to derive fields
+    return: Insertable ordered dict of model properties keyed by name
+    '''
+    mapper = orm.class_mapper(model)
+    pk = tuple(c.key for c in mapper.primary_key)
+    # Catalog properties based on type and primary key
+    sa_properties = {k: ([] if k is SP else ([], [])) for k in (CP, RP, SP)}
+    for sa_property in mapper.iterate_properties:
+        if isinstance(sa_property, RP):
+            has_pk = set(pk) <= set((c.key for c in sa_property.local_columns))
+            sa_properties[RP][has_pk].append(sa_property)
+        elif isinstance(sa_property, CP):
+            is_pk = sa_property.key in pk
+            sa_properties[CP][is_pk].append(sa_property)
+        elif isinstance(sa_property, SP):
+            sa_properties[SP].append(sa_property)
+        else:
+            raise TypeError('Unknown property type for {}'.format(sa_property))
+    # Load column properties, starting with primary key columns
+    fields = InsertableOrderedDict(
+                ((cp.key, cp) for cp in chain(sa_properties[CP][1],
+                                              sa_properties[CP][0])))
+    # Add relationships, non-pk first, replacing any foreign key columns
+    rp_anchor_map = {}
+    columns_to_remove = set()
+    MANYTOMANY = 'MANYTOMANY'
+    FOREIGN_KEY_ENDING = '_id'
+    FKE_LEN = len(FOREIGN_KEY_ENDING)
+    for rp in chain(sa_properties[RP][0], sa_properties[RP][1]):
+        for column_name in (c.key for c in rp.local_columns):
+            is_primary_key = column_name in pk
+            is_foreign_key = (not is_primary_key and
+                              len(column_name) >= FKE_LEN and
+                              column_name[-FKE_LEN:] == FOREIGN_KEY_ENDING)
+            matching_name = column_name in fields
+            if is_foreign_key and matching_name:
+                columns_to_remove.add(column_name)
+                # if rp not yet mapped to a column, map and insert it
+                if rp_anchor_map.get(rp.key) is None:
+                    fields.insert(column_name, rp.key, rp)
+                    rp_anchor_map[rp.key] = column_name
+            elif is_primary_key:
+                # if model relates to itself, look for reverse property
+                reverse_property = fields.get(rp.back_populates)
+                if rp.mapper.class_ is model and reverse_property:
+                    reverse_anchor_name = rp_anchor_map[reverse_property.key]
+                    is_after = rp.direction.name == MANYTOMANY
+                    fields.insert(reverse_anchor_name, rp.key, rp, is_after)
+                else:
+                    fields[rp.key] = rp
+                    rp_anchor_map[rp.key] = rp.key
+    # Remove foreign keys last as they serve as insertion points
+    for column_name in columns_to_remove:
+        del fields[column_name]
+    # Replace column/relationship properties with their synonyms
+    for sp in sa_properties[SP]:
+        syn_name = sp.name
+        new_name = sp.descriptor.fget.__name__
+        fields.insert(syn_name, new_name, sp)
+        del fields[syn_name]
+    # Add any regular Python properties (non-SQLAlchemy) alphabetically
+    py_properties = [(k, v) for k, v in model.__dict__.iteritems()
+                     if isinstance(v, property)]
+    py_properties.sort(key=itemgetter(0))
+    for k, v in py_properties:
+        fields[k] = v
+    return fields
+
+
 class PeekableIterator(object):
     '''Iterable that supports peeking at the next item'''
     def __init__(self, iterable, sentinel=object(), *args, **kwds):
