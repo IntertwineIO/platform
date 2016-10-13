@@ -491,8 +491,8 @@ def stringify(thing, limit=10, _lvl=0):
     return '\n'.join(strings)
 
 
-def make_vardygr(cls, **kwds):
-    u'''Make vardygr
+def vardygrify(cls, **kwds):
+    u'''Vardygrify
 
     From Wikipedia (https://en.wikipedia.org/wiki/Vard%C3%B8ger):
 
@@ -507,30 +507,32 @@ def make_vardygr(cls, **kwds):
         sinister connotation. It has been likened to being a phantom
         double, or form of bilocation.
 
-    A convenience method for creating non-persisted mock instances of
-    other classes. Adds method mimicry capabilities on top of Mock.
+    A convenience method for creating a non-persisted mock instance of
+    a classes. Adds method mimicry capabilities on top of Mock.
     '''
     EXCLUDED_METHODS = set(('__new__', '__init__', '__repr__'))
 
     vardygr = create_autospec(cls, spec_set=False, instance=True)
 
     # import ipdb; ipdb.set_trace()
+    # need to handle properties: map the setters/getters and use them,
+    # so need them to support vardygrs (esp. the Trackable interactions)
     for k, v in kwds.iteritems():
         setattr(vardygr, k, v)
 
-    def type_f(x):
-        return type(x[1])
-    sorted_dict_items = sorted(cls.__dict__.items(), key=type_f)
-    dict_by_type = {k.__name__: list(v)
-                    for k, v in groupby(sorted_dict_items, key=type_f)}
+    dictypified = dictypify(cls)
 
-    for type_name, attributes in dict_by_type.iteritems():
-        if type_name == 'function':
-            for f in attributes:
-                if f[0] not in EXCLUDED_METHODS:
-                    setattr(vardygr, f[0], partial(getattr(cls, f[0]), vardygr))
-        elif type_name in ('classmethod', 'staticmethod'):
-            for f in attributes:
-                setattr(vardygr, f[0], getattr(cls, f[0]))
-
+    attributes = dictypified.get('function', ())
+    for f in attributes:
+        if f[0] not in EXCLUDED_METHODS:
+            setattr(vardygr, f[0], partial(getattr(cls, f[0]), vardygr))
+    # classmethod/staticmethod both take self when called on an instance
+    attributes = chain(dictypified.get('classmethod', ()),
+                       dictypified.get('staticmethod', ()))
+    for f in attributes:
+        setattr(vardygr, f[0], getattr(cls, f[0]))
+    # properties must be set on the type to be used on an instance
+    attributes = dictypified.get('property', ())
+    for p in attributes:
+        setattr(type(vardygr), p[0], property(getattr(cls, p[0]).fget))
     return vardygr
