@@ -16,23 +16,6 @@ from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 
-def camelCaseTo_snake_case(string):
-    '''Converts CamelCase to snake_case'''
-    patterns = [
-        (r'(.)([0-9]+)', r'\1_\2'),
-        (r'([a-z]+)([A-Z])', r'\1_\2'),
-    ]
-    engines = [
-        (pattern, replacement, re.compile(pattern))
-        for pattern, replacement in patterns
-    ]
-    for data in engines:
-        pattern, replacement, eng = data
-        string = eng.sub(replacement, string)
-    string = string.lower()
-    return string
-
-
 class AutoIdMixin(object):
     '''Automatically creates a primary id key'''
     id = Column(Integer, primary_key=True)
@@ -239,6 +222,47 @@ class InsertableOrderedDict(object):
         return not self.__eq__(other)
 
 
+class PeekableIterator(object):
+    '''Iterable that supports peeking at the next item'''
+    def __init__(self, iterable, sentinel=object(), *args, **kwds):
+        self.iterable = iter(iterable)
+        self.sentinel = sentinel
+        self.next_item = next(self.iterable, self.sentinel)
+        super(PeekableIterator, self).__init__(*args, **kwds)
+
+    def next(self):
+        rv = self.next_item
+        self.next_item = next(self.iterable, self.sentinel)
+        return rv
+
+    def has_next(self):
+        return self.next_item is not self.sentinel
+
+    def peek(self):
+        return self.next_item
+
+    def __iter__(self):
+        while self.has_next():
+            yield self.next()
+
+
+def camelCaseTo_snake_case(string):
+    '''Converts CamelCase to snake_case'''
+    patterns = [
+        (r'(.)([0-9]+)', r'\1_\2'),
+        (r'([a-z]+)([A-Z])', r'\1_\2'),
+    ]
+    engines = [
+        (pattern, replacement, re.compile(pattern))
+        for pattern, replacement in patterns
+    ]
+    for data in engines:
+        pattern, replacement, eng = data
+        string = eng.sub(replacement, string)
+    string = string.lower()
+    return string
+
+
 def derive_fields(model):
     '''Derives fields and associated properties for a SQLAlchemy model
 
@@ -321,30 +345,6 @@ def derive_fields(model):
     for k, v in py_properties:
         fields[k] = v
     return fields
-
-
-class PeekableIterator(object):
-    '''Iterable that supports peeking at the next item'''
-    def __init__(self, iterable, sentinel=object(), *args, **kwds):
-        self.iterable = iter(iterable)
-        self.sentinel = sentinel
-        self.next_item = next(self.iterable, self.sentinel)
-        super(PeekableIterator, self).__init__(*args, **kwds)
-
-    def next(self):
-        rv = self.next_item
-        self.next_item = next(self.iterable, self.sentinel)
-        return rv
-
-    def has_next(self):
-        return self.next_item is not self.sentinel
-
-    def peek(self):
-        return self.next_item
-
-    def __iter__(self):
-        while self.has_next():
-            yield self.next()
 
 
 def dict_item_class_name_getter(dict_item):
