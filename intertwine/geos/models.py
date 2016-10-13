@@ -36,8 +36,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
     The 'path' is established by the 'path_parent' field. If the geo has
     an 'abbrev', it is used, otherwise the name is used. The 'qualifier'
     is used to distinguish geos with the same name/abbrev with the same
-    path. Examples include Chula Vista, TX, Chevy Chase, MD, and many
-    others.
+    path (e.g. Chula Vista, TX, Chevy Chase, MD, and many others).
 
     level         geo                   path_parent  human_id
     country       US                    (none)       us
@@ -47,20 +46,11 @@ class Geo(BaseGeoModel, AutoTableMixin):
     subdivision2  Travis County         TX           us/tx/travis_county
     place         Austin                TX           us/tx/austin
     '''
+    uses_the = Column(types.Boolean)  # e.g. 'The United States'
     _name = Column('name', types.String(60))
     _abbrev = Column('abbrev', types.String(20))
     _qualifier = Column('qualifier', types.String(60))
     _human_id = Column('human_id', types.String(200), index=True, unique=True)
-    path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
-    _path_parent = orm.relationship(
-                'Geo',
-                primaryjoin=('Geo.path_parent_id==Geo.id'),
-                remote_side='Geo.id',
-                backref=orm.backref('path_children', lazy='dynamic'),
-                lazy='joined')
-
-    # e.g. 'The United States'
-    uses_the = Column(types.Boolean)
 
     # If geo.alias_target is None, the geo is not an alias, but it could
     # be the target of one or more aliases.
@@ -81,6 +71,14 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 collection_class=attribute_mapped_collection('level'),
                 cascade='all, delete-orphan',
                 backref='_geo')
+
+    path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
+    _path_parent = orm.relationship(
+                'Geo',
+                primaryjoin=('Geo.path_parent_id==Geo.id'),
+                remote_side='Geo.id',
+                backref=orm.backref('path_children', lazy='dynamic'),
+                lazy='joined')
 
     # level         us geo      us parents
     # country       US          None
@@ -790,7 +788,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         Return the registry key used by the Trackable metaclass from a
         geo level instance. The key is a namedtuple of geo and level.
         '''
-        return self.Key(self.geo, self.level)
+        return self.__class__.Key(self.geo, self.level)
 
     @property
     def geo(self):
@@ -938,7 +936,7 @@ class GeoID(BaseGeoModel, AutoTableMixin):
         Return the registry key used by the Trackable metaclass from a
         geo ID instance. The key is a namedtuple of standard and code.
         '''
-        return self.Key(self.standard, self.code)
+        return self.__class__.Key(self.standard, self.code)
 
     @property
     def standard(self):

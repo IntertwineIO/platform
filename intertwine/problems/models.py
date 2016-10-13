@@ -86,7 +86,7 @@ class Image(BaseProblemModel, AutoTableMixin):
         Return the registry key used by the Trackable metaclass from an
         image instance. The key is a namedtuple of problem and url.
         '''
-        return self.Key(self.problem, self.url)
+        return self.__class__.Key(self.problem, self.url)
 
     def __init__(self, url, problem):
         '''Initialize a new image from a url
@@ -186,7 +186,7 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         aggregate problem connection rating instance. The key is a
         namedtuple of community, connection, and aggregation fields.
         '''
-        return self.Key(self.community, self.connection, self.aggregation)
+        return self.__class__.Key(self.community, self.connection, self.aggregation)
 
     @classmethod
     def calculate_values(cls, ratings):
@@ -494,8 +494,8 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
         problem connection rating instance. The key is a namedtuple of
         connection, problem, org, geo, and user.
         '''
-        return self.Key(self.connection, self.problem, self.org, self.geo,
-                        self.user)
+        return self.__class__.Key(self.connection, self.problem, self.org,
+                                  self.geo, self.user)
 
     @property
     def rating(self):
@@ -711,8 +711,8 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
 
     CategoryMapRecord = namedtuple(
         'ProblemConnectionCategoryMapRecord',
-            'axis, category, component, ab_id, relative_a, '
-            'relative_b, i_ab_id, i_component, i_category')
+        'axis, category, component, ab_id, relative_a, '
+        'relative_b, i_ab_id, i_component, i_category')
 
     CATEGORY_MAP = OrderedDict((
         ('drivers', CategoryMapRecord(
@@ -751,7 +751,7 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
         is_causal = self.axis == 'causal'
         p_a = self.driver if is_causal else self.broader
         p_b = self.impact if is_causal else self.narrower
-        return self.Key(self.axis, p_a, p_b)
+        return self.__class__.Key(self.axis, p_a, p_b)
 
     def __init__(self, axis, problem_a, problem_b,
                  ratings_data=None, ratings_context_problem=None):
