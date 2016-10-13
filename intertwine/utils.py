@@ -347,6 +347,66 @@ class PeekableIterator(object):
             yield self.next()
 
 
+def kwargify(arg_names=None, arg_values=None, kwargs=None,
+             parg_names=None, parg_values=None, pargs=None, selfish=False):
+    '''kwargify
+
+    Consolidate positional args, *args, and **kwargs into a new dict.
+
+    I/O:
+    arg_names=None:   Sequence of names for arg_values; the only
+                      'required' field, and only if the calling
+                      function's parameters includes *args
+    arg_values=None:  Sequence of arg values to be added to kwargs,
+                      keyed by arg_names; defaults to current value of
+                      the calling function's (*)args
+    kwargs=None:      Dictionary of keyword arguments; defaults to the
+                      current value of the calling function's (**)kwargs
+    parg_names=None:  Sequence of positional arg names; defaults to the
+                      calling function's positional arg names
+    parg_values=None: Sequence of positional arg values to be added to
+                      kwargs, keyed by parg_names; defaults to current
+                      value of calling function's positional arg values
+    pargs=None:       Dictionary of positional keyword arguments; meant
+                      to be an alternative to parg_names/parg_values,
+                      but all will be loaded, assuming no duplicate keys
+    selfish=False:    If False, 'self' is removed (if present)
+    return:           New dictionary in which positional args, (*)args,
+                      and (**)kwargs have been consolidated
+    '''
+    parg_names_, args_name, kwargs_name, frame_locals = getargvalues(
+                                                            stack()[1][0])
+
+    arg_names = () if arg_names is None else arg_names
+    arg_values = (frame_locals.get(args_name, ())
+                  if arg_values is None else arg_values)
+    parg_names = parg_names_ if parg_names is None else parg_names
+    parg_values = (tuple((frame_locals[parg_name] for parg_name in parg_names))
+                   if parg_values is None else parg_values)
+    kwargs = frame_locals.get(kwargs_name, {}) if kwargs is None else kwargs
+    kwargs = kwargs.copy() if kwargs else {}
+    if pargs:
+        kwargs.update(pargs)
+
+    for param, keys, values in (('parg_values', parg_names, parg_values),
+                                ('arg_values', arg_names, arg_values)):
+        diff = len(values) - len(keys)
+        if diff > 0:
+            raise KeyError('Missing keys for these {param}: {values}'
+                           .format(param=param, values=values[-diff:]))
+
+    for key, value in chain(izip(parg_names, parg_values),
+                            izip(arg_names, arg_values)):
+        if key in kwargs:
+            raise KeyError('Duplicate key: {}'.format(key))
+        kwargs[key] = value
+
+    if not selfish and 'self' in kwargs:
+        del kwargs['self']
+
+    return kwargs
+
+
 def stringify(thing, limit=10, _lvl=0):
     '''Stringify
 
