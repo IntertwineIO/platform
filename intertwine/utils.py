@@ -347,6 +347,23 @@ class PeekableIterator(object):
             yield self.next()
 
 
+def dict_item_class_name_getter(dict_item):
+    return dict_item[1].__class__.__name__
+
+
+def dictypify(obj):
+    '''Dictypify
+
+    Given an object, returns a dict with keys that are type names of
+    __dict__ values, and values that generate __dict__ item tuples.
+    '''
+    d = obj if isinstance(obj, dict) else obj.__dict__
+    key_fn = dict_item_class_name_getter
+    sorted_dict_items = sorted(d.items(), key=key_fn)
+    # convert to generator (remove list)
+    return {k: list(v) for k, v in groupby(sorted_dict_items, key=key_fn)}
+
+
 def kwargify(arg_names=None, arg_values=None, kwargs=None,
              parg_names=None, parg_values=None, pargs=None, selfish=False):
     '''kwargify
