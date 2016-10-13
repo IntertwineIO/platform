@@ -5,7 +5,7 @@ from flask import abort, redirect, render_template
 
 from . import blueprint
 from .models import Community
-from ..utils import make_vardygr
+from ..utils import vardygrify
 from ..problems.models import Problem
 from ..geos.models import Geo
 
@@ -76,8 +76,8 @@ def render_community(problem_human_id, geo_human_id):
                                     problem=problem, org=org, geo=geo).first()
 
     if not community:
-        community = make_vardygr(Community, problem=problem, org=org, geo=geo,
-                                 num_followers=0)
+        community = vardygrify(Community, problem=problem, org=org, geo=geo,
+                               num_followers=0)
 
     connections = community.assemble_connections_with_ratings(
                                                         aggregation='strict')
