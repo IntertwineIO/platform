@@ -240,14 +240,16 @@ class InsertableOrderedDict(object):
 
 
 class PeekableIterator(object):
-    def __init__(self, it, sentinel=object()):
-        self.it = iter(it)
+    '''Iterable that supports peeking at the next item'''
+    def __init__(self, iterable, sentinel=object(), *args, **kwds):
+        self.iterable = iter(iterable)
         self.sentinel = sentinel
-        self.next_item = next(self.it, self.sentinel)
+        self.next_item = next(self.iterable, self.sentinel)
+        super(PeekableIterator, self).__init__(*args, **kwds)
 
     def next(self):
         rv = self.next_item
-        self.next_item = next(self.it, self.sentinel)
+        self.next_item = next(self.iterable, self.sentinel)
         return rv
 
     def has_next(self):
