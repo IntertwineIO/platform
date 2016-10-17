@@ -20,8 +20,9 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
                      exceeds max_width. Excludes whitespace when True.
 
     raw=True:        By default, escaped values are escaped again to
-                     display raw values properly when printed. Set to
-                     False if the trepr needs to be correct when not
+                     display raw values when printed, just as repr does.
+                     Set to False for unicode characters to print as
+                     intended or if the unicode must be correct when not
                      printed, such as when embedding in JSON.
 
     outclassed=True: By default, the outer class and []'s are included
@@ -43,10 +44,11 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
     else:
         sp, ind, ind_p1 = ' ', ' '*4*_lvl, ' '*4*(_lvl+1)
 
-    if self is None or isinstance(self, basestring):
+    if self is None:
+        return repr(self)
+    elif isinstance(self, basestring):
         # repr adds u''s and extra escapes for printing unicode
-        selfie = repr(self) if raw else u"u'{}'".format(self)
-        return u'{selfie}'.format(ind=ind, selfie=selfie)
+        return repr(self) if raw else u"u'{}'".format(self)
 
     key = self.derive_key()
     cls = self.__class__.__name__
