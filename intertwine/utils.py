@@ -32,6 +32,87 @@ class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
     '''Standardizes automatic tables'''
 
 
+class JSONable(object):
+
+    def jsonify(self, mute=None, nest=False, tight=True, raw=False, limit=10,
+                depth=1, _json=None):
+        '''JSON structure for a community instance
+
+        Returns a structure for the given community instance that will
+        serialize to JSON.
+
+        Parameters:
+        mute=None:  Set of field names to be excluded
+        nest=False: By default all relationships are by reference and
+                    the top level JSON is a dictionary of objects
+        tight=True: Make all repr values tight (without whitespace)
+        raw=False:  If True, adds extra escapes to treprs (for printing)
+        limit=10:   Cap the number of list or dictionary items beneath
+                    the main level; a negative limit indicates no cap
+        depth=1:    recursion depth:
+                    1: current instance only (NO references as keys)
+                    2: current instance and 1st relation instances
+                    3: current instance and 1st+2nd relation instances
+        _json=None: private top-level json object
+        '''
+        assert depth > 0
+        mute = set() if mute is None else mute
+        if not isinstance(mute, set):
+            raise TypeError('mute must be a set or None')
+        _json = OrderedDict() if _json is None else _json
+        json_params = kwargify()  # includes updated _json value
+
+        self_key = self.trepr(tight=tight, raw=raw)
+        # TODO: Check if item already exists and needs to be enhanced?
+        self_json = OrderedDict()
+        _json[self_key] = self_json
+
+        # TODO: Create IntertwineMeta
+        #       Call _cls_init_() handler to IntertwineMeta.__init__()
+        #       cls.FIELDS = derive_fields(cls)
+        #       fields = self.__class__.FIELDS
+        fields = derive_fields(self.__class__)
+
+        for field, prop in fields.iteritems():
+            if field in mute:
+                continue
+
+            # TODO: Create/use JsonifyProperty instead of property
+            if isinstance(prop, property):
+                func = getattr(self, prop.fget.func_name)
+                json_params['depth'] = depth
+                self_json[field] = func(**json_params)
+                continue
+
+            value = getattr(self, field)
+
+            if hasattr(value, 'jsonify'):
+                # TODO: Replace trepr with URI
+                item = value
+                item_key = item.trepr(tight=tight, raw=raw)
+                self_json[field] = item_key
+                if depth > 1 and item_key not in _json:
+                    json_params['depth'] = depth - 1
+                    item.jsonify(**json_params)
+
+            elif isinstance(value, orm.dynamic.AppenderQuery):
+                items = []
+                self_json[field] = items
+                for i, item in enumerate(value):
+                    item_key = item.trepr(tight=tight, raw=raw)
+                    items.append(item_key)
+                    if depth > 1 and item_key not in _json:
+                        json_params['depth'] = depth - 1
+                        item.jsonify(**json_params)
+                    if i + 1 == limit:
+                        break
+
+            else:
+                self_json[field] = value
+
+        return _json
+
+
 class Sentinel(object):
     _id = 0
 
