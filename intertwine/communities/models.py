@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from collections import namedtuple, OrderedDict
-from functools import partial
+from collections import OrderedDict, namedtuple
 from operator import attrgetter
-from itertools import groupby, imap, tee
+from itertools import groupby
 
-from sqlalchemy import desc, orm, types, Column, ForeignKey, Index
+from sqlalchemy import Column, ForeignKey, Index, desc, orm, types
 
 from .. import BaseIntertwineModel
-from ..utils import (AutoTableMixin, PeekableIterator, stringify)
+from ..utils import (AutoTableMixin, JSONable, PeekableIterator,
+                     stringify, vardygrify)
 from ..problems.models import (AggregateProblemConnectionRating as APCR,
                                ProblemConnectionRating as PCR,
                                ProblemConnection as PC,
@@ -46,11 +46,11 @@ class Community(BaseCommunityModel, AutoTableMixin):
     geo_id = Column(types.Integer, ForeignKey('geo.id'))
     _geo = orm.relationship('Geo', lazy='joined')
 
-    num_followers = Column(types.Integer)
-
     aggregate_ratings = orm.relationship('AggregateProblemConnectionRating',
                                          back_populates='community',
                                          lazy='dynamic')
+
+    num_followers = Column(types.Integer)
 
     @property
     def problem(self):
@@ -315,6 +315,92 @@ class Community(BaseCommunityModel, AutoTableMixin):
 
         return rv
 
+    def prepare_rated_connection_json(self, problem, category, aggregation,
+                                      aggregate_ratings=[], depth=0,
+                                      json_params={}):
+        '''Prepare connection rating JSON
+
+        Takes a problem, category (e.g. 'drivers'), and an aggregate
+        rating iterable as input and yields the next aggregate rating
+        JSON, where the order follows that of the input iterable and is
+        followed by unrated connections sequenced alphabetically.
+        '''
+        _json = json_params['_json']
+        tight = json_params['tight']
+        raw = json_params['raw']
+        rated_connections = set()
+        for aggregate_rating in aggregate_ratings:
+            rated_connections.add(aggregate_rating.connection)
+
+            ar_key = aggregate_rating.trepr(tight=tight, raw=raw)
+            if depth > 1 and ar_key not in _json:
+                aggregate_rating.jsonify(depth=depth-1, **json_params)
+
+            yield ar_key
+
+        component = getattr(PC, PC.CATEGORY_MAP[category].component)
+        connections = (getattr(problem, category).join(component)
+                                                 .order_by(Problem.name))
+
+        for connection in connections:
+            if connection not in rated_connections:
+                aggregate_rating = vardygrify(cls=APCR,
+                                              community=self,
+                                              connection=connection,
+                                              aggregation=aggregation,
+                                              rating=APCR.NO_RATING,
+                                              weight=APCR.NO_WEIGHT)
+
+                ar_key = aggregate_rating.trepr(tight=tight, raw=raw)
+                if depth > 1 and ar_key not in _json:
+                    aggregate_rating.jsonify(depth=depth-1, **json_params)
+
+                yield ar_key
+
+    def assemble_rated_connection_json(self, aggregation='strict',
+                                       depth=1, **json_params):
+        '''Assemble connection rating JSON
+
+        Returns a dictionary keyed by connection category ('drivers',
+        'impacts', 'broader', 'narrower') where values are [generators
+        for (?)] aggregate rating JSON in descending order by rating.
+
+        Searches for existing aggregate connection ratings with the
+        specified aggregation method, and if none are found, aggregates
+        them from ratings. Connections without ratings are included last
+        in alphabetical order by the name of the adjoining problem.
+        '''
+        community = self
+        community_exists = type(self) is Community
+        problem, org, geo = self.derive_key()
+
+        if community_exists:
+            ars = (APCR.query
+                       .filter_by(community=self, aggregation=aggregation)
+                       .order_by(APCR.connection_category, desc(APCR.rating)))
+            ars = PeekableIterator(ars)
+
+        if not community_exists or not ars.has_next():
+            ars = self.aggregate_connection_ratings(aggregation=aggregation)
+            if ars:
+                community = ars[0].community
+                ars.sort(key=attrgetter('connection_category', 'rating'),
+                         reverse=True)
+
+        rv = {category: list(community.prepare_rated_connection_json(
+              problem, category, aggregation, ars_by_cat, depth, json_params))
+              for category, ars_by_cat
+              in groupby(ars, key=attrgetter('connection_category'))}
+
+        for category in PC.CATEGORY_MAP:
+            if category not in rv:
+                rv[category] = list(community.prepare_rated_connection_json(
+                    problem, category, aggregation, [], depth, json_params))
+
+        return rv
+
+    rated_connection_json = property(assemble_rated_connection_json)
+
     def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
         '''JSON structure for a community instance
 
@@ -327,7 +413,7 @@ class Community(BaseCommunityModel, AutoTableMixin):
         tight=True: make all repr values tight (without whitespace)
         raw=False:  when True, adds extra escapes (for printing)
         limit=10:   caps the number of list or dictionary items beneath
-                    the main level; a negative limit indicates no cap
+                 the main level; a negative limit indicates no cap
         '''
         od = OrderedDict((
             ('class', self.__class__.__name__),
