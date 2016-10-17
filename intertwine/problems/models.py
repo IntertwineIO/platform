@@ -11,7 +11,7 @@ from titlecase import titlecase
 import urlnorm
 
 from .. import BaseIntertwineModel
-from ..utils import AutoTableMixin
+from ..utils import AutoTableMixin, JSONable
 from ..geos.models import Geo
 
 from .exceptions import (
@@ -31,7 +31,7 @@ from .exceptions import (
 BaseProblemModel = BaseIntertwineModel
 
 
-class Image(BaseProblemModel, AutoTableMixin):
+class Image(BaseProblemModel, AutoTableMixin, JSONable):
     '''Base class for images'''
 
     # TODO: make Image work with any entity (not just problems), where
@@ -108,7 +108,8 @@ class Image(BaseProblemModel, AutoTableMixin):
         return '{url}'.format(url=self.url)
 
 
-class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
+class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin,
+                                       JSONable):
     '''Base class for aggregate problem connection ratings
 
     Rating aggregations are used to display connections on the problem
@@ -393,7 +394,7 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin):
                    geo=''.join(('in ', geo)) if geo is not None else ''))
 
 
-class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
+class ProblemConnectionRating(BaseProblemModel, AutoTableMixin, JSONable):
     '''Base class for problem connection ratings
 
     Problem connection ratings are input by users within the context of
@@ -661,7 +662,7 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin):
                    geo=''.join('in ', geo) if geo is not None else ''))
 
 
-class ProblemConnection(BaseProblemModel, AutoTableMixin):
+class ProblemConnection(BaseProblemModel, AutoTableMixin, JSONable):
     '''Base class for problem connections
 
     A problem connection is uniquely defined by its axis ('causal' or
@@ -834,7 +835,7 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin):
         return '{p_a} {ct} {p_b}'.format(p_a=p_a, ct=ct, p_b=p_b)
 
 
-class Problem(BaseProblemModel, AutoTableMixin):
+class Problem(BaseProblemModel, AutoTableMixin, JSONable):
     '''Base class for problems
 
     Problems and the connections between them are global in that they

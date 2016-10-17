@@ -19,7 +19,7 @@ from ..problems.exceptions import InvalidAggregation
 BaseCommunityModel = BaseIntertwineModel
 
 
-class Community(BaseCommunityModel, AutoTableMixin):
+class Community(BaseCommunityModel, AutoTableMixin, JSONable):
     '''Base class for communities
 
     A 'community' resides at the intersection of a (social) problem, a
