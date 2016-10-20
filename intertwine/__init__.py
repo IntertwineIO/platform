@@ -11,12 +11,14 @@ import flask
 from flask_bootstrap import Bootstrap
 # from sassutils.wsgi import SassMiddleware
 
-from trackable import Trackable
+from bases import BaseIntertwineMeta, BaseIntertwineModel
 
 # Set up base model and database connection, and attach query property
-BaseIntertwineModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
-intertwine_db = Manager(Model=BaseIntertwineModel)
-extend_declarative_base(BaseIntertwineModel, session=intertwine_db.session)
+IntertwineModel = make_declarative_base(Base=BaseIntertwineModel,
+                                        Meta=BaseIntertwineMeta)
+
+intertwine_db = Manager(Model=IntertwineModel)
+extend_declarative_base(IntertwineModel, session=intertwine_db.session)
 
 from . import auth, communities, geos, main, problems, signup
 

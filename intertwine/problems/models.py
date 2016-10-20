@@ -10,7 +10,7 @@ from sqlalchemy import or_, orm, types, Column, ForeignKey, Index
 from titlecase import titlecase
 import urlnorm
 
-from .. import BaseIntertwineModel
+from .. import IntertwineModel
 from ..utils import AutoTableMixin, JSONable
 from ..geos.models import Geo
 
@@ -28,7 +28,7 @@ from .exceptions import (
 )
 
 
-BaseProblemModel = BaseIntertwineModel
+BaseProblemModel = IntertwineModel
 
 
 class Image(BaseProblemModel, AutoTableMixin, JSONable):

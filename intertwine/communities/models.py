@@ -6,7 +6,7 @@ from itertools import groupby
 
 from sqlalchemy import Column, ForeignKey, Index, desc, orm, types
 
-from .. import BaseIntertwineModel
+from .. import IntertwineModel
 from ..utils import (AutoTableMixin, JSONable, PeekableIterator,
                      stringify, vardygrify)
 from ..problems.models import (AggregateProblemConnectionRating as APCR,
@@ -16,7 +16,7 @@ from ..problems.models import (AggregateProblemConnectionRating as APCR,
 
 from ..problems.exceptions import InvalidAggregation
 
-BaseCommunityModel = BaseIntertwineModel
+BaseCommunityModel = IntertwineModel
 
 
 class Community(BaseCommunityModel, AutoTableMixin, JSONable):

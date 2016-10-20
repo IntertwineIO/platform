@@ -5,13 +5,13 @@ from collections import namedtuple, OrderedDict
 from sqlalchemy import desc, orm, types, Column, ForeignKey, Index, Table
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-from .. import BaseIntertwineModel
+from .. import IntertwineModel
 from ..utils import AutoTableMixin, JSONable, stringify
 from ..exceptions import AttributeConflict, CircularReference
 
 
 # BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
-BaseGeoModel = BaseIntertwineModel
+BaseGeoModel = IntertwineModel
 
 
 geo_association_table = Table(
