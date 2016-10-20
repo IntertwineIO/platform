@@ -97,7 +97,7 @@ class Geo(BaseGeoModel, AutoTableMixin, JSONable):
                                     ),
                 lazy='dynamic')
 
-    delimiter = '/'
+    DELIMITER = '/'
 
     @property
     def name(self):
@@ -270,7 +270,7 @@ class Geo(BaseGeoModel, AutoTableMixin, JSONable):
         '''
         if path_parent is None and alias_target is not None:
             path_parent = alias_target.path_parent
-        path = path_parent.human_id + Geo.delimiter if path_parent else ''
+        path = path_parent.human_id + Geo.DELIMITER if path_parent else ''
         nametag = u'{a_or_n}{qualifier}'.format(
                         a_or_n=abbrev if abbrev else name,
                         qualifier=' ' + qualifier if qualifier else '')

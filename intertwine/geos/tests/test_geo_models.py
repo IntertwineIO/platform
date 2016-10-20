@@ -52,7 +52,7 @@ def test_geo_model(options):
     assert child_from_db.name == child_name
     assert child_from_db.abbrev is None
     assert child_from_db.uses_the is False
-    assert child_from_db.human_id == Geo.delimiter.join(
+    assert child_from_db.human_id == Geo.DELIMITER.join(
                 [child.path_parent.human_id,
                  child.name.lower().replace(' ', '_')])
 
