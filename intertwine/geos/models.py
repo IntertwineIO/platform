@@ -6,7 +6,7 @@ from sqlalchemy import desc, orm, types, Column, ForeignKey, Index, Table
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from .. import IntertwineModel
-from ..utils import AutoTableMixin, JSONable, stringify
+from ..utils import stringify
 from ..exceptions import AttributeConflict, CircularReference
 
 
@@ -21,7 +21,7 @@ geo_association_table = Table(
 )
 
 
-class Geo(BaseGeoModel, AutoTableMixin, JSONable):
+class Geo(BaseGeoModel):
     '''Base class for geos
 
     A 'geo' is geographical entity, legal or otherwise. Geos may have
@@ -577,7 +577,7 @@ class Geo(BaseGeoModel, AutoTableMixin, JSONable):
             self.json(wrap=True, tight=False, raw=True, limit=-1), limit=10)
 
 
-class GeoData(BaseGeoModel, AutoTableMixin, JSONable):
+class GeoData(BaseGeoModel):
     '''Base class for geo data'''
 
     geo_id = Column(types.Integer, ForeignKey('geo.id'))
@@ -700,7 +700,7 @@ class GeoData(BaseGeoModel, AutoTableMixin, JSONable):
             self.json(wrap=True, tight=False, raw=True, limit=-1), limit=10)
 
 
-class GeoLevel(BaseGeoModel, AutoTableMixin, JSONable):
+class GeoLevel(BaseGeoModel):
     '''Base class for geo levels
 
     A geo level contains level information for a particular geo, where
@@ -889,7 +889,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin, JSONable):
             self.json(wrap=True, tight=False, raw=True, limit=-1), limit=10)
 
 
-class GeoID(BaseGeoModel, AutoTableMixin, JSONable):
+class GeoID(BaseGeoModel):
     '''Geo ID base class
 
     Used to map geos (by level) to 3rd party IDs and vice versa.

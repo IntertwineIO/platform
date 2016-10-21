@@ -5,7 +5,7 @@ from flask_security import UserMixin, RoleMixin
 from sqlalchemy import orm, types, Column, ForeignKey, Table
 
 from . import login_manager
-from ..utils import AutoTableMixin
+from ..bases import AutoTableMixin
 
 
 BaseAuthModel = make_declarative_base(Base=ModelBase,

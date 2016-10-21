@@ -11,7 +11,6 @@ from titlecase import titlecase
 import urlnorm
 
 from .. import IntertwineModel
-from ..utils import AutoTableMixin, JSONable
 from ..geos.models import Geo
 
 from .exceptions import (
@@ -31,7 +30,7 @@ from .exceptions import (
 BaseProblemModel = IntertwineModel
 
 
-class Image(BaseProblemModel, AutoTableMixin, JSONable):
+class Image(BaseProblemModel):
     '''Base class for images'''
 
     # TODO: make Image work with any entity (not just problems), where
@@ -108,8 +107,7 @@ class Image(BaseProblemModel, AutoTableMixin, JSONable):
         return '{url}'.format(url=self.url)
 
 
-class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin,
-                                       JSONable):
+class AggregateProblemConnectionRating(BaseProblemModel):
     '''Base class for aggregate problem connection ratings
 
     Rating aggregations are used to display connections on the problem
@@ -394,7 +392,7 @@ class AggregateProblemConnectionRating(BaseProblemModel, AutoTableMixin,
                    geo=''.join(('in ', geo)) if geo is not None else ''))
 
 
-class ProblemConnectionRating(BaseProblemModel, AutoTableMixin, JSONable):
+class ProblemConnectionRating(BaseProblemModel):
     '''Base class for problem connection ratings
 
     Problem connection ratings are input by users within the context of
@@ -662,7 +660,7 @@ class ProblemConnectionRating(BaseProblemModel, AutoTableMixin, JSONable):
                    geo=''.join('in ', geo) if geo is not None else ''))
 
 
-class ProblemConnection(BaseProblemModel, AutoTableMixin, JSONable):
+class ProblemConnection(BaseProblemModel):
     '''Base class for problem connections
 
     A problem connection is uniquely defined by its axis ('causal' or
@@ -835,7 +833,7 @@ class ProblemConnection(BaseProblemModel, AutoTableMixin, JSONable):
         return '{p_a} {ct} {p_b}'.format(p_a=p_a, ct=ct, p_b=p_b)
 
 
-class Problem(BaseProblemModel, AutoTableMixin, JSONable):
+class Problem(BaseProblemModel):
     '''Base class for problems
 
     Problems and the connections between them are global in that they

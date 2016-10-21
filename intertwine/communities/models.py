@@ -7,8 +7,7 @@ from itertools import groupby
 from sqlalchemy import Column, ForeignKey, Index, desc, orm, types
 
 from .. import IntertwineModel
-from ..utils import (AutoTableMixin, JSONable, PeekableIterator,
-                     stringify, vardygrify)
+from ..utils import PeekableIterator, stringify, vardygrify
 from ..problems.models import (AggregateProblemConnectionRating as APCR,
                                ProblemConnectionRating as PCR,
                                ProblemConnection as PC,
@@ -19,7 +18,7 @@ from ..problems.exceptions import InvalidAggregation
 BaseCommunityModel = IntertwineModel
 
 
-class Community(BaseCommunityModel, AutoTableMixin, JSONable):
+class Community(BaseCommunityModel):
     '''Base class for communities
 
     A 'community' resides at the intersection of a (social) problem, a
