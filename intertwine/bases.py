@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
 from itertools import chain
-from operator import itemgetter
+from operator import attrgetter, itemgetter
 
 from sqlalchemy import orm, Column, Integer
 from sqlalchemy.ext.declarative import declared_attr
@@ -43,39 +43,42 @@ class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
 class Inspectable(object):
 
     @classmethod
-    def fields(model):
+    def fields(cls):
         try:
-            return model._fields
+            return cls._fields
         except AttributeError:
-            model._fields = model.derive_fields()
-            return model._fields
+            cls._fields = cls.derive_fields()
+            return cls._fields
 
     @classmethod
-    def derive_fields(model):
-        '''Derives fields and associated properties for a SQLAlchemy model
+    def derive_fields(cls):
+        '''Derives fields and their SQLAlchemy and Jsonify properties
 
-        Given a model, nets out SQLAlchemy column, relationship, and synonym
-        properties, plus any regular Python properties, and returns an
-        insertable ordered dictionary keyed by name, sequenced as follows:
-        - SA properties initially follow class_mapper iterate_property order
-        - If there is an 'id' column, it is relocated to the first position
-        - Relationships w/ local foreign keys replace first matching columns
-        - Group self-referential relationships with fields they backpopulate
+        Nets out a model's SQLAlchemy column, relationship, and synonym
+        properties and any Jsonify properites and returns an insertable
+        ordered dictionary keyed by name, sequenced as follows:
+        - SA properties initially in class_mapper iterate_property order
+        - The 'id' column, if any, is relocated to the first position
+        - Relationships w/ local foreign keys replace 1st column matched
+        - Self-referential relationships grouped w/ backpopulate fields
         - Relationships w/ local primary key follow all prior properties
         - Synonyms replace their mapped column/relationship properties
-        - Regular Python properties follow in alphabetical order
+        - Jsonify properties replace any matching fields and rest follow
+        # - Regular Python properties follow in alphabetical order
 
         I/O:
-        model:  SQLAlchemy model from which to derive fields
-        return: Insertable ordered dict of model properties keyed by name
+        cls:  SQLAlchemy model from which to derive fields
+        return: Insertable ordered dict of properties keyed by name
         '''
-        mapper = orm.class_mapper(model)
+        mapper = orm.class_mapper(cls)
         pk = tuple(c.key for c in mapper.primary_key)
         # Catalog properties based on type and primary key
-        sa_properties = {k: ([] if k is SP else ([], [])) for k in (CP, RP, SP)}
+        sa_properties = {k: ([] if k is SP else ([], []))
+                         for k in (CP, RP, SP)}
         for sa_property in mapper.iterate_properties:
             if isinstance(sa_property, RP):
-                has_pk = set(pk) <= set((c.key for c in sa_property.local_columns))
+                has_pk = set(pk) <= set((c.key for c in
+                                        sa_property.local_columns))
                 sa_properties[RP][has_pk].append(sa_property)
             elif isinstance(sa_property, CP):
                 is_pk = sa_property.key in pk
@@ -83,7 +86,8 @@ class Inspectable(object):
             elif isinstance(sa_property, SP):
                 sa_properties[SP].append(sa_property)
             else:
-                raise TypeError('Unknown property type for {}'.format(sa_property))
+                raise TypeError('Unknown property type for {}'
+                                .format(sa_property))
         # Load column properties, starting with primary key columns
         fields = InsertableOrderedDict(
                     ((cp.key, cp) for cp in chain(sa_properties[CP][1],
@@ -110,10 +114,10 @@ class Inspectable(object):
                 elif is_primary_key:
                     # if model relates to itself, look for reverse property
                     reverse_property = fields.get(rp.back_populates)
-                    if rp.mapper.class_ is model and reverse_property:
-                        reverse_anchor_name = rp_anchor_map[reverse_property.key]
+                    if rp.mapper.class_ is cls and reverse_property:
+                        reverse_anchor = rp_anchor_map[reverse_property.key]
                         is_after = rp.direction.name == MANYTOMANY
-                        fields.insert(reverse_anchor_name, rp.key, rp, is_after)
+                        fields.insert(reverse_anchor, rp.key, rp, is_after)
                     else:
                         fields[rp.key] = rp
                         rp_anchor_map[rp.key] = rp.key
@@ -126,16 +130,33 @@ class Inspectable(object):
             new_name = sp.descriptor.fget.__name__
             fields.insert(syn_name, new_name, sp)
             del fields[syn_name]
-        # Add any regular Python properties (non-SQLAlchemy) alphabetically
-        py_properties = [(k, v) for k, v in model.__dict__.iteritems()
-                         if isinstance(v, property)]
-        py_properties.sort(key=itemgetter(0))
-        for k, v in py_properties:
-            fields[k] = v
+        # Add JsonifyProperties, replacing any matches
+        jsonify_properties = [v for v in cls.__dict__.itervalues()
+                              if isinstance(v, JsonifyProperty)]
+        jsonify_properties.sort(key=attrgetter('index'))
+        for jsonify_property in jsonify_properties:
+            fields[jsonify_property.name] = jsonify_property
+        # # Add any regular Python properties (non-SQLAlchemy) alphabetically
+        # py_properties = [(k, v) for k, v in cls.__dict__.iteritems()
+        #                  if isinstance(v, property)]
+        # py_properties.sort(key=itemgetter(0))
+        # for k, v in py_properties:
+        #     fields[k] = v
         return fields
 
 
-class JSONable(object):
+class JsonifyProperty(object):
+
+    _count = 0
+
+    def __init__(self, name, method):
+        self.name = name
+        self.method = method
+        self.index = self.__class__._count
+        self.__class__._count += 1
+
+
+class Jsonable(object):
 
     def jsonify(self, mute=None, nest=False, tight=True, raw=False, limit=10,
                 depth=1, _json=None):
@@ -170,23 +191,23 @@ class JSONable(object):
         self_json = OrderedDict()
         _json[self_key] = self_json
 
-        # TODO: Create IntertwineMeta
-        #       Call _cls_init_() handler to IntertwineMeta.__init__()
-        #       cls.FIELDS = derive_fields(cls)
-        #       fields = self.__class__.FIELDS
-        # fields = derive_fields(self.__class__)
         fields = self.fields()
 
         for field, prop in fields.iteritems():
             if field in mute:
                 continue
 
-            # TODO: Create/use JsonifyProperty instead of property
-            if isinstance(prop, property):
-                func = getattr(self, prop.fget.func_name)
+            if isinstance(prop, JsonifyProperty):
+                func = getattr(self, prop.method)
                 json_params['depth'] = depth
                 self_json[field] = func(**json_params)
                 continue
+
+            # if isinstance(prop, property):
+            #     func = getattr(self, prop.fget.func_name)
+            #     json_params['depth'] = depth
+            #     self_json[field] = func(**json_params)
+            #     continue
 
             value = getattr(self, field)
 
@@ -217,7 +238,7 @@ class JSONable(object):
         return _json
 
 
-class BaseIntertwineModel(Inspectable, JSONable, AutoTableMixin, ModelBase):
+class BaseIntertwineModel(Inspectable, Jsonable, AutoTableMixin, ModelBase):
 
     @classmethod
     def _class_init_(cls):

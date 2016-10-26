@@ -7,6 +7,7 @@ from itertools import groupby
 from sqlalchemy import Column, ForeignKey, Index, desc, orm, types
 
 from .. import IntertwineModel
+from ..bases import JsonifyProperty
 from ..utils import PeekableIterator, stringify, vardygrify
 from ..problems.models import (AggregateProblemConnectionRating as APCR,
                                ProblemConnectionRating as PCR,
@@ -48,6 +49,8 @@ class Community(BaseCommunityModel):
     aggregate_ratings = orm.relationship('AggregateProblemConnectionRating',
                                          back_populates='community',
                                          lazy='dynamic')
+    jsonify_aggregate_ratings = JsonifyProperty(
+        name='aggregate_ratings', method='assemble_rated_connection_json')
 
     num_followers = Column(types.Integer)
 
@@ -398,7 +401,7 @@ class Community(BaseCommunityModel):
 
         return rv
 
-    rated_connection_json = property(assemble_rated_connection_json)
+    # rated_connection_json = property(assemble_rated_connection_json)
 
     def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
         '''JSON structure for a community instance
