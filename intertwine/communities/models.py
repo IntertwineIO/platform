@@ -49,8 +49,8 @@ class Community(BaseCommunityModel):
     aggregate_ratings = orm.relationship('AggregateProblemConnectionRating',
                                          back_populates='community',
                                          lazy='dynamic')
-    jsonify_aggregate_ratings = JsonifyProperty(
-        name='aggregate_ratings', method='assemble_rated_connection_json')
+    jsonified_aggregate_ratings = JsonifyProperty(
+        name='aggregate_ratings', method='jsonify_aggregate_ratings')
 
     num_followers = Column(types.Integer)
 
@@ -317,9 +317,8 @@ class Community(BaseCommunityModel):
 
         return rv
 
-    def prepare_rated_connection_json(self, problem, category, aggregation,
-                                      aggregate_ratings=[], depth=0,
-                                      json_params={}):
+    def jsonify_connection_category(self, problem, category, aggregation,
+                                    aggregate_ratings, depth, **json_params):
         '''Prepare connection rating JSON
 
         Takes a problem, category (e.g. 'drivers'), and an aggregate
@@ -359,13 +358,13 @@ class Community(BaseCommunityModel):
 
                 yield ar_key
 
-    def assemble_rated_connection_json(self, aggregation='strict',
-                                       depth=1, **json_params):
-        '''Assemble connection rating JSON
+    def jsonify_aggregate_ratings(self, aggregation='strict', depth=1,
+                                  **json_params):
+        '''Jsonify aggregate ratings
 
         Returns a dictionary keyed by connection category ('drivers',
-        'impacts', 'broader', 'narrower') where values are [generators
-        for (?)] aggregate rating JSON in descending order by rating.
+        'impacts', 'broader', 'narrower') where values are lists of
+        aggregate rating JSON in descending order by rating.
 
         Searches for existing aggregate connection ratings with the
         specified aggregation method, and if none are found, aggregates
@@ -389,19 +388,17 @@ class Community(BaseCommunityModel):
                 ars.sort(key=attrgetter('connection_category', 'rating'),
                          reverse=True)
 
-        rv = {category: list(community.prepare_rated_connection_json(
-              problem, category, aggregation, ars_by_cat, depth, json_params))
+        rv = {category: list(community.jsonify_connection_category(
+              problem, category, aggregation, ars_by_cat, depth, **json_params))
               for category, ars_by_cat
               in groupby(ars, key=attrgetter('connection_category'))}
 
         for category in PC.CATEGORY_MAP:
             if category not in rv:
-                rv[category] = list(community.prepare_rated_connection_json(
-                    problem, category, aggregation, [], depth, json_params))
+                rv[category] = list(community.jsonify_connection_category(
+                    problem, category, aggregation, [], depth, **json_params))
 
         return rv
-
-    # rated_connection_json = property(assemble_rated_connection_json)
 
     def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
         '''JSON structure for a community instance
