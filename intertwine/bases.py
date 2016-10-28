@@ -72,7 +72,7 @@ class Inspectable(object):
         '''
         mapper = orm.class_mapper(cls)
         pk = tuple(c.key for c in mapper.primary_key)
-        # Catalog properties based on type and primary key
+        # Catalog SA properties based on type and primary key
         sa_properties = {k: ([] if k is SP else ([], []))
                          for k in (CP, RP, SP)}
         for sa_property in mapper.iterate_properties:
@@ -135,7 +135,21 @@ class Inspectable(object):
                               if isinstance(v, JsonifyProperty)]
         jsonify_properties.sort(key=attrgetter('index'))
         for jsonify_property in jsonify_properties:
-            fields[jsonify_property.name] = jsonify_property
+            before, after = jsonify_property.before, jsonify_property.after
+            jp_name = jsonify_property.name
+            if jp_name in fields:
+                if before or after:
+                    raise ValueError('JsonifyProperty {name} matches existing '
+                                     'field, so before/after must be None'
+                                     .format(name=jp_name))
+                fields[jp_name] = jsonify_property
+            elif before:
+                fields.insert(before, jp_name, jsonify_property)
+            elif after:
+                fields.insert(after, jp_name, jsonify_property, after=True)
+            else:
+                fields[jp_name] = jsonify_property
+
         # # Add any regular Python properties (non-SQLAlchemy) alphabetically
         # py_properties = [(k, v) for k, v in cls.__dict__.iteritems()
         #                  if isinstance(v, property)]
@@ -149,11 +163,25 @@ class JsonifyProperty(object):
 
     _count = 0
 
-    def __init__(self, name, method):
+    def __init__(self, name, method, kwargs=None, before=None, after=None,
+                 *args, **kwds):
+        if before and after:
+            raise ValueError('JsonifyProperty {name} cannot have both '
+                             "'before' and 'after' values".format(name=name))
         self.name = name
         self.method = method
+        self.kwargs = kwargs or {}
+        self.before = before
+        self.after = after
         self.index = self.__class__._count
         self.__class__._count += 1
+        super(JsonifyProperty, self).__init__(*args, **kwds)
+
+    def __call__(self, obj, *args, **kwds):
+        func = getattr(obj, self.method)
+        merged_kwds = self.kwargs.copy()
+        merged_kwds.update(kwds)
+        return func(*args, **merged_kwds)
 
 
 class Jsonable(object):
@@ -181,10 +209,10 @@ class Jsonable(object):
         '''
         assert depth > 0
         mute = set() if mute is None else mute
-        if not isinstance(mute, set):
-            raise TypeError('mute must be a set or None')
+        mute = mute if isinstance(mute, set) else set(mute)
         _json = OrderedDict() if _json is None else _json
         json_params = kwargify()  # includes updated _json value
+        del json_params['depth']
 
         self_key = self.trepr(tight=tight, raw=raw)
         # TODO: Check if item already exists and needs to be enhanced?
@@ -198,9 +226,7 @@ class Jsonable(object):
                 continue
 
             if isinstance(prop, JsonifyProperty):
-                func = getattr(self, prop.method)
-                json_params['depth'] = depth
-                self_json[field] = func(**json_params)
+                self_json[field] = prop(obj=self, depth=depth, **json_params)
                 continue
 
             # if isinstance(prop, property):
@@ -217,8 +243,7 @@ class Jsonable(object):
                 item_key = item.trepr(tight=tight, raw=raw)
                 self_json[field] = item_key
                 if depth > 1 and item_key not in _json:
-                    json_params['depth'] = depth - 1
-                    item.jsonify(**json_params)
+                    item.jsonify(depth=depth - 1, **json_params)
 
             elif isinstance(value, orm.dynamic.AppenderQuery):
                 items = []
@@ -227,8 +252,7 @@ class Jsonable(object):
                     item_key = item.trepr(tight=tight, raw=raw)
                     items.append(item_key)
                     if depth > 1 and item_key not in _json:
-                        json_params['depth'] = depth - 1
-                        item.jsonify(**json_params)
+                        item.jsonify(depth=depth - 1, **json_params)
                     if i + 1 == limit:
                         break
 

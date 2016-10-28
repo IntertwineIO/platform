@@ -6,6 +6,7 @@ from sqlalchemy import desc, orm, types, Column, ForeignKey, Index, Table
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from .. import IntertwineModel
+from ..bases import JsonifyProperty
 from ..utils import stringify
 from ..exceptions import AttributeConflict, CircularReference
 
@@ -52,6 +53,13 @@ class Geo(BaseGeoModel):
     _qualifier = Column('qualifier', types.String(60))
     _human_id = Column('human_id', types.String(200), index=True, unique=True)
 
+    jsonified_display = JsonifyProperty(name='display', after='human_id',
+                                        method='display',
+                                        kwargs=dict(max_path=1,
+                                                    show_the=True,
+                                                    show_abbrev=False,
+                                                    abbrev_path=True))
+
     # If geo.alias_target is None, the geo is not an alias, but it could
     # be the target of one or more aliases.
     alias_target_id = Column(types.Integer, ForeignKey('geo.id'))
@@ -96,6 +104,19 @@ class Geo(BaseGeoModel):
                                     # order_by='Geo.name'
                                     ),
                 lazy='dynamic')
+
+    jsonified_parents = JsonifyProperty(name='parents',
+                                        method='jsonify_related_geos',
+                                        kwargs=dict(relation='parents'))
+
+    jsonified_children = JsonifyProperty(name='children',
+                                         method='jsonify_related_geos',
+                                         kwargs=dict(relation='children'))
+
+    jsonified_path_children = JsonifyProperty(
+                                    name='path_children',
+                                    method='jsonify_related_geos',
+                                    kwargs=dict(relation='path_children'))
 
     DELIMITER = '/'
 
@@ -422,7 +443,8 @@ class Geo(BaseGeoModel):
             alias.alias_target = self
 
     def display(self, show_the=True, show_The=False, show_abbrev=True,
-                show_qualifier=True, abbrev_path=True, max_path=float('Inf')):
+                show_qualifier=True, abbrev_path=True, max_path=float('Inf'),
+                **json_params):
         '''Generate text for displaying a geo to a user
 
         Returns a string derived from the name, abbrev, uses_the, and
@@ -466,6 +488,63 @@ class Geo(BaseGeoModel):
             geo = geo.path_parent
             plvl += 1
         return ', '.join(geostr)
+
+    def jsonify_related_geos(self, relation, **json_params):
+        '''Jsonify related geos by level
+
+        Given a relation (e.g. parent/child), returns an ordered
+        dictionary of geo reprs stratified (keyed) by level. The levels
+        are ordered top to bottom for children and bottom to top for
+        parents. Within each level, the geos are listed in descending
+        order by total population. Any geos that are missing data and/or
+        levels (e.g. aliases) are excluded.
+
+        The following inputs may be specified:
+        tight=True: make all repr values tight (without whitespace)
+        raw=False: when True, adds extra escapes (for printing)
+        limit=10: caps the number of list items within any geo level;
+                  a negative limit indicates no cap
+        '''
+        limit = json_params['limit']
+
+        if relation not in set(('parents', 'children', 'path_children')):
+            raise ValueError('{rel} is not an allowed value for relation'
+                             .format(rel=relation))
+
+        base_q = getattr(self, relation).join(Geo.data).join(Geo.levels)
+        levels = (lvl for lvl in (
+            GeoLevel.UP if relation == 'parents' else GeoLevel.DOWN))
+
+        if limit < 0:
+            rv = OrderedDict(
+                (lvl, [self.jsonify_geo(g, **json_params)
+                       for g in base_q.filter(GeoLevel.level == lvl)
+                       .order_by(desc(GeoData.total_pop)).all()])
+                for lvl in levels)
+        else:
+            rv = OrderedDict(
+                (lvl, [self.jsonify_geo(g, **json_params)
+                       for g in base_q.filter(GeoLevel.level == lvl)
+                       .order_by(desc(GeoData.total_pop)).limit(limit).all()])
+                for lvl in levels)
+
+        for lvl, geos in rv.iteritems():
+            if len(geos) == 0:
+                rv.pop(lvl)
+
+        return rv
+
+    def jsonify_geo(self, geo, depth, **json_params):
+        '''Jsonify geo'''
+        _json = json_params['_json']
+        tight = json_params['tight']
+        raw = json_params['raw']
+
+        geo_key = geo.trepr(tight=tight, raw=raw)
+        if depth > 1 and geo_key not in _json:
+            geo.jsonify(depth=depth-1, **json_params)
+
+        return geo_key
 
     def related_geos_by_level(self, relation, tight=True, raw=False, limit=10):
         '''Related geos by level
