@@ -371,8 +371,9 @@ def stringify(thing, limit=10, _lvl=0):
 
     # If a custom object, use its __unicode__ method, but indent it
     elif hasattr(thing, '__dict__'):
-        strings.append(
-            (('\n' + ind).join('' + unicode(thing).split('\n')))[1:])
+        strings.append(u'{ind}{thing}'.format(
+                       ind=ind, thing=''.join(('\n', ind))
+                                        .join(unicode(thing).split('\n'))))
 
     # If a number, use commas for readability
     elif isinstance(thing, numbers.Number) and not isinstance(thing, bool):
