@@ -9,9 +9,9 @@ from past.builtins import basestring
 from sqlalchemy import orm, types, Column, ForeignKey, Index, UniqueConstraint
 
 from titlecase import titlecase
-import urlnorm
 
 from ..utils import AutoTableMixin, Trackable
+from ..third_party import urlnorm
 
 
 from .exceptions import (
