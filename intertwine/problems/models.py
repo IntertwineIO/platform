@@ -1,31 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from collections import namedtuple
 import re
+from collections import namedtuple
 from numbers import Real
 
 from alchy.model import ModelBase, make_declarative_base
 from past.builtins import basestring
-from sqlalchemy import orm, types, Column, ForeignKey, Index, UniqueConstraint
-
+from sqlalchemy import Column, ForeignKey, Index, UniqueConstraint, orm, types
 from titlecase import titlecase
 
-from ..utils import AutoTableMixin, Trackable
 from ..third_party import urlnorm
-
-
-from .exceptions import (
-    InconsistentArguments,
-    InvalidEntity,
-    InvalidConnectionType,
-    CircularConnection,
-    InvalidProblemConnectionRating,
-    InvalidAggregateConnectionRating,
-    InvalidAggregation,
-    InvalidUser,
-    InvalidProblemForConnection,
-)
-
+from ..utils import AutoTableMixin, Trackable
+from .exceptions import (CircularConnection, InconsistentArguments,
+                         InvalidAggregateConnectionRating, InvalidAggregation,
+                         InvalidConnectionType, InvalidEntity,
+                         InvalidProblemConnectionRating,
+                         InvalidProblemForConnection, InvalidUser)
 
 BaseProblemModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
 
