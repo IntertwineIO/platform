@@ -25,7 +25,7 @@ __shortdesc__ = "Untangle the world's problems"
 ###############################################################################
 
 
-def create_app(config):
+def create_app(config=None):
     '''Creates an app
 
     >>> from intertwine import create_app
@@ -34,6 +34,8 @@ def create_app(config):
     >>> app.run()
     '''
     app = flask.Flask(__name__, static_folder='static', static_url_path='')
+    if config is None:
+        config = {}
     app.config.from_object(config)
     if app.config['DEBUG']:
         app.config['SQLALCHEMY_ECHO'] = True
