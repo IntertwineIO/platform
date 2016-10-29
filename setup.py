@@ -48,9 +48,7 @@ def setup_project():
         'titlecase',
     ]
 
-    private_packages = [
-        'urlnorm',
-    ]
+    private_packages = []
     package_requires += private_packages
 
     # Links if needed for private repos
