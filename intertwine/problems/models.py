@@ -1,31 +1,29 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from collections import namedtuple, OrderedDict
 import re
+from collections import namedtuple, OrderedDict
 from numbers import Real
 from operator import attrgetter
 
-# from past.builtins import basestring
-from sqlalchemy import or_, orm, types, Column, ForeignKey, Index
+from past.builtins import basestring
+from sqlalchemy import Column, ForeignKey, Index, or_, orm, types
 from titlecase import titlecase
-import urlnorm
 
 from .. import IntertwineModel
 from ..geos.models import Geo
-
+from ..third_party import urlnorm
 from .exceptions import (
-    InconsistentArguments,
-    InvalidEntity,
-    InvalidConnectionAxis,
     CircularConnection,
-    InvalidProblemConnectionRating,
-    InvalidProblemConnectionWeight,
+    InconsistentArguments,
     InvalidAggregateConnectionRating,
     InvalidAggregation,
-    InvalidUser,
+    InvalidConnectionAxis,
+    InvalidEntity,
+    InvalidProblemConnectionRating,
+    InvalidProblemConnectionWeight,
     InvalidProblemForConnection,
+    InvalidUser,
 )
-
 
 BaseProblemModel = IntertwineModel
 

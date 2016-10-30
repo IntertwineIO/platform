@@ -10,37 +10,33 @@ Copyright (c) 2015, 2016
 
 License:  Proprietary.
 '''
+from __future__ import unicode_literals
 
+import datetime
 import os
 import re
-from setuptools import setup, find_packages
+from collections import namedtuple
+
+from setuptools import find_packages, setup
 
 
-project_name = 'intertwine'
+def setup_project():
+    '''Sets up project as needed.
 
-classifiers = [
-    'Intended Audience :: Developers',
-    'License :: Other/Proprietary License',
-    'Operating System :: OS Independent',
-    'Programming Language :: Python :: 2.7',
-    'Programming Language :: Python :: 3.5',
-    'Programming Language :: Python :: Implementation :: CPython',
-    'Programming Language :: Python :: Implementation :: PyPy'
-]
+    This function should be manually updated as needed.  Placed at the
+    top of the file for better grokking.
 
-###############################################################################
-#  Requirements
-###############################################################################
-requirements = {
-    # Identifies what is needed to prior to running setup
-    'setup': [
-        'pip',
-        'pytest-runner',
-        'libsass >= 0.6.0',
-    ],
+    When developing, simply run (from within a virtualenv):
 
-    # Identifies what is needed to run this package
-    'install': [
+        $ pip install .[all]
+
+    Returns:
+        package_requires(list): List of required packages
+        links(list): list of private package links
+        classifiers(list): standard python package classifiers
+    '''
+    # Whatever dependencies package requires
+    package_requires = [
         'alchy>2.0.1',
         'docopt',
         'flask',
@@ -51,105 +47,299 @@ requirements = {
         'future',
         'mock',
         'titlecase',
-        'urlnorm',
-    ],
+    ]
 
-    # Identifies what is needed to run this package as a developer
-    'debug': [
-        'flask-debugtoolbar',
-        'ipython',
-        'ipdb',
-    ],
+    private_packages = []
+    package_requires += private_packages
 
-    # Identifies what is needed for generating documentation
-    'doc': [
-        'sphinx',
-    ],
+    # Links if needed for private repos
+    links = [
+        # 'git+https://git@github.com/intertwine/urlnorm.git',
+    ]
 
-    # Identifies what is needed for docker runs
-    'docker': [
-        'docker-py',
-        'GitPython',
-    ],
+    # Project classifiers
+    classifiers = [
+        'Development Status :: 3 - Alpha',
+        'Environment :: Console',
+        'Environment :: No Input/Output',
+        'Environment :: Other Environment',
+        'Intended Audience :: Developers',
+        'License :: Other/Proprietary License',
+        'Natural Language :: English',
+        'Operating System :: OS Independent',
+        'Operating System :: POSIX',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Programming Language :: Python :: Implementation :: PyPy',
+        'Programming Language :: Python',
+        'Topic :: Software Development',
 
-    # Identifies what is needed to run the scripts included
-    'script': [
-        'pyyaml',
-        'python-magic',
-    ],
+        'Private :: Do Not Upload',  # This prevents accidental uploads to pypi
+    ]
 
-    # Identifies what is needed for tests to run
-    'tests': [
-        'detox',
-        'flask-debugtoolbar',
-        'pytest',
-        'pytest-cov',
-        'pytest-flake8',
-        'pytest-html',
-        'pytest-xdist',
-        'tox',
-    ],
-}
+    return package_requires, links, classifiers
 
-# Developers should probably run:  pip install .[dev]
-requirements['dev'] = [
-    r for k, reqs in requirements.items() for r in reqs
-    if k not in ['install']
-]
 
-# All is for usability:  pip install .[all]
-requirements['all'] = [
-    r for k, reqs in requirements.items() for r in reqs
-]
+# ----------------------------------------------------------------------
+# Generally, only edit above this line
+# ----------------------------------------------------------------------
+def get_package_metadata(project_name=None):
+    '''Captures metadata information for package
 
-# Find package files
-packages = find_packages()
-cwd = os.path.abspath(os.path.dirname(__file__))
+    Providing the project name will reduce the search/install time.
 
-# Capture project metadata
-engine = re.compile(r"^__(?P<key>(.*?))__ = '(?P<value>([^']*))'")
-with open(os.path.join(cwd, project_name, '__init__.py'), 'r') as fd:
-    metadata = {
-        data['key']: data['value']
-        for line in fd
-        for data in [m.groupdict() for m in engine.finditer(line)]
+    Args:
+        project_name: top project folder and project name
+
+    Returns:
+        dict: package metdata
+    '''
+    top_folder = os.path.abspath(os.path.dirname(__file__))
+    required_fields = ['version', 'license', 'url', 'shortdoc', 'project']
+    engine = re.compile(r"^__(?P<key>(.*?))__ = (?P<value>(.*))")
+    metadata = {}
+    for root, folder, files in os.walk(top_folder):
+        for filename in files:
+            if filename == '__init__.py':
+                filepath = os.path.join(root, filename)
+                with open(filepath, 'r') as fd:
+                    for line in fd:
+                        for data in [m.groupdict() for m in engine.finditer(line)]:
+                            try:
+                                data['value'] = eval(data['value'], metadata, metadata)
+                            except Exception as e:
+                                print(e)
+                            metadata['__{key}__'.format(key=data['key'])] = data['value']
+                            metadata[data['key']] = data['value']
+                    if all(field in metadata for field in required_fields):
+                        metadata = {k: v for k, v in metadata.items() if not k.startswith('__')}
+                        break
+                    else:
+                        missing = []
+                        for field in required_fields:
+                            if field not in metadata:
+                                missing.append(field)
+                        metadata = {}
+        if metadata != {}:
+            break
+    return metadata
+
+
+def get_package_requirements(package_requires, required=None):
+    '''Convenience function to wrap package_requires
+
+    Args:
+        required(list): list of required packages to run
+    Returns:
+        dict: A better format of requirements
+    '''
+    required = package_requires if not required else required
+    requirements = {
+        # Debug probably is only necessary for development environments
+        'debug': [
+            'flask-debugtoolbar',
+            'ipdb',
+            'ipython',
+            'jupyter',
+        ],
+
+        # Deploy identifies upgrades to local system prior to deployment
+        'deploy': [
+            'ansible >= 2',
+            'devpi-client',   # MIT - for pushing releases
+            'devpi-common',   # MIT - for pushing releases
+            'gitpython',
+        ],
+
+        # Docs should probably only be necessary in Continuous Integration
+        'docs': [
+            'coverage',
+            'sphinx',
+            'sphinx_rtd_theme',
+            'sphinxcontrib-napoleon',
+        ],
+
+        # Examples probably is only necessary for development environments
+        'examples': [
+            'docopt',
+            'pyyaml',
+        ],
+
+        # Monitoring identifies upgrades to remote system mostly for nagios
+        'monitoring': [
+            'inotify',
+            'psutil',
+            'graphitesend',
+        ],
+
+        # Requirements is the basic needs for this package
+        'requirements': required,
+
+        # Required for installation
+        'setup': [
+            'pip',
+            'pytest-runner',
+            'libsass >= 0.6.0',
+        ],
+
+        # Required for running scripts folder
+        'scripts': [
+            'GitPython',
+            'docker-py',
+            'python-magic',
+            'pyyaml',
+        ],
+
+        # Tests are needed in a local and CI environments for py.test and tox
+        # Note:  To run the tox environment for docs, docs must also be installed
+        'tests': [
+            'detox',
+            'flask-debugtoolbar',
+            'pdbpp',
+            'pytest',
+            'pytest-cov',
+            'pytest-flake8',
+            'pytest-html',
+            'pytest-xdist',
+            'tox',
+        ],
+
     }
 
-# Setup README documentation in RST format if pypandoc exists
-if os.path.exists('README.rst'):
-    with open('README.rst', 'r') as fd:
-        long_description = fd.read()
-else:
-    long_description = metadata.get('shortdesc')
+    # Developers should probably run:  pip install .[dev]
+    requirements['dev'] = [
+        r for k, reqs in requirements.items() for r in reqs
+        if k not in ['requirements']
+    ]
 
-# Build static sass
-sass_manifests = {
-    metadata.get('title'): (
-        'static/sass', 'static/css', '/static/css'
+    # All is for usability:  pip install .[all]
+    requirements['all'] = [
+        r for k, reqs in requirements.items() for r in reqs
+    ]
+
+    return requirements
+
+
+def get_sass_manifests(metadata):
+    '''Sets up static sass conversion on an install.
+
+    Args:
+        metadata(dict): project metadata
+
+    Returns:
+        dict: sass locations for project
+    '''
+    SassPath = namedtuple('SassPath', ('sass', 'css', 'endpoint'))
+    project_name = metadata['project']
+    project_folder = os.path.abspath(os.path.dirname(__file__))
+    top_folder = os.path.join(project_folder, project_name)
+    sass_files = {}
+    css_files = {}
+    for root, folders, files in os.walk(top_folder):
+        common_path = '/'.join(root.split('/')[:-1])
+        common_rel_path = common_path.replace(top_folder, '').lstrip('/')
+        rel_path = root.replace(top_folder, '')
+        project = common_rel_path.replace('/', '.')
+        if not project.endswith('static'):
+            continue
+        project = '.'.join(project.split('.')[:-1])
+        project = '.'.join((project_name, project)).rstrip('.')
+        folders = [folder for folder in folders if 'static' in folder]
+        for filename in files:
+            data = ((project, common_rel_path))
+            if filename.endswith('.sass'):
+                sass_files.setdefault(data, {}).setdefault(rel_path, []).append(filename)
+            elif filename.endswith('.css'):
+                css_files.setdefault(data, {}).setdefault(rel_path, []).append(filename)
+
+    sass_paths = {}
+    for key in sass_files:
+        name, endpoint = key
+        if key in css_files:
+            sass = [k.lstrip('/') for k in sass_files[key]][0]
+            css = [k.lstrip('/') for k in css_files[key]][0]
+            path = SassPath(sass, css, endpoint)
+            sass_paths[name] = path
+
+    return sass_paths
+
+
+def get_console_scripts(metadata):
+    '''Convenience function to wrap console scripts.
+
+    Expects that all command-line scripts are found within the
+    __main__.py file and that they are functions.
+
+    Args:
+        metadata(dict): project metadata
+
+    Returns:
+        list: scripts listed in format required by setup
+    '''
+    scripts = []
+    project_name = metadata['project']
+    project_folder = os.path.abspath(os.path.dirname(__file__))
+    filepath = '{project_folder}/{project_name}/__main__.py'
+    filepath = filepath.format(project_folder=project_folder, project_name=project_name)
+    engine = re.compile(r"^def (?P<func>(.*?))\((?P<args>(.*?))\)\:$")
+    template = '{script} = {project_name}.__main__:{func_name}'
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as fd:
+            for line in fd:
+                for data in [m.groupdict() for m in engine.finditer(line)]:
+                    func_name = data['func']
+                    script = func_name.replace('_', '-')
+                    scripts.append(template.format(script=script, project_name=project_name, func_name=func_name))
+    return scripts
+
+
+def main():
+    '''Sets up the package'''
+    metadata = get_package_metadata()
+    package_requires, links, classifiers = setup_project()
+    requirements = get_package_requirements(package_requires=package_requires)
+    project_name = metadata['project']
+    extras = {k: v for k, v in requirements.items() if k != 'requirements'}
+    year = metadata.get('copyright_years') or datetime.datetime.now().year
+    lic = metadata.get('license') or 'Copyright {year} - all rights reserved'.format(year=year)
+    sass_manifests = get_sass_manifests(metadata)
+    # import pdb; pdb.set_trace()
+
+    # Run setup
+    setup(
+        # Package metadata information
+        name=project_name,
+        version=metadata.get('version_str') or 'unknown',
+        description=metadata.get('shortdoc') or project_name,
+        long_description=metadata.get('doc') or metadata.get('shortdoc') or project_name,
+        url=metadata.get('url') or '',
+        license=lic,
+        author=metadata.get('author') or 'unknown',
+        author_email=metadata.get('email') or 'unknown',
+
+        # Package Properties
+        packages=find_packages(),
+        include_package_data=True,
+
+        # Requirements
+        setup_requires=requirements.get('setup') or [],
+        install_requires=requirements['requirements'],
+        extras_require=extras,
+        tests_require=requirements.get('tests') or [],
+        dependency_links=links,
+        entry_points={
+            'console_scripts': get_console_scripts(metadata),
+        },
+        platforms=['any'],
+        classifiers=classifiers,
+        zip_safe=False,
+
+        # Extras
+        sass_manifests=sass_manifests,
     )
-}
 
-setup(
-    name=metadata.get('title'),
-    version=metadata.get('version'),
-    author=metadata.get('author'),
-    author_email=metadata.get('email'),
-    description=metadata.get('shortdesc'),
-    long_description=long_description,
-    license=metadata.get('license'),
-    url=metadata.get('url'),
-    packages=[project_name],
-    package_data={},
-    classifiers=classifiers,
-    install_requires=requirements['install'],
-    setup_requires=requirements['setup'],
-    sass_manifests=sass_manifests,
-    extras_require=requirements,
-    tests_require=requirements['tests'],
-    test_suite='tests',
-    include_package_data=True,
-    zip_safe=False,
-    dependency_links=[
-        'git+https://git@github.com/intertwine/urlnorm.git',
-    ],
-)
+
+if __name__ == '__main__':
+    main()
