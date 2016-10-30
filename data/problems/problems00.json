@@ -9,23 +9,24 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
-                        "geo_scope": "United States/Texas/Austin"
+                        "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
-                        "geo_scope": "United States"
-                    }                ]
+                        "geo": "us"
+                    }
+                ]
             }
         ]
     }

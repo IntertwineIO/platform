@@ -45,6 +45,7 @@ def setup_project():
         'flask-sqlalchemy',
         'flask-wtf',
         'future',
+        'mock',
         'titlecase',
     ]
 

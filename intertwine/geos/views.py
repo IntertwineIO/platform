@@ -19,7 +19,7 @@ def render():
     if len(geos) == 1:
         geo = geos[0]
         glvl = geo.levels.keys()[0]
-        dlvl = GeoLevel.down[glvl][0]
+        dlvl = GeoLevel.DOWN[glvl][0]
 
         by_name = sorted(geo.children.all(), key=attrgetter('name'))
         by_designation = sorted(by_name,
@@ -44,9 +44,9 @@ def render_geo(geo_human_id):
         # TODO: Instead of aborting, reroute to geo_not_found page
         # Oops! 'X' is not a geo found in Intertwine.
         # Did you mean:
-        # <related_geo_1>
-        # <related_geo_2>
-        # <related_geo_3>
+        # <geo_1>
+        # <geo_2>
+        # <geo_3>
         abort(404)
 
     if geo.alias_target:

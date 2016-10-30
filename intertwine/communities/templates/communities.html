@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block styles %}
+{{ super() }}
+<link href="{{ url_for('communities.static', filename='css/normalize.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('communities.static', filename='css/general.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('communities.static', filename='css/communities.css') }}"
+      rel="stylesheet" type="text/css">
+ {% endblock %}
+<!--> TODO: move general to intertwine level and add generic list item formatting <-->
+{% block content %}
+<div class="nav-spacer"></div>
+<header>
+    <h1>
+        <span class="page-title">Communities</span>
+        <span class="page-scope"></span>
+    </h1>
+    <span class="page-tagline"></span>
+</header>
+
+<section id="community-list-section">
+    <div class="indent">
+        {% for community in communities %}
+        <div class="community-display"><p><a href={{ community.problem.derive_key() }}{% if community.geo %}/{{ community.geo.derive_key() }}{% endif %}>
+            {{ community.problem.name }}
+            {% if community.org %}
+              at {{ community.org }}
+            {% endif %}
+            {% if community.geo %}
+              in {{ community.geo.display(show_abbrev=False, max_path=0) }}
+            {% else %}
+              (global)
+            {% endif %}
+            </a></p></div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

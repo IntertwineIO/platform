@@ -2,15 +2,17 @@
 # -*- coding: utf-8 -*-
 from collections import namedtuple, OrderedDict
 
-from alchy.model import ModelBase, make_declarative_base
 from sqlalchemy import desc, orm, types, Column, ForeignKey, Index, Table
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-from ..utils import AutoTableMixin, stringify, Trackable
+from .. import IntertwineModel
+from ..bases import JsonifyProperty
+from ..utils import stringify
 from ..exceptions import AttributeConflict, CircularReference
 
 
-BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
+# BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
+BaseGeoModel = IntertwineModel
 
 
 geo_association_table = Table(
@@ -20,7 +22,7 @@ geo_association_table = Table(
 )
 
 
-class Geo(BaseGeoModel, AutoTableMixin):
+class Geo(BaseGeoModel):
     '''Base class for geos
 
     A 'geo' is geographical entity, legal or otherwise. Geos may have
@@ -35,8 +37,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
     The 'path' is established by the 'path_parent' field. If the geo has
     an 'abbrev', it is used, otherwise the name is used. The 'qualifier'
     is used to distinguish geos with the same name/abbrev with the same
-    path. Examples include Chula Vista, TX, Chevy Chase, MD, and many
-    others.
+    path (e.g. Chula Vista, TX, Chevy Chase, MD, and many others).
 
     level         geo                   path_parent  human_id
     country       US                    (none)       us
@@ -46,20 +47,18 @@ class Geo(BaseGeoModel, AutoTableMixin):
     subdivision2  Travis County         TX           us/tx/travis_county
     place         Austin                TX           us/tx/austin
     '''
+    uses_the = Column(types.Boolean)  # e.g. 'The United States'
     _name = Column('name', types.String(60))
     _abbrev = Column('abbrev', types.String(20))
     _qualifier = Column('qualifier', types.String(60))
     _human_id = Column('human_id', types.String(200), index=True, unique=True)
-    path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
-    _path_parent = orm.relationship(
-                'Geo',
-                primaryjoin=('Geo.path_parent_id==Geo.id'),
-                remote_side='Geo.id',
-                backref=orm.backref('path_children', lazy='dynamic'),
-                lazy='joined')
 
-    # e.g. 'The United States'
-    uses_the = Column(types.Boolean)
+    jsonified_display = JsonifyProperty(name='display', after='human_id',
+                                        method='display',
+                                        kwargs=dict(max_path=1,
+                                                    show_the=True,
+                                                    show_abbrev=False,
+                                                    abbrev_path=True))
 
     # If geo.alias_target is None, the geo is not an alias, but it could
     # be the target of one or more aliases.
@@ -81,6 +80,14 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 cascade='all, delete-orphan',
                 backref='_geo')
 
+    path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
+    _path_parent = orm.relationship(
+                'Geo',
+                primaryjoin=('Geo.path_parent_id==Geo.id'),
+                remote_side='Geo.id',
+                backref=orm.backref('path_children', lazy='dynamic'),
+                lazy='joined')
+
     # level         us geo      us parents
     # country       US          None
     # subdivision1  state       US
@@ -98,7 +105,20 @@ class Geo(BaseGeoModel, AutoTableMixin):
                                     ),
                 lazy='dynamic')
 
-    delimiter = '/'
+    jsonified_parents = JsonifyProperty(name='parents',
+                                        method='jsonify_related_geos',
+                                        kwargs=dict(relation='parents'))
+
+    jsonified_children = JsonifyProperty(name='children',
+                                         method='jsonify_related_geos',
+                                         kwargs=dict(relation='children'))
+
+    jsonified_path_children = JsonifyProperty(
+                                    name='path_children',
+                                    method='jsonify_related_geos',
+                                    kwargs=dict(relation='path_children'))
+
+    DELIMITER = '/'
 
     @property
     def name(self):
@@ -271,7 +291,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
         '''
         if path_parent is None and alias_target is not None:
             path_parent = alias_target.path_parent
-        path = path_parent.human_id + Geo.delimiter if path_parent else ''
+        path = path_parent.human_id + Geo.DELIMITER if path_parent else ''
         nametag = u'{a_or_n}{qualifier}'.format(
                         a_or_n=abbrev if abbrev else name,
                         qualifier=' ' + qualifier if qualifier else '')
@@ -422,15 +442,18 @@ class Geo(BaseGeoModel, AutoTableMixin):
             # transfer references when alias_target setter called on at
             alias.alias_target = self
 
-    def display(self, show_the=True, show_abbrev=True, show_qualifier=True,
-                abbrev_path=True, max_path=float('Inf')):
+    def display(self, show_the=True, show_The=False, show_abbrev=True,
+                show_qualifier=True, abbrev_path=True, max_path=float('Inf'),
+                **json_params):
         '''Generate text for displaying a geo to a user
 
         Returns a string derived from the name, abbrev, uses_the, and
         the geo path established by the path_parent. The following
         parameters affect the output:
-        - show_the=True: The name of the geo is prefixed by 'The' if the
-          geo has the flag (geo.uses_the == True)
+        - show_the=True: The name of the geo is prefixed by 'the'
+          (lowercase) if geo.uses_the; overriden by show_The (uppercase)
+        - show_The=False: The name of the geo is prefixed by 'The'
+          (uppercase) if geo.uses_the; overrides show_the (lowercase)
         - show_abbrev=True: The abbrev is displayed in parentheses after
           the geo name if the geo has an abbrev
         - show_qualifier=True: The qualifier is displayed after the geo
@@ -446,7 +469,9 @@ class Geo(BaseGeoModel, AutoTableMixin):
         geo = self
         plvl = 0
         while geo is not None and plvl <= max_path:
-            the = ('The ' if geo.uses_the and show_the else '')
+
+            the = ('The ' if geo.uses_the and show_The else (
+                   'the ' if geo.uses_the and show_the else ''))
             abbrev = (u' ({})'.format(geo.abbrev)
                       if geo.abbrev and show_abbrev else '')
             qualifier = (u' {}'.format(geo.qualifier)
@@ -463,6 +488,63 @@ class Geo(BaseGeoModel, AutoTableMixin):
             geo = geo.path_parent
             plvl += 1
         return ', '.join(geostr)
+
+    def jsonify_related_geos(self, relation, **json_params):
+        '''Jsonify related geos by level
+
+        Given a relation (e.g. parent/child), returns an ordered
+        dictionary of geo reprs stratified (keyed) by level. The levels
+        are ordered top to bottom for children and bottom to top for
+        parents. Within each level, the geos are listed in descending
+        order by total population. Any geos that are missing data and/or
+        levels (e.g. aliases) are excluded.
+
+        The following inputs may be specified:
+        tight=True: make all repr values tight (without whitespace)
+        raw=False: when True, adds extra escapes (for printing)
+        limit=10: caps the number of list items within any geo level;
+                  a negative limit indicates no cap
+        '''
+        limit = json_params['limit']
+
+        if relation not in set(('parents', 'children', 'path_children')):
+            raise ValueError('{rel} is not an allowed value for relation'
+                             .format(rel=relation))
+
+        base_q = getattr(self, relation).join(Geo.data).join(Geo.levels)
+        levels = (lvl for lvl in (
+            GeoLevel.UP if relation == 'parents' else GeoLevel.DOWN))
+
+        if limit < 0:
+            rv = OrderedDict(
+                (lvl, [self.jsonify_geo(g, **json_params)
+                       for g in base_q.filter(GeoLevel.level == lvl)
+                       .order_by(desc(GeoData.total_pop)).all()])
+                for lvl in levels)
+        else:
+            rv = OrderedDict(
+                (lvl, [self.jsonify_geo(g, **json_params)
+                       for g in base_q.filter(GeoLevel.level == lvl)
+                       .order_by(desc(GeoData.total_pop)).limit(limit).all()])
+                for lvl in levels)
+
+        for lvl, geos in rv.iteritems():
+            if len(geos) == 0:
+                rv.pop(lvl)
+
+        return rv
+
+    def jsonify_geo(self, geo, depth, **json_params):
+        '''Jsonify geo'''
+        _json = json_params['_json']
+        tight = json_params['tight']
+        raw = json_params['raw']
+
+        geo_key = geo.trepr(tight=tight, raw=raw)
+        if depth > 1 and geo_key not in _json:
+            geo.jsonify(depth=depth-1, **json_params)
+
+        return geo_key
 
     def related_geos_by_level(self, relation, tight=True, raw=False, limit=10):
         '''Related geos by level
@@ -486,7 +568,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
 
         base_q = getattr(self, relation).join(Geo.data).join(Geo.levels)
         levels = (lvl for lvl in (
-            GeoLevel.up if relation == 'parents' else GeoLevel.down))
+            GeoLevel.UP if relation == 'parents' else GeoLevel.DOWN))
 
         if limit < 0:
             od = OrderedDict(
@@ -547,7 +629,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
                 (lvl, self.levels[lvl].json(mute=mute+['key', 'geo', 'level'],
                                             wrap=False, tight=tight, raw=raw,
                                             limit=limit))
-                for lvl in GeoLevel.down if self.levels.get(lvl, None))),
+                for lvl in GeoLevel.DOWN if self.levels.get(lvl, None))),
 
             ('parents', self.related_geos_by_level(
                 relation='parents', tight=tight, raw=raw, limit=limit)),
@@ -574,7 +656,7 @@ class Geo(BaseGeoModel, AutoTableMixin):
             self.json(wrap=True, tight=False, raw=True, limit=-1), limit=10)
 
 
-class GeoData(BaseGeoModel, AutoTableMixin):
+class GeoData(BaseGeoModel):
     '''Base class for geo data'''
 
     geo_id = Column(types.Integer, ForeignKey('geo.id'))
@@ -697,7 +779,7 @@ class GeoData(BaseGeoModel, AutoTableMixin):
             self.json(wrap=True, tight=False, raw=True, limit=-1), limit=10)
 
 
-class GeoLevel(BaseGeoModel, AutoTableMixin):
+class GeoLevel(BaseGeoModel):
     '''Base class for geo levels
 
     A geo level contains level information for a particular geo, where
@@ -750,7 +832,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
                             'level',
                             unique=True),)
 
-    down = OrderedDict((
+    DOWN = OrderedDict((
         ('country', ('subdivision1',)),
         ('subdivision1', ('csa', 'cbsa', 'subdivision2', 'place')),
         ('csa', ('cbsa', 'subdivision2', 'place')),
@@ -759,7 +841,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         ('place', ())
         ))
 
-    up = OrderedDict((
+    UP = OrderedDict((
         ('place', ('subdivision2', 'cbsa', 'csa', 'subdivision1')),
         ('subdivision2', ('cbsa', 'csa', 'subdivision1')),
         ('cbsa', ('csa', 'subdivision1')),
@@ -768,7 +850,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         ('country', ())
         ))
 
-    Key = namedtuple('Key', 'geo, level')
+    Key = namedtuple('GeoLevelKey', 'geo, level')
 
     @classmethod
     def create_key(cls, geo, level, **kwds):
@@ -785,7 +867,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
         Return the registry key used by the Trackable metaclass from a
         geo level instance. The key is a namedtuple of geo and level.
         '''
-        return type(self).Key(self.geo, self.level)
+        return self.__class__.Key(self.geo, self.level)
 
     @property
     def geo(self):
@@ -886,7 +968,7 @@ class GeoLevel(BaseGeoModel, AutoTableMixin):
             self.json(wrap=True, tight=False, raw=True, limit=-1), limit=10)
 
 
-class GeoID(BaseGeoModel, AutoTableMixin):
+class GeoID(BaseGeoModel):
     '''Geo ID base class
 
     Used to map geos (by level) to 3rd party IDs and vice versa.
@@ -916,7 +998,7 @@ class GeoID(BaseGeoModel, AutoTableMixin):
                       #       unique=True),
                       )
 
-    Key = namedtuple('Key', 'standard, code')
+    Key = namedtuple('GeoIDKey', 'standard, code')
 
     @classmethod
     def create_key(cls, standard, code, **kwds):
@@ -933,7 +1015,7 @@ class GeoID(BaseGeoModel, AutoTableMixin):
         Return the registry key used by the Trackable metaclass from a
         geo ID instance. The key is a namedtuple of standard and code.
         '''
-        return type(self).Key(self.standard, self.code)
+        return self.__class__.Key(self.standard, self.code)
 
     @property
     def standard(self):

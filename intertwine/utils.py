@@ -1,13 +1,231 @@
 #!/usr/bin/env python
-from collections import namedtuple
-import inspect
 import numbers
 import re
+from collections import namedtuple, OrderedDict
+from functools import partial
+from inspect import getargvalues, stack
+from itertools import chain, groupby, imap, izip
+from mock import create_autospec
+from operator import eq, itemgetter
 
-from sqlalchemy import Column, Integer
-from sqlalchemy.ext.declarative import declared_attr
-from alchy.model import ModelMeta
-from intertwine.exceptions import InvalidRegistryKey, KeyRegisteredAndNoModify
+from sqlalchemy import orm
+from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
+from sqlalchemy.orm.properties import ColumnProperty as CP
+from sqlalchemy.orm.relationships import RelationshipProperty as RP
+
+
+class Sentinel(object):
+    _id = 0
+
+    def __init__(self):
+        self.id = self.__class__._id
+        self.__class__._id += 1
+
+    def __repr__(self):
+        return '<{cls}: {id}>'.format(cls=self.__class__.__name__, id=self.id)
+
+
+class InsertableOrderedDict(object):
+    '''Reimplementation of OrderedDict that supports insertion'''
+    sentinel = Sentinel()
+    ValueTuple = namedtuple('InsertableOrderedDictValueTuple',
+                            'value, next, prior')
+
+    def _initialize(self, _iter_or_map, _as_iter):
+        self._iod = {}
+        s = self.sentinel
+        keygetter = itemgetter(0) if _as_iter else lambda x: x
+        valgetter = itemgetter(1) if _as_iter else lambda x: _iter_or_map[x]
+        peekable = PeekableIterator(_iter_or_map, sentinel=s)
+        self._beg = keygetter(peekable.peek()) if peekable.has_next() else s
+        prior_key = s
+        for obj in peekable:
+            key, value = keygetter(obj), valgetter(obj)
+            if self._iod.get(key, s) is not s:
+                raise KeyError(u"Duplicate key: '{}'".format(key))
+            next_key = keygetter(peekable.peek()) if peekable.has_next() else s
+            self._iod[key] = (value, next_key, prior_key)
+            prior_key = key
+        self._end = key if self._beg is not s else s
+
+    def __init__(self, _iter_or_map=(), *args, **kwds):
+        try:
+            self._initialize(_iter_or_map, _as_iter=True)
+        except IndexError:
+            self._initialize(_iter_or_map, _as_iter=False)
+        super(InsertableOrderedDict, self).__init__(*args, **kwds)
+
+    def insert(self, insert_key, key, value, after=False):
+        '''insert a key/value pair
+
+        I/O:
+        insert_key  Reference key used for insertion
+        key         Key to be inserted
+        value       Value to be inserted
+        after=False If True, inserts after reference key
+        return      None
+        '''
+        if after:
+            next_key = self._iod[insert_key][1]
+            prior_key = insert_key
+        else:
+            next_key = insert_key
+            prior_key = self._iod[insert_key][-1]
+
+        self._insert_between(next_key=next_key, prior_key=prior_key,
+                             key=key, value=value)
+
+    def append(self, key, value):
+        self._insert_between(next_key=self.sentinel, prior_key=self._end,
+                             key=key, value=value)
+
+    def prepend(self, key, value):
+        self._insert_between(next_key=self._beg, prior_key=self.sentinel,
+                             key=key, value=value)
+
+    def _insert_between(self, next_key, prior_key, key, value):
+        if self.get(key, self.sentinel) is not self.sentinel:
+            raise KeyError(u"Key already exists: '{}'".format(key))
+
+        self._iod[key] = value, next_key, prior_key
+
+        if next_key is not self.sentinel:
+            next_item = self._iod[next_key]
+            self._iod[next_key] = (next_item[0], next_item[1], key)
+        else:
+            self._end = key
+
+        if prior_key is not self.sentinel:
+            prior_item = self._iod[prior_key]
+            self._iod[prior_key] = (prior_item[0], key, prior_item[-1])
+        else:
+            self._beg = key
+
+    def copy(self):
+        return self.__class__(self)
+
+    def __repr__(self):
+        cls = self.__class__.__name__
+        return u'{cls}({tuples})'.format(cls=cls, tuples=self.items())
+
+    def __len__(self):
+        return len(self._iod)
+
+    def __getitem__(self, key):
+        return self._iod[key][0]
+
+    def __setitem__(self, key, value):
+        try:
+            item = self._iod[key]
+            self._iod[key] = (value, item[1], item[-1])
+        except KeyError:
+            self.append(key, value)
+
+    def __delitem__(self, key):
+        _, next_key, prior_key = self._iod[key]
+        if next_key is not self.sentinel:
+            next_item = self._iod[next_key]
+            self._iod[next_key] = (next_item[0], next_item[1], prior_key)
+        else:
+            self._end = prior_key
+
+        if prior_key is not self.sentinel:
+            prior_item = self._iod[prior_key]
+            self._iod[prior_key] = (prior_item[0], next_key, prior_item[-1])
+        else:
+            self._beg = next_key
+
+        del self._iod[key]
+
+    def __contains__(self, key):
+        return key in self._iod
+
+    def has_key(self, key):
+        return key in self._iod
+
+    def get(self, key, default=None):
+        item = self._iod.get(key, self.sentinel)
+        return item[0] if item is not self.sentinel else default
+
+    def clear(self):
+        self._iod.clear()
+        self._beg = self.sentinel
+        self._end = self.sentinel
+
+    def __iter__(self):
+        key = self._beg
+        while key is not self.sentinel:
+            yield key
+            key = self._iod[key][1]
+
+    def __reversed__(self):
+        key = self._end
+        while key is not self.sentinel:
+            yield key
+            key = self._iod[key][-1]
+
+    def reverse(self):
+        for key, item in self._iod.iteritems():
+            self._iod[key] = (item[0], item[-1], item[1])
+        self._beg, self._end = self._end, self._beg
+
+    def iteritems(self):
+        key = self._beg
+        while key is not self.sentinel:
+            yield (key, self._iod[key][0])
+            key = self._iod[key][1]
+
+    def iterkeys(self):
+        return self.__iter__()
+
+    def itervalues(self):
+        key = self._beg
+        while key is not self.sentinel:
+            yield self._iod[key][0]
+            key = self._iod[key][1]
+
+    def items(self):
+        return [item for item in self.iteritems()]
+
+    def keys(self):
+        return [key for key in self.iterkeys()]
+
+    def values(self):
+        return [value for value in self.itervalues()]
+
+    def __eq__(self, other):
+        if len(self) != len(other):
+            return False
+        if isinstance(other, (OrderedDict, InsertableOrderedDict)):
+            return all(imap(eq, self.iteritems(), other.iteritems()))
+        return all((eq(self[key], other.get(key)) for key in self))
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
+class PeekableIterator(object):
+    '''Iterable that supports peeking at the next item'''
+    def __init__(self, iterable, sentinel=object(), *args, **kwds):
+        self.iterable = iter(iterable)
+        self.sentinel = sentinel
+        self.next_item = next(self.iterable, self.sentinel)
+        super(PeekableIterator, self).__init__(*args, **kwds)
+
+    def next(self):
+        rv = self.next_item
+        self.next_item = next(self.iterable, self.sentinel)
+        return rv
+
+    def has_next(self):
+        return self.next_item is not self.sentinel
+
+    def peek(self):
+        return self.next_item
+
+    def __iter__(self):
+        while self.has_next():
+            yield self.next()
 
 
 def camelCaseTo_snake_case(string):
@@ -27,44 +245,81 @@ def camelCaseTo_snake_case(string):
     return string
 
 
-class AutoIdMixin(object):
-    '''Automatically creates a primary id key'''
-
-    id = Column(Integer, primary_key=True)
+def dict_item_class_name_getter(dict_item):
+    return dict_item[1].__class__.__name__
 
 
-class AutoTablenameMixin(object):
-    '''Autogenerates table name'''
+def dictypify(obj):
+    '''Dictypify
 
-    @declared_attr
-    def __tablename__(cls):
-        return camelCaseTo_snake_case(cls.__name__)
+    Given an object, returns a dict with keys that are type names of
+    __dict__ values, and values that generate __dict__ item tuples.
+    '''
+    d = obj if isinstance(obj, dict) else obj.__dict__
+    key_fn = dict_item_class_name_getter
+    sorted_dict_items = sorted(d.items(), key=key_fn)
+    # convert to generator (remove list)
+    return {k: list(v) for k, v in groupby(sorted_dict_items, key=key_fn)}
 
 
-class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
-    '''Standardizes automatic tables'''
+def kwargify(arg_names=None, arg_values=None, kwargs=None,
+             parg_names=None, parg_values=None, pargs=None, selfish=False):
+    '''kwargify
 
+    Consolidate positional args, *args, and **kwargs into a new dict.
 
-class PeekableIterator(object):
-    def __init__(self, it, sentinel=object()):
-        self.it = iter(it)
-        self.sentinel = sentinel
-        self.next_item = next(self.it, self.sentinel)
+    I/O:
+    arg_names=None:   Sequence of names for arg_values; the only
+                      'required' field, and only if the calling
+                      function's parameters includes *args
+    arg_values=None:  Sequence of arg values to be added to kwargs,
+                      keyed by arg_names; defaults to current value of
+                      the calling function's (*)args
+    kwargs=None:      Dictionary of keyword arguments; defaults to the
+                      current value of the calling function's (**)kwargs
+    parg_names=None:  Sequence of positional arg names; defaults to the
+                      calling function's positional arg names
+    parg_values=None: Sequence of positional arg values to be added to
+                      kwargs, keyed by parg_names; defaults to current
+                      value of calling function's positional arg values
+    pargs=None:       Dictionary of positional keyword arguments; meant
+                      to be an alternative to parg_names/parg_values,
+                      but all will be loaded, assuming no duplicate keys
+    selfish=False:    If False, 'self' is removed (if present)
+    return:           New dictionary in which positional args, (*)args,
+                      and (**)kwargs have been consolidated
+    '''
+    parg_names_, args_name, kwargs_name, frame_locals = getargvalues(
+                                                            stack()[1][0])
 
-    def next(self):
-        rv = self.next_item
-        self.next_item = next(self.it, self.sentinel)
-        return rv
+    arg_names = () if arg_names is None else arg_names
+    arg_values = (frame_locals.get(args_name, ())
+                  if arg_values is None else arg_values)
+    parg_names = parg_names_ if parg_names is None else parg_names
+    parg_values = (tuple((frame_locals[parg_name] for parg_name in parg_names))
+                   if parg_values is None else parg_values)
+    kwargs = frame_locals.get(kwargs_name, {}) if kwargs is None else kwargs
+    kwargs = kwargs.copy() if kwargs else {}
+    if pargs:
+        kwargs.update(pargs)
 
-    def has_next(self):
-        return self.next_item is not self.sentinel
+    for param, keys, values in (('parg_values', parg_names, parg_values),
+                                ('arg_values', arg_names, arg_values)):
+        diff = len(values) - len(keys)
+        if diff > 0:
+            raise KeyError('Missing keys for these {param}: {values}'
+                           .format(param=param, values=values[-diff:]))
 
-    def peek(self):
-        return self.next_item
+    for key, value in chain(izip(parg_names, parg_values),
+                            izip(arg_names, arg_values)):
+        if key in kwargs:
+            raise KeyError('Duplicate key: {}'.format(key))
+        kwargs[key] = value
 
-    def __iter__(self):
-        while self.has_next():
-            yield self.next()
+    if not selfish and 'self' in kwargs:
+        del kwargs['self']
+
+    return kwargs
 
 
 def stringify(thing, limit=10, _lvl=0):
@@ -116,8 +371,9 @@ def stringify(thing, limit=10, _lvl=0):
 
     # If a custom object, use its __unicode__ method, but indent it
     elif hasattr(thing, '__dict__'):
-        strings.append(
-            (('\n' + ind).join('' + unicode(thing).split('\n')))[1:])
+        strings.append(u'{ind}{thing}'.format(
+                       ind=ind, thing=''.join(('\n', ind))
+                                        .join(unicode(thing).split('\n'))))
 
     # If a number, use commas for readability
     elif isinstance(thing, numbers.Number) and not isinstance(thing, bool):
@@ -134,248 +390,48 @@ def stringify(thing, limit=10, _lvl=0):
     return '\n'.join(strings)
 
 
-def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
-    ''''Trackable Representation', Default repr for Trackable classes
+def vardygrify(cls, **kwds):
+    u'''Vardygrify
 
-    Returns a string that when evaluated returns the instance. It works
-    by utilizing the registry and indexability provided by Trackable.
-    The following inputs may be specified:
+    From Wikipedia (https://en.wikipedia.org/wiki/Vard%C3%B8ger):
 
-    named=False:     By default, named tuples are treated as regular
-                     tuples. Set to True to print named tuple info.
+        Vardoger, also known as vardyvle or vardyger, is a spirit
+        predecessor in Scandinavian folklore. Stories typically include
+        instances that are nearly deja vu in substance, but in reverse,
+        where a spirit with the subject's footsteps, voice, scent, or
+        appearance and overall demeanor precedes them in a location or
+        activity, resulting in witnesses believing they've seen or heard
+        the actual person before the person physically arrives. This
+        bears a subtle difference from a doppelganger, with a less
+        sinister connotation. It has been likened to being a phantom
+        double, or form of bilocation.
 
-    tight=False:     By default, newlines/indents are added when a line
-                     exceeds max_width. Excludes whitespace when True.
-
-    raw=True:        By default, escaped values are escaped again to
-                     display raw values properly when printed. Set to
-                     False if the trepr needs to be correct when not
-                     printed, such as when embedding in JSON.
-
-    outclassed=True: By default, the outer class and []'s are included
-                     in the return value so it evals to the instance.
-                     Set to False for a value that evals to the key.
-
-    Usage:
-    >>> from intertwine.problems.models import Problem
-    >>> p1 = Problem('Homelessness')
-    >>> p1  # interpreter calls repr(p1)
-    <BLANKLINE>
-    Problem['homelessness']
-    >>> p2 = eval(repr(p1))
-    >>> p1 is p2
-    True
+    A convenience method for creating a non-persisted mock instance of
+    a classes. Adds method mimicry capabilities on top of Mock.
     '''
-    if tight:
-        sp = ind = ''
-    else:
-        sp, ind, ind_p1 = ' ', ' '*4*_lvl, ' '*4*(_lvl+1)
+    EXCLUDED_METHODS = set(('__new__', '__init__', '__repr__'))
 
-    if self is None or isinstance(self, basestring):
-        # repr adds u''s and extra escapes for printing unicode
-        selfie = repr(self) if raw else u"u'{}'".format(self)
-        return u'{selfie}'.format(ind=ind, selfie=selfie)
+    vardygr = create_autospec(cls, spec_set=False, instance=True)
 
-    key = self.derive_key()
-    cls = self.__class__.__name__
+    # import ipdb; ipdb.set_trace()
+    # need to handle properties: map the setters/getters and use them,
+    # so need them to support vardygrs (esp. the Trackable interactions)
+    for k, v in kwds.iteritems():
+        setattr(vardygr, k, v)
 
-    osqb, op, cp, csqb = '[', '(', ')', ']'
-    if not outclassed and _lvl == 0:
-        cls = osqb = csqb = ''
+    dictypified = dictypify(cls)
 
-    if not isinstance(key, tuple):
-        op = cp = ''
-        key = (key,)
-
-    try:
-        assert named
-        key_name = (u'{cls_name}.{key_cls_name}'
-                    .format(cls_name=self.__class__.__name__,
-                            key_cls_name=type(key).__name__))
-        treprs = [u'{f}={trepr}'.format(
-                  f=f, trepr=trepr(getattr(key, f),
-                                   named, tight, raw, outclassed, _lvl+1))
-                  for f in key._fields]
-
-    except (AssertionError, AttributeError):
-        key_name = ''
-        treprs = [trepr(v, named, tight, raw, outclassed, _lvl+1) for v in key]
-
-    all_1_line = (u'{cls}{osqb}{key_name}{op}{treprs}{cp}{csqb}'
-                  .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
-                          treprs=(u',' + sp).join(treprs), cp=cp, csqb=csqb))
-
-    if len(ind) + len(all_1_line) < Trackable.max_width or tight:
-        return all_1_line
-    else:
-        return (u'{cls}{osqb}{key_name}{op}\n{ind_p1}{treprs}\n{ind}{cp}{csqb}'
-                .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
-                        ind_p1=ind_p1, treprs=(u',\n' + ind_p1).join(treprs),
-                        ind=ind, cp=cp, csqb=csqb))
-
-
-def _repr_(self):
-    '''Default repr for Trackable classes'''
-    # Prefix newline due to ipython pprint bug related to lists
-    return '\n' + self.trepr()
-
-
-class Trackable(ModelMeta):
-    '''Metaclass providing ability to track instances
-
-    Each class of type Trackable maintains a registry of instances and
-    only creates a new instance if it does not already exist. Existing
-    instances can be updated with new data using the constructor if a
-    'modify' method has been defined.
-
-    A 'create_key' staticmethod must be defined on each Trackable class
-    that returns a registry key based on the classes constructor input.
-    A 'derive_key' (instance) method must also be defined on each
-    Trackable class that returns the registry key based on the
-    instance's data.
-
-    Any updates that result from the creation or modification of an
-    instance using the class constructor can also be tracked. New
-    instances are tracked automatically. Modifications of instances may
-    be tracked using the '_modified' field on the instance, which is the
-    set of instances of the same type that were modified.
-
-    A class of type Trackable is subscriptable (indexed by key) and
-    iterable.
-    '''
-
-    # Keep track of all classes that are Trackable
-    _classes = {}
-
-    # Max width used for Trackable's default repr
-    max_width = 79
-
-    def __new__(meta, name, bases, attr):
-        # Track instances for each class of type Trackable
-        attr['_instances'] = {}
-        # Track any new or modified instances
-        attr['_updates'] = set()
-        # Provide default __repr__()
-        custom_repr = attr.get('__repr__', None)
-        attr['__repr__'] = _repr_ if custom_repr is None else custom_repr
-        attr['trepr'] = trepr
-        new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
-        if new_cls.__name__ != 'Base':
-            meta._classes[name] = new_cls
-        return new_cls
-
-    def __call__(cls, *args, **kwds):
-        # Convert args to kwds for create_key() and modify() so
-        # parameter order need not match __init__()
-        all_kwds = kwds.copy()
-        arg_names = inspect.getargspec(cls.__init__)[0][1:len(args)+1]
-        for arg_name, arg in zip(arg_names, args):
-            all_kwds[arg_name] = arg
-        key = cls.create_key(**all_kwds)
-        if key is None or key == '':
-            raise InvalidRegistryKey(key=key, classname=cls.__name__)
-        inst = cls._instances.get(key, None)
-        if inst is None:
-            inst = super(Trackable, cls).__call__(*args, **kwds)
-            cls._instances[key] = inst
-            cls._updates.add(inst)
-        else:
-            if not hasattr(cls, 'modify'):
-                raise KeyRegisteredAndNoModify(key=key, classname=cls.__name__)
-            inst._modified = set()
-            cls.modify(inst, **all_kwds)
-        if hasattr(inst, '_modified'):
-            cls._updates.update(inst._modified)
-            del inst._modified
-        return inst
-
-    def __getitem__(cls, key):
-        return cls._instances.get(key, None)
-
-    def __setitem__(cls, key, value):
-        cls._instances[key] = value
-
-    def __iter__(cls):
-        for inst in cls._instances.itervalues():
-            yield inst
-
-    def register(cls, inst):
-        key = inst.derive_key()
-        existing = cls[key]
-        if existing is not None and existing is not inst:
-            raise ValueError('{} is already registered.'.format(key))
-        cls[key] = inst
-
-    def unregister(cls, inst):
-        key = inst.derive_key()
-        cls._instances.pop(key)  # Throw exception if key not found
-        cls._updates.discard(key)  # Fail silently if key not found
-
-    @classmethod
-    def register_existing(meta, session, *args):
-        '''Register existing instances of Trackable classes (in the DB)
-
-        Takes a session and optional Trackable classes as input. The
-        specified classes have their instances loaded from the database
-        and registered. If no classes are provided, instances of all
-        Trackable classes are loaded from the database and registered.
-        If a class is not Trackable, a TypeError is raised.
-        '''
-        classes = meta._classes.values() if len(args) == 0 else args
-        for cls in classes:
-            if cls.__name__ not in meta._classes:
-                raise TypeError('{} not Trackable.'.format(cls.__name__))
-            instances = session.query(cls).all()
-            for inst in instances:
-                cls._instances[inst.derive_key()] = inst
-
-    @classmethod
-    def clear_instances(meta, *args):
-        '''Clear instances tracked by Trackable classes
-
-        If no arguments are provided, all Trackable classes have their
-        instances cleared from the registry. If one or more classes are
-        passed as input, only these classes have their instances
-        cleared. If a class is not Trackable, a TypeError is raised.
-        '''
-        classes = meta._classes.values() if len(args) == 0 else args
-        for cls in classes:
-            if cls.__name__ not in meta._classes:
-                raise TypeError('{} not Trackable.'.format(cls.__name__))
-            cls._instances = {}
-
-    @classmethod
-    def clear_updates(meta, *args):
-        '''Clear updates tracked by Trackable classes
-
-        If no arguments are provided, all Trackable classes have their
-        updates cleared (i.e. reset). If one or more classes are passed
-        as input, only these classes have their updates cleared. If a
-        class is not Trackable, a TypeError is raised.
-        '''
-        classes = meta._classes.values() if len(args) == 0 else args
-        for cls in classes:
-            if cls.__name__ not in meta._classes:
-                raise TypeError('{} not Trackable.'.format(cls.__name__))
-            cls._updates = set()
-
-    @classmethod
-    def catalog_updates(meta, *args):
-        '''Catalog updates tracked by Trackable classes
-
-        Returns a dictionary keyed by class name, where the values are
-        the corresponding sets of updated instances.
-
-        If no arguments are provided, updates for all Trackable classes
-        are included. If one or more classes are passed as input, only
-        updates from these classes are included. If a class is not
-        Trackable, a TypeError is raised.
-        '''
-        classes = meta._classes.values() if len(args) == 0 else args
-        updates = {}
-        for cls in classes:
-            if cls.__name__ not in meta._classes:
-                raise TypeError('{} not Trackable.'.format(cls.__name__))
-            if len(cls._updates) > 0:
-                updates[cls.__name__] = cls._updates
-        return updates
+    attributes = dictypified.get('function', ())
+    for f in attributes:
+        if f[0] not in EXCLUDED_METHODS:
+            setattr(vardygr, f[0], partial(getattr(cls, f[0]), vardygr))
+    # classmethod/staticmethod both take self when called on an instance
+    attributes = chain(dictypified.get('classmethod', ()),
+                       dictypified.get('staticmethod', ()))
+    for f in attributes:
+        setattr(vardygr, f[0], getattr(cls, f[0]))
+    # properties must be set on the type to be used on an instance
+    attributes = dictypified.get('property', ())
+    for p in attributes:
+        setattr(type(vardygr), p[0], property(getattr(cls, p[0]).fget))
+    return vardygr

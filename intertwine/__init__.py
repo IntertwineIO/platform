@@ -4,16 +4,31 @@
 Base platform for intertwine.
 
 '''
+from alchy import Manager
+from alchy.model import (make_declarative_base, extend_declarative_base,
+                         ModelBase)
 import flask
-# from sassutils.wsgi import SassMiddleware
 from flask_bootstrap import Bootstrap
+# from sassutils.wsgi import SassMiddleware
 
-from . import auth, geos, main, problems, signup
+from bases import BaseIntertwineMeta, BaseIntertwineModel
+
+# Set up base model and database connection, and attach query property
+IntertwineModel = make_declarative_base(Base=BaseIntertwineModel,
+                                        Meta=BaseIntertwineMeta)
+
+intertwine_db = Manager(Model=IntertwineModel)
+extend_declarative_base(IntertwineModel, session=intertwine_db.session)
+
+from . import auth, communities, geos, main, problems, signup
+
 
 ###############################################################################
+
+
 __title__ = 'intertwine'
 __version_str__ = '0.3.0-dev'
-__version__ = tuple([int(ver_i.split('-')[0]) for ver_i in __version_str__.split('.')])
+__version__ = tuple((int(v.split('-')[0]) for v in __version_str__.split('.')))
 __author__ = 'Intertwine'
 __email__ = 'engineering@intertwine.io'
 __license__ = 'Proprietary'
@@ -53,10 +68,13 @@ def create_app(config=None):
 
     # Register all of the blueprints
     app.register_blueprint(main.blueprint, url_prefix='/')
-    # app.register_blueprint(auth.blueprint, url_prefix='/auth')
-    # app.register_blueprint(signup.blueprint, url_prefix='/signup')
+    app.register_blueprint(auth.blueprint, url_prefix='/auth')
+    app.register_blueprint(signup.blueprint, url_prefix='/signup')
     app.register_blueprint(problems.blueprint, url_prefix='/problems')
     app.register_blueprint(geos.blueprint, url_prefix='/geos')
+    app.register_blueprint(communities.blueprint, url_prefix='/communities')
+
+    # app.url_map.strict_slashes = False
 
     # Auto-build SASS/SCSS for each request
     # app.wsgi_app = SassMiddleware(app.wsgi_app, {

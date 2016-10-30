@@ -1,0 +1,17 @@
+#community-list-section {
+    margin-top: 1em;
+    color: #1A1A1A;
+    vertical-align: top;
+    text-align: left;
+}
+
+.indent {
+    font-size: 1em;
+    width: 90%;
+    margin: 0 auto;
+}
+
+.community-display {
+    font-size: 1em;
+}
+

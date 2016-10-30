@@ -33,8 +33,8 @@ def render_problem(problem_name):
     # geo_display = None
     geo = 'United States/Texas/Austin'
     geo_display = 'Austin, TX'
-    connections = problem.connections_with_ratings(org_scope=org,
-                                                   geo_scope=geo,
+    connections = problem.connections_with_ratings(org=org,
+                                                   geo=geo,
                                                    aggregation='strict',
                                                    session=problem_db.session)
     if problem is None:

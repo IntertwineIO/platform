@@ -56,10 +56,10 @@ def test_decode_problem_connection(options):
     p1 = session.query(Problem).filter_by(name='Homelessness').one()
 
     c1 = session.query(ProblemConnection).filter(
-        ProblemConnection.connection_type == 'scoped',
+        ProblemConnection.axis == 'scoped',
         ProblemConnection.broader == p0,
         ProblemConnection.narrower == p1).one()
-    assert c1.connection_type == 'scoped'
+    assert c1.axis == 'scoped'
     assert c1.broader == p0
     assert c1.narrower == p1
     # Clean up after ourselves
@@ -92,7 +92,7 @@ def test_decode_problem_connection_rating(options):
     p1 = session.query(Problem).filter_by(name='Homelessness').one()
 
     c1 = session.query(ProblemConnection).filter(
-        ProblemConnection.connection_type == 'scoped',
+        ProblemConnection.axis == 'scoped',
         ProblemConnection.broader == p0,
         ProblemConnection.narrower == p1).one()
 
@@ -161,18 +161,18 @@ def test_incremental_decode(options):
     assert p2 == Problem['domestic_violence']
 
     c1 = session.query(ProblemConnection).filter(
-        ProblemConnection.connection_type == 'scoped',
+        ProblemConnection.axis == 'scoped',
         ProblemConnection.broader == p0,
         ProblemConnection.narrower == p1).one()
-    assert c1.connection_type == 'scoped'
+    assert c1.axis == 'scoped'
     assert c1.broader == p0
     assert c1.narrower == p1
 
     c2 = session.query(ProblemConnection).filter(
-        ProblemConnection.connection_type == 'causal',
+        ProblemConnection.axis == 'causal',
         ProblemConnection.driver == p2,
         ProblemConnection.impact == p1).one()
-    assert c2.connection_type == 'causal'
+    assert c2.axis == 'causal'
     assert c2.driver == p2
     assert c2.impact == p1
 
@@ -185,14 +185,14 @@ def test_incremental_decode(options):
     rs2 = session.query(ProblemConnectionRating).filter(
         ProblemConnectionRating.problem == p1,
         ProblemConnectionRating.connection == c2,
-        ProblemConnectionRating.org_scope.is_(None),
-        ProblemConnectionRating.geo_scope == 'United States/Texas/Austin')
+        ProblemConnectionRating.org.is_(None),
+        ProblemConnectionRating.geo == 'United States/Texas/Austin')
     assert len(rs2.all()) > 0
     for r in rs2:
         assert r.problem == p1
         assert r.connection == c2
-        assert r.org_scope is None
-        assert r.geo_scope == 'United States/Texas/Austin'
+        assert r.org is None
+        assert r.geo == 'United States/Texas/Austin'
 
     # Simulate impact of app restart on Trackable by clearing it:
     Trackable.clear_instances()
