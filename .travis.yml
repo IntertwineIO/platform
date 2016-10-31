@@ -1,20 +1,25 @@
 sudo: required
 dist: trusty
+
 services:
     - docker
+
 branches:
     only:
         - master
         - develop
+
 matrix:
   fast_finish: true
 
 # Install system dependencies
 before_install:
   - docker pull intertwineio/platform
+  - docker run -d -v $(pwd):/opt/repos/platform /bin/bash
+  - docker ps -a
 
 script:
-   - docker run -v $(pwd):/opt/repos/platform -it intertwineio/platform py.test --license
+  - docker run -v $(pwd):/opt/repos/platform -it intertwineio/platform py.test --license
 
 # after_success:
 #    - coveralls
