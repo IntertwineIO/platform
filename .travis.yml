@@ -15,11 +15,11 @@ matrix:
 # Install system dependencies
 before_install:
   - docker pull intertwineio/platform
-  - docker run -d -v $(pwd):/opt/repos/platform /bin/bash
+  - docker run -d -v $(pwd):/opt/repos/platform intertwineio/platform /bin/bash -c "cd /opt/repos/platform && pip install -e .[all]"
   - docker ps -a
 
-script:
-  - docker run -v $(pwd):/opt/repos/platform -it intertwineio/platform py.test --license
+# script:
+#   - docker run -v $(pwd):/opt/repos/platform -it intertwineio/platform py.test --license
 
 # after_success:
 #    - coveralls
