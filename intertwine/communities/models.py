@@ -1,20 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from collections import OrderedDict, namedtuple
-from operator import attrgetter
 from itertools import groupby
+from operator import attrgetter
 
 from sqlalchemy import Column, ForeignKey, Index, desc, orm, types
 
 from .. import IntertwineModel
 from ..bases import JsonifyProperty
-from ..utils import PeekableIterator, stringify, vardygrify
-from ..problems.models import (AggregateProblemConnectionRating as APCR,
-                               ProblemConnectionRating as PCR,
-                               ProblemConnection as PC,
-                               Problem)
-
 from ..problems.exceptions import InvalidAggregation
+from ..problems.models import AggregateProblemConnectionRating as APCR
+from ..problems.models import ProblemConnection as PC
+from ..problems.models import ProblemConnectionRating as PCR
+from ..problems.models import Problem
+from ..utils import PeekableIterator, stringify, vardygrify
 
 BaseCommunityModel = IntertwineModel
 
