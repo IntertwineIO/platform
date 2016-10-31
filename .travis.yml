@@ -17,10 +17,9 @@ before_install:
   - docker pull intertwineio/platform
   - docker run -d -v $(pwd):/opt/repos/platform intertwineio/platform /bin/bash -c "cd /opt/repos/platform && pip install -e .[all]"
   - docker ps -a
-  - docker run intertwineio/platform /bin/sh -c "cd /opt/repos/platform; py.test --license"
 
 script:
-  - py.test --license
+  - docker run intertwineio/platform /bin/sh -c "cd /opt/repos/platform; py.test --license"
 
 # after_success:
 #    - coveralls
