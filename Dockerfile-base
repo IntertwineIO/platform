@@ -3,10 +3,11 @@ FROM debian:jessie
 # ======================================================================
 #  Environment setup
 # ======================================================================
+ENV TERM xterm-256color
 ENV DEBIAN_FRONTEND noninteractive
-ENV PYTHON2_VERSION 2.7.11
-ENV PYTHON3_VERSION 3.5.1
-ENV PYPY_VERSION 5.0.1
+ENV PYTHON2_VERSION 2.7.12
+ENV PYTHON3_VERSION 3.5.2
+ENV PYPY_VERSION 5.4.1
 ENV LANG C.UTF-8
 
 # ======================================================================
@@ -14,17 +15,16 @@ ENV LANG C.UTF-8
 # ======================================================================
 RUN set -ex \
     && apt-get update && apt-get install -qq --no-install-recommends \
-        ca-certificates \
-        curl \
-        openssh-client \
-        \
-        procps \
         autoconf \
         automake \
+        build-essential \
         bzip2 \
+        ca-certificates \
+        curl \
         file \
         g++ \
         gcc \
+        git \
         imagemagick \
         libbz2-dev \
         libc6-dev \
@@ -51,9 +51,15 @@ RUN set -ex \
         libyaml-dev \
         locales \
         make \
+        openssh-client \
         patch \
+        procps \
+        vim \
+        wget \
         xz-utils \
+        yodl \
         zlib1g-dev \
+        zsh \
     && apt-get clean \
     && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
     && apt-get purge -y python.* \
@@ -91,11 +97,16 @@ RUN set -ex \
     && curl -fSL 'https://bootstrap.pypa.io/get-pip.py' | pypy \
 
 # ======================================================================
-#  Virtualenvironment setup for Python3 and Python2
+#  Add Vex for virtual environment management
 # ======================================================================
-    && pypy -m pip install --upgrade --force pip virtualenv virtualenvwrapper \
-    && python3 -m pip install --no-cache-dir --upgrade --force pip virtualenv virtualenvwrapper \
-    && python -m pip install --no-cache-dir --upgrade --force pip virtualenv virtualenvwrapper \
+    && python -m pip install --no-cache-dir --upgrade --force pip vex \
+
+# ======================================================================
+#  Configure ZShell
+# ======================================================================
+    && wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true \
+    && zsh --version \
+    && chsh -s "$(which zsh)" `whoami` \
 
 # ======================================================================
 #  Python cleanup
@@ -113,4 +124,6 @@ RUN set -ex \
     && rm -rf /tmp/* /var/tmp/* \
     && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
-CMD ["/bin/bash"]
+COPY docker /root
+
+CMD ["/bin/zsh"]
