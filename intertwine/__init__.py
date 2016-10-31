@@ -6,12 +6,12 @@ Base platform for intertwine.
 '''
 import flask
 from alchy import Manager
-from alchy.model import (extend_declarative_base,
-                         make_declarative_base)
-from bases import BaseIntertwineMeta, BaseIntertwineModel
+from alchy.model import extend_declarative_base, make_declarative_base
 from flask_bootstrap import Bootstrap
 
 from . import auth, communities, geos, main, problems, signup
+from .bases import BaseIntertwineMeta, BaseIntertwineModel
+
 # from . import demo
 # from sassutils.wsgi import SassMiddleware
 
@@ -25,9 +25,7 @@ extend_declarative_base(IntertwineModel, session=intertwine_db.session)
 
 
 ###############################################################################
-
-
-__title__ = 'intertwine'
+__project__ = 'intertwine'
 __version_str__ = '0.3.0-dev'
 __version__ = tuple((int(v.split('-')[0]) for v in __version_str__.split('.')))
 __author__ = 'Intertwine'
@@ -35,14 +33,20 @@ __email__ = 'engineering@intertwine.io'
 __license__ = 'Proprietary'
 __copyright__ = 'Copyright 2015, 2016 - Intertwine'
 __url__ = 'https://github.com/IntertwineIO/platform.git'
-__shortdesc__ = "Untangle the world's problems"
+__shortdoc__ = "Untangle the world's problems"
 
 
 ###############################################################################
 
 
 def create_app(config=None):
-    '''Creates an app
+    '''Creates an app based on a config file
+
+    Args:
+        config: Configuration
+
+    Returns:
+        Flask: a Flask app
 
     >>> from intertwine import create_app
     >>> from config import DevConfig
