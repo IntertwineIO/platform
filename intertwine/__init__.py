@@ -6,13 +6,13 @@ Base platform for intertwine.
 '''
 import flask
 from alchy import Manager
-from alchy.model import (ModelBase, extend_declarative_base,
+from alchy.model import (extend_declarative_base,
                          make_declarative_base)
 from bases import BaseIntertwineMeta, BaseIntertwineModel
 from flask_bootstrap import Bootstrap
 
-from . import auth, communities, demo, geos, main, problems, signup
-
+from . import auth, communities, geos, main, problems, signup
+# from . import demo
 # from sassutils.wsgi import SassMiddleware
 
 
@@ -73,13 +73,10 @@ def create_app(config=None):
     app.register_blueprint(signup.blueprint, url_prefix='/signup')
     app.register_blueprint(problems.blueprint, url_prefix='/problems')
     app.register_blueprint(geos.blueprint, url_prefix='/geos')
-<<<<<<< Updated upstream
     app.register_blueprint(communities.blueprint, url_prefix='/communities')
 
     # app.url_map.strict_slashes = False
-=======
-    app.register_blueprint(demo.blueprint, url_prefix='/demo')
->>>>>>> Stashed changes
+    # app.register_blueprint(demo.blueprint, url_prefix='/demo')
 
     # Auto-build SASS/SCSS for each request
     # app.wsgi_app = SassMiddleware(app.wsgi_app, {
