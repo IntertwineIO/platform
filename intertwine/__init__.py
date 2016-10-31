@@ -9,7 +9,6 @@ from alchy import Manager
 from alchy.model import extend_declarative_base, make_declarative_base
 from flask_bootstrap import Bootstrap
 
-from . import auth, communities, geos, main, problems, signup
 from .bases import BaseIntertwineMeta, BaseIntertwineModel
 
 # from . import demo
@@ -23,7 +22,6 @@ IntertwineModel = make_declarative_base(Base=BaseIntertwineModel,
 intertwine_db = Manager(Model=IntertwineModel)
 extend_declarative_base(IntertwineModel, session=intertwine_db.session)
 
-
 ###############################################################################
 __project__ = 'intertwine'
 __version_str__ = '0.3.0-dev'
@@ -35,8 +33,8 @@ __copyright__ = 'Copyright 2015, 2016 - Intertwine'
 __url__ = 'https://github.com/IntertwineIO/platform.git'
 __shortdoc__ = "Untangle the world's problems"
 
-
 ###############################################################################
+from . import auth, communities, geos, main, problems, signup  # noqa
 
 
 def create_app(config=None):
