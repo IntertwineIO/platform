@@ -4,14 +4,17 @@
 Base platform for intertwine.
 
 '''
-from alchy import Manager
-from alchy.model import (make_declarative_base, extend_declarative_base,
-                         ModelBase)
 import flask
+from alchy import Manager
+from alchy.model import (ModelBase, extend_declarative_base,
+                         make_declarative_base)
+from bases import BaseIntertwineMeta, BaseIntertwineModel
 from flask_bootstrap import Bootstrap
+
+from . import auth, communities, demo, geos, main, problems, signup
+
 # from sassutils.wsgi import SassMiddleware
 
-from bases import BaseIntertwineMeta, BaseIntertwineModel
 
 # Set up base model and database connection, and attach query property
 IntertwineModel = make_declarative_base(Base=BaseIntertwineModel,
@@ -19,8 +22,6 @@ IntertwineModel = make_declarative_base(Base=BaseIntertwineModel,
 
 intertwine_db = Manager(Model=IntertwineModel)
 extend_declarative_base(IntertwineModel, session=intertwine_db.session)
-
-from . import auth, communities, geos, main, problems, signup
 
 
 ###############################################################################
@@ -72,9 +73,13 @@ def create_app(config=None):
     app.register_blueprint(signup.blueprint, url_prefix='/signup')
     app.register_blueprint(problems.blueprint, url_prefix='/problems')
     app.register_blueprint(geos.blueprint, url_prefix='/geos')
+<<<<<<< Updated upstream
     app.register_blueprint(communities.blueprint, url_prefix='/communities')
 
     # app.url_map.strict_slashes = False
+=======
+    app.register_blueprint(demo.blueprint, url_prefix='/demo')
+>>>>>>> Stashed changes
 
     # Auto-build SASS/SCSS for each request
     # app.wsgi_app = SassMiddleware(app.wsgi_app, {
