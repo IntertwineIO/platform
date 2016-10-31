@@ -1,17 +1,25 @@
 #!/usr/bin/env python
 import numbers
 import re
+import sys
 from collections import namedtuple, OrderedDict
 from functools import partial
 from inspect import getargvalues, stack
-from itertools import chain, groupby, imap, izip
+from itertools import chain, groupby
 from mock import create_autospec
 from operator import eq, itemgetter
 
-from sqlalchemy import orm
-from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
-from sqlalchemy.orm.properties import ColumnProperty as CP
-from sqlalchemy.orm.relationships import RelationshipProperty as RP
+if sys.version.startswith('3'):
+    imap = map
+    izip = zip
+else:
+    from itertools import imap, izip
+
+
+# from sqlalchemy import orm
+# from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
+# from sqlalchemy.orm.properties import ColumnProperty as CP
+# from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 
 class Sentinel(object):
