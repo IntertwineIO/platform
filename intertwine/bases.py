@@ -2,17 +2,17 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
 from itertools import chain
-from operator import attrgetter, itemgetter
+from operator import attrgetter
 
-from sqlalchemy import orm, Column, Integer
+from alchy.model import ModelBase
+from sqlalchemy import Column, Integer, orm
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
 from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
-from alchy.model import ModelBase
 
-from trackable import Trackable
-from utils import InsertableOrderedDict, camelCaseTo_snake_case, kwargify
+from .trackable import Trackable
+from .utils import InsertableOrderedDict, camelCaseTo_snake_case, kwargify
 
 
 class BaseIntertwineMeta(Trackable):
