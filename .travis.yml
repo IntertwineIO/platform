@@ -15,11 +15,12 @@ matrix:
 # Install system dependencies
 before_install:
   - docker pull intertwineio/platform
-  - docker run -d -v $(pwd):/opt/repos/platform intertwineio/platform /bin/bash -c "cd /opt/repos/platform && pip install -e .[all]"
+  - docker run -d -v $(pwd):/opt/repos/platform intertwineio/platform /bin/bash -c "vex venv pip install -e .[all]"
   - docker ps -a
 
 script:
-  - docker run intertwineio/platform /bin/sh -c "cd /opt/repos/platform; py.test --license"
+  - docker run -rm -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv3 py.test --license
+  - docker run -rm -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv py.test --license
 
 # after_success:
 #    - coveralls
