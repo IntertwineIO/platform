@@ -19,8 +19,11 @@ before_install:
   - docker ps -a
 
 script:
+  # TODO: Use environmental variables to control which venv to use
+  # Test using python 3
   - docker run -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv3 py.test --license
-  - docker run -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv py.test --license
+  # Test using python 2
+  # - docker run -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv py.test --license
 
 # after_success:
 #    - coveralls
