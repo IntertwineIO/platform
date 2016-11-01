@@ -19,8 +19,8 @@ before_install:
   - docker ps -a
 
 script:
-  - docker run -rm -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv3 py.test --license
-  - docker run -rm -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv py.test --license
+  - docker run -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv3 py.test --license
+  - docker run -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv py.test --license
 
 # after_success:
 #    - coveralls
