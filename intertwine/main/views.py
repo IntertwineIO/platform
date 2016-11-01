@@ -1,20 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-import flask
-from flask import render_template
+from flask import redirect
 
 from . import blueprint
-from ..problems.models import Problem
 
 
 @blueprint.route('/', methods=['GET'])
 def render():
-    '''Generic page rendering for top level'''
-    problems = Problem.query.order_by(Problem.name).all()
-    template = render_template(
-        'main.html',
-        current_app=flask.current_app,
-        title="Main",
-        problems=problems)
-    return template
+    permanent_redirect = 301
+    # temporary_redirect = 302
+    path = "/communities/homelessness/us/tx/austin"
+    return redirect(path, code=permanent_redirect)
