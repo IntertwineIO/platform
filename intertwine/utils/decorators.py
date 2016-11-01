@@ -20,6 +20,7 @@ class singleton(object):
             self.func = args[0] if len(args) > 1 and isinstance(args[0], FunctionType) else None
         if self.func and self.key not in self.memoized:
             self.memoized[self.key] = self.func(*args, **kwds)
+
         return self.memoized[self.key]
         print('call args:', args)
         print('call kwds:', kwds)

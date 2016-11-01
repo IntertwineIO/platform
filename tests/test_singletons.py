@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import pytest
 
 
+@pytest.mark.skip('Feature not ready')
 def test_singleton_blueprints():
     from intertwine.utils.blueprints import create_singleton_blueprint
 
