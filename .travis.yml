@@ -21,7 +21,7 @@ before_install:
 script:
   # TODO: Use environmental variables to control which venv to use
   # Test using python 3
-  - docker run -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv3 tox -e py35,py35-smoke,py35-unit,py35-license,style
+  - docker run -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv3 tox -e py35,style
   # Test using python 2
   # - docker run -it -v $(pwd):/opt/repos/platform intertwineio/platform vex venv py.test --license
 
