@@ -1,8 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
-Geo database.
-'''
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from flask import Blueprint
 from alchy import Manager
 from alchy.model import extend_declarative_base

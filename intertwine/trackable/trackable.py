@@ -1,8 +1,11 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import inspect
 
 from alchy.model import ModelMeta
+from past.builtins import basestring
+
 from .exceptions import InvalidRegistryKey, KeyRegisteredAndNoModify
 
 
@@ -170,7 +173,7 @@ class Trackable(ModelMeta):
         cls._instances[key] = value
 
     def __iter__(cls):
-        for inst in cls._instances.itervalues():
+        for inst in cls._instances.values():
             yield inst
 
     def register(cls, inst):

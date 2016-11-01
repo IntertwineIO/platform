@@ -173,11 +173,11 @@ class InsertableOrderedDict(object):
             key = self._iod[key][-1]
 
     def reverse(self):
-        for key, item in self._iod.iteritems():
+        for key, item in self._iod.items():
             self._iod[key] = (item[0], item[-1], item[1])
         self._beg, self._end = self._end, self._beg
 
-    def iteritems(self):
+    def items(self):
         key = self._beg
         while key is not self.sentinel:
             yield (key, self._iod[key][0])
@@ -186,26 +186,26 @@ class InsertableOrderedDict(object):
     def iterkeys(self):
         return self.__iter__()
 
-    def itervalues(self):
+    def values(self):
         key = self._beg
         while key is not self.sentinel:
             yield self._iod[key][0]
             key = self._iod[key][1]
 
     def items(self):
-        return [item for item in self.iteritems()]
+        return [item for item in self.items()]
 
     def keys(self):
         return [key for key in self.iterkeys()]
 
     def values(self):
-        return [value for value in self.itervalues()]
+        return [value for value in self.values()]
 
     def __eq__(self, other):
         if len(self) != len(other):
             return False
         if isinstance(other, (OrderedDict, InsertableOrderedDict)):
-            return all(imap(eq, self.iteritems(), other.iteritems()))
+            return all(imap(eq, self.items(), other.items()))
         return all((eq(self[key], other.get(key)) for key in self))
 
     def __ne__(self, other):
@@ -363,7 +363,7 @@ def stringify(thing, limit=10, _lvl=0):
 
     # If a dict, add each key and stringify + further indent each value
     elif isinstance(thing, dict):
-        for k, v in thing.iteritems():
+        for k, v in thing.items():
             v_str = stringify(v, limit, _lvl+1)
             # If key has an empty value, don't include it
             if len(v_str.strip()) == 0:
@@ -424,7 +424,7 @@ def vardygrify(cls, **kwds):
     # import ipdb; ipdb.set_trace()
     # need to handle properties: map the setters/getters and use them,
     # so need them to support vardygrs (esp. the Trackable interactions)
-    for k, v in kwds.iteritems():
+    for k, v in kwds.items():
         setattr(vardygr, k, v)
 
     dictypified = dictypify(cls)

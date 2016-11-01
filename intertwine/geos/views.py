@@ -1,5 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from operator import attrgetter
 
 import flask
@@ -12,8 +13,8 @@ from .models import Geo, GeoLevel
 @blueprint.route('/', methods=['GET'])
 def render():
     '''Generic page rendering for top level'''
-    geos = Geo.query.filter(Geo.path_parent == None,
-                            Geo.alias_target == None).order_by(Geo.name).all()
+    geos = Geo.query.filter(Geo.path_parent is None,
+                            Geo.alias_target is None).order_by(Geo.name).all()
     # glvls = GeoLevel.query.filter(GeoLevel.level == 'country').all()
     # geos = [glvl.geo for glvl in glvls]
     if len(geos) == 1:

@@ -1,5 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import re
 from collections import namedtuple, OrderedDict
 from numbers import Real
@@ -437,7 +438,7 @@ class ProblemConnectionRating(BaseProblemModel):
     #    to order them and modulate how they are displayed. This may end
     #    up being pre-processed, but it must be queried when calculated.
     #    cols: problem_id, org, geo, connection_id
-    #       where most commonly org == None
+    #       where most commonly org is None
     #    cols: problem_id, org, geo
     #
     # 2. The Problem Page needs to ask the user to rate connections that

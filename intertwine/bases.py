@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
 from itertools import chain
@@ -131,7 +130,7 @@ class Inspectable(object):
             fields.insert(syn_name, new_name, sp)
             del fields[syn_name]
         # Add JsonifyProperties, replacing any matches
-        jsonify_properties = [v for v in cls.__dict__.itervalues()
+        jsonify_properties = [v for v in cls.__dict__.values()
                               if isinstance(v, JsonifyProperty)]
         jsonify_properties.sort(key=attrgetter('index'))
         for jsonify_property in jsonify_properties:
@@ -151,7 +150,7 @@ class Inspectable(object):
                 fields[jp_name] = jsonify_property
 
         # # Add any regular Python properties (non-SQLAlchemy) alphabetically
-        # py_properties = [(k, v) for k, v in cls.__dict__.iteritems()
+        # py_properties = [(k, v) for k, v in cls.__dict__.items()
         #                  if isinstance(v, property)]
         # py_properties.sort(key=itemgetter(0))
         # for k, v in py_properties:
@@ -221,7 +220,7 @@ class Jsonable(object):
 
         fields = self.fields()
 
-        for field, prop in fields.iteritems():
+        for field, prop in fields.items():
             if field in mute:
                 continue
 

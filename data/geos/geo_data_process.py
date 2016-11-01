@@ -388,7 +388,7 @@ def load_place_geos(geo_session, session):
     # yak_cab = GeoID[('FIPS', '02282')].level.geo
     # consolidated[yak_cab] = yak_cab.children.all()
 
-    for county, places in consolidated.iteritems():
+    for county, places in consolidated.items():
 
         if len(places) > 1:
 
@@ -857,7 +857,7 @@ def load_cbsa_geos(geo_session, session):
 
     print 'CBSAs with unnamed main places...'
     for cbsa, (cbsa_places, cbsa_main_place) in (
-                                cbsas_with_unnamed_main_places.iteritems()):
+                                cbsas_with_unnamed_main_places.items()):
         sorted_places = sorted(cbsa_places.keys(),
                                key=lambda p: cbsa_places[p],
                                reverse=True)
@@ -876,7 +876,7 @@ def load_cbsa_geos(geo_session, session):
                     pop_total=pop_total) if cbsa_pop != pop_total else ''))
 
     print 'CBSAs without main places...'
-    for cbsa, (p1_tuple, p2_tuple) in cbsas_without_main_places.iteritems():
+    for cbsa, (p1_tuple, p2_tuple) in cbsas_without_main_places.items():
         p1_geo, p1_pop = p1_tuple
         p2_geo, p2_pop = p2_tuple
         p1_total, p2_total = p1_geo.data.total_pop, p2_geo.data.total_pop

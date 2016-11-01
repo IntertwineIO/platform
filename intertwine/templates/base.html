@@ -16,7 +16,10 @@
 <!-- Jquery -->
 <script src="http://code.jquery.com/jquery-latest.js"></script>
 <!-- React JS -->
-<script src="http://fb.me/react-0.10.0.min.js"></script>
+<script src="https://unpkg.com/react@15/dist/react.min.js"></script>
+<script src="https://unpkg.com/react-dom@15/dist/react-dom.min.js"></script>
+<!-- Riot JS -->
+<script src="https://cdn.jsdelivr.net/riot/2.6/riot+compiler.min.js"></script>
 
 <script>
 $(".nav a").on("click",
@@ -36,7 +39,7 @@ $(".nav a").on("click",
         <div class="collapse navbar-collapse navbarCollapse ">
             <ul class="nav navbar-nav navbar-right">
             {% for bp in current_app.blueprints %}
-                {% if bp not in ['bootstrap', 'security'] %}
+                {% if bp not in ['bootstrap', 'security', 'demo'] %}
                 <li><a class="navbar-brand" href="{{url_for(bp+'.render')}}">{{ bp }}</a></li>
                 {% endif %}
             {% endfor %}
@@ -51,5 +54,8 @@ $(".nav a").on("click",
 {% endblock %}
 
 {% block content %}
+{% endblock %}
 
+<!-- Use this for scripts that need to load at the bottom of the page -->
+{% block bottom_scripts %}
 {% endblock %}

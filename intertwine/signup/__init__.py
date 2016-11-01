@@ -1,8 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
-Main application for website.  Contains default/non-modified views
-'''
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from flask import Blueprint
 from flask_sqlalchemy import SQLAlchemy
 

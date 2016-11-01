@@ -1,5 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from collections import namedtuple, OrderedDict
 
 from sqlalchemy import desc, orm, types, Column, ForeignKey, Index, Table
@@ -367,7 +368,7 @@ class Geo(BaseGeoModel):
         self.data = GeoData(geo=self, **data) if data is not None else None
 
         self.levels = {}
-        for lvl, glvl in levels.iteritems():
+        for lvl, glvl in levels.items():
             new_glvl = glvl
             # The geo for the geolevel should always be self. If a geo
             # key is provided, make sure it matches and remove it.
@@ -408,7 +409,7 @@ class Geo(BaseGeoModel):
                       'data': ('not dynamic', None),
                       'levels': ('not dynamic', {})}
 
-        for attr, (load, empty) in attributes.iteritems():
+        for attr, (load, empty) in attributes.items():
             # load, rel = attributes[attr]
             self_attr_val = getattr(self, attr)
             if load == 'dynamic':
@@ -528,7 +529,7 @@ class Geo(BaseGeoModel):
                        .order_by(desc(GeoData.total_pop)).limit(limit).all()])
                 for lvl in levels)
 
-        for lvl, geos in rv.iteritems():
+        for lvl, geos in rv.items():
             if len(geos) == 0:
                 rv.pop(lvl)
 
@@ -582,7 +583,7 @@ class Geo(BaseGeoModel):
                  desc(GeoData.total_pop)).limit(limit).all()
                  ]) for lvl in levels)
 
-        for lvl, geos in od.iteritems():
+        for lvl, geos in od.items():
             if len(geos) == 0:
                 od.pop(lvl)
 
