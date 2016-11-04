@@ -39,7 +39,32 @@ class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
     '''Standardizes automatic tables'''
 
 
-class Inspectable(object):
+class JsonifyProperty(object):
+
+    _count = 0
+
+    def __init__(self, name, method, kwargs=None, before=None, after=None,
+                 *args, **kwds):
+        if before and after:
+            raise ValueError('JsonifyProperty {name} cannot have both '
+                             "'before' and 'after' values".format(name=name))
+        self.name = name
+        self.method = method
+        self.kwargs = kwargs or {}
+        self.before = before
+        self.after = after
+        self.index = self.__class__._count
+        self.__class__._count += 1
+        super(JsonifyProperty, self).__init__(*args, **kwds)
+
+    def __call__(self, obj, *args, **kwds):
+        func = getattr(obj, self.method)
+        merged_kwds = self.kwargs.copy()
+        merged_kwds.update(kwds)
+        return func(*args, **merged_kwds)
+
+
+class Jsonable(object):
 
     @classmethod
     def fields(cls):
@@ -149,41 +174,7 @@ class Inspectable(object):
             else:
                 fields[jp_name] = jsonify_property
 
-        # # Add any regular Python properties (non-SQLAlchemy) alphabetically
-        # py_properties = [(k, v) for k, v in cls.__dict__.items()
-        #                  if isinstance(v, property)]
-        # py_properties.sort(key=itemgetter(0))
-        # for k, v in py_properties:
-        #     fields[k] = v
         return fields
-
-
-class JsonifyProperty(object):
-
-    _count = 0
-
-    def __init__(self, name, method, kwargs=None, before=None, after=None,
-                 *args, **kwds):
-        if before and after:
-            raise ValueError('JsonifyProperty {name} cannot have both '
-                             "'before' and 'after' values".format(name=name))
-        self.name = name
-        self.method = method
-        self.kwargs = kwargs or {}
-        self.before = before
-        self.after = after
-        self.index = self.__class__._count
-        self.__class__._count += 1
-        super(JsonifyProperty, self).__init__(*args, **kwds)
-
-    def __call__(self, obj, *args, **kwds):
-        func = getattr(obj, self.method)
-        merged_kwds = self.kwargs.copy()
-        merged_kwds.update(kwds)
-        return func(*args, **merged_kwds)
-
-
-class Jsonable(object):
 
     def jsonify(self, mute=None, nest=False, tight=True, raw=False, limit=10,
                 depth=1, _json=None):
@@ -228,12 +219,6 @@ class Jsonable(object):
                 self_json[field] = prop(obj=self, depth=depth, **json_params)
                 continue
 
-            # if isinstance(prop, property):
-            #     func = getattr(self, prop.fget.func_name)
-            #     json_params['depth'] = depth
-            #     self_json[field] = func(**json_params)
-            #     continue
-
             value = getattr(self, field)
 
             if hasattr(value, 'jsonify'):
@@ -261,7 +246,7 @@ class Jsonable(object):
         return _json
 
 
-class BaseIntertwineModel(Inspectable, Jsonable, AutoTableMixin, ModelBase):
+class BaseIntertwineModel(Jsonable, AutoTableMixin, ModelBase):
 
     @classmethod
     def _class_init_(cls):
