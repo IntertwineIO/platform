@@ -43,8 +43,8 @@ class JsonifyProperty(object):
 
     _count = 0
 
-    def __init__(self, name, method, kwargs=None, before=None, after=None,
-                 *args, **kwds):
+    def __init__(self, name, method=None, kwargs=None, before=None, after=None,
+                 show=True, *args, **kwds):
         if before and after:
             raise ValueError('JsonifyProperty {name} cannot have both '
                              "'before' and 'after' values".format(name=name))
@@ -53,6 +53,7 @@ class JsonifyProperty(object):
         self.kwargs = kwargs or {}
         self.before = before
         self.after = after
+        self.show = show
         self.index = self.__class__._count
         self.__class__._count += 1
         super(JsonifyProperty, self).__init__(*args, **kwds)
@@ -216,7 +217,9 @@ class Jsonable(object):
                 continue
 
             if isinstance(prop, JsonifyProperty):
-                self_json[field] = prop(obj=self, depth=depth, **json_params)
+                if prop.show:
+                    self_json[field] = prop(obj=self, depth=depth,
+                                            **json_params)
                 continue
 
             value = getattr(self, field)

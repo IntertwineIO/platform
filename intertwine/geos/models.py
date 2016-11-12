@@ -81,30 +81,44 @@ class Geo(BaseGeoModel):
                 cascade='all, delete-orphan',
                 backref='_geo')
 
+    @property
+    def up_level_key(self):
+        for lvl in GeoLevel.UP:
+            glvl = self.levels.get(lvl)
+            if glvl:
+                return glvl.level
+        return None
+
+    @property
+    def down_level_key(self):
+        for lvl in GeoLevel.DOWN:
+            glvl = self.levels.get(lvl)
+            if glvl:
+                return glvl.level
+        return None
+
     path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
     _path_parent = orm.relationship(
                 'Geo',
                 primaryjoin=('Geo.path_parent_id==Geo.id'),
                 remote_side='Geo.id',
-                backref=orm.backref('path_children', lazy='dynamic'),
-                lazy='joined')
+                lazy='joined',
+                backref=orm.backref('path_children', lazy='dynamic'))
 
-    # level         us geo      us parents
-    # country       US          None
-    # subdivision1  state       US
-    # csa           csa         state(s)
-    # cbsa          cbsa        csa (if exists) and state(s)
-    # subdivision2  county      cbsa (if exists) and state
-    # place         place       county or counties (if exists) and state
     parents = orm.relationship(
-                'Geo', secondary='geo_association',
+                'Geo',
+                secondary='geo_association',
                 primaryjoin='Geo.id==geo_association.c.child_id',
                 secondaryjoin='Geo.id==geo_association.c.parent_id',
-                backref=orm.backref('children',
-                                    lazy='dynamic',
-                                    # order_by='Geo.name'
-                                    ),
-                lazy='dynamic')
+                lazy='dynamic',
+                # collection_class=attribute_mapped_collection('up_level_key'),
+                backref=orm.backref(
+                    'children',
+                    lazy='dynamic',
+                    # collection_class=attribute_mapped_collection(
+                    #     'down_level_key'),
+                    # order_by='Geo.name'
+                    ))
 
     jsonified_parents = JsonifyProperty(name='parents',
                                         method='jsonify_related_geos',
@@ -114,10 +128,7 @@ class Geo(BaseGeoModel):
                                          method='jsonify_related_geos',
                                          kwargs=dict(relation='children'))
 
-    jsonified_path_children = JsonifyProperty(
-                                    name='path_children',
-                                    method='jsonify_related_geos',
-                                    kwargs=dict(relation='path_children'))
+    jsonified_path_children = JsonifyProperty(name='path_children', show=False)
 
     DELIMITER = '/'
 
