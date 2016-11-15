@@ -183,7 +183,7 @@ class InsertableOrderedDict(object):
             yield (key, self._iod[key][0])
             key = self._iod[key][1]
 
-    def iterkeys(self):
+    def keys(self):
         return self.__iter__()
 
     def values(self):
@@ -192,14 +192,14 @@ class InsertableOrderedDict(object):
             yield self._iod[key][0]
             key = self._iod[key][1]
 
-    def items(self):
-        return [item for item in self.items()]
+    # def items(self):
+    #     return [item for item in self.iteritems()]
 
-    def keys(self):
-        return [key for key in self.iterkeys()]
+    # def keys(self):
+    #     return [key for key in self.iterkeys()]
 
-    def values(self):
-        return [value for value in self.values()]
+    # def values(self):
+    #     return [value for value in self.itervalues()]
 
     def __eq__(self, other):
         if len(self) != len(other):

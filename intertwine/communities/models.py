@@ -400,14 +400,14 @@ class Community(BaseCommunityModel):
 
         return rv
 
-    def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
+    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
         '''JSON structure for a community instance
 
         Returns a structure for the given community instance that will
         serialize to JSON.
 
         The following inputs may be specified:
-        mute=[]:    mutes (excludes) any field names listed
+        hide=[]:    hides (excludes) any field names listed
         wrap=True:  wrap the instance in a dictionary keyed by repr
         tight=True: make all repr values tight (without whitespace)
         raw=False:  when True, adds extra escapes (for printing)
@@ -424,7 +424,7 @@ class Community(BaseCommunityModel):
             ('num_followers', self.num_followers)
         ))
 
-        for field in mute:
+        for field in hide:
             od.pop(field, None)  # fail silently if field not present
 
         rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))

@@ -177,7 +177,7 @@ class Jsonable(object):
 
         return fields
 
-    def jsonify(self, mute=None, nest=False, tight=True, raw=False, limit=10,
+    def jsonify(self, hide=None, nest=False, tight=True, raw=False, limit=10,
                 depth=1, _json=None):
         '''JSON structure for a community instance
 
@@ -185,7 +185,7 @@ class Jsonable(object):
         serialize to JSON.
 
         Parameters:
-        mute=None:  Set of field names to be excluded
+        hide=None:  Set of field names to be excluded
         nest=False: By default all relationships are by reference and
                     the top level JSON is a dictionary of objects
         tight=True: Make all repr values tight (without whitespace)
@@ -199,21 +199,22 @@ class Jsonable(object):
         _json=None: private top-level json object
         '''
         assert depth > 0
-        mute = set() if mute is None else mute
-        mute = mute if isinstance(mute, set) else set(mute)
+        hide = set() if hide is None else hide
+        hide = hide if isinstance(hide, set) else set(hide)
         _json = OrderedDict() if _json is None else _json
         json_params = kwargify()  # includes updated _json value
         del json_params['depth']
 
-        self_key = self.trepr(tight=tight, raw=raw)
         # TODO: Check if item already exists and needs to be enhanced?
         self_json = OrderedDict()
-        _json[self_key] = self_json
+        if not nest:
+            self_key = self.trepr(tight=tight, raw=raw)
+            _json[self_key] = self_json
 
         fields = self.fields()
 
         for field, prop in fields.items():
-            if field in mute:
+            if field in hide:
                 continue
 
             if isinstance(prop, JsonifyProperty):
@@ -246,7 +247,7 @@ class Jsonable(object):
             else:
                 self_json[field] = value
 
-        return _json
+        return self_json if nest else _json
 
 
 class BaseIntertwineModel(Jsonable, AutoTableMixin, ModelBase):

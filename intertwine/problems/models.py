@@ -311,33 +311,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
             self.rating, self.weight = rating, weight
             self._modified.add(self)
 
-    # def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
-    #     return (type(self).json_x(self.community, self.connection,
-    #             self.aggregation, self.rating, self.weight))
-
-    # @classmethod
-    # def json_x(cls, community, connection, aggregation, rating, weight,
-    #          mute=[], wrap=True, tight=True, raw=False, limit=10):
-
-    #     key = cls.create_key(community=community, connection=connection,
-    #                          aggregation=aggregation)
-
-    #     od = OrderedDict((
-    #         ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
-    #         ('community', community.trepr(tight=tight, raw=raw)),
-    #         ('connection', connection.trepr(tight=tight, raw=raw)),
-    #         ('aggregation', aggregation),
-    #         ('rating', rating),
-    #         ('weight', weight)
-    #     ))
-    #     for field in mute:
-    #         od.pop(field, None)  # fail silently if field not present
-
-    #     rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))
-    #           if wrap else od)
-    #     return rv
-
-    def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
+    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
         od = OrderedDict((
             ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
             ('community', self.community.trepr(tight=tight, raw=raw)),
@@ -346,7 +320,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
             ('rating', self.rating),
             ('weight', self.weight)
         ))
-        for field in mute:
+        for field in hide:
             od.pop(field, None)  # fail silently if field not present
 
         rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))
