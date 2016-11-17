@@ -19,17 +19,19 @@ import os
 import os.path
 import sys
 
+from alchy.model import extend_declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 
 from config import DevConfig
+from intertwine import IntertwineModel
 from intertwine.trackable import Trackable
 from intertwine.auth.models import BaseAuthModel
-from intertwine.communities.models import BaseCommunityModel
-from intertwine.geos.models import BaseGeoModel
-from intertwine.problems.models import (BaseProblemModel, Problem)
+# from intertwine.communities.models import BaseCommunityModel
+# from intertwine.geos.models import BaseGeoModel
+# from intertwine.problems.models import BaseProblemModel, Problem
 from intertwine.problems.exceptions import InvalidJSONPath
 
 
@@ -46,8 +48,10 @@ class DataSessionManager(object):
     session = None
 
     def __init__(self, db_config=DevConfig.DATABASE,
-                 ModelBases=[BaseAuthModel, BaseGeoModel, BaseProblemModel,
-                             BaseCommunityModel]):
+                 ModelBases=[BaseAuthModel,
+                             # BaseCommunityModel, BaseGeoModel,
+                             # BaseProblemModel,
+                             IntertwineModel]):
         DSM = DataSessionManager
         if DSM.engine is None:
             DSM.engine = create_engine(db_config)
@@ -58,6 +62,7 @@ class DataSessionManager(object):
             DSM.session_factory = sessionmaker(bind=DSM.engine)
         if DSM.session is None:
             DSM.session = scoped_session(DSM.session_factory)
+        extend_declarative_base(IntertwineModel, session=DSM.session)
 
 
 def decode_problems(json_data):
@@ -147,29 +152,30 @@ def erase_data(session, confirm=None):
     a value of 'ERASE' to proceed without a user prompt.
     '''
     if confirm != 'ERASE':
-        prompt = ('This will erase *all* data from the database and ' +
-                  'clear tracking of all instances.\n' +
-                  'Type "ERASE" (all caps) to proceed.\n> ')
-        confirm = raw_input(prompt)
+        prompt = ('This will erase *all* data from the database and '
+                  'clear tracking of all instances.\n'
+                  'Type "ERASE" (all caps) to proceed. '
+                  'Anything else will abort.\n>')
+        confirm_again = raw_input(prompt)
+        if confirm_again != 'ERASE':
+            print('Aborting - leaving data untouched.')
+            return
 
-    if confirm != 'ERASE':
-        print('Leaving data untouched.')
-    else:
-        print('Processing...')
-        # limit data to Trackable classes with existing tables
-        engine = session.bind
-        inspector = Inspector.from_engine(engine)
-        table_names = set(inspector.get_table_names())
-        classes = [x for x in Trackable._classes.values()
-                   if x.__tablename__ in table_names]
+    print('Processing...')
+    # limit data to Trackable classes with existing tables
+    engine = session.bind
+    inspector = Inspector.from_engine(engine)
+    table_names = set(inspector.get_table_names())
+    classes = [x for x in Trackable._classes.values()
+               if x.__tablename__ in table_names]
 
-        Trackable.register_existing(session, *classes)
-        for cls in classes:
-            for inst in cls:
-                session.delete(inst)
-        session.commit()
-        Trackable.clear_instances()
-        print('Erase data has completed')
+    Trackable.register_existing(session, *classes)
+    for cls in classes:
+        for inst in cls:
+            session.delete(inst)
+    session.commit()
+    Trackable.clear_instances()
+    print('Erase data has completed')
 
 
 if __name__ == '__main__':

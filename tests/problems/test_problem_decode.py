@@ -9,7 +9,10 @@ def test_decode_problem(options):
     '''Tests decoding a standard problem'''
     from intertwine.problems.models import Problem
     from data.data_process import DataSessionManager, erase_data, decode
-    dsm = DataSessionManager(options['config'].DATABASE)
+    # To test in interpreter, use below:
+    # from config import DevConfig; test_config = DevConfig
+    test_config = options['config']
+    dsm = DataSessionManager(test_config.DATABASE)
     session = dsm.session
     assert session is not None
     assert session.query(Problem).all() == []
@@ -40,7 +43,10 @@ def test_decode_problem_connection(options):
     '''Tests decoding a standard problem connection'''
     from intertwine.problems.models import Problem, ProblemConnection
     from data.data_process import DataSessionManager, erase_data, decode
-    dsm = DataSessionManager(options['config'].DATABASE)
+    # To test in interpreter, use below:
+    # from config import DevConfig; test_config = DevConfig
+    test_config = options['config']
+    dsm = DataSessionManager(test_config.DATABASE)
     session = dsm.session
     assert session is not None
     assert session.query(Problem).all() == []
@@ -75,7 +81,10 @@ def test_decode_problem_connection_rating(options):
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
     from data.data_process import DataSessionManager, erase_data, decode
-    dsm = DataSessionManager(options['config'].DATABASE)
+    # To test in interpreter, use below:
+    # from config import DevConfig; test_config = DevConfig
+    test_config = options['config']
+    dsm = DataSessionManager(test_config.DATABASE)
     session = dsm.session
     assert session is not None
     assert session.query(Problem).all() == []
@@ -112,13 +121,15 @@ def test_decode_problem_connection_rating(options):
 @pytest.mark.smoke
 def test_incremental_decode(options):
     '''Tests decoding incrementally'''
-    from intertwine.utils import Trackable
+    from intertwine.trackable import Trackable
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
     from data.data_process import DataSessionManager, erase_data, decode
 
-    # DSM only creates a session if one doesn't exist
-    dsm = DataSessionManager(options['config'].DATABASE)
+    # To test in interpreter, use below:
+    # from config import DevConfig; test_config = DevConfig
+    test_config = options['config']
+    dsm = DataSessionManager(test_config.DATABASE)
     session = dsm.session
     assert session is not None
     assert session.query(Problem).all() == []

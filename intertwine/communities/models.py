@@ -201,7 +201,7 @@ class Community(BaseCommunityModel):
         apcr = APCR.query.filter_by(community=self, connection=connection,
                                     aggregation='strict').first()
         if apcr:
-            APCR.update_values(new_user_rating=new_user_rating,
+            apcr.update_values(new_user_rating=new_user_rating,
                                new_user_weight=new_user_weight,
                                old_user_rating=old_user_rating,
                                old_user_weight=old_user_weight)

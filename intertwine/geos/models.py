@@ -77,7 +77,8 @@ class Geo(BaseGeoModel):
     jsonified_data = JsonifyProperty(name='data', method='jsonify_data')
 
     def jsonify_data(self, nest, **json_params):
-        return self.data.jsonify(nest=True, **json_params)
+        data = self.data
+        return data.jsonify(nest=True, **json_params) if data else None
 
     # _levels is a dictionary where GeoLevel.level is the key
     _levels = orm.relationship(

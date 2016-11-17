@@ -502,7 +502,7 @@ class ProblemConnectionRating(BaseProblemModel):
         has_updated = False
 
         if rating is None:
-            rating = self.rating
+            rating = old_rating = self.rating
         elif not isinstance(rating, int) or rating < 0 or rating > 4:
             raise InvalidProblemConnectionRating(rating=rating,
                                                  *self.derive_key())
@@ -513,7 +513,7 @@ class ProblemConnectionRating(BaseProblemModel):
                 has_updated = True
 
         if weight is None:
-            weight = self.weight
+            weight = old_weight = self.weight
         elif not isinstance(weight, int) or weight < 0:
             raise InvalidProblemConnectionWeight(weight=weight,
                                                  *self.derive_key())
