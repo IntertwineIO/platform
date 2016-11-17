@@ -74,6 +74,12 @@ class Geo(BaseGeoModel):
 
     _data = orm.relationship('GeoData', uselist=False, back_populates='_geo')
 
+    jsonified_data = JsonifyProperty(name='data', method='jsonify_data')
+
+    def jsonify_data(self, nest, **json_params):
+        data = self.data
+        return data.jsonify(nest=True, **json_params) if data else None
+
     # _levels is a dictionary where GeoLevel.level is the key
     _levels = orm.relationship(
                 'GeoLevel',
@@ -81,30 +87,57 @@ class Geo(BaseGeoModel):
                 cascade='all, delete-orphan',
                 backref='_geo')
 
+    jsonified_levels = JsonifyProperty(name='levels', method='jsonify_levels')
+
+    def jsonify_levels(self, nest, hide, **json_params):
+        levels_json = OrderedDict()
+        levels = self.levels
+        hidden = set(hide)
+        hidden |= ({'geo', 'level'})  # union update
+        for lvl in GeoLevel.DOWN:
+            if lvl in levels:
+                levels_json[lvl] = levels[lvl].jsonify(nest=True, hide=hidden,
+                                                       **json_params)
+        return levels_json
+
+    @property
+    def up_level_key(self):
+        for lvl in GeoLevel.UP:
+            glvl = self.levels.get(lvl)
+            if glvl:
+                return glvl.level
+        return None
+
+    @property
+    def down_level_key(self):
+        for lvl in GeoLevel.DOWN:
+            glvl = self.levels.get(lvl)
+            if glvl:
+                return glvl.level
+        return None
+
     path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
     _path_parent = orm.relationship(
                 'Geo',
                 primaryjoin=('Geo.path_parent_id==Geo.id'),
                 remote_side='Geo.id',
-                backref=orm.backref('path_children', lazy='dynamic'),
-                lazy='joined')
+                lazy='joined',
+                backref=orm.backref('path_children', lazy='dynamic'))
 
-    # level         us geo      us parents
-    # country       US          None
-    # subdivision1  state       US
-    # csa           csa         state(s)
-    # cbsa          cbsa        csa (if exists) and state(s)
-    # subdivision2  county      cbsa (if exists) and state
-    # place         place       county or counties (if exists) and state
     parents = orm.relationship(
-                'Geo', secondary='geo_association',
+                'Geo',
+                secondary='geo_association',
                 primaryjoin='Geo.id==geo_association.c.child_id',
                 secondaryjoin='Geo.id==geo_association.c.parent_id',
-                backref=orm.backref('children',
-                                    lazy='dynamic',
-                                    # order_by='Geo.name'
-                                    ),
-                lazy='dynamic')
+                lazy='dynamic',
+                # collection_class=attribute_mapped_collection('up_level_key'),
+                backref=orm.backref(
+                    'children',
+                    lazy='dynamic',
+                    # collection_class=attribute_mapped_collection(
+                    #     'down_level_key'),
+                    # order_by='Geo.name'
+                    ))
 
     jsonified_parents = JsonifyProperty(name='parents',
                                         method='jsonify_related_geos',
@@ -114,10 +147,7 @@ class Geo(BaseGeoModel):
                                          method='jsonify_related_geos',
                                          kwargs=dict(relation='children'))
 
-    jsonified_path_children = JsonifyProperty(
-                                    name='path_children',
-                                    method='jsonify_related_geos',
-                                    kwargs=dict(relation='path_children'))
+    jsonified_path_children = JsonifyProperty(name='path_children', show=False)
 
     DELIMITER = '/'
 
@@ -589,14 +619,14 @@ class Geo(BaseGeoModel):
 
         return od
 
-    def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
+    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
         '''JSON structure for a geo data instance
 
         Returns a structure for the given geo data instance that will
         serialize to JSON.
 
         The following inputs may be specified:
-        mute=[]:    mutes (excludes) any field names listed
+        hide=[]:    hides (excludes) any field names listed
         wrap=True:  wrap the instance in a dictionary keyed by repr
         tight=True: make all repr values tight (without whitespace)
         raw=False:  when True, adds extra escapes (for printing)
@@ -622,12 +652,12 @@ class Geo(BaseGeoModel):
             ('aliases', [alias.trepr(tight=tight, raw=raw)
                          for alias in self.aliases.all()]),
 
-            ('data', (self.data.json(mute=mute+['key', 'geo'], wrap=False,
+            ('data', (self.data.json(hide=hide+['key', 'geo'], wrap=False,
                                      tight=tight, raw=raw, limit=limit)
                       if self.data else {})),
 
             ('levels', OrderedDict(
-                (lvl, self.levels[lvl].json(mute=mute+['key', 'geo', 'level'],
+                (lvl, self.levels[lvl].json(hide=hide+['key', 'geo', 'level'],
                                             wrap=False, tight=tight, raw=raw,
                                             limit=limit))
                 for lvl in GeoLevel.DOWN if self.levels.get(lvl, None))),
@@ -639,7 +669,7 @@ class Geo(BaseGeoModel):
                 relation='children', tight=tight, raw=raw, limit=limit))
         ))
 
-        for field in mute:
+        for field in hide:
             od.pop(field, None)  # fail silently if field not present
 
         rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))
@@ -737,14 +767,14 @@ class GeoData(BaseGeoModel):
         self.land_area = land_area
         self.water_area = water_area
 
-    def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
+    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
         '''JSON structure for a geo data instance
 
         Returns a structure for the given geo data instance that will
         serialize to JSON.
 
         The following inputs may be specified:
-        mute=[]: mutes (excludes) any field names listed
+        hide=[]: hides (excludes) any field names listed
         wrap=True: wrap the instance in a dictionary keyed by repr
         tight=True: make all repr values tight (without whitespace)
         raw=False: when True, adds extra escapes (for printing)
@@ -762,7 +792,7 @@ class GeoData(BaseGeoModel):
             ('water_area', self.water_area)
         ))
 
-        for field in mute:
+        for field in hide:
             od.pop(field, None)  # fail silently if field not present
 
         rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))
@@ -924,14 +954,14 @@ class GeoLevel(BaseGeoModel):
         # Must follow level assignment to provide key for Geo.levels
         self.geo = geo
 
-    def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
+    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
         '''JSON structure for a geo level instance
 
         Returns a structure for the given geo level instance that will
         serialize to JSON.
 
         The following inputs may be specified:
-        mute=[]: mutes (excludes) any field names listed
+        hide=[]: hides (excludes) any field names listed
         wrap=True: wrap the instance in a dictionary keyed by repr
         tight=True: make all repr values tight (without whitespace)
         raw=False: when True, adds extra escapes (for printing)
@@ -945,13 +975,13 @@ class GeoLevel(BaseGeoModel):
             ('designation', self.designation),
             ('ids', OrderedDict(
                 (standard, self.ids[standard].json(
-                                mute=mute+['key', 'level', 'standard'],
+                                hide=hide+['key', 'level', 'standard'],
                                 wrap=False, tight=tight, raw=raw,
                                 limit=limit))
                 for standard in self.ids.iterkeys())),
         ))
 
-        for field in mute:
+        for field in hide:
             od.pop(field, None)  # fail silently if field not present
 
         rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))
@@ -1072,14 +1102,14 @@ class GeoID(BaseGeoModel):
         # Must follow standard assignment to create key for GeoLevel.ids
         self.level = level
 
-    def json(self, mute=[], wrap=True, tight=True, raw=False, limit=10):
+    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
         '''JSON structure for a geo ID instance
 
         Returns a structure for the given geo ID instance that will
         serialize to JSON.
 
         The following inputs may be specified:
-        mute=[]: mutes (excludes) any field names listed
+        hide=[]: hides (excludes) any field names listed
         wrap=True: wrap the instance in a dictionary keyed by repr
         tight=True: make all repr values tight (without whitespace)
         raw=False: when True, adds extra escapes (for printing)
@@ -1093,7 +1123,7 @@ class GeoID(BaseGeoModel):
             ('code', self.code),
         ))
 
-        for field in mute:
+        for field in hide:
             od.pop(field, None)  # fail silently if field not present
 
         rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))

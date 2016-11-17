@@ -10,9 +10,9 @@ def test_problem_model(options):
     from intertwine.problems.models import Problem
     from data.data_process import DataSessionManager, erase_data
     # To test in interpreter, use below:
-    # from config import DevConfig; config = DevConfig
-    config = options['config']
-    dsm = DataSessionManager(config.DATABASE)
+    # from config import DevConfig; test_config = DevConfig
+    test_config = options['config']
+    dsm = DataSessionManager(test_config.DATABASE)
     session = dsm.session
     assert session is not None
     assert session.query(Problem).all() == []
@@ -33,9 +33,9 @@ def test_problem_connection_model(options):
     from intertwine.problems.models import Problem, ProblemConnection
     from data.data_process import DataSessionManager, erase_data
     # To test in interpreter, use below:
-    # from config import DevConfig; config = DevConfig
-    config = options['config']
-    dsm = DataSessionManager(config.DATABASE)
+    # from config import DevConfig; test_config = DevConfig
+    test_config = options['config']
+    dsm = DataSessionManager(test_config.DATABASE)
     session = dsm.session
     assert session is not None
     assert session.query(Problem).all() == []
@@ -68,31 +68,36 @@ def test_problem_connection_model(options):
 @pytest.mark.smoke
 def test_problem_connection_rating_model(options):
     '''Tests simple problem connection rating model interaction'''
-    from intertwine.problems.models import (Problem, ProblemConnection,
-                                            ProblemConnectionRating)
     from data.data_process import DataSessionManager, erase_data
+    from intertwine.geos.models import Geo
+    from intertwine.problems.models import (Problem,
+                                            ProblemConnection,
+                                            ProblemConnectionRating)
     # To test in interpreter, use below:
-    # from config import DevConfig; config = DevConfig
-    config = options['config']
-    dsm = DataSessionManager(config.DATABASE)
+    # from config import DevConfig; test_config = DevConfig
+    test_config = options['config']
+    dsm = DataSessionManager(test_config.DATABASE)
     session = dsm.session
+
     assert session is not None
     assert session.query(Problem).all() == []
     assert session.query(ProblemConnection).all() == []
     assert session.query(ProblemConnectionRating).all() == []
+    assert session.query(Geo).all() == []
 
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
     problem2 = Problem(problem_name_base + ' 02')
     connection = ProblemConnection('causal', problem1, problem2)
     org = None
-    geo = 'United States/Texas/Austin'
-    rating = ProblemConnectionRating(problem=problem1,
+    geo = Geo('Test Geo')
+    rating = ProblemConnectionRating(rating=2,
+                                     problem=problem1,
                                      connection=connection,
                                      org=org,
                                      geo=geo,
-                                     user='new_user',
-                                     rating=2)
+                                     user='new_user')
+    session.add(geo)
     session.add(problem1)
     session.add(problem2)
     session.add(connection)
@@ -101,129 +106,108 @@ def test_problem_connection_rating_model(options):
     ratings = session.query(ProblemConnectionRating).all()
     assert len(ratings) == 1
     r = ratings[0]
-    assert r == rating
-    assert r.problem == problem1
-    assert r.connection == connection
+    assert r is rating
+    assert r.problem is problem1
+    assert r.connection is connection
     assert r.org == org
-    assert r.geo == geo
+    assert r.geo is geo
     assert r.rating == 2
     # Clean up after ourselves
     erase_data(session, confirm='ERASE')
     assert session.query(Problem).all() == []
     assert session.query(ProblemConnection).all() == []
     assert session.query(ProblemConnectionRating).all() == []
+    assert session.query(Geo).all() == []
 
 
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_aggregate_problem_connection_rating_model(options):
     '''Tests aggregate problem connection rating model interaction'''
-    from alchy import Manager
-    from alchy.model import extend_declarative_base
-    from data.data_process import erase_data
-    from intertwine.problems.models import (BaseProblemModel,
-                                            Problem,
+    from data.data_process import DataSessionManager, erase_data
+    from intertwine.communities.models import Community
+    from intertwine.geos.models import Geo
+    from intertwine.problems.models import (Problem,
                                             ProblemConnection,
                                             ProblemConnectionRating,
                                             AggregateProblemConnectionRating)
     # To test in interpreter, use below:
-    # from config import DevConfig; config = DevConfig
-    config = options['config']
-    problem_db = Manager(Model=BaseProblemModel, config=config)
-    problem_db.create_all()
-    session = problem_db.session
+    # from config import DevConfig; test_config = DevConfig
+    test_config = options['config']
+    dsm = DataSessionManager(test_config.DATABASE)
+    session = dsm.session
+
     assert session is not None
-    extend_declarative_base(BaseProblemModel, session=session)
     assert session.query(Problem).all() == []
     assert session.query(ProblemConnection).all() == []
     assert session.query(ProblemConnectionRating).all() == []
     assert session.query(AggregateProblemConnectionRating).all() == []
+    assert session.query(Geo).all() == []
+    assert session.query(Community).all() == []
 
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
     problem2 = Problem(problem_name_base + ' 02')
-    connection = ProblemConnection('causal', problem1, problem2)
+    connection12 = ProblemConnection('causal', problem1, problem2)
     org1 = 'University of Texas'
-    org2 = None
-    geo1 = 'United States/Texas/Austin'
-    geo2 = None
-    r1 = ProblemConnectionRating(problem=problem1,
-                                 connection=connection,
-                                 org=org1,
-                                 geo=geo1,
-                                 user='new_user',
-                                 rating=1)
-    r2 = ProblemConnectionRating(problem=problem1,
-                                 connection=connection,
-                                 org=org2,
-                                 geo=geo1,
-                                 user='new_user',
-                                 rating=2)
-    r3 = ProblemConnectionRating(problem=problem1,
-                                 connection=connection,
-                                 org=org1,
-                                 geo=geo2,
-                                 user='new_user',
-                                 rating=3)
-    r4 = ProblemConnectionRating(problem=problem1,
-                                 connection=connection,
-                                 org=org2,
-                                 geo=geo2,
-                                 user='new_user',
-                                 rating=4)
+    geo1 = Geo('Austin')
+    community1 = Community(problem=problem1, org=org1, geo=geo1)
+    user1, user2, user3, user4 = 'user1', 'user2', 'user3', 'user4'
+
+    rating1 = ProblemConnectionRating(problem=problem1,
+                                      connection=connection12,
+                                      org=org1,
+                                      geo=geo1,
+                                      user=user1,
+                                      rating=1,
+                                      weight=1)
+    rating2 = ProblemConnectionRating(problem=problem1,
+                                      connection=connection12,
+                                      org=org1,
+                                      geo=geo1,
+                                      user=user2,
+                                      rating=2,
+                                      weight=2)
+    rating3 = ProblemConnectionRating(problem=problem1,
+                                      connection=connection12,
+                                      org=org1,
+                                      geo=geo1,
+                                      user=user3,
+                                      rating=3,
+                                      weight=3)
+    rating4 = ProblemConnectionRating(problem=problem1,
+                                      connection=connection12,
+                                      org=org1,
+                                      geo=geo1,
+                                      user=user4,
+                                      rating=4,
+                                      weight=4)
+    session.add(geo1)
     session.add(problem1)
     session.add(problem2)
-    session.add(connection)
-    for r in connection.ratings:
-        session.add(r)
+    session.add(connection12)
+    session.add(community1)
+    for rating in connection12.ratings:
+        session.add(rating)
 
     session.commit()
-    ar1 = AggregateProblemConnectionRating(problem=problem1,
-                                           connection=connection,
-                                           org=org1,
-                                           geo=geo1,
+    ar1 = AggregateProblemConnectionRating(connection=connection12,
+                                           community=community1,
                                            aggregation='strict')
-    ar2 = AggregateProblemConnectionRating(problem=problem1,
-                                           connection=connection,
-                                           org=org2,
-                                           geo=geo1,
-                                           aggregation='strict')
-    ar3 = AggregateProblemConnectionRating(problem=problem1,
-                                           connection=connection,
-                                           org=org1,
-                                           geo=geo2,
-                                           aggregation='strict')
-    ar4 = AggregateProblemConnectionRating(problem=problem1,
-                                           connection=connection,
-                                           org=org2,
-                                           geo=geo2,
-                                           aggregation='strict')
-    for ar in connection.aggregate_ratings:
-        session.add(ar)
+    session.add(ar1)
 
     session.commit()
     ars = session.query(AggregateProblemConnectionRating).order_by(
-            AggregateProblemConnectionRating.id).all()
-    assert len(ars) == 4
-    assert round(ars[0].rating) == 1.0
-    assert round(ars[0].weight) == 1.0
-    assert round(ars[1].rating, 2) == 1.5
-    assert round(ars[1].weight, 2) == 2.0
-    assert round(ars[2].rating, 2) == 2.0
-    assert round(ars[2].weight, 2) == 2.0
-    assert round(ars[3].rating, 2) == 2.5
-    assert round(ars[3].weight, 2) == 4.0
+                        AggregateProblemConnectionRating.id).all()
+    assert len(ars) == 1
+    assert ars[0] is ar1
+    assert round(ar1.rating, 1) == 3.0
+    assert round(ar1.weight, 1) == 10.0
 
-    # Change rating on r2 and validate that aggregates 2 and 4 updated
-    r2.rating = 0
-    assert round(ars[0].rating) == 1.0
-    assert round(ars[0].weight) == 1.0
-    assert round(ars[1].rating, 2) == 0.5
-    assert round(ars[1].weight, 2) == 2.0
-    assert round(ars[2].rating, 2) == 2.0
-    assert round(ars[2].weight, 2) == 2.0
-    assert round(ars[3].rating, 2) == 2.0
-    assert round(ars[3].weight, 2) == 4.0
+    # Change rating and validate that aggregate rating updated
+    rating3.rating = 0
+    assert round(ar1.rating, 1) == 2.1
+    assert round(ar1.weight, 1) == 10.0
 
     # Clean up after ourselves
     erase_data(session, confirm='ERASE')
@@ -231,3 +215,5 @@ def test_aggregate_problem_connection_rating_model(options):
     assert session.query(ProblemConnection).all() == []
     assert session.query(ProblemConnectionRating).all() == []
     assert session.query(AggregateProblemConnectionRating).all() == []
+    assert session.query(Geo).all() == []
+    assert session.query(Community).all() == []

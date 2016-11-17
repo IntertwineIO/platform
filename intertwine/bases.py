@@ -39,7 +39,33 @@ class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
     '''Standardizes automatic tables'''
 
 
-class Inspectable(object):
+class JsonifyProperty(object):
+
+    _count = 0
+
+    def __init__(self, name, method=None, kwargs=None, before=None, after=None,
+                 show=True, *args, **kwds):
+        if before and after:
+            raise ValueError('JsonifyProperty {name} cannot have both '
+                             "'before' and 'after' values".format(name=name))
+        self.name = name
+        self.method = method
+        self.kwargs = kwargs or {}
+        self.before = before
+        self.after = after
+        self.show = show
+        self.index = self.__class__._count
+        self.__class__._count += 1
+        super(JsonifyProperty, self).__init__(*args, **kwds)
+
+    def __call__(self, obj, *args, **kwds):
+        func = getattr(obj, self.method)
+        merged_kwds = self.kwargs.copy()
+        merged_kwds.update(kwds)
+        return func(*args, **merged_kwds)
+
+
+class Jsonable(object):
 
     @classmethod
     def fields(cls):
@@ -149,43 +175,9 @@ class Inspectable(object):
             else:
                 fields[jp_name] = jsonify_property
 
-        # # Add any regular Python properties (non-SQLAlchemy) alphabetically
-        # py_properties = [(k, v) for k, v in cls.__dict__.items()
-        #                  if isinstance(v, property)]
-        # py_properties.sort(key=itemgetter(0))
-        # for k, v in py_properties:
-        #     fields[k] = v
         return fields
 
-
-class JsonifyProperty(object):
-
-    _count = 0
-
-    def __init__(self, name, method, kwargs=None, before=None, after=None,
-                 *args, **kwds):
-        if before and after:
-            raise ValueError('JsonifyProperty {name} cannot have both '
-                             "'before' and 'after' values".format(name=name))
-        self.name = name
-        self.method = method
-        self.kwargs = kwargs or {}
-        self.before = before
-        self.after = after
-        self.index = self.__class__._count
-        self.__class__._count += 1
-        super(JsonifyProperty, self).__init__(*args, **kwds)
-
-    def __call__(self, obj, *args, **kwds):
-        func = getattr(obj, self.method)
-        merged_kwds = self.kwargs.copy()
-        merged_kwds.update(kwds)
-        return func(*args, **merged_kwds)
-
-
-class Jsonable(object):
-
-    def jsonify(self, mute=None, nest=False, tight=True, raw=False, limit=10,
+    def jsonify(self, hide=None, nest=False, tight=True, raw=False, limit=10,
                 depth=1, _json=None):
         '''JSON structure for a community instance
 
@@ -193,7 +185,7 @@ class Jsonable(object):
         serialize to JSON.
 
         Parameters:
-        mute=None:  Set of field names to be excluded
+        hide=None:  Set of field names to be excluded
         nest=False: By default all relationships are by reference and
                     the top level JSON is a dictionary of objects
         tight=True: Make all repr values tight (without whitespace)
@@ -207,32 +199,29 @@ class Jsonable(object):
         _json=None: private top-level json object
         '''
         assert depth > 0
-        mute = set() if mute is None else mute
-        mute = mute if isinstance(mute, set) else set(mute)
+        hide = set() if hide is None else hide
+        hide = hide if isinstance(hide, set) else set(hide)
         _json = OrderedDict() if _json is None else _json
         json_params = kwargify()  # includes updated _json value
         del json_params['depth']
 
-        self_key = self.trepr(tight=tight, raw=raw)
         # TODO: Check if item already exists and needs to be enhanced?
         self_json = OrderedDict()
-        _json[self_key] = self_json
+        if not nest:
+            self_key = self.trepr(tight=tight, raw=raw)
+            _json[self_key] = self_json
 
         fields = self.fields()
 
         for field, prop in fields.items():
-            if field in mute:
+            if field in hide:
                 continue
 
             if isinstance(prop, JsonifyProperty):
-                self_json[field] = prop(obj=self, depth=depth, **json_params)
+                if prop.show:
+                    self_json[field] = prop(obj=self, depth=depth,
+                                            **json_params)
                 continue
-
-            # if isinstance(prop, property):
-            #     func = getattr(self, prop.fget.func_name)
-            #     json_params['depth'] = depth
-            #     self_json[field] = func(**json_params)
-            #     continue
 
             value = getattr(self, field)
 
@@ -258,10 +247,10 @@ class Jsonable(object):
             else:
                 self_json[field] = value
 
-        return _json
+        return self_json if nest else _json
 
 
-class BaseIntertwineModel(Inspectable, Jsonable, AutoTableMixin, ModelBase):
+class BaseIntertwineModel(Jsonable, AutoTableMixin, ModelBase):
 
     @classmethod
     def _class_init_(cls):
