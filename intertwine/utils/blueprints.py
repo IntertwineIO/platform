@@ -7,7 +7,7 @@ class SingletonBlueprint(Blueprint):
     singleton_registry = {}
 
     def __new__(cls, *args, **kwds):
-        key = tuple(args + tuple((k, v) for k, v in sorted(kwds.items())))
+        key = (args, tuple((k, v) for k, v in sorted(kwds.items())))
         instance = cls.singleton_registry.get(key) or Blueprint(*args, **kwds)
         cls.singleton_registry[key] = instance
         return instance

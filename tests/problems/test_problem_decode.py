@@ -3,6 +3,7 @@
 import pytest
 
 
+@pytest.mark.skip('Feature requires refactoring')
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_decode_problem(options):
@@ -37,6 +38,7 @@ def test_decode_problem(options):
     assert session.query(Problem).all() == []
 
 
+@pytest.mark.skip('Feature requires refactoring')
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_decode_problem_connection(options):
@@ -74,6 +76,7 @@ def test_decode_problem_connection(options):
     assert session.query(ProblemConnection).all() == []
 
 
+@pytest.mark.skip('Feature requires refactoring')
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_decode_problem_connection_rating(options):
@@ -117,6 +120,7 @@ def test_decode_problem_connection_rating(options):
     assert session.query(ProblemConnectionRating).all() == []
 
 
+@pytest.mark.skip('Feature requires refactoring')
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_incremental_decode(options):

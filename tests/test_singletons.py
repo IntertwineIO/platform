@@ -15,10 +15,24 @@ def test_singleton_blueprints():
     assert(x != z)
 
 
+@pytest.mark.skip('Feature not ready')
 def test_singleton_decorator():
     from intertwine.utils.decorators import singleton
 
     @singleton(parametric=True)
+    def test(*args, **kwds):
+        print('hi')
+        return 'Blissful:', args, kwds
+
+    x = test()
+    y = test()
+    assert x == y
+
+
+def test_memoize_decorator():
+    from intertwine.utils.decorators import memoize
+
+    @memoize
     def test(*args, **kwds):
         print('hi')
         return 'Blissful:', args, kwds
