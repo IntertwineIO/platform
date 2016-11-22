@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.smoke
 def test_problem_model(options):
     '''Tests simple problem model interaction'''
-    from intertwine.problems.models import Problem
+    from intertwine.problems.models import Image, Problem
     from data.data_process import DataSessionManager, erase_data
     # To test in interpreter, use below:
     # from config import DevConfig; test_config = DevConfig
@@ -16,6 +16,7 @@ def test_problem_model(options):
     session = dsm.session
     assert session is not None
     assert session.query(Problem).all() == []
+    assert session.query(Image).all() == []
     problem_name = 'This is a Test Problem'
     problem = Problem(problem_name)
     session.add(problem)

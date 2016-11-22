@@ -31,7 +31,7 @@ from intertwine.trackable import Trackable
 from intertwine.auth.models import BaseAuthModel
 # from intertwine.communities.models import BaseCommunityModel
 # from intertwine.geos.models import BaseGeoModel
-# from intertwine.problems.models import BaseProblemModel, Problem
+from intertwine.problems.models import BaseProblemModel, Problem
 from intertwine.problems.exceptions import InvalidJSONPath
 
 
@@ -168,7 +168,7 @@ def erase_data(session, confirm=None):
     table_names = set(inspector.get_table_names())
     classes = [x for x in Trackable._classes.values()
                if x.__tablename__ in table_names]
-
+    print('Erase Data classes: ', classes)
     Trackable.register_existing(session, *classes)
     for cls in classes:
         for inst in cls:
