@@ -300,7 +300,7 @@ class Geo(BaseGeoModel):
 
     @levels.setter
     def levels(self, val):
-        for geo_level in val.values():
+        for geo_level in tuple(val.values()):
             geo_level.geo = self  # invoke GeoLevel.geo setter
 
     levels = orm.synonym('_levels', descriptor=levels)
