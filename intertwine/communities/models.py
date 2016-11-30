@@ -55,6 +55,14 @@ class Community(BaseCommunityModel):
     num_followers = Column(types.Integer)
 
     @property
+    def name(self):
+        return u'{problem}{org_clause}{geo_clause}'.format(
+            problem=self.problem.name,
+            org_clause=(u' at {org}'.format(org=self.org) if self.org else ''),
+            geo_clause=(u' in {geo}'.format(
+                geo=self.geo.display(show_abbrev=False)) if self.geo else ''))
+
+    @property
     def problem(self):
         return self._problem
 
