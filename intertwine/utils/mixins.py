@@ -233,6 +233,9 @@ class Jsonable(object):
                     if i + 1 == limit:
                         break
 
+            elif hasattr(value, '__dict__'):
+                self_json[field] = None
+
             else:
                 self_json[field] = value
 
