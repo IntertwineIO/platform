@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
 from itertools import chain
-from operator import attrgetter
+from operator import attrgetter, itemgetter
 
 from sqlalchemy import Column, Integer, orm
 from sqlalchemy.ext.declarative import declared_attr
@@ -28,14 +28,14 @@ class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
     '''Standardizes automatic tables'''
 
 
-class JsonifyProperty(object):
+class JsonProperty(object):
 
     _count = 0
 
     def __init__(self, name, method=None, kwargs=None, before=None, after=None,
                  show=True, *args, **kwds):
         if before and after:
-            raise ValueError('JsonifyProperty {name} cannot have both '
+            raise ValueError('JsonProperty {name} cannot have both '
                              "'before' and 'after' values".format(name=name))
         self.name = name
         self.method = method
@@ -45,13 +45,17 @@ class JsonifyProperty(object):
         self.show = show
         self.index = self.__class__._count
         self.__class__._count += 1
-        super(JsonifyProperty, self).__init__(*args, **kwds)
+        super(JsonProperty, self).__init__(*args, **kwds)
 
     def __call__(self, obj, *args, **kwds):
-        func = getattr(obj, self.method)
-        merged_kwds = self.kwargs.copy()
-        merged_kwds.update(kwds)
-        return func(*args, **merged_kwds)
+        if self.method:
+            func = getattr(obj, self.method)
+            merged_kwds = self.kwargs.copy()
+            merged_kwds.update(kwds)
+            rv = func(*args, **merged_kwds)
+        else:
+            rv = getattr(obj, self.name)
+        return rv
 
 
 class Jsonable(object):
@@ -106,6 +110,7 @@ class Jsonable(object):
         fields = InsertableOrderedDict(
                     ((cp.key, cp) for cp in chain(sa_properties[CP][1],
                                                   sa_properties[CP][0])))
+
         # Add relationships, non-pk first, replacing any foreign key columns
         rp_anchor_map = {}
         columns_to_remove = set()
@@ -138,26 +143,31 @@ class Jsonable(object):
         # Remove foreign keys last as they serve as insertion points
         for column_name in columns_to_remove:
             del fields[column_name]
+
         # Replace column/relationship properties with their synonyms
         for sp in sa_properties[SP]:
             syn_name = sp.name
             new_name = sp.descriptor.fget.__name__
             fields.insert(syn_name, new_name, sp)
             del fields[syn_name]
+
+        # Add any (non-SQLAlchemy) Python properties alphabetically
+        py_properties = [(k, v) for k, v in cls.__dict__.items()
+                         if isinstance(v, property)]
+        py_properties.sort(key=itemgetter(0))
+        for k, v in py_properties:
+            fields[k] = v
+
         # Add JsonifyProperties, replacing any matches
         jsonify_properties = [v for v in cls.__dict__.values()
-                              if isinstance(v, JsonifyProperty)]
+                              if isinstance(v, JsonProperty)]
         jsonify_properties.sort(key=attrgetter('index'))
         for jsonify_property in jsonify_properties:
             before, after = jsonify_property.before, jsonify_property.after
             jp_name = jsonify_property.name
-            if jp_name in fields:
-                if before or after:
-                    raise ValueError('JsonifyProperty {name} matches existing '
-                                     'field, so before/after must be None'
-                                     .format(name=jp_name))
-                fields[jp_name] = jsonify_property
-            elif before:
+            if jp_name in fields and (before or after):
+                del fields[jp_name]  # we'll add it back before/after
+            if before:
                 fields.insert(before, jp_name, jsonify_property)
             elif after:
                 fields.insert(after, jp_name, jsonify_property, after=True)
@@ -206,7 +216,7 @@ class Jsonable(object):
             if field in hide:
                 continue
 
-            if isinstance(prop, JsonifyProperty):
+            if isinstance(prop, JsonProperty):
                 if prop.show:
                     self_json[field] = prop(obj=self, depth=depth,
                                             **json_params)
@@ -214,15 +224,7 @@ class Jsonable(object):
 
             value = getattr(self, field)
 
-            if hasattr(value, 'jsonify'):
-                # TODO: Replace trepr with URI
-                item = value
-                item_key = item.trepr(tight=tight, raw=raw)
-                self_json[field] = item_key
-                if depth > 1 and item_key not in _json:
-                    item.jsonify(depth=depth - 1, **json_params)
-
-            elif isinstance(value, orm.dynamic.AppenderQuery):
+            if isinstance(value, orm.dynamic.AppenderQuery):
                 items = []
                 self_json[field] = items
                 for i, item in enumerate(value):
@@ -232,6 +234,14 @@ class Jsonable(object):
                         item.jsonify(depth=depth - 1, **json_params)
                     if i + 1 == limit:
                         break
+
+            elif hasattr(value, 'jsonify'):
+                # TODO: Replace trepr with URI
+                item = value
+                item_key = item.trepr(tight=tight, raw=raw)
+                self_json[field] = item_key
+                if depth > 1 and item_key not in _json:
+                    item.jsonify(depth=depth - 1, **json_params)
 
             elif hasattr(value, '__dict__'):
                 self_json[field] = None

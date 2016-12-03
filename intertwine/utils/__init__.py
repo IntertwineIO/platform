@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import numbers
 import re
 import sys
@@ -108,7 +109,7 @@ class InsertableOrderedDict(object):
 
     def __repr__(self):
         cls = self.__class__.__name__
-        return u'{cls}({tuples})'.format(cls=cls, tuples=self.items())
+        return u'{cls}({tuples})'.format(cls=cls, tuples=tuple(self.items()))
 
     def __len__(self):
         return len(self._iod)

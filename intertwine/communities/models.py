@@ -14,7 +14,7 @@ from ..problems.models import ProblemConnection as PC
 from ..problems.models import ProblemConnectionRating as PCR
 from ..problems.models import Problem
 from ..utils import PeekableIterator, stringify, vardygrify
-from ..utils.mixins import JsonifyProperty
+from ..utils.mixins import JsonProperty
 
 BaseCommunityModel = IntertwineModel
 
@@ -49,18 +49,30 @@ class Community(BaseCommunityModel):
     aggregate_ratings = orm.relationship('AggregateProblemConnectionRating',
                                          back_populates='community',
                                          lazy='dynamic')
-    jsonified_aggregate_ratings = JsonifyProperty(
+    jsonified_aggregate_ratings = JsonProperty(
         name='aggregate_ratings', method='jsonify_aggregate_ratings')
 
     num_followers = Column(types.Integer)
 
     @property
     def name(self):
-        return u'{problem}{org_clause}{geo_clause}'.format(
+        return '{problem}{org_clause}{geo_clause}'.format(
             problem=self.problem.name,
-            org_clause=(u' at {org}'.format(org=self.org) if self.org else ''),
-            geo_clause=(u' in {geo}'.format(
+            org_clause=(' at {org}'.format(org=self.org) if self.org else ''),
+            geo_clause=(' in {geo}'.format(
                 geo=self.geo.display(show_abbrev=False)) if self.geo else ''))
+
+    jsonified_name = JsonProperty(name='name', after='id')
+
+    @property
+    def uri(self):
+        return '{blueprint}/{problem_key}{slash}{geo_key}'.format(
+            blueprint='communities',
+            problem_key=self.problem.derive_key(),
+            slash='/' if self.geo else '',
+            geo_key=self.geo.derive_key() if self.geo else '')
+
+    jsonified_url = JsonProperty(name='uri', after='name')
 
     @property
     def problem(self):
