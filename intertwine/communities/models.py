@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 from collections import OrderedDict, namedtuple
 from itertools import groupby
@@ -14,7 +15,7 @@ from ..problems.models import ProblemConnection as PC
 from ..problems.models import ProblemConnectionRating as PCR
 from ..problems.models import Problem
 from ..utils import PeekableIterator, stringify, vardygrify
-from ..utils.mixins import JsonProperty
+from ..utils.mixins import Jsonable, JsonProperty
 
 BaseCommunityModel = IntertwineModel
 
@@ -379,7 +380,7 @@ class Community(BaseCommunityModel):
                 yield ar_key
 
     def jsonify_aggregate_ratings(self, aggregation='strict', depth=1,
-                                  **json_params):
+                                  _path='', **json_params):
         '''Jsonify aggregate ratings
 
         Returns a dictionary keyed by connection category ('drivers',
@@ -409,14 +410,16 @@ class Community(BaseCommunityModel):
                          reverse=True)
 
         rv = {category: list(community.jsonify_connection_category(
-              problem, category, aggregation, ars_by_cat, depth, **json_params))
+              problem, category, aggregation, ars_by_cat, depth,
+              _path=Jsonable.form_path(_path, category), **json_params))
               for category, ars_by_cat
               in groupby(ars, key=attrgetter('connection_category'))}
 
         for category in PC.CATEGORY_MAP:
             if category not in rv:
                 rv[category] = list(community.jsonify_connection_category(
-                    problem, category, aggregation, [], depth, **json_params))
+                    problem, category, aggregation, [], depth,
+                    _path=Jsonable.form_path(_path, category), **json_params))
 
         return rv
 
