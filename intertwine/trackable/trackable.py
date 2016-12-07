@@ -94,7 +94,7 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
 def _repr_(self):
     '''Default repr for Trackable classes'''
     # Prefix newline due to ipython pprint bug related to lists
-    return '\n' + self.trepr()
+    return '\n' + trepr(self)
 
 
 class Trackable(ModelMeta):

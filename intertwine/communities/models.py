@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 from collections import OrderedDict, namedtuple
 from itertools import groupby
@@ -14,7 +15,7 @@ from ..problems.models import ProblemConnection as PC
 from ..problems.models import ProblemConnectionRating as PCR
 from ..problems.models import Problem
 from ..utils import PeekableIterator, stringify, vardygrify
-from ..utils.mixins import JsonifyProperty
+from ..utils.mixins import Jsonable, JsonProperty
 
 BaseCommunityModel = IntertwineModel
 
@@ -49,10 +50,30 @@ class Community(BaseCommunityModel):
     aggregate_ratings = orm.relationship('AggregateProblemConnectionRating',
                                          back_populates='community',
                                          lazy='dynamic')
-    jsonified_aggregate_ratings = JsonifyProperty(
+    jsonified_aggregate_ratings = JsonProperty(
         name='aggregate_ratings', method='jsonify_aggregate_ratings')
 
     num_followers = Column(types.Integer)
+
+    @property
+    def name(self):
+        return '{problem}{org_clause}{geo_clause}'.format(
+            problem=self.problem.name,
+            org_clause=(' at {org}'.format(org=self.org) if self.org else ''),
+            geo_clause=(' in {geo}'.format(
+                geo=self.geo.display(show_abbrev=False)) if self.geo else ''))
+
+    jsonified_name = JsonProperty(name='name', after='id')
+
+    @property
+    def uri(self):
+        return '{blueprint}/{problem_key}{slash}{geo_key}'.format(
+            blueprint='communities',
+            problem_key=self.problem.derive_key(),
+            slash='/' if self.geo else '',
+            geo_key=self.geo.derive_key() if self.geo else '')
+
+    jsonified_url = JsonProperty(name='uri', after='name')
 
     @property
     def problem(self):
@@ -359,7 +380,7 @@ class Community(BaseCommunityModel):
                 yield ar_key
 
     def jsonify_aggregate_ratings(self, aggregation='strict', depth=1,
-                                  **json_params):
+                                  _path='', **json_params):
         '''Jsonify aggregate ratings
 
         Returns a dictionary keyed by connection category ('drivers',
@@ -389,14 +410,16 @@ class Community(BaseCommunityModel):
                          reverse=True)
 
         rv = {category: list(community.jsonify_connection_category(
-              problem, category, aggregation, ars_by_cat, depth, **json_params))
+              problem, category, aggregation, ars_by_cat, depth,
+              _path=Jsonable.form_path(_path, category), **json_params))
               for category, ars_by_cat
               in groupby(ars, key=attrgetter('connection_category'))}
 
         for category in PC.CATEGORY_MAP:
             if category not in rv:
                 rv[category] = list(community.jsonify_connection_category(
-                    problem, category, aggregation, [], depth, **json_params))
+                    problem, category, aggregation, [], depth,
+                    _path=Jsonable.form_path(_path, category), **json_params))
 
         return rv
 

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import numbers
 import re
 import sys
 from collections import namedtuple, OrderedDict
 from functools import partial
-from inspect import getargvalues, stack
-from itertools import chain, groupby
+from inspect import getargspec, getargvalues, stack
+from itertools import chain
 from mock import create_autospec
 from operator import eq, itemgetter
 
@@ -14,12 +15,6 @@ if sys.version.startswith('3'):
     izip = zip
 else:
     from itertools import imap, izip
-
-
-# from sqlalchemy import orm
-# from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
-# from sqlalchemy.orm.properties import ColumnProperty as CP
-# from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 
 class Sentinel(object):
@@ -114,7 +109,7 @@ class InsertableOrderedDict(object):
 
     def __repr__(self):
         cls = self.__class__.__name__
-        return u'{cls}({tuples})'.format(cls=cls, tuples=self.items())
+        return u'{cls}({tuples})'.format(cls=cls, tuples=tuple(self.items()))
 
     def __len__(self):
         return len(self._iod)
@@ -251,23 +246,6 @@ def camelCaseTo_snake_case(string):
         string = eng.sub(replacement, string)
     string = string.lower()
     return string
-
-
-def dict_item_class_name_getter(dict_item):
-    return dict_item[1].__class__.__name__
-
-
-def dictypify(obj):
-    '''Dictypify
-
-    Given an object, returns a dict with keys that are type names of
-    __dict__ values, and values that generate __dict__ item tuples.
-    '''
-    d = obj if isinstance(obj, dict) else obj.__dict__
-    key_fn = dict_item_class_name_getter
-    sorted_dict_items = sorted(d.items(), key=key_fn)
-    # convert to generator (remove list)
-    return {k: list(v) for k, v in groupby(sorted_dict_items, key=key_fn)}
 
 
 def kwargify(arg_names=None, arg_values=None, kwargs=None,
@@ -417,29 +395,32 @@ def vardygrify(cls, **kwds):
     A convenience method for creating a non-persisted mock instance of
     a classes. Adds method mimicry capabilities on top of Mock.
     '''
-    EXCLUDED_METHODS = set(('__new__', '__init__', '__repr__'))
+    EXCLUDED_BUILTINS = {'__new__', '__init__'}
+    INCLUDED_BUILTINS = {'__repr__', '__str__', '__unicode__'}
 
     vardygr = create_autospec(cls, spec_set=False, instance=True)
 
-    # import ipdb; ipdb.set_trace()
-    # need to handle properties: map the setters/getters and use them,
-    # so need them to support vardygrs (esp. the Trackable interactions)
     for k, v in kwds.items():
         setattr(vardygr, k, v)
 
-    dictypified = dictypify(cls)
+    for attr_name in dir(cls):
+        if attr_name in EXCLUDED_BUILTINS:
+            continue
 
-    attributes = dictypified.get('function', ())
-    for f in attributes:
-        if f[0] not in EXCLUDED_METHODS:
-            setattr(vardygr, f[0], partial(getattr(cls, f[0]), vardygr))
-    # classmethod/staticmethod both take self when called on an instance
-    attributes = chain(dictypified.get('classmethod', ()),
-                       dictypified.get('staticmethod', ()))
-    for f in attributes:
-        setattr(vardygr, f[0], getattr(cls, f[0]))
-    # properties must be set on the type to be used on an instance
-    attributes = dictypified.get('property', ())
-    for p in attributes:
-        setattr(type(vardygr), p[0], property(getattr(cls, p[0]).fget))
+        attribute = getattr(cls, attr_name)
+
+        try:
+            argspec = getargspec(attribute)  # works if attribute is a function
+            args = argspec.args
+            if (len(args) > 0 and args[0] == 'self' and
+                    attr_name not in INCLUDED_BUILTINS):
+                setattr(vardygr, attr_name, partial(attribute, vardygr))
+            else:  # classmethod, staticmethod, or included builtin
+                setattr(vardygr, attr_name, attribute)
+
+        except TypeError:  # attribute is not a function
+            # properties must be set on the type to be used on an instance
+            if isinstance(attribute, property):
+                setattr(type(vardygr), attr_name, property(attribute.fget))
+
     return vardygr

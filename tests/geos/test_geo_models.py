@@ -52,7 +52,7 @@ def test_geo_model(options):
     assert child_from_db.name == child_name
     assert child_from_db.abbrev is None
     assert child_from_db.uses_the is False
-    assert child_from_db.human_id == Geo.DELIMITER.join(
+    assert child_from_db.human_id == Geo.PATH_DELIMITER.join(
                 [child.path_parent.human_id,
                  child.name.lower().replace(' ', '_')])
 
@@ -347,9 +347,9 @@ def test_geo_aliases(options):
     geo.path_parent = parent_geo
     geo.parents = [parent_geo]
 
-    peer_geo = Geo(name='Test Peer Geo')
-    peer_geo.path_parent = parent_geo
-    peer_geo.parents = [parent_geo]
+    sibling_geo = Geo(name='Test Sibling Geo')
+    sibling_geo.path_parent = parent_geo
+    sibling_geo.parents = [parent_geo]
 
     child_geo = Geo(name='Test Child Geo')
     child_geo.path_parent = geo

@@ -8,7 +8,7 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from .. import IntertwineModel
 from ..utils import stringify
-from ..utils.mixins import JsonifyProperty
+from ..utils.mixins import JsonProperty
 from ..exceptions import AttributeConflict, CircularReference
 
 
@@ -54,12 +54,9 @@ class Geo(BaseGeoModel):
     _qualifier = Column('qualifier', types.String(60))
     _human_id = Column('human_id', types.String(200), index=True, unique=True)
 
-    jsonified_display = JsonifyProperty(name='display', after='human_id',
-                                        method='display',
-                                        kwargs=dict(max_path=1,
-                                                    show_the=True,
-                                                    show_abbrev=False,
-                                                    abbrev_path=True))
+    jsonified_display = JsonProperty(
+        name='display', after='human_id', method='display', kwargs=dict(
+            max_path=1, show_the=True, show_abbrev=False, abbrev_path=True))
 
     # If geo.alias_target is None, the geo is not an alias, but it could
     # be the target of one or more aliases.
@@ -74,7 +71,7 @@ class Geo(BaseGeoModel):
 
     _data = orm.relationship('GeoData', uselist=False, back_populates='_geo')
 
-    jsonified_data = JsonifyProperty(name='data', method='jsonify_data')
+    jsonified_data = JsonProperty(name='data', method='jsonify_data')
 
     def jsonify_data(self, nest, **json_params):
         data = self.data
@@ -87,7 +84,7 @@ class Geo(BaseGeoModel):
                 cascade='all, delete-orphan',
                 backref='_geo')
 
-    jsonified_levels = JsonifyProperty(name='levels', method='jsonify_levels')
+    jsonified_levels = JsonProperty(name='levels', method='jsonify_levels')
 
     def jsonify_levels(self, nest, hide, **json_params):
         levels_json = OrderedDict()
@@ -139,17 +136,17 @@ class Geo(BaseGeoModel):
                     # order_by='Geo.name'
                     ))
 
-    jsonified_parents = JsonifyProperty(name='parents',
-                                        method='jsonify_related_geos',
-                                        kwargs=dict(relation='parents'))
+    jsonified_parents = JsonProperty(name='parents',
+                                     method='jsonify_related_geos',
+                                     kwargs=dict(relation='parents'))
 
-    jsonified_children = JsonifyProperty(name='children',
-                                         method='jsonify_related_geos',
-                                         kwargs=dict(relation='children'))
+    jsonified_children = JsonProperty(name='children',
+                                      method='jsonify_related_geos',
+                                      kwargs=dict(relation='children'))
 
-    jsonified_path_children = JsonifyProperty(name='path_children', show=False)
+    jsonified_path_children = JsonProperty(name='path_children', show=False)
 
-    DELIMITER = '/'
+    PATH_DELIMITER = '/'
 
     @property
     def name(self):
@@ -322,7 +319,7 @@ class Geo(BaseGeoModel):
         '''
         if path_parent is None and alias_target is not None:
             path_parent = alias_target.path_parent
-        path = path_parent.human_id + Geo.DELIMITER if path_parent else ''
+        path = path_parent.human_id + Geo.PATH_DELIMITER if path_parent else ''
         nametag = u'{a_or_n}{qualifier}'.format(
                         a_or_n=abbrev if abbrev else name,
                         qualifier=' ' + qualifier if qualifier else '')
