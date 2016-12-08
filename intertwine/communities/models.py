@@ -73,7 +73,7 @@ class Community(BaseCommunityModel):
             slash='/' if self.geo else '',
             geo_key=self.geo.derive_key() if self.geo else '')
 
-    jsonified_url = JsonProperty(name='uri', after='name')
+    jsonified_uri = JsonProperty(name='uri', after='name')
 
     @property
     def problem(self):

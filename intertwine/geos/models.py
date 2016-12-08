@@ -71,31 +71,12 @@ class Geo(BaseGeoModel):
 
     _data = orm.relationship('GeoData', uselist=False, back_populates='_geo')
 
-    jsonified_data = JsonProperty(name='data', method='jsonify_data')
-
-    def jsonify_data(self, nest, **json_params):
-        data = self.data
-        return data.jsonify(nest=True, **json_params) if data else None
-
     # _levels is a dictionary where GeoLevel.level is the key
     _levels = orm.relationship(
                 'GeoLevel',
                 collection_class=attribute_mapped_collection('level'),
                 cascade='all, delete-orphan',
                 backref='_geo')
-
-    jsonified_levels = JsonProperty(name='levels', method='jsonify_levels')
-
-    def jsonify_levels(self, nest, hide, **json_params):
-        levels_json = OrderedDict()
-        levels = self.levels
-        hidden = set(hide)
-        hidden |= ({'geo', 'level'})  # union update
-        for lvl in GeoLevel.DOWN:
-            if lvl in levels:
-                levels_json[lvl] = levels[lvl].jsonify(nest=True, hide=hidden,
-                                                       **json_params)
-        return levels_json
 
     @property
     def up_level_key(self):
@@ -291,6 +272,15 @@ class Geo(BaseGeoModel):
 
     data = orm.synonym('_data', descriptor=data)
 
+    jsonified_data = JsonProperty(name='data', method='jsonify_data')
+
+    def jsonify_data(self, nest, hide, **json_params):
+        data = self.data
+        hidden = set(hide)
+        hidden |= {'geo'}  # union update
+        return (data.jsonify(nest=True, hide=hidden, **json_params)
+                if data else None)
+
     @property
     def levels(self):
         return self._levels
@@ -301,6 +291,19 @@ class Geo(BaseGeoModel):
             geo_level.geo = self  # invoke GeoLevel.geo setter
 
     levels = orm.synonym('_levels', descriptor=levels)
+
+    jsonified_levels = JsonProperty(name='levels', method='jsonify_levels')
+
+    def jsonify_levels(self, nest, hide, **json_params):
+        levels_json = OrderedDict()
+        levels = self.levels
+        hidden = set(hide)
+        hidden |= {'geo', 'level'}  # union update
+        for lvl in GeoLevel.DOWN:
+            if lvl in levels:
+                levels_json[lvl] = levels[lvl].jsonify(nest=True, hide=hidden,
+                                                       **json_params)
+        return levels_json
 
     @staticmethod
     def create_key(name=None, abbrev=None, qualifier=None, path_parent=None,
