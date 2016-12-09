@@ -13,7 +13,8 @@ from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
 from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
-from . import InsertableOrderedDict, camelCaseTo_snake_case, kwargify
+from . import camelCaseTo_snake_case, kwargify
+from .widgets import InsertableOrderedDict
 
 
 class AutoIdMixin(object):
