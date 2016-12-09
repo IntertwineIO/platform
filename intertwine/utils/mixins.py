@@ -13,7 +13,7 @@ from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
 from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
-from . import camelCaseTo_snake_case, kwargify
+from .tools import camelCaseTo_snake_case, kwargify
 from .widgets import InsertableOrderedDict
 
 

@@ -8,8 +8,8 @@ from sqlalchemy import desc, orm, types, Column, ForeignKey, Index, Table
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from .. import IntertwineModel
-from ..utils import stringify
 from ..utils.mixins import JsonProperty
+from ..utils.tools import stringify
 from ..exceptions import AttributeConflict, CircularReference
 
 
