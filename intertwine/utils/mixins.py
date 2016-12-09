@@ -1,4 +1,7 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from collections import OrderedDict
 from itertools import chain
 from math import floor
@@ -207,9 +210,9 @@ class Jsonable(object):
                     '.field_2': 2,
                     '.field_2.field_2a': 0,
                     '.field_3': -1,
-                    '.field_2.field_2a': 1,
-                    '.field_2.field_2b': -1,
-                    '.field_2.field_2b.field_2bi': 1,
+                    '.field_3.field_3a': 1,
+                    '.field_3.field_3b': -1,
+                    '.field_3.field_3b.field_2bi': 1,
                 }
 
         hide_all=False:
@@ -268,7 +271,7 @@ class Jsonable(object):
                 continue
 
             field_depth = depth - 1
-            field_hide_by_default = hide_all
+            field_hide_all = hide_all
 
             field_path = self.form_path(_path, field)
             if field_path in config:
@@ -276,14 +279,14 @@ class Jsonable(object):
                 if not field_setting:
                     continue
                 field_depth = int(floor(abs(field_setting)))
-                field_hide_by_default = field_setting < 0
+                field_hide_all = field_setting < 0
             elif hide_all:
                 continue
 
             if isinstance(prop, JsonProperty):
                 if prop.show:
                     self_json[field] = prop(
-                        obj=self, hide_all=field_hide_by_default,
+                        obj=self, hide_all=field_hide_all,
                         depth=field_depth if field_path in config else depth,
                         _path=field_path, **json_params)
                 continue
@@ -297,7 +300,7 @@ class Jsonable(object):
                     item_key = item.trepr(tight=tight, raw=raw)
                     items.append(item_key)
                     if field_depth > 0 and item_key not in _json:
-                        item.jsonify(hide_all=field_hide_by_default,
+                        item.jsonify(hide_all=field_hide_all,
                                      depth=field_depth, _path=field_path,
                                      **json_params)
                     if i + 1 == limit:
@@ -309,7 +312,7 @@ class Jsonable(object):
                 item_key = item.trepr(tight=tight, raw=raw)
                 self_json[field] = item_key
                 if field_depth > 0 and item_key not in _json:
-                    item.jsonify(hide_all=field_hide_by_default,
+                    item.jsonify(hide_all=field_hide_all,
                                  depth=field_depth, _path=field_path,
                                  **json_params)
 

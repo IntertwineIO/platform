@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
@@ -7,8 +8,28 @@ from flask import abort, redirect, render_template
 from . import blueprint
 from .models import Community
 from ..utils import vardygrify
-from ..problems.models import Problem
+from ..utils.mixins import Jsonable
+from ..problems.models import Problem, ProblemConnection
 from ..geos.models import Geo
+
+
+def configure_community_json():
+    config = {}
+    config['.aggregate_ratings'] = -2
+    for category, category_record in ProblemConnection.CATEGORY_MAP.items():
+        component = category_record.component
+        config[Jsonable.form_path('.problem', category)] = 0
+        config[Jsonable.form_path('.aggregate_ratings', category,
+                                  'rating')] = 1
+        config[Jsonable.form_path('.aggregate_ratings', category,
+                                  'connection')] = -1
+        config[Jsonable.form_path('.aggregate_ratings', category, 'connection',
+                                  component)] = -1
+        config[Jsonable.form_path('.aggregate_ratings', category, 'connection',
+                                  component, 'name')] = 1
+        config[Jsonable.form_path('.aggregate_ratings', category, 'connection',
+                                  component, 'human_id')] = 1
+    return config
 
 
 @blueprint.route('/', methods=['GET'])
@@ -82,11 +103,14 @@ def render_community(problem_human_id, geo_human_id):
 
     connections = community.assemble_connections_with_ratings(
                                                         aggregation='strict')
+    config = configure_community_json()
 
     template = render_template(
         'community.html',
         current_app=flask.current_app,
-        title=problem.name,  # Update to include org/geo
+        title=community.name,
+        payload=community.jsonify(config=config, depth=2),
+        key=community.trepr(tight=True, raw=False),
         problem=problem,
         connections=connections,
         org=org,
