@@ -7,8 +7,8 @@ from flask import abort, redirect, render_template
 
 from . import blueprint
 from .models import Community
-from ..utils import vardygrify
 from ..utils.mixins import Jsonable
+from ..utils.tools import vardygrify
 from ..problems.models import Problem, ProblemConnection
 from ..geos.models import Geo
 
