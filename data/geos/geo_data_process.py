@@ -12,7 +12,8 @@ from data.data_process import DataSessionManager
 from data.geos.models import (BaseGeoDataModel, State, CBSA, County, Place,
                               LSAD, Geoclass,  # Keep - used in globals()
                               GHRP)
-from intertwine.utils import PeekableIterator, Trackable
+from intertwine.utils import Trackable
+from intertwine.utils.widgets import PeekableIterator
 from intertwine.geos.models import (BaseGeoModel, Geo, GeoData, GeoLevel,
                                     GeoID, geo_association_table)
 

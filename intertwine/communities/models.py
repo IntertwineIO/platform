@@ -15,8 +15,9 @@ from ..problems.models import AggregateProblemConnectionRating as APCR
 from ..problems.models import ProblemConnection as PC
 from ..problems.models import ProblemConnectionRating as PCR
 from ..problems.models import Problem
-from ..utils import PeekableIterator, stringify, vardygrify
+from ..utils import stringify, vardygrify
 from ..utils.mixins import Jsonable, JsonProperty
+from ..utils.widgets import PeekableIterator
 
 BaseCommunityModel = IntertwineModel
 
