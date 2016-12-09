@@ -1,4 +1,7 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from collections import OrderedDict
 from itertools import chain
 from math import floor
@@ -188,15 +191,14 @@ class Jsonable(object):
     def jsonify(self, config=None, hide_all=False, hide=None, nest=False,
                 tight=True, raw=False, limit=10, depth=1,
                 _path=None, _json=None):
-        '''JSON structure for a community instance
+        '''Jsonify
 
-        Returns a structure for the given community instance that will
-        serialize to JSON.
+        Return a JSON-serializable dict representing the instance.
 
-        Parameters:
+        I/O:
         config=None:
-            Dictionary of field-level settings, in which each key is a
-            path to a field and each value is numeric:
+            Dictionary of field-level settings, in which keys are paths
+            to fields and values are numeric:
                 0:   Hide field (non-zero for show field)
                 N:   Show related objects to depth N; any decimals are
                      ignored (e.g. 0.5 -> 0 depth, but field is shown)
@@ -208,36 +210,45 @@ class Jsonable(object):
                     '.field_2': 2,
                     '.field_2.field_2a': 0,
                     '.field_3': -1,
-                    '.field_2.field_2a': 1,
-                    '.field_2.field_2b': -1,
-                    '.field_2.field_2b.field_2bi': 1,
+                    '.field_3.field_3a': 1,
+                    '.field_3.field_3b': -1,
+                    '.field_3.field_3b.field_2bi': 1,
                 }
+
         hide_all=False:
             By default, all fields are included, but can be individually
             excluded via config or hide; if true, all fields are
             excluded, but can be individually included via config
+
         hide=None:
             Set of field names to be excluded
+
         nest=False:
             By default all relationships are by reference with JSON
-            objects stored at the top level
+            objects stored in the top-level dict
+
         tight=True:
             Make all repr values tight (without whitespace)
+
         raw=False:
             If True, add an extra escape to unicode trepr (for printing)
+
         limit=10:
             Cap number of list or dictionary items beneath main level;
             a negative limit indicates no cap
+
         depth=1:
             Recursion depth:
                 1: current object only (NO references as keys)
                 2: current object and 1st relation objects
                 3: current object and 1st+2nd relation objects
+
         _path=None:
             Path to current field from the base object:
                 .<base_field>.<related_object_field> (etc.)
+
         _json=None:
-            Private top-level JSON object
+            Top-level JSON dict
         '''
         assert depth > 0
         config = {} if config is None else config
@@ -245,10 +256,7 @@ class Jsonable(object):
         hide = set(hide) if not isinstance(hide, set) else hide
         _path = '' if _path is None else _path
         _json = OrderedDict() if _json is None else _json
-        json_params = kwargify()  # includes updated values from above
-        del json_params['hide_all']
-        del json_params['depth']
-        del json_params['_path']
+        json_params = kwargify(exclude=('hide_all', 'depth', '_path'))
 
         # TODO: Check if item already exists and needs to be enhanced?
         self_json = OrderedDict()
@@ -263,7 +271,7 @@ class Jsonable(object):
                 continue
 
             field_depth = depth - 1
-            field_hide_by_default = hide_all
+            field_hide_all = hide_all
 
             field_path = self.form_path(_path, field)
             if field_path in config:
@@ -271,14 +279,14 @@ class Jsonable(object):
                 if not field_setting:
                     continue
                 field_depth = int(floor(abs(field_setting)))
-                field_hide_by_default = field_setting < 0
+                field_hide_all = field_setting < 0
             elif hide_all:
                 continue
 
             if isinstance(prop, JsonProperty):
                 if prop.show:
                     self_json[field] = prop(
-                        obj=self, hide_all=field_hide_by_default,
+                        obj=self, hide_all=field_hide_all,
                         depth=field_depth if field_path in config else depth,
                         _path=field_path, **json_params)
                 continue
@@ -292,7 +300,7 @@ class Jsonable(object):
                     item_key = item.trepr(tight=tight, raw=raw)
                     items.append(item_key)
                     if field_depth > 0 and item_key not in _json:
-                        item.jsonify(hide_all=field_hide_by_default,
+                        item.jsonify(hide_all=field_hide_all,
                                      depth=field_depth, _path=field_path,
                                      **json_params)
                     if i + 1 == limit:
@@ -304,7 +312,7 @@ class Jsonable(object):
                 item_key = item.trepr(tight=tight, raw=raw)
                 self_json[field] = item_key
                 if field_depth > 0 and item_key not in _json:
-                    item.jsonify(hide_all=field_hide_by_default,
+                    item.jsonify(hide_all=field_hide_all,
                                  depth=field_depth, _path=field_path,
                                  **json_params)
 

@@ -2,8 +2,9 @@
 
 {% block styles %}
 {{ super() }}
-<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"
-      rel="stylesheet" type="text/css">
+<script src="https://use.fontawesome.com/9f1bc01391.js"></script>
+<!--link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+      rel="stylesheet" type="text/css"-->
 <link href="{{ url_for('communities.static', filename='css/normalize.css') }}"
       rel="stylesheet" type="text/css">
 <link href="{{ url_for('communities.static', filename='css/general.css') }}"
@@ -34,21 +35,28 @@
 {% endblock %}
 
 {% block content %}
+
+{% set community = payload[key] %}
+{% set problem = payload[community['problem']] %}
+{% set org = community['org'] %}
+{% set geo = payload[community['geo']] %}
+{% set aggregate_ratings = community['aggregate_ratings'] %}
+
 <div class="nav-spacer"></div>
 <header>
     <h1>
-        <span class="page-title">{{ problem.name }}</span>
+        <span class="page-title">{{ problem['name'] }}</span>
         {% if org is not none %}
         <span class="page-scope">at {{ org }}</span>
         {% endif %}
         {% if geo is not none %}
-        <span class="page-scope">in {{ geo.display(show_abbrev=False, max_path=1) }}</span>
+        <span class="page-scope">in {{ geo['display'] }}</span>
         {% endif %}
     </h1>
     <div class="page-tagline">
         <span>An open innovation space sponsored by</span>
-        {% if problem.sponsor is not none %}
-        <span>{{ problem.sponsor }}</span>
+        {% if problem['sponsor'] is not none %}
+        <span>{{ problem['sponsor'] }}</span>
         {% else %}
         <span>Intertwine</span>
         {% endif %}
@@ -67,19 +75,22 @@
         </div>
         <div class="h-problem-scroll-container">
             <div class="h-problem-scroll broader-scroll broader-edge">
-                {% for connection, rating in connections['broader'] %}
+            {% for aggregate_rating_key in aggregate_ratings['broader'] %}
+                {% set aggregate_rating = payload[aggregate_rating_key] %}
+                {% set connection = payload[aggregate_rating['connection']] %}
+                {% set related_problem = payload[connection['broader']] %}
                 <div class="h-problem broader-problem">
                     <div class="h-problem-link-container word-break">
-                        <a href="/communities/{{ connection.broader.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}" class="problem-link">
-                            {{ connection.broader.name }}
-                            ({{ '{:.1f}'.format(rating) }})
+                        <a href="/communities/{{ related_problem['human_id'] }}{% if geo %}/{{ geo['human_id'] }}{% endif %}" class="problem-link">
+                            {{ related_problem['name'] }}
+                            ({{ '{:.1f}'.format(aggregate_rating['rating']) }})
                         </a>
                     </div>
-                    <a href="/communities/{{ connection.broader.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}">
+                    <a href="/communities/{{ related_problem['human_id'] }}{% if geo %}/{{ geo['human_id'] }}{% endif %}">
                         <i class="fa fa-circle problem-icon"></i>
                     </a>
                 </div>
-                {% endfor %}
+            {% endfor %}
             </div>
         </div>
         <div class="h-arrow-container">
@@ -98,21 +109,24 @@
             </div>
             <div class="v-problem-scroll-container">
                 <div class="v-problem-scroll driver-scroll driver-edge">
-                    {% for connection, rating in connections['drivers'] %}
+                {% for aggregate_rating_key in aggregate_ratings['drivers'] %}
+                    {% set aggregate_rating = payload[aggregate_rating_key] %}
+                    {% set connection = payload[aggregate_rating['connection']] %}
+                    {% set related_problem = payload[connection['driver']] %}
                     <div class="v-problem">
                         <div class="v-problem-link-container v-align-inner word-break">
-                            <a href="/communities/{{ connection.driver.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}" class="problem-link">
-                                {{ connection.driver.name }}
-                                ({{ '{:.1f}'.format(rating) }})
+                            <a href="/communities/{{ related_problem['human_id'] }}{% if geo %}/{{ geo['human_id'] }}{% endif %}" class="problem-link">
+                                {{ related_problem['name'] }}
+                                ({{ '{:.1f}'.format(aggregate_rating['rating']) }})
                             </a>
                         </div>
                         <div class="v-align-inner">
-                            <a href="/communities/{{ connection.driver.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}">
+                            <a href="/communities/{{ related_problem['human_id'] }}{% if geo %}/{{ geo['human_id'] }}{% endif %}">
                                 <i class="fa fa-circle problem-icon"></i>
                             </a>
                         </div>
                     </div>
-                    {% endfor %}
+                {% endfor %}
                 </div>
             </div>
             <div class="v-arrow-container">
@@ -127,7 +141,7 @@
             <div class="problem-focus-container">
                 <div class="problem-focus-label-container">
                     <!-- <div > -->
-                        <a href="" class="problem-focus-label word-break">{{ problem.name }}</a>
+                        <a href="" class="problem-focus-label word-break">{{ problem['name'] }}</a>
                     <!-- </div> -->
                 </div>
                 <a href=""><i class="fa fa-circle problem-focus-icon"></i></a>
@@ -143,21 +157,24 @@
             </div>
             <div class="v-problem-scroll-container">
                 <div class="v-problem-scroll impact-scroll impact-edge">
-                    {% for connection, rating in connections['impacts'] %}
+                {% for aggregate_rating_key in aggregate_ratings['impacts'] %}
+                    {% set aggregate_rating = payload[aggregate_rating_key] %}
+                    {% set connection = payload[aggregate_rating['connection']] %}
+                    {% set related_problem = payload[connection['impact']] %}
                     <div class="v-problem">
                         <div class="v-align-inner">
-                            <a href="/communities/{{ connection.driver.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}">
+                            <a href="/communities/{{ related_problem['human_id'] }}{% if geo %}/{{ geo['human_id'] }}{% endif %}">
                                 <i class="fa fa-circle problem-icon"></i>
                             </a>
                         </div>
                         <div class="v-problem-link-container v-align-inner word-break">
-                            <a href="/communities/{{ connection.impact.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}" class="problem-link">
-                                {{ connection.impact.name }}
-                                ({{ '{:.1f}'.format(rating) }})
+                            <a href="/communities/{{ related_problem['human_id'] }}{% if geo %}/{{ geo['human_id'] }}{% endif %}" class="problem-link">
+                                {{ related_problem['name'] }}
+                                ({{ '{:.1f}'.format(aggregate_rating['rating']) }})
                             </a>
                         </div>
                     </div>
-                    {% endfor %}
+                {% endfor %}
                 </div>
             </div>
             <div class="v-arrow-container">
@@ -176,19 +193,22 @@
         </div>
         <div class="h-problem-scroll-container">
             <div class="h-problem-scroll narrower-scroll narrower-edge">
-                {% for connection, rating in connections['narrower'] %}
+            {% for aggregate_rating_key in aggregate_ratings['narrower'] %}
+                {% set aggregate_rating = payload[aggregate_rating_key] %}
+                {% set connection = payload[aggregate_rating['connection']] %}
+                {% set related_problem = payload[connection['narrower']] %}
                 <div class="h-problem narrower-problem">
-                    <a href="/communities/{{ connection.narrower.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}">
+                    <a href="/communities/{{ related_problem['human_id'] }}{% if geo %}/{{ geo['human_id'] }}{% endif %}">
                         <i class="fa fa-circle problem-icon"></i>
                     </a>
                     <div class="h-problem-link-container word-break">
-                        <a href="/communities/{{ connection.narrower.derive_key() }}{% if geo %}/{{ geo.derive_key() }}{% endif %}" class="problem-link">
-                            {{ connection.narrower.name }}
-                            ({{ '{:.1f}'.format(rating) }})
+                        <a href="/communities/{{ related_problem['human_id'] }}{% if geo %}/{{ geo['human_id'] }}{% endif %}" class="problem-link">
+                            {{ related_problem['name'] }}
+                            ({{ '{:.1f}'.format(aggregate_rating['rating']) }})
                         </a>
                     </div>
                 </div>
-                {% endfor %}
+            {% endfor %}
             </div>
         </div>
         <div class="h-arrow-container">
