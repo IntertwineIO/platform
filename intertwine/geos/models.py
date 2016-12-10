@@ -620,72 +620,11 @@ class Geo(BaseGeoModel):
 
         return od
 
-    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
-        '''JSON structure for a geo data instance
-
-        Returns a structure for the given geo data instance that will
-        serialize to JSON.
-
-        The following inputs may be specified:
-        hide=[]:    hides (excludes) any field names listed
-        wrap=True:  wrap the instance in a dictionary keyed by repr
-        tight=True: make all repr values tight (without whitespace)
-        raw=False:  when True, adds extra escapes (for printing)
-        limit=10:   caps the number of list or dictionary items beneath
-                    the main level; a negative limit indicates no cap
-        '''
-        od = OrderedDict((
-            # ('repr', self.trepr(tight=tight, raw=raw)),
-            ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
-            ('display', self.display(max_path=1, show_the=True,
-                                     show_abbrev=False, abbrev_path=True)),
-            ('name', self.name),
-            ('abbrev', self.abbrev),
-            ('qualifier', self.qualifier),
-            ('uses_the', self.uses_the),
-
-            ('path_parent', (self.path_parent.trepr(tight=tight, raw=raw)
-                             if self.path_parent is not None else None)),
-
-            ('alias_target', (self.alias_target.trepr(tight=tight, raw=raw)
-                              if self.alias_target else None)),
-
-            ('aliases', [alias.trepr(tight=tight, raw=raw)
-                         for alias in self.aliases.all()]),
-
-            ('data', (self.data.json(hide=hide+['key', 'geo'], wrap=False,
-                                     tight=tight, raw=raw, limit=limit)
-                      if self.data else {})),
-
-            ('levels', OrderedDict(
-                (lvl, self.levels[lvl].json(hide=hide+['key', 'geo', 'level'],
-                                            wrap=False, tight=tight, raw=raw,
-                                            limit=limit))
-                for lvl in GeoLevel.DOWN if self.levels.get(lvl, None))),
-
-            ('parents', self.related_geos_by_level(
-                relation='parents', tight=tight, raw=raw, limit=limit)),
-
-            ('children', self.related_geos_by_level(
-                relation='children', tight=tight, raw=raw, limit=limit))
-        ))
-
-        for field in hide:
-            od.pop(field, None)  # fail silently if field not present
-
-        rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))
-              if wrap else od)
-        return rv
-
-    # Use default __repr__() from Trackable:
-    # Geo[<human_id>]
-
     def __str__(self):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        return stringify(
-            self.json(wrap=True, tight=False, raw=True, limit=-1), limit=10)
+        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
 
 
 class GeoData(BaseGeoModel):
@@ -768,47 +707,11 @@ class GeoData(BaseGeoModel):
         self.land_area = land_area
         self.water_area = water_area
 
-    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
-        '''JSON structure for a geo data instance
-
-        Returns a structure for the given geo data instance that will
-        serialize to JSON.
-
-        The following inputs may be specified:
-        hide=[]: hides (excludes) any field names listed
-        wrap=True: wrap the instance in a dictionary keyed by repr
-        tight=True: make all repr values tight (without whitespace)
-        raw=False: when True, adds extra escapes (for printing)
-        limit=10: caps the number of list or dictionary items beneath
-                  the main level; a negative limit indicates no cap
-        '''
-        od = OrderedDict((
-            ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
-            ('geo', self.geo.trepr(tight=tight, raw=raw)),
-            ('total_pop', self.total_pop),
-            ('urban_pop', self.urban_pop),
-            ('latitude', self.latitude),
-            ('longitude', self.longitude),
-            ('land_area', self.land_area),
-            ('water_area', self.water_area)
-        ))
-
-        for field in hide:
-            od.pop(field, None)  # fail silently if field not present
-
-        rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))
-              if wrap else od)
-        return rv
-
-    # Use default __repr__() from Trackable:
-    # GeoData[Geo[<human_id>]]
-
     def __str__(self):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        return stringify(
-            self.json(wrap=True, tight=False, raw=True, limit=-1), limit=10)
+        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
 
 
 class GeoLevel(BaseGeoModel):
@@ -955,49 +858,11 @@ class GeoLevel(BaseGeoModel):
         # Must follow level assignment to provide key for Geo.levels
         self.geo = geo
 
-    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
-        '''JSON structure for a geo level instance
-
-        Returns a structure for the given geo level instance that will
-        serialize to JSON.
-
-        The following inputs may be specified:
-        hide=[]: hides (excludes) any field names listed
-        wrap=True: wrap the instance in a dictionary keyed by repr
-        tight=True: make all repr values tight (without whitespace)
-        raw=False: when True, adds extra escapes (for printing)
-        limit=10: caps the number of list or dictionary items beneath
-                  the main level; a negative limit indicates no cap
-        '''
-        od = OrderedDict((
-            ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
-            ('geo', self.geo.trepr(tight=tight, raw=raw, outclassed=True)),
-            ('level', self.level),
-            ('designation', self.designation),
-            ('ids', OrderedDict(
-                (standard, self.ids[standard].json(
-                                hide=hide+['key', 'level', 'standard'],
-                                wrap=False, tight=tight, raw=raw,
-                                limit=limit))
-                for standard in self.ids.iterkeys())),
-        ))
-
-        for field in hide:
-            od.pop(field, None)  # fail silently if field not present
-
-        rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))
-              if wrap else od)
-        return rv
-
-    # Use default __repr__() from Trackable:
-    # GeoLevel[(Geo[<human_id>], <level>)]
-
     def __str__(self):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        return stringify(
-            self.json(wrap=True, tight=False, raw=True, limit=-1), limit=10)
+        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
 
 
 class GeoID(BaseGeoModel):
@@ -1103,40 +968,8 @@ class GeoID(BaseGeoModel):
         # Must follow standard assignment to create key for GeoLevel.ids
         self.level = level
 
-    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
-        '''JSON structure for a geo ID instance
-
-        Returns a structure for the given geo ID instance that will
-        serialize to JSON.
-
-        The following inputs may be specified:
-        hide=[]: hides (excludes) any field names listed
-        wrap=True: wrap the instance in a dictionary keyed by repr
-        tight=True: make all repr values tight (without whitespace)
-        raw=False: when True, adds extra escapes (for printing)
-        limit=10: caps the number of list or dictionary items beneath
-                  the main level; a negative limit indicates no cap
-        '''
-        od = OrderedDict((
-            ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
-            ('level', self.level.trepr(tight=tight, raw=raw, outclassed=True)),
-            ('standard', self.standard),
-            ('code', self.code),
-        ))
-
-        for field in hide:
-            od.pop(field, None)  # fail silently if field not present
-
-        rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))
-              if wrap else od)
-        return rv
-
-    # Use default __repr__() from Trackable:
-    # GeoID[(<standard>, <code>)]
-
     def __str__(self):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        return stringify(
-            self.json(wrap=True, tight=False, raw=True, limit=-1), limit=10)
+        return stringify(self.jsonify(depth=1, limit=-1), limit=10)

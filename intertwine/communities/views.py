@@ -101,8 +101,6 @@ def render_community(problem_human_id, geo_human_id):
         community = vardygrify(Community, problem=problem, org=org, geo=geo,
                                num_followers=0)
 
-    connections = community.assemble_connections_with_ratings(
-                                                        aggregation='strict')
     config = configure_community_json()
 
     template = render_template(
@@ -110,10 +108,5 @@ def render_community(problem_human_id, geo_human_id):
         current_app=flask.current_app,
         title=community.name,
         payload=community.jsonify(config=config, depth=2),
-        key=community.trepr(tight=True, raw=False),
-        problem=problem,
-        connections=connections,
-        org=org,
-        geo=geo
-        )
+        key=community.trepr(tight=True, raw=False))
     return template
