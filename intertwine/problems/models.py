@@ -14,6 +14,7 @@ from titlecase import titlecase
 from .. import IntertwineModel
 from ..geos.models import Geo
 from ..third_party import urlnorm
+from ..utils.tools import stringify
 from .exceptions import (
     CircularConnection,
     InconsistentArguments,
@@ -95,16 +96,11 @@ class Image(BaseProblemModel):
         self.url = urlnorm.norm(url)
         self.problem = problem
 
-    # Use default __repr__() from Trackable:
-    # Image[(Problem[<human_id>], <url>)]
-    # or if over 79 chars:
-    # Image[(
-    #     Problem[<human_id>],
-    #     <url>
-    # )]
-
     def __str__(self):
-        return '{url}'.format(url=self.url)
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
 
 
 class AggregateProblemConnectionRating(BaseProblemModel):
@@ -312,48 +308,18 @@ class AggregateProblemConnectionRating(BaseProblemModel):
             self.rating, self.weight = rating, weight
             self._modified.add(self)
 
-    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
-        od = OrderedDict((
-            ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
-            ('community', self.community.trepr(tight=tight, raw=raw)),
-            ('connection', self.connection.trepr(tight=tight, raw=raw)),
-            ('aggregation', self.aggregation),
-            ('rating', self.rating),
-            ('weight', self.weight)
-        ))
-        for field in hide:
-            od.pop(field, None)  # fail silently if field not present
-
-        rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))
-              if wrap else od)
-        return rv
-
-    # Use default __repr__() from Trackable:
-    # AggregateProblemConnectionRating[(
-    #     Community[(
-    #         Problem[<problem_human_id>],
-    #         <org>
-    #         Geo[<geo_human_id>],
-    #     )],
-    #     ProblemConnection[(
-    #         <axis>,
-    #         Problem[<problem_a_human_id>],
-    #         Problem[<problem_b_human_id>]
-    #     )],
-    #     <aggregation>
-    # )]
-
-    def __str__(self):
+    def display(self):
+        '''Display (old custom __str__ method)'''
         cls_name = self.__class__.__name__
         problem, org, geo = self.community.derive_key()
-        p_name = self.problem.name
+        p_name = self.community.problem.name
         conn = self.connection
         is_causal = conn.axis == 'causal'
         p_a = conn.driver.name if is_causal else conn.broader.name
         if p_name == p_a:
-            conn_str = str(conn).replace(p_name, '@' + p_name, 1)
+            conn_str = conn.display().replace(p_name, '@' + p_name, 1)
         else:
-            conn_str = ('@' + p_name).join(str(conn).rsplit(p_name, 1))
+            conn_str = ('@' + p_name).join(conn.display().rsplit(p_name, 1))
         return ('{cls}: {rating:.2f} with {weight:.2f} weight ({agg})\n'
                 '  on {conn}\n'
                 '  {org}{geo}'.format(
@@ -362,8 +328,14 @@ class AggregateProblemConnectionRating(BaseProblemModel):
                    weight=self.weight,
                    agg=self.aggregation,
                    conn=conn_str,
-                   org=''.join(('at ', org, ' ')) if org is not None else '',
-                   geo=''.join(('in ', geo)) if geo is not None else ''))
+                   org=''.join(('at ', org, ' ')) if org else '',
+                   geo=''.join(('in ', geo.display())) if geo else ''))
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
 
 
 class ProblemConnectionRating(BaseProblemModel):
@@ -598,28 +570,16 @@ class ProblemConnectionRating(BaseProblemModel):
         except ValueError:
             pass
 
-    # Use default __repr__() from Trackable:
-    # ProblemConnectionRating[(
-    #     Problem[<problem_human_id>],
-    #     <org>,
-    #     Geo[<geo_human_id>],
-    #     ProblemConnection[(
-    #         <axis>,
-    #         Problem[<problem_a_human_id>],
-    #         Problem[<problem_b_human_id>])
-    #     )],
-    #     <user>
-    # )]
-
-    def __str__(self):
+    def display(self):
+        '''Display (old custom __str__ method)'''
         p_name = self.problem.name
         conn = self.connection
         is_causal = conn.axis == 'causal'
         p_a = conn.driver.name if is_causal else conn.broader.name
         if p_name == p_a:
-            conn_str = str(conn).replace(p_name, '@' + p_name, 1)
+            conn_str = conn.display().replace(p_name, '@' + p_name, 1)
         else:
-            conn_str = ('@' + p_name).join(str(conn).rsplit(p_name, 1))
+            conn_str = ('@' + p_name).join(conn.display().rsplit(p_name, 1))
         org = self.org
         geo = self.geo
         return ('{cls}: {rating} by {user} with {weight} weight\n'
@@ -630,8 +590,14 @@ class ProblemConnectionRating(BaseProblemModel):
                    user=self.user,
                    weight=self.weight,
                    conn=conn_str,
-                   org=''.join('at ', org, ' ') if org is not None else '',
-                   geo=''.join('in ', geo) if geo is not None else ''))
+                   org=''.join(('at ', org, ' ')) if org else '',
+                   geo=''.join(('in ', geo.display())) if geo else ''))
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
 
 
 class ProblemConnection(BaseProblemModel):
@@ -792,19 +758,19 @@ class ProblemConnection(BaseProblemModel):
         if rating_added and hasattr(self, '_modified'):
             self._modified.add(self)
 
-    # Use default __repr__() from Trackable:
-    # ProblemConnection[(
-    #     <axis>,
-    #     Problem[<human_id_a>],
-    #     Problem[<human_id_b>]
-    # )]
-
-    def __str__(self):
+    def display(self):
+        '''Display (old custom __str__ method)'''
         is_causal = self.axis == 'causal'
         ct = '->' if is_causal else '::'
         p_a = self.driver.name if is_causal else self.broader.name
         p_b = self.impact.name if is_causal else self.narrower.name
         return '{p_a} {ct} {p_b}'.format(p_a=p_a, ct=ct, p_b=p_b)
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
 
 
 class Problem(BaseProblemModel):
@@ -1060,10 +1026,8 @@ class Problem(BaseProblemModel):
                                      .order_by(Problem.name))
         return connections
 
-    # Use default __repr__() from Trackable:
-    # Problem[<human_id>]
-
-    def __str__(self):
+    def display(self):
+        '''Display (old custom __str__ method)'''
         indent = ' ' * 4
         fields = dict(
             name=self.name,
@@ -1100,3 +1064,9 @@ class Problem(BaseProblemModel):
             data_str = data_str.format(**fields)
             string.append(data_str)
         return '\n'.join(string)
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        return stringify(self.jsonify(depth=1, limit=-1), limit=10)

@@ -3,7 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from itertools import groupby
 from operator import attrgetter
 
@@ -278,68 +278,6 @@ class Community(BaseCommunityModel):
 
         return ars
 
-    def prepare_connections(self, problem, category, aggregate_ratings=[]):
-        '''Prepare connections
-
-        Takes a problem, category (e.g. 'drivers'), and an aggregate
-        rating iterable as input and yields the next connection/rating
-        tuple, where the order follows that of the input iterable and is
-        followed by unrated connections sequenced alphabetically.
-        '''
-        rated_connections = set()
-        for aggregate_rating in aggregate_ratings:
-            rated_connections.add(aggregate_rating.connection)
-            yield (aggregate_rating.connection, aggregate_rating.rating)
-
-        component = getattr(PC, PC.CATEGORY_MAP[category].component)
-        connections = (getattr(problem, category).join(component)
-                                                 .order_by(Problem.name))
-
-        for connection in connections:
-            if connection not in rated_connections:
-                yield (connection, APCR.NO_RATING)
-
-    def assemble_connections_with_ratings(self, aggregation='strict'):
-        '''Assemble connections with ratings
-
-        Returns a dictionary keyed by connection category ('drivers',
-        'impacts', 'broader', 'narrower') where values are [generators
-        for (?)] connection/aggregate rating tuples in descending order.
-
-        Searches for existing aggregate connection ratings with the
-        specified aggregation method, and if none are found, aggregates
-        them from ratings. Connections without ratings are included last
-        in alphabetical order by the name of the adjoining problem.
-        '''
-        community = self
-        community_exists = type(self) is Community
-        problem, org, geo = self.derive_key()
-
-        if community_exists:
-            ars = (APCR.query
-                       .filter_by(community=self, aggregation=aggregation)
-                       .order_by(APCR.connection_category, desc(APCR.rating)))
-            ars = PeekableIterator(ars)
-
-        if not community_exists or not ars.has_next():
-            ars = self.aggregate_connection_ratings(aggregation=aggregation)
-            if ars:
-                community = ars[0].community
-                ars.sort(key=attrgetter('connection_category', 'rating'),
-                         reverse=True)
-
-        rv = {category: list(community.prepare_connections(
-                                                problem, category, ars_by_cat))
-              for category, ars_by_cat
-              in groupby(ars, key=attrgetter('connection_category'))}
-
-        for category in PC.CATEGORY_MAP:
-            if category not in rv:
-                rv[category] = list(community.prepare_connections(
-                                                problem, category, []))
-
-        return rv
-
     def jsonify_connection_category(self, problem, category, aggregation,
                                     aggregate_ratings, depth, **json_params):
         '''Prepare connection rating JSON
@@ -425,47 +363,8 @@ class Community(BaseCommunityModel):
 
         return rv
 
-    def json(self, hide=[], wrap=True, tight=True, raw=False, limit=10):
-        '''JSON structure for a community instance
-
-        Returns a structure for the given community instance that will
-        serialize to JSON.
-
-        The following inputs may be specified:
-        hide=[]:    hides (excludes) any field names listed
-        wrap=True:  wrap the instance in a dictionary keyed by repr
-        tight=True: make all repr values tight (without whitespace)
-        raw=False:  when True, adds extra escapes (for printing)
-        limit=10:   caps the number of list or dictionary items beneath
-                 the main level; a negative limit indicates no cap
-        '''
-        od = OrderedDict((
-            ('class', self.__class__.__name__),
-            ('key', self.trepr(tight=tight, raw=raw, outclassed=False)),
-            ('problem', self.problem.trepr(tight=tight, raw=raw,
-                                           outclassed=True)),
-            ('org', self.org),
-            ('geo', self.geo.trepr(tight=tight, raw=raw, outclassed=True)),
-            ('num_followers', self.num_followers)
-        ))
-
-        for field in hide:
-            od.pop(field, None)  # fail silently if field not present
-
-        rv = (OrderedDict(((self.trepr(tight=tight, raw=raw), od),))
-              if wrap else od)
-        return rv
-
-    # Use default __repr__() from Trackable:
-    # Community[(
-    #     Problem[<problem_human_id>],
-    #     <org>
-    #     Geo[<geo_human_id>],
-    # )]
-
     def __str__(self):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        return stringify(
-            self.json(wrap=True, tight=False, raw=True, limit=-1), limit=10)
+        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
