@@ -278,7 +278,7 @@ class Geo(BaseGeoModel):
     def jsonify_data(self, nest, hide, **json_params):
         data = self.data
         hidden = set(hide)
-        hidden |= {'geo'}  # union update
+        hidden |= {'id', 'geo'}  # union update
         return (data.jsonify(nest=True, hide=hidden, **json_params)
                 if data else None)
 
@@ -299,7 +299,7 @@ class Geo(BaseGeoModel):
         levels_json = OrderedDict()
         levels = self.levels
         hidden = set(hide)
-        hidden |= {'geo', 'level'}  # union update
+        hidden |= {'id', 'geo', 'level'}  # union update
         for lvl in GeoLevel.DOWN:
             if lvl in levels:
                 levels_json[lvl] = levels[lvl].jsonify(nest=True, hide=hidden,
@@ -748,6 +748,17 @@ class GeoLevel(BaseGeoModel):
                 collection_class=attribute_mapped_collection('standard'),
                 cascade='all, delete-orphan',
                 backref='level')
+
+    jsonified_ids = JsonProperty(name='ids', method='jsonify_ids')
+
+    def jsonify_ids(self, nest, hide, **json_params):
+        geoids_json = OrderedDict()
+        hidden = set(hide)
+        hidden |= {'id', 'level', 'standard'}  # union update
+        for standard, geoid in self.ids.items():
+            geoids_json[standard] = geoid.jsonify(nest=True, hide=hidden,
+                                                  **json_params)
+        return geoids_json
 
     # Querying use cases:
     #

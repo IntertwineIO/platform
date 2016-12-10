@@ -5,10 +5,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import OrderedDict
 from itertools import chain
 from math import floor
+from mock.mock import NonCallableMagicMock
 from operator import attrgetter, itemgetter
 
 from sqlalchemy import Column, Integer, orm
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm.collections import MappedCollection
 from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
 from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
@@ -77,10 +79,10 @@ class Jsonable(object):
 
     @classmethod
     def _derive_fields(cls):
-        '''Derives fields and their SQLAlchemy and Jsonify properties
+        '''Derives fields and their SQLAlchemy and JSON properties
 
         Nets out a model's SQLAlchemy column, relationship, and synonym
-        properties and any Jsonify properites and returns an insertable
+        properties and any JSON properties and returns an insertable
         ordered dictionary keyed by name, sequenced as follows:
         - SA properties initially in class_mapper iterate_property order
         - The 'id' column, if any, is relocated to the first position
@@ -89,7 +91,7 @@ class Jsonable(object):
         - Relationships w/ local primary key follow all prior properties
         - Synonyms replace their mapped column/relationship properties
         - Python properties follow in alphabetical order
-        - Jsonify properties replace any matching fields and rest follow
+        - JsonProperties replace any matching fields and the rest follow
 
         I/O:
         cls:  SQLAlchemy model from which to derive fields
@@ -317,10 +319,15 @@ class Jsonable(object):
                                  depth=field_depth, _path=field_path,
                                  **json_params)
 
-            elif hasattr(value, '__dict__'):
+            elif (not hasattr(value, '__dict__') or
+                    isinstance(value, MappedCollection)):
+                self_json[field] = value
+
+            elif isinstance(value, NonCallableMagicMock):
                 self_json[field] = None
 
             else:
-                self_json[field] = value
+                raise NotImplementedError('{value} has no jsonify method'
+                                          .format(value=value))
 
         return self_json if nest else _json
