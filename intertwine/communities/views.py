@@ -16,19 +16,14 @@ from ..geos.models import Geo
 def configure_community_json():
     config = {}
     config['.aggregate_ratings'] = -2
-    for category, category_record in ProblemConnection.CATEGORY_MAP.items():
-        component = category_record.component
+    for category in ProblemConnection.CATEGORY_MAP:
         config[Jsonable.form_path('.problem', category)] = 0
         config[Jsonable.form_path('.aggregate_ratings', category,
                                   'rating')] = 1
         config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'connection')] = -1
-        config[Jsonable.form_path('.aggregate_ratings', category, 'connection',
-                                  component)] = -1
-        config[Jsonable.form_path('.aggregate_ratings', category, 'connection',
-                                  component, 'name')] = 1
-        config[Jsonable.form_path('.aggregate_ratings', category, 'connection',
-                                  component, 'human_id')] = 1
+                                  'connected_problem_name')] = 1
+        config[Jsonable.form_path('.aggregate_ratings', category,
+                                  'connected_community_uri')] = 1
     return config
 
 
