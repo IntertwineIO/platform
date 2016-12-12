@@ -283,7 +283,7 @@ class Community(BaseCommunityModel):
         return ars
 
     def jsonify_connection_category(self, problem, category, aggregation,
-                                    aggregate_ratings, depth, **json_params):
+                                    aggregate_ratings, depth, **json_kwargs):
         '''Prepare connection rating JSON
 
         Takes a problem, category (e.g. 'drivers'), and an aggregate
@@ -291,16 +291,16 @@ class Community(BaseCommunityModel):
         JSON, where the order follows that of the input iterable and is
         followed by unrated connections sequenced alphabetically.
         '''
-        _json = json_params['_json']
-        tight = json_params['tight']
-        raw = json_params['raw']
+        _json = json_kwargs['_json']
+        tight = json_kwargs['tight']
+        raw = json_kwargs['raw']
         rated_connections = set()
         for aggregate_rating in aggregate_ratings:
             rated_connections.add(aggregate_rating.connection)
 
             ar_key = aggregate_rating.trepr(tight=tight, raw=raw)
             if depth > 1 and ar_key not in _json:
-                aggregate_rating.jsonify(depth=depth-1, **json_params)
+                aggregate_rating.jsonify(depth=depth-1, **json_kwargs)
 
             yield ar_key
 
@@ -319,12 +319,12 @@ class Community(BaseCommunityModel):
 
                 ar_key = aggregate_rating.trepr(tight=tight, raw=raw)
                 if depth > 1 and ar_key not in _json:
-                    aggregate_rating.jsonify(depth=depth-1, **json_params)
+                    aggregate_rating.jsonify(depth=depth-1, **json_kwargs)
 
                 yield ar_key
 
     def jsonify_aggregate_ratings(self, aggregation='strict', depth=1,
-                                  _path='', **json_params):
+                                  _path='', **json_kwargs):
         '''Jsonify aggregate ratings
 
         Returns a dictionary keyed by connection category ('drivers',
@@ -355,7 +355,7 @@ class Community(BaseCommunityModel):
 
         rv = {category: list(community.jsonify_connection_category(
               problem, category, aggregation, ars_by_cat, depth,
-              _path=Jsonable.form_path(_path, category), **json_params))
+              _path=Jsonable.form_path(_path, category), **json_kwargs))
               for category, ars_by_cat
               in groupby(ars, key=attrgetter('connection_category'))}
 
@@ -363,7 +363,7 @@ class Community(BaseCommunityModel):
             if category not in rv:
                 rv[category] = list(community.jsonify_connection_category(
                     problem, category, aggregation, [], depth,
-                    _path=Jsonable.form_path(_path, category), **json_params))
+                    _path=Jsonable.form_path(_path, category), **json_kwargs))
 
         return rv
 
