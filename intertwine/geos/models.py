@@ -275,11 +275,11 @@ class Geo(BaseGeoModel):
 
     jsonified_data = JsonProperty(name='data', method='jsonify_data')
 
-    def jsonify_data(self, nest, hide, **json_params):
+    def jsonify_data(self, nest, hide, **json_kwargs):
         data = self.data
         hidden = set(hide)
         hidden |= {'id', 'geo'}  # union update
-        return (data.jsonify(nest=True, hide=hidden, **json_params)
+        return (data.jsonify(nest=True, hide=hidden, **json_kwargs)
                 if data else None)
 
     @property
@@ -295,7 +295,7 @@ class Geo(BaseGeoModel):
 
     jsonified_levels = JsonProperty(name='levels', method='jsonify_levels')
 
-    def jsonify_levels(self, nest, hide, **json_params):
+    def jsonify_levels(self, nest, hide, **json_kwargs):
         levels_json = OrderedDict()
         levels = self.levels
         hidden = set(hide)
@@ -303,7 +303,7 @@ class Geo(BaseGeoModel):
         for lvl in GeoLevel.DOWN:
             if lvl in levels:
                 levels_json[lvl] = levels[lvl].jsonify(nest=True, hide=hidden,
-                                                       **json_params)
+                                                       **json_kwargs)
         return levels_json
 
     @staticmethod
@@ -476,7 +476,7 @@ class Geo(BaseGeoModel):
 
     def display(self, show_the=True, show_The=False, show_abbrev=True,
                 show_qualifier=True, abbrev_path=True, max_path=float('Inf'),
-                **json_params):
+                **json_kwargs):
         '''Generate text for displaying a geo to a user
 
         Returns a string derived from the name, abbrev, uses_the, and
@@ -521,7 +521,7 @@ class Geo(BaseGeoModel):
             plvl += 1
         return ', '.join(geostr)
 
-    def jsonify_related_geos(self, relation, **json_params):
+    def jsonify_related_geos(self, relation, **json_kwargs):
         '''Jsonify related geos by level
 
         Given a relation (e.g. parent/child), returns an ordered
@@ -537,7 +537,7 @@ class Geo(BaseGeoModel):
         limit=10: caps the number of list items within any geo level;
                   a negative limit indicates no cap
         '''
-        limit = json_params['limit']
+        limit = json_kwargs['limit']
 
         if relation not in set(('parents', 'children', 'path_children')):
             raise ValueError('{rel} is not an allowed value for relation'
@@ -549,13 +549,13 @@ class Geo(BaseGeoModel):
 
         if limit < 0:
             rv = OrderedDict(
-                (lvl, [self.jsonify_geo(g, **json_params)
+                (lvl, [self.jsonify_geo(g, **json_kwargs)
                        for g in base_q.filter(GeoLevel.level == lvl)
                        .order_by(desc(GeoData.total_pop)).all()])
                 for lvl in levels)
         else:
             rv = OrderedDict(
-                (lvl, [self.jsonify_geo(g, **json_params)
+                (lvl, [self.jsonify_geo(g, **json_kwargs)
                        for g in base_q.filter(GeoLevel.level == lvl)
                        .order_by(desc(GeoData.total_pop)).limit(limit).all()])
                 for lvl in levels)
@@ -566,15 +566,15 @@ class Geo(BaseGeoModel):
 
         return rv
 
-    def jsonify_geo(self, geo, depth, **json_params):
+    def jsonify_geo(self, geo, depth, **json_kwargs):
         '''Jsonify geo'''
-        _json = json_params['_json']
-        tight = json_params['tight']
-        raw = json_params['raw']
+        _json = json_kwargs['_json']
+        tight = json_kwargs['tight']
+        raw = json_kwargs['raw']
 
         geo_key = geo.trepr(tight=tight, raw=raw)
         if depth > 1 and geo_key not in _json:
-            geo.jsonify(depth=depth-1, **json_params)
+            geo.jsonify(depth=depth-1, **json_kwargs)
 
         return geo_key
 
@@ -751,13 +751,13 @@ class GeoLevel(BaseGeoModel):
 
     jsonified_ids = JsonProperty(name='ids', method='jsonify_ids')
 
-    def jsonify_ids(self, nest, hide, **json_params):
+    def jsonify_ids(self, nest, hide, **json_kwargs):
         geoids_json = OrderedDict()
         hidden = set(hide)
         hidden |= {'id', 'level', 'standard'}  # union update
         for standard, geoid in self.ids.items():
             geoids_json[standard] = geoid.jsonify(nest=True, hide=hidden,
-                                                  **json_params)
+                                                  **json_kwargs)
         return geoids_json
 
     # Querying use cases:

@@ -259,7 +259,7 @@ class Jsonable(object):
         hide = set(hide) if not isinstance(hide, set) else hide
         _path = '' if _path is None else _path
         _json = OrderedDict() if _json is None else _json
-        json_params = kwargify(exclude=('hide_all', 'depth', '_path'))
+        json_kwargs = kwargify(exclude=('hide_all', 'depth', '_path'))
 
         # TODO: Check if item already exists and needs to be enhanced?
         self_json = OrderedDict()
@@ -291,7 +291,7 @@ class Jsonable(object):
                     self_json[field] = prop(
                         obj=self, hide_all=field_hide_all,
                         depth=field_depth if field_path in config else depth,
-                        _path=field_path, **json_params)
+                        _path=field_path, **json_kwargs)
                 continue
 
             value = getattr(self, field)
@@ -305,7 +305,7 @@ class Jsonable(object):
                     if field_depth > 0 and item_key not in _json:
                         item.jsonify(hide_all=field_hide_all,
                                      depth=field_depth, _path=field_path,
-                                     **json_params)
+                                     **json_kwargs)
                     if i + 1 == limit:
                         break
 
@@ -317,7 +317,7 @@ class Jsonable(object):
                 if field_depth > 0 and item_key not in _json:
                     item.jsonify(hide_all=field_hide_all,
                                  depth=field_depth, _path=field_path,
-                                 **json_params)
+                                 **json_kwargs)
 
             elif (not hasattr(value, '__dict__') or
                     isinstance(value, MappedCollection)):
