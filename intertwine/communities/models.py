@@ -69,13 +69,17 @@ class Community(BaseCommunityModel):
 
     @property
     def uri(self):
-        return '{blueprint}/{problem_key}{slash}{geo_key}'.format(
-            blueprint='communities',
-            problem_key=self.problem.derive_key(),
-            slash='/' if self.geo else '',
-            geo_key=self.geo.derive_key() if self.geo else '')
+        return self.form_uri(self.problem, self.org, self.geo)
 
     jsonified_uri = JsonProperty(name='uri', after='name')
+
+    @staticmethod
+    def form_uri(problem, org=None, geo=None):
+        return '/{blueprint}/{problem_key}{slash}{geo_key}'.format(
+            blueprint='communities',
+            problem_key=problem.derive_key(),
+            slash='/' if geo else '',
+            geo_key=geo.derive_key() if geo else '')
 
     @property
     def problem(self):

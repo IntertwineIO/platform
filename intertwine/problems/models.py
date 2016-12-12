@@ -164,6 +164,24 @@ class AggregateProblemConnectionRating(BaseProblemModel):
     Key = namedtuple('AggregateProblemConnectionRatingKey',
                      'community, connection, aggregation')
 
+    @property
+    def connected_problem_name(self):
+        key = self.connection.derive_key()
+        problem = self.community.problem
+        connected_problem = (key.problem_a if problem is key.problem_b
+                             else key.problem_b)
+        return connected_problem.name
+
+    @property
+    def connected_community_uri(self):
+        from ..communities.models import Community
+        key = self.connection.derive_key()
+        problem = self.community.problem
+        connected_problem = (key.problem_a if problem is key.problem_b
+                             else key.problem_b)
+        return Community.form_uri(connected_problem, self.community.org,
+                                  self.community.geo)
+
     @classmethod
     def create_key(cls, community, connection, aggregation='strict', **kwds):
         '''Create key for an aggregate rating
