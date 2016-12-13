@@ -3,8 +3,6 @@
 {% block styles %}
 {{ super() }}
 <script src="https://use.fontawesome.com/9f1bc01391.js"></script>
-<!--link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
-      rel="stylesheet" type="text/css"-->
 <link href="{{ url_for('communities.static', filename='css/normalize.css') }}"
       rel="stylesheet" type="text/css">
 <link href="{{ url_for('communities.static', filename='css/general.css') }}"
@@ -46,16 +44,16 @@
 <header>
     <h1>
         <span class="page-title">{{ problem['name'] }}</span>
-        {% if org is not none %}
+        {% if org %}
         <span class="page-scope">at {{ org }}</span>
         {% endif %}
-        {% if geo is not none %}
+        {% if geo %}
         <span class="page-scope">in {{ geo['display'] }}</span>
         {% endif %}
     </h1>
     <div class="page-tagline">
         <span>An open innovation space sponsored by</span>
-        {% if problem['sponsor'] is not none %}
+        {% if problem['sponsor'] %}
         <span>{{ problem['sponsor'] }}</span>
         {% else %}
         <span>Intertwine</span>

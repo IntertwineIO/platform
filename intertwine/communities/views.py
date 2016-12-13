@@ -65,12 +65,12 @@ def render_community(problem_human_id, geo_human_id):
     # org = 'University of Texas'
     geo_human_id = geo_human_id.lower()
 
-    if geo_human_id and geo_human_id[-1] == '/':
-        return redirect('/communities/{problem}/{geo}'
-                        .format(problem=problem_human_id,
-                                geo=geo_human_id.rstrip('/')), code=302)
-
     if geo_human_id:
+        corrected_url = False
+        if geo_human_id[-1] == '/':
+            geo_human_id = geo_human_id.rstrip('/')
+            corrected_url = True
+
         geo = Geo.query.filter_by(human_id=geo_human_id).first()
 
         if geo is None:
@@ -83,9 +83,10 @@ def render_community(problem_human_id, geo_human_id):
             abort(404)
 
         if geo.alias_target:
-            return redirect('/communities/{problem}/{geo}'
-                            .format(problem=problem_human_id,
-                                    geo=geo.alias_target.human_id), code=302)
+            return redirect(Community.form_uri(problem, org, geo.alias_target),
+                            code=302)
+        if corrected_url:
+            return redirect(Community.form_uri(problem, org, geo), code=302)
     else:
         geo = None
 
