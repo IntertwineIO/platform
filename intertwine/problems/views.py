@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import flask
-from flask import abort, render_template
+from flask import abort, redirect, render_template
 
-from . import blueprint, problem_db
+from . import blueprint
 from .models import Problem
 
 
@@ -20,23 +21,15 @@ def render():
     return template
 
 
-@blueprint.route('/<problem_name>', methods=['GET'])
-def render_problem(problem_name):
-    '''Problem Page'''
-    human_id = problem_name.lower()
-    problem = Problem.query.filter_by(human_id=human_id).first()
-    # TODO: add org and geo to URL or query string
-    org = None
-    # org = 'University of Texas'
-    org_display = org
-    # geo = None
-    # geo_display = None
-    geo = 'United States/Texas/Austin'
-    geo_display = 'Austin, TX'
-    connections = problem.connections_with_ratings(org=org,
-                                                   geo=geo,
-                                                   aggregation='strict',
-                                                   session=problem_db.session)
+@blueprint.route('/<path:problem_human_id>', methods=['GET'])
+def render_problem(problem_human_id):
+    '''Problem page redirects to global community page'''
+    if problem_human_id and problem_human_id[-1] == '/':
+        problem_human_id = problem_human_id.rstrip('/')
+
+    problem_human_id = problem_human_id.lower()
+    problem = Problem.query.filter_by(human_id=problem_human_id).first()
+
     if problem is None:
         # TODO: Instead of aborting, reroute to problem_not_found page
         # Oops! 'X' is not a problem found in Intertwine.
@@ -46,13 +39,7 @@ def render_problem(problem_name):
         # <related_problem_3>
         # Or, you can create 'X' in Intertwine'
         abort(404)
-    template = render_template(
-        'problem.html',
-        current_app=flask.current_app,
-        title=problem.name,
-        problem=problem,
-        connections=connections,
-        org_display=org_display,
-        geo_display=geo_display
-        )
-    return template
+
+    from ..communities.models import Community
+    community_uri = Community.form_uri(problem=problem, org=None, geo=None)
+    return redirect(community_uri, code=302)
