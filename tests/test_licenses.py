@@ -20,69 +20,70 @@ def test_licenses(**options):
 
     known_ignores = [
         # Pip packages added
-        'pip',            # MIT
-        'setuptools',     # PSF
+        'pip',               # MIT
+        'setuptools',        # PSF
 
         # Deployment packages
-        'ansible',        # GPL v3
-        'click',          # BSD
-        'docker-py',      # Apache 2.0
-        'uWSGI',          # GPL2
+        'ansible',           # GPL v3
+        'click',             # BSD
+        'docker-py',         # Apache 2.0
+        'uWSGI',             # GPL2
 
         # Debug packages
-        'prompt-toolkit',  # BSD
+        'prompt-toolkit',    # BSD
 
         # Virtualenv packages added
-        'wheel',          # MIT
+        'wheel',             # MIT
 
         # Test packages added
-        'apipkg',         # MIT
-        'astroid',        # LGPL - python linter package
-        'autopep8',       # Expat
-        'backports-abc',  # PSF
-        'coverage',       # Apache 2.0
-        'detox',          # MIT
-        'eventlet',       # MIT
-        'execnet',        # MIT
-        'flake8',         # MIT
-        'greenlet',       # MIT
-        'mccabe',         # Expat
-        'ordereddict',    # MIT
-        'pep8',           # Expat
-        'pluggy',         # MIT
-        'py',             # MIT
-        'pycodestyle',    # Expat license
-        'pyflakes',       # MIT
-        'pytest',         # MIT
-        'pytest-cache',   # MIT
-        'pytest-cov',     # MIT
-        'pytest-flake8',  # BSD
-        'pytest-html',    # Mozilla Public License 2.0 (MPL 2.0)
-        'pytest-runner',  # MIT
-        'pytest-xdist',   # MIT
-        'tox',            # MIT
-        'virtualenv',     # MIT
+        'apipkg',            # MIT
+        'astroid',           # LGPL - python linter package
+        'autopep8',          # Expat
+        'backports-abc',     # PSF
+        'coverage',          # Apache 2.0
+        'detox',             # MIT
+        'eventlet',          # MIT
+        'execnet',           # MIT
+        'flake8',            # MIT
+        'greenlet',          # MIT
+        'mccabe',            # Expat
+        'ordereddict',       # MIT
+        'pep8',              # Expat
+        'pluggy',            # MIT
+        'py',                # MIT
+        'pycodestyle',       # Expat license
+        'pyflakes',          # MIT
+        'pytest',            # MIT
+        'pytest-cache',      # MIT
+        'pytest-cov',        # MIT
+        'pytest-flake8',     # BSD
+        'pytest-html',       # Mozilla Public License 2.0 (MPL 2.0)
+        'pytest-runner',     # MIT
+        'pytest-xdist',      # MIT
+        'tox',               # MIT
+        'virtualenv',        # MIT
 
         # Docs
         'alabaster',         # BSD  - From Sphinx
 
         # Nagios plugin libraries
-        'inotify',        # GPL 2    - TODO: Alternatives?
-        'graphitesend',   # Apache
+        'inotify',           # GPL 2    - TODO: Alternatives?
+        'graphitesend',      # Apache
 
         # Unknown - where did they come from?
-        'gnureadline',    # GPL 2    - TODO: Alternatives?
-        'ptyprocess',     # ISC
+        'gnureadline',       # GPL 2    - TODO: Alternatives?
+        'ptyprocess',        # ISC
 
         # Known licenses that do not register with this test
         'dominate',          # LGPL
         'itsdangerous',      # BSD
+        'mock',              # BSD
         'pbr',               # Apache 2.0
         'stevedore',         # Apache 2.0
         'websocket-client',  # LGPL
 
         # Company owned licenses
-        'intertwine',     # Proprietary
+        'intertwine',        # Proprietary
     ]
 
     accepted_licenses = [
