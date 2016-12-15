@@ -91,7 +91,7 @@ def test_licenses(**options):
         'MIT', 'Expat',
         'ZPL', 'Zope',
         'MPL', 'Mozilla Public License',
-        'Apache', 'Apache 2.0',
+        'ASL', 'Apache', 'Apache 2.0',
         'PSF', 'Python Software Foundation',
         'DSF', 'Django Software Foundation',
         'ISC', 'ISCL', 'Internet Software Consortium',
