@@ -116,7 +116,7 @@ class Geo(BaseGeoModel):
             # collection_class=attribute_mapped_collection(
             #     'down_level_key'),
             # order_by='Geo.name'
-            ))
+        ))
 
     jsonified_parents = JsonProperty(name='parents',
                                      method='jsonify_related_geos',

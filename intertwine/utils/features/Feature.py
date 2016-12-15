@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 
-from ..registry import RegistryObject
+# from ..registry import RegistryObject
 
 
 class Feature(object):
@@ -57,13 +57,13 @@ class Feature(object):
         self.registry.add(self)
 
     def __repr__(self):
-        classname = self.__class__.__name__
-        name = self.name
+        classname = self.__class__.__name__  # noqa: F841
+        name = self.name  # noqa: F841
         fields = [
             'activated',
             'registry'
         ]
-        feature_data = json.dumps({
+        feature_data = json.dumps({  # noqa: F841
             k: getattr(self, k) for k in fields
             if hasattr(self, k) and getattr(self, k) is not None})
         ldata = {k: v for k, v in locals().items()}

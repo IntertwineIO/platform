@@ -117,8 +117,8 @@ class Jsonable(object):
                                 .format(sa_property))
         # Load column properties, starting with primary key columns
         fields = InsertableOrderedDict(
-                    ((cp.key, cp) for cp in chain(sa_properties[CP][1],
-                                                  sa_properties[CP][0])))
+            ((cp.key, cp) for cp in chain(sa_properties[CP][1],
+                                          sa_properties[CP][0])))
 
         # Add relationships, non-pk first, replacing any foreign key columns
         rp_anchor_map = {}

@@ -605,13 +605,13 @@ class ProblemConnectionRating(BaseProblemModel):
         return ('{cls}: {rating} by {user} with {weight} weight\n'
                 '  on {conn}\n'
                 '  {org}{geo}'.format(
-                   cls=self.__class__.__name__,
-                   rating=self.rating,
-                   user=self.user,
-                   weight=self.weight,
-                   conn=conn_str,
-                   org=''.join(('at ', org, ' ')) if org else '',
-                   geo=''.join(('in ', geo.display())) if geo else ''))
+                    cls=self.__class__.__name__,
+                    rating=self.rating,
+                    user=self.user,
+                    weight=self.weight,
+                    conn=conn_str,
+                    org=''.join(('at ', org, ' ')) if org else '',
+                    geo=''.join(('in ', geo.display())) if geo else ''))
 
     def __str__(self):
         return unicode(self).encode('utf-8')
@@ -839,34 +839,34 @@ class Problem(BaseProblemModel):
         lazy='dynamic')
     drivers = orm.relationship(
         'ProblemConnection',
-        primaryjoin=('and_(Problem.id==ProblemConnection.{problem_b_id}, '
-                     'ProblemConnection.axis=="{causal}")').format(
-                        problem_b_id=ProblemConnection.PROBLEM_B_ID,
-                        causal=ProblemConnection.CAUSAL),
+        primaryjoin=(('and_(Problem.id==ProblemConnection.{problem_b_id}, '
+                      'ProblemConnection.axis=="{causal}")')
+                     .format(problem_b_id=ProblemConnection.PROBLEM_B_ID,
+                             causal=ProblemConnection.CAUSAL)),
         backref=ProblemConnection.IMPACT,
         lazy='dynamic')
     impacts = orm.relationship(
         'ProblemConnection',
-        primaryjoin=('and_(Problem.id==ProblemConnection.{problem_a_id}, '
-                     'ProblemConnection.axis=="{causal}")').format(
-                        problem_a_id=ProblemConnection.PROBLEM_A_ID,
-                        causal=ProblemConnection.CAUSAL),
+        primaryjoin=(('and_(Problem.id==ProblemConnection.{problem_a_id}, '
+                      'ProblemConnection.axis=="{causal}")')
+                     .format(problem_a_id=ProblemConnection.PROBLEM_A_ID,
+                             causal=ProblemConnection.CAUSAL)),
         backref=ProblemConnection.DRIVER,
         lazy='dynamic')
     broader = orm.relationship(
         'ProblemConnection',
-        primaryjoin=('and_(Problem.id==ProblemConnection.{problem_b_id}, '
-                     'ProblemConnection.axis=="{scoped}")').format(
-                        problem_b_id=ProblemConnection.PROBLEM_B_ID,
-                        scoped=ProblemConnection.SCOPED),
+        primaryjoin=(('and_(Problem.id==ProblemConnection.{problem_b_id}, '
+                      'ProblemConnection.axis=="{scoped}")')
+                     .format(problem_b_id=ProblemConnection.PROBLEM_B_ID,
+                             scoped=ProblemConnection.SCOPED)),
         backref=ProblemConnection.NARROWER,
         lazy='dynamic')
     narrower = orm.relationship(
         'ProblemConnection',
-        primaryjoin=('and_(Problem.id==ProblemConnection.{problem_a_id}, '
-                     'ProblemConnection.axis=="{scoped}")').format(
-                        problem_a_id=ProblemConnection.PROBLEM_A_ID,
-                        scoped=ProblemConnection.SCOPED),
+        primaryjoin=(('and_(Problem.id==ProblemConnection.{problem_a_id}, '
+                      'ProblemConnection.axis=="{scoped}")')
+                     .format(problem_a_id=ProblemConnection.PROBLEM_A_ID,
+                             scoped=ProblemConnection.SCOPED)),
         backref=ProblemConnection.BROADER,
         lazy='dynamic')
 
