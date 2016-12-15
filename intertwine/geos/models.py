@@ -63,21 +63,21 @@ class Geo(BaseGeoModel):
     # be the target of one or more aliases.
     alias_target_id = Column(types.Integer, ForeignKey('geo.id'))
     _alias_target = orm.relationship(
-                'Geo',
-                primaryjoin=('Geo.alias_target_id==Geo.id'),
-                remote_side='Geo.id',
-                backref=orm.backref('aliases', lazy='dynamic'),
-                lazy='joined',
-                post_update=True)  # Needed to avoid CircularDependencyError
+        'Geo',
+        primaryjoin=('Geo.alias_target_id==Geo.id'),
+        remote_side='Geo.id',
+        backref=orm.backref('aliases', lazy='dynamic'),
+        lazy='joined',
+        post_update=True)  # Needed to avoid CircularDependencyError
 
     _data = orm.relationship('GeoData', uselist=False, back_populates='_geo')
 
     # _levels is a dictionary where GeoLevel.level is the key
     _levels = orm.relationship(
-                'GeoLevel',
-                collection_class=attribute_mapped_collection('level'),
-                cascade='all, delete-orphan',
-                backref='_geo')
+        'GeoLevel',
+        collection_class=attribute_mapped_collection('level'),
+        cascade='all, delete-orphan',
+        backref='_geo')
 
     @property
     def up_level_key(self):
@@ -97,26 +97,26 @@ class Geo(BaseGeoModel):
 
     path_parent_id = Column(types.Integer, ForeignKey('geo.id'))
     _path_parent = orm.relationship(
-                'Geo',
-                primaryjoin=('Geo.path_parent_id==Geo.id'),
-                remote_side='Geo.id',
-                lazy='joined',
-                backref=orm.backref('path_children', lazy='dynamic'))
+        'Geo',
+        primaryjoin=('Geo.path_parent_id==Geo.id'),
+        remote_side='Geo.id',
+        lazy='joined',
+        backref=orm.backref('path_children', lazy='dynamic'))
 
     parents = orm.relationship(
-                'Geo',
-                secondary='geo_association',
-                primaryjoin='Geo.id==geo_association.c.child_id',
-                secondaryjoin='Geo.id==geo_association.c.parent_id',
-                lazy='dynamic',
-                # collection_class=attribute_mapped_collection('up_level_key'),
-                backref=orm.backref(
-                    'children',
-                    lazy='dynamic',
-                    # collection_class=attribute_mapped_collection(
-                    #     'down_level_key'),
-                    # order_by='Geo.name'
-                    ))
+        'Geo',
+        secondary='geo_association',
+        primaryjoin='Geo.id==geo_association.c.child_id',
+        secondaryjoin='Geo.id==geo_association.c.parent_id',
+        lazy='dynamic',
+        # collection_class=attribute_mapped_collection('up_level_key'),
+        backref=orm.backref(
+            'children',
+            lazy='dynamic',
+            # collection_class=attribute_mapped_collection(
+            #     'down_level_key'),
+            # order_by='Geo.name'
+            ))
 
     jsonified_parents = JsonProperty(name='parents',
                                      method='jsonify_related_geos',
@@ -325,8 +325,8 @@ class Geo(BaseGeoModel):
             path_parent = alias_target.path_parent
         path = path_parent.human_id + Geo.PATH_DELIMITER if path_parent else ''
         nametag = u'{a_or_n}{qualifier}'.format(
-                        a_or_n=abbrev if abbrev else name,
-                        qualifier=' ' + qualifier if qualifier else '')
+            a_or_n=abbrev if abbrev else name,
+            qualifier=' ' + qualifier if qualifier else '')
         nametag = (nametag.replace('.', '').replace(', ', '-')
                    .replace('/', '-').replace(' ', '_').lower())
         return path + nametag
@@ -369,9 +369,9 @@ class Geo(BaseGeoModel):
         self.parents = parents
         self.children = children
 
-        data_children = self.children.all() if data_level is None else [
-                            child for child in self.children
-                            if child.levels.get(data_level, None) is not None]
+        data_children = (self.children.all() if data_level is None
+                         else [child for child in self.children
+                               if child.levels.get(data_level) is not None])
 
         if data is not None:
             # The geo for the data should always be self. If a geo key
@@ -390,11 +390,11 @@ class Geo(BaseGeoModel):
             data = {f: sum((c.data[f] for c in data_children)) for f in fields}
             fields = ('latitude', 'longitude')
             for f in fields:
-                data[f] = sum((c.data[f] * (
-                              c.data['land_area'] + c.data['water_area'])
-                              for c in data_children)) * 1.0 / (
-                          sum((c.data['land_area'] + c.data['water_area'])
-                              for c in data_children))
+                data[f] = (
+                    sum(((c.data['land_area'] + c.data['water_area']) *
+                        c.data[f] for c in data_children)) * 1.0 /
+                    sum(((c.data['land_area'] + c.data['water_area'])
+                        for c in data_children)))
 
         self.data = GeoData(geo=self, **data) if data is not None else None
 
@@ -510,8 +510,8 @@ class Geo(BaseGeoModel):
                          if geo.qualifier and show_qualifier else '')
             if plvl == 0:
                 geostr.append(u'{the}{name}{abbrev}{qualifier}'.format(
-                            the=the, name=geo.name, abbrev=abbrev,
-                            qualifier=qualifier))
+                    the=the, name=geo.name, abbrev=abbrev,
+                    qualifier=qualifier))
             elif abbrev_path:
                 geostr.append(u'{abbrev}'.format(abbrev=geo.abbrev))
             else:
@@ -574,7 +574,7 @@ class Geo(BaseGeoModel):
 
         geo_key = geo.trepr(tight=tight, raw=raw)
         if depth > 1 and geo_key not in _json:
-            geo.jsonify(depth=depth-1, **json_kwargs)
+            geo.jsonify(depth=depth - 1, **json_kwargs)
 
         return geo_key
 
@@ -611,8 +611,8 @@ class Geo(BaseGeoModel):
             od = OrderedDict(
                 (lvl, [g.trepr(tight=tight, raw=raw) for g in
                  base_q.filter(GeoLevel.level == lvl).order_by(
-                 desc(GeoData.total_pop)).limit(limit).all()
-                 ]) for lvl in levels)
+                 desc(GeoData.total_pop)).limit(limit).all()])
+                for lvl in levels)
 
         for lvl, geos in od.items():
             if len(geos) == 0:
@@ -744,10 +744,10 @@ class GeoLevel(BaseGeoModel):
 
     # ids is a dictionary where GeoID.standard is the key
     ids = orm.relationship(
-                'GeoID',
-                collection_class=attribute_mapped_collection('standard'),
-                cascade='all, delete-orphan',
-                backref='level')
+        'GeoID',
+        collection_class=attribute_mapped_collection('standard'),
+        cascade='all, delete-orphan',
+        backref='level')
 
     jsonified_ids = JsonProperty(name='ids', method='jsonify_ids')
 
@@ -785,7 +785,7 @@ class GeoLevel(BaseGeoModel):
         ('cbsa', ('subdivision2', 'place')),
         ('subdivision2', ('place',)),
         ('place', ())
-        ))
+    ))
 
     UP = OrderedDict((
         ('place', ('subdivision2', 'cbsa', 'csa', 'subdivision1')),
@@ -794,7 +794,7 @@ class GeoLevel(BaseGeoModel):
         ('csa', ('subdivision1',)),
         ('subdivision1', ('country',)),
         ('country', ())
-        ))
+    ))
 
     Key = namedtuple('GeoLevelKey', 'geo, level')
 

@@ -300,7 +300,7 @@ class Community(BaseCommunityModel):
 
             ar_key = aggregate_rating.trepr(tight=tight, raw=raw)
             if depth > 1 and ar_key not in _json:
-                aggregate_rating.jsonify(depth=depth-1, **json_kwargs)
+                aggregate_rating.jsonify(depth=depth - 1, **json_kwargs)
 
             yield ar_key
 
@@ -319,7 +319,7 @@ class Community(BaseCommunityModel):
 
                 ar_key = aggregate_rating.trepr(tight=tight, raw=raw)
                 if depth > 1 and ar_key not in _json:
-                    aggregate_rating.jsonify(depth=depth-1, **json_kwargs)
+                    aggregate_rating.jsonify(depth=depth - 1, **json_kwargs)
 
                 yield ar_key
 

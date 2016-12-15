@@ -86,6 +86,7 @@ if sys.version_info.major == 3:
 class InvalidUrl(Exception):
     pass
 
+
 _server_authority = re.compile('^(?:([^\@]+)\@)?([^\:\[\]]+|\[[a-fA-F0-9\:\.]+\])(?:\:(.*?))?$')
 _default_port = {'http': '80',
                  'itms': '80',
@@ -196,14 +197,14 @@ def norm_path(scheme, path):
         start = 0
         while i < len(path):
             if path[i] == "/" or i == len(path) - 1:
-                chunk = path[start:i+1]
+                chunk = path[start:i + 1]
                 start = i + 1
                 if chunk in ["", "/", ".", "./"]:
                     # do nothing
                     pass
                 elif chunk in ["..", "../"]:
                     if len(parts):
-                        parts = parts[:len(parts)-1]
+                        parts = parts[:len(parts) - 1]
                     else:
                         parts.append(chunk)
                 else:

@@ -46,7 +46,7 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
     if tight:
         sp = ind = ''
     else:
-        sp, ind, ind_p1 = ' ', ' '*4*_lvl, ' '*4*(_lvl+1)
+        sp, ind, ind_p1 = ' ', (' ' * 4 * _lvl), (' ' * 4 * (_lvl + 1))
 
     if self is None:
         return repr(self)
@@ -72,12 +72,13 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
                             key_cls_name=key.__class__.__name__))
         treprs = [u'{f}={trepr}'.format(
                   f=f, trepr=trepr(getattr(key, f),
-                                   named, tight, raw, outclassed, _lvl+1))
+                                   named, tight, raw, outclassed, _lvl + 1))
                   for f in key._fields]
 
     except (AssertionError, AttributeError):
         key_name = ''
-        treprs = [trepr(v, named, tight, raw, outclassed, _lvl+1) for v in key]
+        treprs = [trepr(v, named, tight, raw, outclassed, _lvl + 1)
+                  for v in key]
 
     all_1_line = (u'{cls}{osqb}{key_name}{op}{treprs}{cp}{csqb}'
                   .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
@@ -146,7 +147,7 @@ class Trackable(ModelMeta):
         # Convert args to kwds for create_key() and modify() so
         # parameter order need not match __init__()
         all_kwds = kwds.copy()
-        arg_names = inspect.getargspec(cls.__init__)[0][1:len(args)+1]
+        arg_names = inspect.getargspec(cls.__init__)[0][1:len(args) + 1]
         for arg_name, arg in zip(arg_names, args):
             all_kwds[arg_name] = arg
         key = cls.create_key(**all_kwds)

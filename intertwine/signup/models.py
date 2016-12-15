@@ -26,5 +26,5 @@ class SignUp(signup_db.Model):
             cname=cname,
             username=self.username,
             email=self.email
-            )
+        )
         return string

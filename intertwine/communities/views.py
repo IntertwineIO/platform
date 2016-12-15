@@ -91,7 +91,7 @@ def render_community(problem_human_id, geo_human_id):
         geo = None
 
     community = Community.query.filter_by(
-                                    problem=problem, org=org, geo=geo).first()
+        problem=problem, org=org, geo=geo).first()
 
     if not community:
         community = vardygrify(Community, problem=problem, org=org, geo=geo,

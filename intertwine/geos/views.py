@@ -6,7 +6,7 @@ from operator import attrgetter
 import flask
 from flask import abort, redirect, render_template
 
-from . import blueprint, geo_db
+from . import blueprint
 from .models import Geo, GeoLevel
 
 
@@ -67,5 +67,5 @@ def render_geo(geo_human_id):
         title=title,
         geo=geo,
         # top_problems=top_problems,
-        )
+    )
     return template

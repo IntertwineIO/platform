@@ -267,10 +267,10 @@ class AggregateProblemConnectionRating(BaseProblemModel):
                                         art2_name='weight', arg2_value=weight)
         if (ratings is not None and rating is not None):
             ratings_str = '<{type} of length {length}>'.format(
-                                type=type(ratings), length=len(list(ratings)))
+                type=type(ratings), length=len(list(ratings)))
             raise InconsistentArguments(
-                                arg1_name='ratings', arg1_value=ratings_str,
-                                art2_name='rating', arg2_value=rating)
+                arg1_name='ratings', arg1_value=ratings_str,
+                art2_name='rating', arg2_value=rating)
 
         if ratings:
             rating, weight = (
@@ -279,8 +279,8 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         elif rating is None:
             if aggregation == self.STRICT:
                 rq = ProblemConnectionRating.query.filter_by(
-                        problem=problem, org=org, geo=geo,
-                        connection=connection)
+                    problem=problem, org=org, geo=geo,
+                    connection=connection)
                 # TODO: implement inclusive aggregation
                 # Removed since it is not strict:
                 # rq = rq.filter_by(org=org) if org else rq
@@ -343,13 +343,13 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         return ('{cls}: {rating:.2f} with {weight:.2f} weight ({agg})\n'
                 '  on {conn}\n'
                 '  {org}{geo}'.format(
-                   cls=cls_name,
-                   rating=self.rating,
-                   weight=self.weight,
-                   agg=self.aggregation,
-                   conn=conn_str,
-                   org=''.join(('at ', org, ' ')) if org else '',
-                   geo=''.join(('in ', geo.display())) if geo else ''))
+                    cls=cls_name,
+                    rating=self.rating,
+                    weight=self.weight,
+                    agg=self.aggregation,
+                    conn=conn_str,
+                    org=''.join(('at ', org, ' ')) if org else '',
+                    geo=''.join(('in ', geo.display())) if geo else ''))
 
     def __str__(self):
         return unicode(self).encode('utf-8')
