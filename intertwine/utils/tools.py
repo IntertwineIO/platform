@@ -13,6 +13,7 @@ from mock import create_autospec
 
 if sys.version.startswith('3'):
     izip = zip
+    unicode = str
 else:
     from itertools import izip
 

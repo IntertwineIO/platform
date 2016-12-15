@@ -3,6 +3,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import re
+import sys
 from collections import namedtuple, OrderedDict
 from numbers import Real
 from operator import attrgetter
@@ -27,6 +28,10 @@ from .exceptions import (
     InvalidProblemForConnection,
     InvalidUser,
 )
+
+
+if sys.version.startswith('3'):
+    unicode = str
 
 BaseProblemModel = IntertwineModel
 
