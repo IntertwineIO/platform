@@ -75,8 +75,8 @@ def kwargify(arg_names=None, arg_values=None, kwargs=None,
     return:
         New consolidated dict of positional args, (*)args & (**)kwargs
     '''
-    parg_names_, args_name, kwargs_name, frame_locals = getargvalues(
-                                                            stack()[1][0])
+    parg_names_, args_name, kwargs_name, frame_locals = (
+        getargvalues(stack()[1][0]))
 
     arg_names = () if arg_names is None else arg_names
     arg_values = (frame_locals.get(args_name, ())
@@ -132,7 +132,7 @@ def stringify(thing, limit=10, _lvl=0):
     the limit is negative, no cap is applied.
     '''
     limit = float('inf') if limit < 0 else limit
-    ind = _lvl*4*' '
+    ind = _lvl * 4 * ' '
     len_thing = -1
     strings = []
 
@@ -147,18 +147,18 @@ def stringify(thing, limit=10, _lvl=0):
     # If a dict, add each key and stringify + further indent each value
     elif isinstance(thing, dict):
         for k, v in thing.items():
-            v_str = stringify(v, limit, _lvl+1)
+            v_str = stringify(v, limit, _lvl + 1)
             # If key has an empty value, don't include it
             if len(v_str.strip()) == 0:
                 continue
             # If there's one value, put the key and value on one line
             elif len(v_str.split('\n')) == 1:
-                strings.append(u'{ind}{key}: {value}'.format(
-                                ind=ind, key=k, value=v_str.strip()))
+                strings.append(u'{ind}{key}: {value}'
+                               .format(ind=ind, key=k, value=v_str.strip()))
             # There are multiple values, so list them below the key
             else:
-                strings.append(u'{ind}{key}:\n{value}'.format(
-                                ind=ind, key=k, value=v_str))
+                strings.append(u'{ind}{key}:\n{value}'
+                               .format(ind=ind, key=k, value=v_str))
 
     # If a custom object, use its __unicode__ method, but indent it
     elif hasattr(thing, '__dict__'):
@@ -175,8 +175,8 @@ def stringify(thing, limit=10, _lvl=0):
         strings.append(u'{ind}{thing}'.format(ind=ind, thing=thing))
 
     if len_thing > limit:
-        strings.append('{ind}({limit} of {total})'.format(
-                        ind=ind, limit=limit, total=len_thing))
+        strings.append('{ind}({limit} of {total})'
+                       .format(ind=ind, limit=limit, total=len_thing))
 
     return '\n'.join(strings)
 

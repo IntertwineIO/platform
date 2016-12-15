@@ -39,7 +39,7 @@ class Role(AutoTableMixin, RoleMixin, BaseAuthModel):
         string = '<{cname} {name}>'.format(
             cname=cname,
             name=self.name
-            )
+        )
         return string
 
 
@@ -82,7 +82,7 @@ class User(AutoTableMixin, UserMixin, BaseAuthModel):
         string = '<{cname}{name}>'.format(
             cname=cname,
             name=name
-            )
+        )
         return string
 
 

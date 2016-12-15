@@ -77,12 +77,12 @@
                 {% set aggregate_rating = payload[aggregate_rating_key] %}
                 <div class="h-problem broader-problem">
                     <div class="h-problem-link-container word-break">
-                        <a href="{{ aggregate_rating['connected_community_uri'] }}" class="problem-link">
-                            {{ aggregate_rating['connected_problem_name'] }}
+                        <a href="{{ aggregate_rating['adjacent_community_uri'] }}" class="problem-link">
+                            {{ aggregate_rating['adjacent_problem_name'] }}
                             ({{ '{:.1f}'.format(aggregate_rating['rating']) }})
                         </a>
                     </div>
-                    <a href="{{ aggregate_rating['connected_community_uri'] }}">
+                    <a href="{{ aggregate_rating['adjacent_community_uri'] }}">
                         <i class="fa fa-circle problem-icon"></i>
                     </a>
                 </div>
@@ -109,13 +109,13 @@
                     {% set aggregate_rating = payload[aggregate_rating_key] %}
                     <div class="v-problem">
                         <div class="v-problem-link-container v-align-inner word-break">
-                            <a href="{{ aggregate_rating['connected_community_uri'] }}" class="problem-link">
-                                {{ aggregate_rating['connected_problem_name'] }}
+                            <a href="{{ aggregate_rating['adjacent_community_uri'] }}" class="problem-link">
+                                {{ aggregate_rating['adjacent_problem_name'] }}
                                 ({{ '{:.1f}'.format(aggregate_rating['rating']) }})
                             </a>
                         </div>
                         <div class="v-align-inner">
-                            <a href="{{ aggregate_rating['connected_community_uri'] }}">
+                            <a href="{{ aggregate_rating['adjacent_community_uri'] }}">
                                 <i class="fa fa-circle problem-icon"></i>
                             </a>
                         </div>
@@ -155,13 +155,13 @@
                     {% set aggregate_rating = payload[aggregate_rating_key] %}
                     <div class="v-problem">
                         <div class="v-align-inner">
-                            <a href="{{ aggregate_rating['connected_community_uri'] }}">
+                            <a href="{{ aggregate_rating['adjacent_community_uri'] }}">
                                 <i class="fa fa-circle problem-icon"></i>
                             </a>
                         </div>
                         <div class="v-problem-link-container v-align-inner word-break">
-                            <a href="{{ aggregate_rating['connected_community_uri'] }}" class="problem-link">
-                                {{ aggregate_rating['connected_problem_name'] }}
+                            <a href="{{ aggregate_rating['adjacent_community_uri'] }}" class="problem-link">
+                                {{ aggregate_rating['adjacent_problem_name'] }}
                                 ({{ '{:.1f}'.format(aggregate_rating['rating']) }})
                             </a>
                         </div>
@@ -188,12 +188,12 @@
             {% for aggregate_rating_key in aggregate_ratings['narrower'] %}
                 {% set aggregate_rating = payload[aggregate_rating_key] %}
                 <div class="h-problem narrower-problem">
-                    <a href="{{ aggregate_rating['connected_community_uri'] }}">
+                    <a href="{{ aggregate_rating['adjacent_community_uri'] }}">
                         <i class="fa fa-circle problem-icon"></i>
                     </a>
                     <div class="h-problem-link-container word-break">
-                        <a href="{{ aggregate_rating['connected_community_uri'] }}" class="problem-link">
-                            {{ aggregate_rating['connected_problem_name'] }}
+                        <a href="{{ aggregate_rating['adjacent_community_uri'] }}" class="problem-link">
+                            {{ aggregate_rating['adjacent_problem_name'] }}
                             ({{ '{:.1f}'.format(aggregate_rating['rating']) }})
                         </a>
                     </div>

@@ -21,9 +21,9 @@ def configure_community_json():
         config[Jsonable.form_path('.aggregate_ratings', category,
                                   'rating')] = 1
         config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'connected_problem_name')] = 1
+                                  'adjacent_problem_name')] = 1
         config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'connected_community_uri')] = 1
+                                  'adjacent_community_uri')] = 1
     return config
 
 
@@ -91,7 +91,7 @@ def render_community(problem_human_id, geo_human_id):
         geo = None
 
     community = Community.query.filter_by(
-                                    problem=problem, org=org, geo=geo).first()
+        problem=problem, org=org, geo=geo).first()
 
     if not community:
         community = vardygrify(Community, problem=problem, org=org, geo=geo,
