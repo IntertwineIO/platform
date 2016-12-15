@@ -36,6 +36,7 @@ def test_licenses(**options):
         'wheel',             # MIT
 
         # Test packages added
+        'ansi2html',         # GPLv3+ - only used by tox?
         'apipkg',            # MIT
         'astroid',           # LGPL - python linter package
         'autopep8',          # Expat
@@ -117,7 +118,8 @@ def test_licenses(**options):
                         skip = True
                     file = sys.stdout
                     license = license.strip()
-                    if not any(lic.lower() in license.lower() for lic in accepted_licenses):
+                    if not any(lic.lower() in license.lower()
+                               for lic in accepted_licenses):
                         severity = '!!!'
                         file = sys.stderr
                         found_valid = False
