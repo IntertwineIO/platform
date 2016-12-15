@@ -132,6 +132,8 @@ class AggregateProblemConnectionRating(BaseProblemModel):
             set of ratings to be aggregated. Ratings and rating/weight
             cannot both be specified.
     '''
+    STRICT = 'strict'
+
     community_id = Column(types.Integer, ForeignKey('community.id'))
     community = orm.relationship('Community',
                                  back_populates='aggregate_ratings')
@@ -165,25 +167,25 @@ class AggregateProblemConnectionRating(BaseProblemModel):
                      'community, connection, aggregation')
 
     @property
-    def connected_problem_name(self):
+    def adjacent_problem_name(self):
         key = self.connection.derive_key()
         problem = self.community.problem
-        connected_problem = (key.problem_a if problem is key.problem_b
-                             else key.problem_b)
-        return connected_problem.name
+        adjacent_problem = (key.problem_a if problem is key.problem_b
+                            else key.problem_b)
+        return adjacent_problem.name
 
     @property
-    def connected_community_uri(self):
+    def adjacent_community_uri(self):
         from ..communities.models import Community
         key = self.connection.derive_key()
         problem = self.community.problem
-        connected_problem = (key.problem_a if problem is key.problem_b
-                             else key.problem_b)
-        return Community.form_uri(connected_problem, self.community.org,
+        adjacent_problem = (key.problem_a if problem is key.problem_b
+                            else key.problem_b)
+        return Community.form_uri(adjacent_problem, self.community.org,
                                   self.community.geo)
 
     @classmethod
-    def create_key(cls, community, connection, aggregation='strict', **kwds):
+    def create_key(cls, community, connection, aggregation=STRICT, **kwds):
         '''Create key for an aggregate rating
 
         Return a key allowing the Trackable metaclass to register an
@@ -239,25 +241,25 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
         self.rating, self.weight = new_aggregate_rating, new_aggregate_weight
 
-    def __init__(self, community, connection, aggregation='strict',
+    def __init__(self, community, connection, aggregation=STRICT,
                  rating=None, weight=None, ratings=None):
         problem, org, geo = community.derive_key()
-        is_causal = connection.axis == 'causal'
+        is_causal = connection.axis == connection.CAUSAL
         p_a = connection.driver if is_causal else connection.broader
         p_b = connection.impact if is_causal else connection.narrower
         if problem not in (p_a, p_b):
             raise InvalidProblemForConnection(problem=problem,
                                               connection=connection)
         if is_causal:
-            self.connection_category = ('drivers' if problem is p_b
-                                        else 'impacts')
+            self.connection_category = (connection.DRIVERS if problem is p_b
+                                        else connection.IMPACTS)
         else:
-            self.connection_category = ('broader' if problem is p_b
-                                        else 'narrower')
+            self.connection_category = (connection.BROADER if problem is p_b
+                                        else connection.NARROWER)
 
         # TODO: add 'inclusive' to include all ratings within sub-orgs/geos
         # TODO: add 'inherited' to point to a different context for ratings
-        if aggregation not in ('strict'):
+        if aggregation not in (self.STRICT,):
             raise InvalidAggregation(aggregation=aggregation)
         if ((rating is None and weight is not None) or
                 (rating is not None and weight is None)):
@@ -275,7 +277,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
                 AggregateProblemConnectionRating.calculate_values(ratings))
 
         elif rating is None:
-            if aggregation == 'strict':
+            if aggregation == self.STRICT:
                 rq = ProblemConnectionRating.query.filter_by(
                         problem=problem, org=org, geo=geo,
                         connection=connection)
@@ -332,7 +334,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         problem, org, geo = self.community.derive_key()
         p_name = self.community.problem.name
         conn = self.connection
-        is_causal = conn.axis == 'causal'
+        is_causal = conn.axis == conn.CAUSAL
         p_a = conn.driver.name if is_causal else conn.broader.name
         if p_name == p_a:
             conn_str = conn.display().replace(p_name, '@' + p_name, 1)
@@ -540,15 +542,15 @@ class ProblemConnectionRating(BaseProblemModel):
         if not isinstance(connection, ProblemConnection):
             raise InvalidEntity(variable='connection', value=connection,
                                 classname='ProblemConnection')
-        is_causal = connection.axis == 'causal'
+        is_causal = connection.axis == connection.CAUSAL
         p_a = connection.driver if is_causal else connection.broader
         p_b = connection.impact if is_causal else connection.narrower
         if is_causal:
-            self.connection_category = ('drivers' if problem is p_b
-                                        else 'impacts')
+            self.connection_category = (connection.DRIVERS if problem is p_b
+                                        else connection.IMPACTS)
         else:
-            self.connection_category = ('broader' if problem is p_b
-                                        else 'narrower')
+            self.connection_category = (connection.BROADER if problem is p_b
+                                        else connection.NARROWER)
 
         if isinstance(problem, basestring):
             problem = Problem.query.filter_by(human_id=problem).one()
@@ -592,7 +594,7 @@ class ProblemConnectionRating(BaseProblemModel):
         '''Display (old custom __str__ method)'''
         p_name = self.problem.name
         conn = self.connection
-        is_causal = conn.axis == 'causal'
+        is_causal = conn.axis == conn.CAUSAL
         p_a = conn.driver.name if is_causal else conn.broader.name
         if p_name == p_a:
             conn_str = conn.display().replace(p_name, '@' + p_name, 1)
@@ -642,6 +644,17 @@ class ProblemConnection(BaseProblemModel):
                                                     problem_b
                                                    ('narrower')
     '''
+    AXIS, CAUSAL, SCOPED = 'axis', 'causal', 'scoped'
+    DRIVER, IMPACT = 'driver', 'impact'
+    DRIVERS, IMPACTS = 'drivers', 'impacts'
+    BROADER, NARROWER = 'broader', 'narrower'
+    ADJACENT_PROBLEM, SELF = 'adjacent_problem', 'self'
+    PROBLEM_A, PROBLEM_B = 'problem_a', 'problem_b'
+    PROBLEM_A_ID, PROBLEM_B_ID = 'problem_a_id', 'problem_b_id'
+    RELATIVE_A, RELATIVE_B = 'relative_a', 'relative_b'
+    CATEGORY, INVERSE_CATEGORY = 'category', 'inverse_category'
+    COMPONENT, INVERSE_COMPONENT = 'component', 'inverse_component'
+    COMPONENT_ID, INVERSE_COMPONENT_ID = 'component_id', 'inverse_component_id'
 
     axis = Column(types.String(6))
     problem_a_id = Column(types.Integer, ForeignKey('problem.id'))
@@ -650,43 +663,44 @@ class ProblemConnection(BaseProblemModel):
     ratings = orm.relationship('ProblemConnectionRating',
                                back_populates='connection',
                                lazy='dynamic')
-    # TODO: remove aggregate ratings relationship?
+
     aggregate_ratings = orm.relationship('AggregateProblemConnectionRating',
                                          back_populates='connection',
                                          lazy='dynamic')
 
     __table_args__ = (Index('ux_problem_connection',
                             # ux for unique index
-                            'problem_a_id',
-                            'axis',
-                            'problem_b_id',
+                            PROBLEM_A_ID,
+                            AXIS,
+                            PROBLEM_B_ID,
                             unique=True),
-                      Index('ix_problem_connection:problem_b_id+axis',
+                      Index('ix_problem_connection:{problem_b_id}+{axis}'
+                            .format(problem_b_id=PROBLEM_B_ID, axis=AXIS),
                             # ix for index
-                            'problem_b_id',
-                            'axis'),)
+                            PROBLEM_B_ID,
+                            AXIS),)
 
     CategoryMapRecord = namedtuple(
         'ProblemConnectionCategoryMapRecord',
-        'axis, category, component, ab_id, relative_a, '
-        'relative_b, i_ab_id, i_component, i_category')
+        (AXIS, CATEGORY, COMPONENT, COMPONENT_ID, RELATIVE_A, RELATIVE_B,
+            INVERSE_COMPONENT_ID, INVERSE_COMPONENT, INVERSE_CATEGORY))
 
     CATEGORY_MAP = OrderedDict((
-        ('drivers', CategoryMapRecord(
-            'causal', 'drivers', 'driver', 'problem_a_id', 'adjacent_problem',
-            'self', 'problem_b_id', 'impact', 'impacts')),
-        ('impacts', CategoryMapRecord(
-            'causal', 'impacts', 'impact', 'problem_b_id', 'self',
-            'adjacent_problem', 'problem_a_id', 'driver', 'drivers')),
-        ('broader', CategoryMapRecord(
-            'scoped', 'broader', 'broader', 'problem_a_id', 'adjacent_problem',
-            'self', 'problem_b_id', 'narrower', 'narrower')),
-        ('narrower', CategoryMapRecord(
-            'scoped', 'narrower', 'narrower', 'problem_b_id', 'self',
-            'adjacent_problem', 'problem_a_id', 'broader', 'broader'))
+        (DRIVERS, CategoryMapRecord(
+            CAUSAL, DRIVERS, DRIVER, PROBLEM_A_ID, ADJACENT_PROBLEM,
+            SELF, PROBLEM_B_ID, IMPACT, IMPACTS)),
+        (IMPACTS, CategoryMapRecord(
+            CAUSAL, IMPACTS, IMPACT, PROBLEM_B_ID, SELF,
+            ADJACENT_PROBLEM, PROBLEM_A_ID, DRIVER, DRIVERS)),
+        (BROADER, CategoryMapRecord(
+            SCOPED, BROADER, BROADER, PROBLEM_A_ID, ADJACENT_PROBLEM,
+            SELF, PROBLEM_B_ID, NARROWER, NARROWER)),
+        (NARROWER, CategoryMapRecord(
+            SCOPED, NARROWER, NARROWER, PROBLEM_B_ID, SELF,
+            ADJACENT_PROBLEM, PROBLEM_A_ID, BROADER, BROADER))
     ))
 
-    Key = namedtuple('ProblemConnectionKey', 'axis, problem_a, problem_b')
+    Key = namedtuple('ProblemConnectionKey', (AXIS, PROBLEM_A, PROBLEM_B))
 
     @classmethod
     def create_key(cls, axis, problem_a, problem_b, **kwds):
@@ -705,7 +719,7 @@ class ProblemConnection(BaseProblemModel):
         problem connection instance. The key is a namedtuple of axis,
         problem_a, and problem_b.
         '''
-        is_causal = self.axis == 'causal'
+        is_causal = self.axis == self.CAUSAL
         p_a = self.driver if is_causal else self.broader
         p_b = self.impact if is_causal else self.narrower
         return self.__class__.Key(self.axis, p_a, p_b)
@@ -725,12 +739,12 @@ class ProblemConnection(BaseProblemModel):
         is required to define a problem connection rating.
         '''
         # TODO: make axis an Enum
-        if axis not in ('causal', 'scoped'):
+        if axis not in (self.CAUSAL, self.SCOPED):
             raise InvalidConnectionAxis(axis=axis)
         if problem_a is problem_b:
             raise CircularConnection(problem=problem_a)
         self.axis = axis
-        is_causal = self.axis == 'causal'
+        is_causal = self.axis == self.CAUSAL
         self.driver = problem_a if is_causal else None
         self.impact = problem_b if is_causal else None
         self.broader = problem_a if not is_causal else None
@@ -778,7 +792,7 @@ class ProblemConnection(BaseProblemModel):
 
     def display(self):
         '''Display (old custom __str__ method)'''
-        is_causal = self.axis == 'causal'
+        is_causal = self.axis == self.CAUSAL
         ct = '->' if is_causal else '::'
         p_a = self.driver.name if is_causal else self.broader.name
         p_b = self.impact.name if is_causal else self.narrower.name
@@ -820,33 +834,41 @@ class Problem(BaseProblemModel):
     # TODO: support multiple sponsors in different org/geo contexts
     sponsor = Column(types.String(60))
     images = orm.relationship(
-                'Image',
-                back_populates='problem',
-                lazy='dynamic')
+        'Image',
+        back_populates='problem',
+        lazy='dynamic')
     drivers = orm.relationship(
-                'ProblemConnection',
-                primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
-                            "ProblemConnection.axis=='causal')",
-                backref='impact',
-                lazy='dynamic')
+        'ProblemConnection',
+        primaryjoin=('and_(Problem.id==ProblemConnection.{problem_b_id}, '
+                     'ProblemConnection.axis=="{causal}")').format(
+                        problem_b_id=ProblemConnection.PROBLEM_B_ID,
+                        causal=ProblemConnection.CAUSAL),
+        backref=ProblemConnection.IMPACT,
+        lazy='dynamic')
     impacts = orm.relationship(
-                'ProblemConnection',
-                primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
-                            "ProblemConnection.axis=='causal')",
-                backref='driver',
-                lazy='dynamic')
+        'ProblemConnection',
+        primaryjoin=('and_(Problem.id==ProblemConnection.{problem_a_id}, '
+                     'ProblemConnection.axis=="{causal}")').format(
+                        problem_a_id=ProblemConnection.PROBLEM_A_ID,
+                        causal=ProblemConnection.CAUSAL),
+        backref=ProblemConnection.DRIVER,
+        lazy='dynamic')
     broader = orm.relationship(
-                'ProblemConnection',
-                primaryjoin="and_(Problem.id==ProblemConnection.problem_b_id, "
-                            "ProblemConnection.axis=='scoped')",
-                backref='narrower',
-                lazy='dynamic')
+        'ProblemConnection',
+        primaryjoin=('and_(Problem.id==ProblemConnection.{problem_b_id}, '
+                     'ProblemConnection.axis=="{scoped}")').format(
+                        problem_b_id=ProblemConnection.PROBLEM_B_ID,
+                        scoped=ProblemConnection.SCOPED),
+        backref=ProblemConnection.NARROWER,
+        lazy='dynamic')
     narrower = orm.relationship(
-                'ProblemConnection',
-                primaryjoin="and_(Problem.id==ProblemConnection.problem_a_id, "
-                            "ProblemConnection.axis=='scoped')",
-                backref='broader',
-                lazy='dynamic')
+        'ProblemConnection',
+        primaryjoin=('and_(Problem.id==ProblemConnection.{problem_a_id}, '
+                     'ProblemConnection.axis=="{scoped}")').format(
+                        problem_a_id=ProblemConnection.PROBLEM_A_ID,
+                        scoped=ProblemConnection.SCOPED),
+        backref=ProblemConnection.BROADER,
+        lazy='dynamic')
 
     # URL Guidance: perishablepress.com/stop-using-unsafe-characters-in-urls
     # Exclude unsafe:            "<>#%{}|\^~[]`
@@ -932,8 +954,10 @@ class Problem(BaseProblemModel):
         # track problems modified by the creation of this problem via
         # new connections to existing problems
         self._modified = set()
-        problem_connection_data = {'drivers': drivers, 'impacts': impacts,
-                                   'broader': broader, 'narrower': narrower}
+        problem_connection_data = {ProblemConnection.DRIVERS: drivers,
+                                   ProblemConnection.IMPACTS: impacts,
+                                   ProblemConnection.BROADER: broader,
+                                   ProblemConnection.NARROWER: narrower}
         for k, v in problem_connection_data.items():
             self.load_connections(category=k, data=v)
 
@@ -991,7 +1015,7 @@ class Problem(BaseProblemModel):
         modified in the process (including those that are also new).
         '''
         cat_map = ProblemConnection.CATEGORY_MAP[category]
-        axis, inverse_name = cat_map.axis, cat_map.i_category
+        axis, inverse_category = cat_map.axis, cat_map.inverse_category
         p_a, p_b = cat_map.relative_a, cat_map.relative_b
 
         connections = getattr(self, category)
@@ -1009,7 +1033,7 @@ class Problem(BaseProblemModel):
                 ratings_context_problem=self)
             if connection not in connections:
                 connections.append(connection)
-                getattr(adjacent_problem, inverse_name).append(connection)
+                getattr(adjacent_problem, inverse_category).append(connection)
                 self._modified.add(adjacent_problem)
 
         if len(self._modified) > 0:
@@ -1022,7 +1046,7 @@ class Problem(BaseProblemModel):
         connections
         '''
         # ['impact', 'driver', 'narrower', 'broader']
-        categories = map(attrgetter('i_component'),
+        categories = map(attrgetter(ProblemConnection.INVERSE_COMPONENT),
                          ProblemConnection.CATEGORY_MAP.values())
 
         return ProblemConnection.query.filter(or_(
