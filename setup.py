@@ -148,8 +148,6 @@ def get_package_requirements(package_requires, required=None):
         # Deploy identifies upgrades to local system prior to deployment
         'deploy': [
             'ansible >= 2',
-            'devpi-client',   # MIT - for pushing releases
-            'devpi-common',   # MIT - for pushing releases
             'gitpython',
         ],
 
