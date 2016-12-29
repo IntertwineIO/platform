@@ -1,8 +1,8 @@
 Intertwine | Platform  |Build Status|_
 ======================================
 
-.. |Build Status| image:: https://travis-ci.org/intertwineio/platform.svg
-.. _Build Status: https://travis-ci.org/intertwineio/platform
+.. |Build Status| image:: https://travis-ci.org/IntertwineIO/platform.svg
+.. _Build Status: https://travis-ci.org/IntertwineIO/platform
 
 
 Untangling Austin's Problems
