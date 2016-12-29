@@ -1,8 +1,8 @@
 Intertwine | Platform  |Build Status|_
 ======================================
 
-.. |Build Status| image:: https://travis-ci.org/brianbruggeman/oogli.svg
-.. _Build Status: https://travis-ci.org/brianbruggeman/oogli
+.. |Build Status| image:: https://travis-ci.org/intertwineio/platform.svg
+.. _Build Status: https://travis-ci.org/intertwineio/platform
 
 
 Untangling Austin's Problems
