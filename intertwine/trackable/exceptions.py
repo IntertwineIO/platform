@@ -5,7 +5,7 @@ import logging
 log = logging.getLogger('intertwine.problems.exceptions')
 
 
-class DataProcessException(Exception):
+class TrackableException(Exception):
     '''Data Process exception'''
 
     # TODO: make this work with *args
@@ -19,10 +19,10 @@ class DataProcessException(Exception):
         Exception.__init__(self, message)
 
 
-class InvalidRegistryKey(DataProcessException):
+class InvalidRegistryKey(TrackableException):
     '''{key!r} is not a valid registry key for class {classname}'''
 
 
-class KeyRegisteredAndNoModify(DataProcessException):
+class KeyRegisteredAndNoModify(TrackableException):
     '''{key!r} has already been registered for class {classname} and
     {classname}.modify() has not been implemented'''

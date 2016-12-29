@@ -649,7 +649,9 @@ class ProblemConnection(BaseProblemModel):
                                                     problem_b
                                                    ('narrower')
     '''
+    BLUEPRINT_SUBCATEGORY = 'connections'
     AXIS, CAUSAL, SCOPED = 'axis', 'causal', 'scoped'
+    AXES = (CAUSAL, SCOPED)
     DRIVER, IMPACT = 'driver', 'impact'
     DRIVERS, IMPACTS = 'drivers', 'impacts'
     BROADER, NARROWER = 'broader', 'narrower'
@@ -878,9 +880,10 @@ class Problem(BaseProblemModel):
     # URL Guidance: perishablepress.com/stop-using-unsafe-characters-in-urls
     # Exclude unsafe:            "<>#%{}|\^~[]`
     # Exclude reserved:          ;/?:@=&
-    # Potentially include:       !*_
-    # Include safe plus space:   $-.+'(), a-zA-Z0-9
-    name_pattern = re.compile(r'''^[$-.+'(), a-zA-Z0-9]+$''')
+    # Exclude space placeholder: _
+    # Exclude unnecessary:       !*
+    # Include safe plus space:   -+.,$'() a-zA-Z0-9
+    name_pattern = re.compile(r'''^[-+.,$'() a-zA-Z0-9]+$''')
 
     @property
     def name(self):
@@ -932,6 +935,11 @@ class Problem(BaseProblemModel):
         problem instance.
         '''
         return self.human_id
+
+    @staticmethod
+    def infer_name_from_key(key):
+        '''Infer name from key assuming ordinary titlecase rules'''
+        return titlecase(key.replace('_', ' '))
 
     def __init__(self, name, definition=None, definition_url=None,
                  sponsor=None, images=[],
