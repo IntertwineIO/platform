@@ -8,6 +8,7 @@ from collections import namedtuple
 from itertools import groupby
 from operator import attrgetter
 
+from past.builtins import basestring
 from sqlalchemy import Column, ForeignKey, Index, desc, orm, types
 
 from .. import IntertwineModel
