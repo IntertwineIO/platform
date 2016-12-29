@@ -18,7 +18,7 @@ from ..problems.models import ProblemConnectionRating as PCR
 from ..problems.models import Problem
 from ..utils.mixins import Jsonable, JsonProperty
 from ..utils.tools import stringify, vardygrify
-from ..utils.widgets import PeekableIterator
+from ..utils.structures import PeekableIterator
 
 if sys.version.startswith('3'):
     unicode = str

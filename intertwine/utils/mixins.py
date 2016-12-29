@@ -16,7 +16,7 @@ from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 from .tools import camelCaseTo_snake_case, kwargify
-from .widgets import InsertableOrderedDict
+from .structures import InsertableOrderedDict
 
 
 class AutoIdMixin(object):
