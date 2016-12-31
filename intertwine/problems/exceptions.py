@@ -69,4 +69,4 @@ class InvalidAxis(InterfaceException):
 
 
 class InvalidProblemName(InterfaceException):
-    '''Invalid problem name'''
+    '''Invalid problem name: {problem_name}'''

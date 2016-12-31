@@ -851,7 +851,8 @@ class Problem(BaseProblemModel):
                      .format(problem_b_id=ProblemConnection.PROBLEM_B_ID,
                              causal=ProblemConnection.CAUSAL)),
         backref=ProblemConnection.IMPACT,
-        lazy='dynamic')
+        lazy='dynamic',
+        cascade='delete, delete-orphan')
     impacts = orm.relationship(
         'ProblemConnection',
         primaryjoin=(('and_(Problem.id==ProblemConnection.{problem_a_id}, '
@@ -859,7 +860,8 @@ class Problem(BaseProblemModel):
                      .format(problem_a_id=ProblemConnection.PROBLEM_A_ID,
                              causal=ProblemConnection.CAUSAL)),
         backref=ProblemConnection.DRIVER,
-        lazy='dynamic')
+        lazy='dynamic',
+        cascade='delete, delete-orphan')
     broader = orm.relationship(
         'ProblemConnection',
         primaryjoin=(('and_(Problem.id==ProblemConnection.{problem_b_id}, '
@@ -867,7 +869,8 @@ class Problem(BaseProblemModel):
                      .format(problem_b_id=ProblemConnection.PROBLEM_B_ID,
                              scoped=ProblemConnection.SCOPED)),
         backref=ProblemConnection.NARROWER,
-        lazy='dynamic')
+        lazy='dynamic',
+        cascade='delete, delete-orphan')
     narrower = orm.relationship(
         'ProblemConnection',
         primaryjoin=(('and_(Problem.id==ProblemConnection.{problem_a_id}, '
@@ -875,7 +878,8 @@ class Problem(BaseProblemModel):
                      .format(problem_a_id=ProblemConnection.PROBLEM_A_ID,
                              scoped=ProblemConnection.SCOPED)),
         backref=ProblemConnection.BROADER,
-        lazy='dynamic')
+        lazy='dynamic',
+        cascade='delete, delete-orphan')
 
     # URL Guidance: perishablepress.com/stop-using-unsafe-characters-in-urls
     # Exclude unsafe:            "<>#%{}|\^~[]`
