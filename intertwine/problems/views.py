@@ -3,12 +3,13 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from flask import (abort, current_app, jsonify, make_response, render_template,
-                   # redirect, request
-                   )
+                   # redirect,
+                   request)
 
 from . import blueprint
 from .models import Problem, ProblemConnection
-from ..exceptions import InterfaceException, ResourceAlreadyExists
+from ..exceptions import (InterfaceException, ResourceAlreadyExists,
+                          ResourceDoesNotExist)
 from .exceptions import InvalidAxis, InvalidProblemName
 
 
@@ -55,28 +56,36 @@ def render_problem(problem_key):
     # return redirect(community_uri, code=302)
 
 
-@blueprint.route('/{subcategory}/<axis>/<problem_a_key>/<problem_b_key>'
-                 .format(subcategory=ProblemConnection.BLUEPRINT_SUBCATEGORY),
+@blueprint.route('/' + ProblemConnection.BLUEPRINT_SUBCATEGORY,
                  methods=['POST'])
-def add_problem_connection(axis, problem_a_key, problem_b_key):
+def add_problem_connection():
     '''Add a connection between two problems
 
     Usage:
     curl -H "Content-Type: application/json" -X POST -d '{
-    "community_problem_key":"homelessness","community_geo_key":"us/tx/austin"
-    }' 'http://localhost:5000/problems/connections/causal/natural_disasters/homelessness'
+        "axis":"causal",
+        "problem_a_name":"Natural Disasters",
+        "problem_b_name":"Homelessness",
+        "community_problem_key":"homelessness",
+        "community_geo_key":"us/tx/austin"
+    }' 'http://localhost:5000/problems/connections'
     '''
-    axis = axis.lower()
+    payload = request.get_json()
+    axis = payload.get('axis').lower()
     valid_axes = ProblemConnection.AXES
     if axis not in valid_axes:
         raise InvalidAxis(invalid_axis=axis, valid_axes=valid_axes)
 
-    problem_data = (problem_a_key.lower(), problem_b_key.lower())
+    problem_a_name = payload.get('problem_a_name')
+    problem_b_name = payload.get('problem_b_name')
+    problem_data = (problem_a_name, problem_b_name)
     problems = []
-    for problem_key in problem_data:
+    for problem_name in problem_data:
+        if not problem_name:
+            raise InvalidProblemName(problem_name=problem_name)
+        problem_key = Problem.create_key(problem_name)
         problem = Problem.query.filter_by(human_id=problem_key).first()
         if problem is None:
-            problem_name = Problem.infer_name_from_key(problem_key)
             try:
                 problem = Problem(problem_name)
             except NameError as e:
@@ -93,7 +102,8 @@ def add_problem_connection(axis, problem_a_key, problem_b_key):
     ).first()
 
     if connection is not None:
-        raise ResourceAlreadyExists(cls='ProblemConnection')
+        raise ResourceAlreadyExists(cls='ProblemConnection',
+                                    key=connection.derive_key())
 
     connection = ProblemConnection(
         axis=axis, problem_a=problem_a, problem_b=problem_b)
@@ -103,7 +113,6 @@ def add_problem_connection(axis, problem_a_key, problem_b_key):
     return jsonify(connection.jsonify())
 
     # # Temporary: Redirect instead of returning the connection JSON:
-    # payload = request.get_json()
     # community_problem_key = payload.get('community_problem_key')
     # community_org_key = payload.get('community_org_key')
     # community_geo_key = payload.get('community_geo_key')
@@ -112,3 +121,39 @@ def add_problem_connection(axis, problem_a_key, problem_b_key):
     #                                    org=community_org_key,
     #                                    geo=community_geo_key)
     # return redirect(community_uri, code=302)
+
+
+@blueprint.route('/{subcategory}/<axis>/<problem_a_key>/<problem_b_key>'
+                 .format(subcategory=ProblemConnection.BLUEPRINT_SUBCATEGORY),
+                 methods=['GET'])
+def get_problem_connection(axis, problem_a_key, problem_b_key):
+    '''Get a problem connection
+
+    Usage:
+    curl -H "Content-Type: application/json" -X GET \
+    'http://localhost:5000/problems/connections/scoped/poverty/homelessness'
+    '''
+    axis = axis.lower()
+    valid_axes = ProblemConnection.AXES
+    if axis not in valid_axes:
+        raise InvalidAxis(invalid_axis=axis, valid_axes=valid_axes)
+
+    problem_data = (problem_a_key.lower(), problem_b_key.lower())
+    problems = []
+    for problem_key in problem_data:
+        problem = Problem.query.filter_by(human_id=problem_key).first()
+        if problem is None:
+            raise ResourceDoesNotExist(cls='Problem', key=problem_key)
+        problems.append(problem)
+
+    problem_a, problem_b = problems
+
+    connection = ProblemConnection.query.filter_by(
+        axis=axis, problem_a_id=problem_a.id, problem_b_id=problem_b.id
+    ).first()
+
+    if connection is None:
+        key = ProblemConnection.create_key(axis, problem_a, problem_b)
+        raise ResourceDoesNotExist(cls='ProblemConnection', key=key)
+
+    return jsonify(connection.jsonify())

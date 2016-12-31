@@ -50,4 +50,8 @@ class InterfaceException(IntertwineException):
 
 
 class ResourceAlreadyExists(InterfaceException):
-    '''{cls} resource already exists'''
+    '''{cls} resource already exists for key: {key}'''
+
+
+class ResourceDoesNotExist(InterfaceException):
+    '''{cls} resource does not exist for key: {key}'''
