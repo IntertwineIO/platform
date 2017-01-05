@@ -24,7 +24,7 @@
 }
 
 .connection-label {
-    font-size: 2em;
+    font-size: 1.8em;
     /*margin: 0.1em;*/
 }
 
@@ -380,7 +380,7 @@
         font-size: 20em
     }
     .problem-focus-label {
-        font-size: 2em;
+        font-size: 1.8em;
     }
 }
 
@@ -390,7 +390,6 @@
         display: none;
     }
 }
-
 
 header, section, .problem-focus-icon .problem-focus-label {
     -moz-transition: font-size 1s ease-in-out;
