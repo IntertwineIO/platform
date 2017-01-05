@@ -5,10 +5,10 @@ body {
 	padding: 0;
 	/*font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;*/
 	font-size: 100%;
-	background-color: white; /* #EBF0FC #bed2fa; */
-	min-width: 1em; /* preserves network structure */
+	background-color: white;  /* #EBF0FC #bed2fa; */
+	min-width: 1em;  /* preserves network structure */
 	width: auto !important;  /* Firefox will set width as auto */
-    width: 1000px;             /* As IE ignores !important it will set width as 1000px; */
+    width: 1000px;  /* As IE ignores !important it will set width as 1000px; */
 }
 
 header {
@@ -45,7 +45,7 @@ h2 {
 
 .page-title {
 	/*margin-top: 0em;*/
-	font-size: 1.5em;
+	font-size: 1.2em;
 }
 
 .page-scope {
@@ -81,12 +81,13 @@ h2 {
     }
 }
 
-/* 768px */
+/* 768px
 @media (min-width: 48em) {
     header, section {
         font-size: 1.75em;
     }
 }
+*/
 
 .nav-spacer {
 	padding: 3em 0;
