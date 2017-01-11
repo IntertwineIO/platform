@@ -3,6 +3,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import inspect
+from collections import namedtuple
 
 from alchy.model import ModelMeta
 from past.builtins import basestring
@@ -66,7 +67,8 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
         key = (key,)
 
     try:
-        assert named
+        if not named:
+            raise ValueError
         key_name = (u'{cls_name}.{key_cls_name}'
                     .format(cls_name=self.__class__.__name__,
                             key_cls_name=key.__class__.__name__))
@@ -75,7 +77,7 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
                                    named, tight, raw, outclassed, _lvl + 1))
                   for f in key._fields]
 
-    except (AssertionError, AttributeError):
+    except (ValueError, AttributeError):
         key_name = ''
         treprs = [trepr(v, named, tight, raw, outclassed, _lvl + 1)
                   for v in key]
@@ -169,7 +171,15 @@ class Trackable(ModelMeta):
         return inst
 
     def __getitem__(cls, key):
-        return cls._instances.get(key, None)
+        instance = cls._instances.get(key, None)
+        if instance is None:
+            try:
+                instance = cls.query.filter_by(**key._asdict).first()
+            except AttributeError:
+                instance = cls.query.filter_by(human_id=key).first()
+        if instance is not None:
+            cls[key] = instance
+        return instance
 
     def __setitem__(cls, key, value):
         cls._instances[key] = value
