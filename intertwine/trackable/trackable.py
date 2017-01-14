@@ -55,17 +55,16 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
         # repr adds u''s and extra escapes for printing unicode
         return repr(self) if raw else u"u'{}'".format(self)
 
+    osqb, op, cp, csqb = '[', '(', ')', ']'
+    cls = self.__class__.__name__
+    if not outclassed and _lvl == 0:
+        cls = osqb = csqb = ''
+
     key = self.derive_key()
     if not isinstance(key, tuple):
         key = (key,)
     if len(key) == 1:
         op = cp = ''
-
-    cls = self.__class__.__name__
-
-    osqb, op, cp, csqb = '[', '(', ')', ']'
-    if not outclassed and _lvl == 0:
-        cls = osqb = csqb = ''
 
     try:
         if not named:
