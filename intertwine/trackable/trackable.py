@@ -56,15 +56,16 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
         return repr(self) if raw else u"u'{}'".format(self)
 
     key = self.derive_key()
+    if not isinstance(key, tuple):
+        key = (key,)
+    if len(key) == 1:
+        op = cp = ''
+
     cls = self.__class__.__name__
 
     osqb, op, cp, csqb = '[', '(', ')', ']'
     if not outclassed and _lvl == 0:
         cls = osqb = csqb = ''
-
-    if not isinstance(key, tuple):
-        op = cp = ''
-        key = (key,)
 
     try:
         if not named:
