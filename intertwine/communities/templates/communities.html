@@ -24,7 +24,7 @@
 <section id="community-list-section">
     <div class="indent">
         {% for community in communities %}
-        <div class="community-display"><p><a href={{ community.problem.derive_key() }}{% if community.geo %}/{{ community.geo.derive_key() }}{% endif %}>
+        <div class="community-display"><p><a href={{ community.problem.human_id }}{% if community.geo %}/{{ community.geo.human_id }}{% endif %}>
             {{ community.problem.name }}
             {% if community.org %}
               at {{ community.org }}

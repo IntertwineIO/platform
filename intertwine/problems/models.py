@@ -834,8 +834,10 @@ class Problem(BaseProblemModel):
     Drivers/impacts are 'causal' connections while broader/narrower are
     'scoped' connections.
     '''
+    HUMAN_ID = 'human_id'
+
     _name = Column('name', types.String(60), index=True, unique=True)
-    _human_id = Column('human_id', types.String(60), index=True, unique=True)
+    _human_id = Column(HUMAN_ID, types.String(60), index=True, unique=True)
     definition = Column(types.String(200))
     definition_url = Column(types.String(2048))
     # TODO: support multiple sponsors in different org/geo contexts
@@ -898,7 +900,7 @@ class Problem(BaseProblemModel):
         name = titlecase(val.strip())
         if Problem.name_pattern.match(name) is None:  # check for valid name
             raise NameError("'{}' is not a valid problem name.".format(name))
-        self.human_id = Problem.create_key(name)  # set the human_id
+        self.human_id = self.convert_name_to_human_id(name)  # set the human_id
         self._name = name  # set the name last
 
     name = orm.synonym('_name', descriptor=name)
@@ -921,24 +923,31 @@ class Problem(BaseProblemModel):
 
     human_id = orm.synonym('_human_id', descriptor=human_id)
 
-    @staticmethod
-    def create_key(name, **kwds):
+    Key = namedtuple('ProblemKey', (HUMAN_ID,))
+
+    @classmethod
+    def create_key(cls, name, **kwds):
         '''Create key for a problem
 
         Return a registry key allowing the Trackable metaclass to look
         up a problem instance. The key is created from the given name
         parameter.
         '''
-        return name.strip().lower().replace(' ', '_')
+        human_id = cls.convert_name_to_human_id(name)
+        return cls.Key(human_id)
 
     def derive_key(self):
         '''Derive key from a problem instance
 
         Return the registry key used by the Trackable metaclass from a
-        problem instance. The key is derived from the name field on the
-        problem instance.
+        problem instance. The key is derived from the human_id field on
+        the problem instance.
         '''
-        return self.human_id
+        return self.__class__.Key(self.human_id)
+
+    @staticmethod
+    def convert_name_to_human_id(name):
+        return name.strip().lower().replace(' ', '_')
 
     @staticmethod
     def infer_name_from_key(key):

@@ -12,6 +12,7 @@ from past.builtins import basestring
 from sqlalchemy import Column, ForeignKey, Index, desc, orm, types
 
 from .. import IntertwineModel
+from ..geos.models import Geo
 from ..problems.exceptions import InvalidAggregation
 from ..problems.models import AggregateProblemConnectionRating as APCR
 from ..problems.models import ProblemConnection as PC
@@ -80,16 +81,16 @@ class Community(BaseCommunityModel):
 
     @staticmethod
     def form_uri(problem, org=None, geo=None):
-        problem_key = (problem if isinstance(problem, basestring)
+        problem_key = (Problem.Key(problem) if isinstance(problem, basestring)
                        else problem.derive_key())
-        geo_key = (geo if isinstance(geo, basestring) else (
+        geo_key = (Geo.Key(geo) if isinstance(geo, basestring) else (
                    geo.derive_key() if geo else ''))
 
-        return '/{blueprint}/{problem_key}{slash}{geo_key}'.format(
+        return '/{blueprint}/{problem_human_id}{slash}{geo_human_id}'.format(
             blueprint='communities',
-            problem_key=problem_key,
+            problem_human_id=problem_key.human_id,
             slash='/' if geo_key else '',
-            geo_key=geo_key)
+            geo_human_id=geo_key.human_id)
 
     @property
     def problem(self):
@@ -200,7 +201,7 @@ class Community(BaseCommunityModel):
 
         Return the registry key used by the Trackable metaclass from a
         community instance. The key is a namedtuple of problem, org, and
-        org.
+        geo.
         '''
         # Use __class__ instead of type() to support mocks
         return self.__class__.Key(self.problem, self.org, self.geo)

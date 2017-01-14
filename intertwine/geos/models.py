@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import sys
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict, namedtuple
 
-from sqlalchemy import desc, orm, types, Column, ForeignKey, Index, Table
+from sqlalchemy import Column, ForeignKey, Index, Table, desc, orm, types
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from .. import IntertwineModel
+from ..exceptions import AttributeConflict, CircularReference
 from ..utils.mixins import JsonProperty
 from ..utils.tools import stringify
-from ..exceptions import AttributeConflict, CircularReference
-
 
 if sys.version.startswith('3'):
     unicode = str
@@ -53,6 +53,8 @@ class Geo(BaseGeoModel):
     subdivision2  Travis County         TX           us/tx/travis_county
     place         Austin                TX           us/tx/austin
     '''
+    HUMAN_ID = 'human_id'
+
     uses_the = Column(types.Boolean)  # e.g. 'The United States'
     _name = Column('name', types.String(60))
     _abbrev = Column('abbrev', types.String(20))
@@ -142,10 +144,11 @@ class Geo(BaseGeoModel):
     def name(self, val):
         # Not during __init__() and there's no abbreviation used instead
         if self.human_id is not None and self.abbrev is None:
-            self.human_id = Geo.create_key(name=val,
-                                           qualifier=self.qualifier,
-                                           path_parent=self.path_parent,
-                                           alias_target=self.alias_target)
+            key = Geo.create_key(name=val,
+                                 qualifier=self.qualifier,
+                                 path_parent=self.path_parent,
+                                 alias_target=self.alias_target)
+            self.human_id = key.human_id
         nstr = val.lower()
         self.uses_the = (nstr.find('states') > -1 or
                          nstr.find('islands') > -1 or
@@ -162,10 +165,11 @@ class Geo(BaseGeoModel):
     @abbrev.setter
     def abbrev(self, val):
         if self.human_id is not None:  # Not during __init__()
-            self.human_id = Geo.create_key(name=self.name, abbrev=val,
-                                           qualifier=self.qualifier,
-                                           path_parent=self.path_parent,
-                                           alias_target=self.alias_target)
+            key = Geo.create_key(name=self.name, abbrev=val,
+                                 qualifier=self.qualifier,
+                                 path_parent=self.path_parent,
+                                 alias_target=self.alias_target)
+            self.human_id = key.human_id
         self._abbrev = val  # set abbrev last
 
     abbrev = orm.synonym('_abbrev', descriptor=abbrev)
@@ -177,10 +181,11 @@ class Geo(BaseGeoModel):
     @qualifier.setter
     def qualifier(self, val):
         if self.human_id is not None:  # Not during __init__()
-            self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
-                                           qualifier=val,
-                                           path_parent=self.path_parent,
-                                           alias_target=self.alias_target)
+            key = Geo.create_key(name=self.name, abbrev=self.abbrev,
+                                 qualifier=val,
+                                 path_parent=self.path_parent,
+                                 alias_target=self.alias_target)
+            self.human_id = key.human_id
         self._qualifier = val  # set qualifier last
 
     qualifier = orm.synonym('_qualifier', descriptor=qualifier)
@@ -192,10 +197,11 @@ class Geo(BaseGeoModel):
     @path_parent.setter
     def path_parent(self, val):
         if self.human_id is not None:  # Not during __init__()
-            self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
-                                           qualifier=self.qualifier,
-                                           path_parent=val,
-                                           alias_target=self.alias_target)
+            key = Geo.create_key(name=self.name, abbrev=self.abbrev,
+                                 qualifier=self.qualifier,
+                                 path_parent=val,
+                                 alias_target=self.alias_target)
+            self.human_id = key.human_id
         self._path_parent = val
 
     path_parent = orm.synonym('_path_parent', descriptor=path_parent)
@@ -257,11 +263,11 @@ class Geo(BaseGeoModel):
         self._human_id = val  # set human_id last
         # recursively propagate change to path_children
         for pc in self.path_children:
-            pc.human_id = Geo.create_key(name=pc.name, abbrev=pc.abbrev,
-                                         qualifier=pc.qualifier,
-                                         path_parent=self,
-                                         alias_target=pc.alias_target)
-
+            key = Geo.create_key(name=pc.name, abbrev=pc.abbrev,
+                                 qualifier=pc.qualifier,
+                                 path_parent=self,
+                                 alias_target=pc.alias_target)
+            pc.human_id = key.human_id
     human_id = orm.synonym('_human_id', descriptor=human_id)
 
     @property
@@ -310,9 +316,11 @@ class Geo(BaseGeoModel):
                                                        **json_kwargs)
         return levels_json
 
-    @staticmethod
-    def create_key(name=None, abbrev=None, qualifier=None, path_parent=None,
-                   alias_target=None, **kwds):
+    Key = namedtuple('GeoKey', (HUMAN_ID,))
+
+    @classmethod
+    def create_key(cls, name=None, abbrev=None, qualifier=None,
+                   path_parent=None, alias_target=None, **kwds):
         '''Create key for a geo
 
         Return a registry key allowing the Trackable metaclass to look
@@ -333,7 +341,7 @@ class Geo(BaseGeoModel):
             qualifier=' ' + qualifier if qualifier else '')
         nametag = (nametag.replace('.', '').replace(', ', '-')
                    .replace('/', '-').replace(' ', '_').lower())
-        return path + nametag
+        return cls.Key(path + nametag)
 
     def derive_key(self):
         '''Derive key from a geo instance
@@ -341,7 +349,7 @@ class Geo(BaseGeoModel):
         Return the registry key used by the Trackable metaclass from a
         geo instance. The key is the human_id.
         '''
-        return self.human_id
+        return self.__class__.Key(self.human_id)
 
     def __init__(self, name, abbrev=None, qualifier=None, path_parent=None,
                  alias_target=None, uses_the=None, data=None, levels={},
@@ -363,10 +371,11 @@ class Geo(BaseGeoModel):
             path_parent = alias_target.path_parent
         self.path_parent = path_parent
         self.alias_target = alias_target
-        self.human_id = Geo.create_key(name=self.name, abbrev=self.abbrev,
-                                       qualifier=self.qualifier,
-                                       path_parent=self.path_parent,
-                                       alias_target=self.alias_target)
+        key = Geo.create_key(name=self.name, abbrev=self.abbrev,
+                             qualifier=self.qualifier,
+                             path_parent=self.path_parent,
+                             alias_target=self.alias_target)
+        self.human_id = key.human_id
         # if self.alias_target is not None:
         #     return
 
@@ -582,48 +591,6 @@ class Geo(BaseGeoModel):
 
         return geo_key
 
-    def related_geos_by_level(self, relation, tight=True, raw=False, limit=10):
-        '''Related geos by level
-
-        Given a relation (e.g. parent/child), returns an ordered
-        dictionary of geo reprs stratified (keyed) by level. The levels
-        are ordered top to bottom for children and bottom to top for
-        parents. Within each level, the geos are listed in descending
-        order by total population. Any geos that are missing data and/or
-        levels (e.g. aliases) are excluded.
-
-        The following inputs may be specified:
-        tight=True: make all repr values tight (without whitespace)
-        raw=False: when True, adds extra escapes (for printing)
-        limit=10: caps the number of list items within any geo level;
-                  a negative limit indicates no cap
-        '''
-        if relation not in set(('parents', 'children')):
-            raise ValueError('{rel} is not an allowed value for relation'
-                             .format(rel=relation))
-
-        base_q = getattr(self, relation).join(Geo.data).join(Geo.levels)
-        levels = (lvl for lvl in (
-            GeoLevel.UP if relation == 'parents' else GeoLevel.DOWN))
-
-        if limit < 0:
-            od = OrderedDict(
-                (lvl, [g.trepr(tight=tight, raw=raw) for g in
-                 base_q.filter(GeoLevel.level == lvl).order_by(
-                 desc(GeoData.total_pop)).all()]) for lvl in levels)
-        else:
-            od = OrderedDict(
-                (lvl, [g.trepr(tight=tight, raw=raw) for g in
-                 base_q.filter(GeoLevel.level == lvl).order_by(
-                 desc(GeoData.total_pop)).limit(limit).all()])
-                for lvl in levels)
-
-        for lvl, geos in od.items():
-            if len(geos) == 0:
-                od.pop(lvl)
-
-        return od
-
     def __str__(self):
         return unicode(self).encode('utf-8')
 
@@ -633,6 +600,7 @@ class Geo(BaseGeoModel):
 
 class GeoData(BaseGeoModel):
     '''Base class for geo data'''
+    GEO = 'geo'
 
     geo_id = Column(types.Integer, ForeignKey('geo.id'))
     _geo = orm.relationship('Geo', back_populates='_data')
@@ -682,14 +650,16 @@ class GeoData(BaseGeoModel):
 
     geo = orm.synonym('_geo', descriptor=geo)
 
-    @staticmethod
-    def create_key(geo, **kwds):
+    Key = namedtuple('GeoDataKey', (GEO,))
+
+    @classmethod
+    def create_key(cls, geo, **kwds):
         '''Create key for geo data
 
         Return a key allowing the Trackable metaclass to register a geo
         data instance. The key is the corresponding geo.
         '''
-        return geo
+        return cls.Key(geo)
 
     def derive_key(self):
         '''Derive key from a geo data instance
@@ -697,7 +667,7 @@ class GeoData(BaseGeoModel):
         Return the registry key used by the Trackable metaclass from a
         geo data instance. The key is the geo to which it is linked.
         '''
-        return self.geo
+        return self.__class__.Key(self.geo)
 
     def __init__(self, geo, total_pop=None, urban_pop=None,
                  longitude=None, latitude=None,

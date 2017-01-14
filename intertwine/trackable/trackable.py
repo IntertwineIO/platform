@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import inspect
 
@@ -66,7 +67,8 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
         key = (key,)
 
     try:
-        assert named
+        if not named:
+            raise ValueError
         key_name = (u'{cls_name}.{key_cls_name}'
                     .format(cls_name=self.__class__.__name__,
                             key_cls_name=key.__class__.__name__))
@@ -75,7 +77,7 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
                                    named, tight, raw, outclassed, _lvl + 1))
                   for f in key._fields]
 
-    except (AssertionError, AttributeError):
+    except (ValueError, AttributeError):
         key_name = ''
         treprs = [trepr(v, named, tight, raw, outclassed, _lvl + 1)
                   for v in key]
@@ -102,10 +104,17 @@ def _repr_(self):
 class Trackable(ModelMeta):
     '''Metaclass providing ability to track instances
 
-    Each class of type Trackable maintains a registry of instances and
-    only creates a new instance if it does not already exist. Existing
+    Each class of type Trackable maintains a registry of instances. New
+    instances are automatically registered and the constructor only
+    creates a new instance if it does not already exist. Existing
     instances can be updated with new data using the constructor if a
     'modify' method has been defined.
+
+    Trackable classes are subscriptable (indexed by key) and iterable.
+    Invoking the subscript attempts to retrieve the instance
+    corresponding to the given key from the registry. If no instance is
+    found, it then attempts to retrieve the instance from the database
+    and then register it.
 
     A 'create_key' static method must be defined on each Trackable class
     that returns a registry key based on the classes constructor input.
@@ -118,9 +127,6 @@ class Trackable(ModelMeta):
     instances are tracked automatically. Modifications of instances may
     be tracked using the '_modified' field on the instance, which is the
     set of instances of the same type that were modified.
-
-    A class of type Trackable is subscriptable (indexed by key) and
-    iterable.
     '''
 
     # Keep track of all classes that are Trackable
@@ -169,7 +175,23 @@ class Trackable(ModelMeta):
         return inst
 
     def __getitem__(cls, key):
-        return cls._instances.get(key, None)
+        try:
+            return cls._instances[key]
+        except KeyError:
+            if not isinstance(key, tuple):
+                key = cls.Key(key)  # convert non-tuple to namedtuple
+                try:
+                    return cls._instances[key]
+                except KeyError:
+                    pass
+            else:
+                key = cls.Key(*key)  # convert tuple to namedtuple
+
+        instance = cls.query.filter_by(**key._asdict()).first()
+
+        if instance is not None:
+            cls[key] = instance
+        return instance
 
     def __setitem__(cls, key, value):
         cls._instances[key] = value
