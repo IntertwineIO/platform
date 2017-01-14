@@ -171,12 +171,20 @@ class Trackable(ModelMeta):
         return inst
 
     def __getitem__(cls, key):
-        instance = cls._instances.get(key, None)
-        if instance is None:
-            try:
-                instance = cls.query.filter_by(**key._asdict).first()
-            except AttributeError:
-                instance = cls.query.filter_by(human_id=key).first()
+        try:
+            return cls._instances[key]
+        except KeyError:
+            if not isinstance(key, tuple):
+                key = cls.Key(key)  # convert non-tuple to namedtuple
+                try:
+                    return cls._instances[key]
+                except KeyError:
+                    pass
+            else:
+                key = cls.Key(*key)  # convert tuple to namedtuple
+
+        instance = cls.query.filter_by(**key._asdict()).first()
+
         if instance is not None:
             cls[key] = instance
         return instance

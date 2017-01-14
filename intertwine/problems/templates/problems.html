@@ -24,7 +24,7 @@
 <section id="problem-list-section">
     <div class="indent">
         {% for problem in problems %}
-        <div class="problem-name"><p><a href={{ problem.derive_key() }}> {{ problem.name }} </a></p></div>
+        <div class="problem-name"><p><a href={{ problem.human_id }}> {{ problem.name }} </a></p></div>
         {% endfor %}
     </div>
 </section>

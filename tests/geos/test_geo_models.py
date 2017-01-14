@@ -331,16 +331,16 @@ def test_geo_aliases(options):
     assert session.query(GeoData).all() == []
     assert session.query(GeoLevel).all() == []
 
-    geo_dict = {'total_pop': 100,
-                'urban_pop': 80,
-                'latitude': 42,
-                'longitude': -71,
-                'land_area': 321,
-                'water_area': 123}
+    geo_data_dict = {'total_pop': 100,
+                     'urban_pop': 80,
+                     'latitude': 42,
+                     'longitude': -71,
+                     'land_area': 321,
+                     'water_area': 123}
 
     level = 'place'
     geo = Geo(name='Test Geo')
-    gdata = GeoData(geo=geo, **geo_dict)
+    gdata = GeoData(geo=geo, **geo_data_dict)
     glvl = GeoLevel(geo=geo, level=level, designation='city')
 
     parent_geo = Geo(name='Test Parent Geo', abbrev='TPG')
@@ -383,8 +383,8 @@ def test_geo_aliases(options):
     assert geo_alias_2 in aliases
     assert geo_alias_3 in aliases
 
-    geo_from_db = session.query(Geo).filter(
-                            Geo.human_id == geo.derive_key()).first()
+    geo_from_db = session.query(Geo).filter_by(
+        human_id=geo.human_id).first()
 
     aliases = geo_from_db.aliases.all()
     assert geo_alias_1 in aliases
