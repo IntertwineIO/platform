@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import inspect
-from collections import namedtuple
 
 from alchy.model import ModelMeta
 from past.builtins import basestring
@@ -104,10 +104,17 @@ def _repr_(self):
 class Trackable(ModelMeta):
     '''Metaclass providing ability to track instances
 
-    Each class of type Trackable maintains a registry of instances and
-    only creates a new instance if it does not already exist. Existing
+    Each class of type Trackable maintains a registry of instances. New
+    instances are automatically registered and the constructor only
+    creates a new instance if it does not already exist. Existing
     instances can be updated with new data using the constructor if a
     'modify' method has been defined.
+
+    Trackable classes are subscriptable (indexed by key) and iterable.
+    Invoking the subscript attempts to retrieve the instance
+    corresponding to the given key from the registry. If no instance is
+    found, it then attempts to retrieve the instance from the database
+    and then register it.
 
     A 'create_key' static method must be defined on each Trackable class
     that returns a registry key based on the classes constructor input.
@@ -120,9 +127,6 @@ class Trackable(ModelMeta):
     instances are tracked automatically. Modifications of instances may
     be tracked using the '_modified' field on the instance, which is the
     set of instances of the same type that were modified.
-
-    A class of type Trackable is subscriptable (indexed by key) and
-    iterable.
     '''
 
     # Keep track of all classes that are Trackable
