@@ -61,9 +61,8 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
         cls = osqb = csqb = ''
 
     key = self.derive_key()
-    if not isinstance(key, tuple):
-        key = (key,)
-    if len(key) == 1:
+    # Unpack 1-tuple key unless the value is itself a tuple
+    if len(key) == 1 and not isinstance(key[0], tuple):
         op = cp = ''
 
     try:
@@ -116,17 +115,23 @@ class Trackable(ModelMeta):
     found, it then attempts to retrieve the instance from the database
     and then register it.
 
-    A 'create_key' static method must be defined on each Trackable class
+    A 'create_key' classmethod must be defined on each Trackable class
     that returns a registry key based on the classes constructor input.
     A 'derive_key' (instance) method must also be defined on each
     Trackable class that returns the registry key based on the
     instance's data.
 
-    Any updates that result from the creation or modification of an
-    instance using the class constructor can also be tracked. New
+    Keys are namedtuples of the fields required for uniqueness. While a
+    primary key id will work, it is better to use 'natural' key fields
+    that have some intrinsic meaning. When a key consists of a single
+    field, the key is a one-tuple, though the field will also work as
+    long as it is not itself a tuple.
+
+    Any instance updates that result from the creation or modification
+    of an instance using the class constructor can also be tracked. New
     instances are tracked automatically. Modifications of instances may
     be tracked using the '_modified' field on the instance, which is the
-    set of instances of the same type that were modified.
+    set of modified instances of the same type.
     '''
 
     # Keep track of all classes that are Trackable
