@@ -19,8 +19,8 @@ from ..problems.models import ProblemConnection as PC
 from ..problems.models import ProblemConnectionRating as PCR
 from ..problems.models import Problem
 from ..utils.mixins import Jsonable, JsonProperty
-from ..utils.tools import stringify, vardygrify
 from ..utils.structures import PeekableIterator
+from ..utils.tools import vardygrify
 
 if sys.version.startswith('3'):
     unicode = str
@@ -377,9 +377,3 @@ class Community(BaseCommunityModel):
                     _path=Jsonable.form_path(_path, category), **json_kwargs))
 
         return rv
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
-        return stringify(self.jsonify(depth=1, limit=-1), limit=10)

@@ -12,7 +12,6 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 from .. import IntertwineModel
 from ..exceptions import AttributeConflict, CircularReference
 from ..utils.mixins import JsonProperty
-from ..utils.tools import stringify
 
 if sys.version.startswith('3'):
     unicode = str
@@ -591,12 +590,6 @@ class Geo(BaseGeoModel):
 
         return geo_key
 
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
-        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
-
 
 class GeoData(BaseGeoModel):
     '''Base class for geo data'''
@@ -680,12 +673,6 @@ class GeoData(BaseGeoModel):
         self.longitude = longitude
         self.land_area = land_area
         self.water_area = water_area
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
-        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
 
 
 class GeoLevel(BaseGeoModel):
@@ -843,12 +830,6 @@ class GeoLevel(BaseGeoModel):
         # Must follow level assignment to provide key for Geo.levels
         self.geo = geo
 
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
-        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
-
 
 class GeoID(BaseGeoModel):
     '''Geo ID base class
@@ -952,9 +933,3 @@ class GeoID(BaseGeoModel):
 
         # Must follow standard assignment to create key for GeoLevel.ids
         self.level = level
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
-        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
