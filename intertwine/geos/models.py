@@ -525,10 +525,10 @@ class Geo(BaseGeoModel):
                 geostr.append(u'{the}{name}{abbrev}{qualifier}'.format(
                     the=the, name=geo.name, abbrev=abbrev,
                     qualifier=qualifier))
-            elif abbrev_path:
-                geostr.append(u'{abbrev}'.format(abbrev=geo.abbrev))
             else:
-                geostr.append(u'{name}'.format(name=geo.name))
+                nametag = (geo.abbrev if abbrev_path and geo.abbrev
+                           else geo.name)
+                geostr.append(nametag)
 
             geo = geo.path_parent
             plvl += 1
