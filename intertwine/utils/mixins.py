@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 from collections import OrderedDict
 from itertools import chain
@@ -15,8 +16,9 @@ from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
 from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
-from .tools import camelCaseTo_snake_case, kwargify
+from ..utils.tools import stringify
 from .structures import InsertableOrderedDict
+from .tools import camelCaseTo_snake_case, kwargify
 
 
 class AutoIdMixin(object):
@@ -331,3 +333,9 @@ class Jsonable(object):
                                           .format(value=value))
 
         return self_json if nest else _json
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        return stringify(self.jsonify(depth=1, limit=-1), limit=10)

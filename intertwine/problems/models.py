@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import re
 import sys
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict, namedtuple
 from numbers import Real
 from operator import attrgetter
 
@@ -15,20 +16,12 @@ from titlecase import titlecase
 from .. import IntertwineModel
 from ..geos.models import Geo
 from ..third_party import urlnorm
-from ..utils.tools import stringify
-from .exceptions import (
-    CircularConnection,
-    InconsistentArguments,
-    InvalidAggregateConnectionRating,
-    InvalidAggregation,
-    InvalidConnectionAxis,
-    InvalidEntity,
-    InvalidProblemConnectionRating,
-    InvalidProblemConnectionWeight,
-    InvalidProblemForConnection,
-    InvalidUser,
-)
-
+from .exceptions import (CircularConnection, InconsistentArguments,
+                         InvalidAggregateConnectionRating, InvalidAggregation,
+                         InvalidConnectionAxis, InvalidEntity,
+                         InvalidProblemConnectionRating,
+                         InvalidProblemConnectionWeight,
+                         InvalidProblemForConnection, InvalidUser)
 
 if sys.version.startswith('3'):
     unicode = str
@@ -100,12 +93,6 @@ class Image(BaseProblemModel):
         '''
         self.url = urlnorm.norm(url)
         self.problem = problem
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
-        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
 
 
 class AggregateProblemConnectionRating(BaseProblemModel):
@@ -355,12 +342,6 @@ class AggregateProblemConnectionRating(BaseProblemModel):
                     conn=conn_str,
                     org=''.join(('at ', org, ' ')) if org else '',
                     geo=''.join(('in ', geo.display())) if geo else ''))
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
-        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
 
 
 class ProblemConnectionRating(BaseProblemModel):
@@ -618,12 +599,6 @@ class ProblemConnectionRating(BaseProblemModel):
                     org=''.join(('at ', org, ' ')) if org else '',
                     geo=''.join(('in ', geo.display())) if geo else ''))
 
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
-        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
-
 
 class ProblemConnection(BaseProblemModel):
     '''Base class for problem connections
@@ -804,12 +779,6 @@ class ProblemConnection(BaseProblemModel):
         p_a = self.driver.name if is_causal else self.broader.name
         p_b = self.impact.name if is_causal else self.narrower.name
         return '{p_a} {ct} {p_b}'.format(p_a=p_a, ct=ct, p_b=p_b)
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
-        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
 
 
 class Problem(BaseProblemModel):
@@ -1132,9 +1101,3 @@ class Problem(BaseProblemModel):
             data_str = data_str.format(**fields)
             string.append(data_str)
         return '\n'.join(string)
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
-        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
