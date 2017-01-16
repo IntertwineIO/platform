@@ -219,6 +219,22 @@
     margin: 0.15em;
 }
 
+.driver-icon {
+    color: #ED2507;
+}
+
+.impact-icon {
+    color: #EDA509;
+}
+
+.broader-icon {
+    color: #A505A5;
+}
+
+.narrower-icon {
+    color: #07A5A5;
+}
+
 .add-problem-icon {
     color: #1A1A1A;
     font-size: 1.2em;

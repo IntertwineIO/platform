@@ -83,7 +83,7 @@
                         </a>
                     </div>
                     <a href="{{ aggregate_rating['adjacent_community_uri'] }}">
-                        <i class="fa fa-circle problem-icon"></i>
+                        <i class="fa fa-circle problem-icon broader-icon"></i>
                     </a>
                 </div>
             {% endfor %}
@@ -116,7 +116,7 @@
                         </div>
                         <div class="v-align-inner">
                             <a href="{{ aggregate_rating['adjacent_community_uri'] }}">
-                                <i class="fa fa-circle problem-icon"></i>
+                                <i class="fa fa-circle problem-icon driver-icon"></i>
                             </a>
                         </div>
                     </div>
@@ -156,7 +156,7 @@
                     <div class="v-problem">
                         <div class="v-align-inner">
                             <a href="{{ aggregate_rating['adjacent_community_uri'] }}">
-                                <i class="fa fa-circle problem-icon"></i>
+                                <i class="fa fa-circle problem-icon impact-icon"></i>
                             </a>
                         </div>
                         <div class="v-problem-link-container v-align-inner word-break">
@@ -189,7 +189,7 @@
                 {% set aggregate_rating = payload[aggregate_rating_key] %}
                 <div class="h-problem narrower-problem">
                     <a href="{{ aggregate_rating['adjacent_community_uri'] }}">
-                        <i class="fa fa-circle problem-icon"></i>
+                        <i class="fa fa-circle problem-icon narrower-icon"></i>
                     </a>
                     <div class="h-problem-link-container word-break">
                         <a href="{{ aggregate_rating['adjacent_community_uri'] }}" class="problem-link">
