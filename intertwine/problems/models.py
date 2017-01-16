@@ -4,7 +4,6 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import re
-import sys
 from collections import OrderedDict, namedtuple
 from numbers import Real
 from operator import attrgetter
@@ -22,9 +21,6 @@ from .exceptions import (CircularConnection, InconsistentArguments,
                          InvalidProblemConnectionRating,
                          InvalidProblemConnectionWeight,
                          InvalidProblemForConnection, InvalidUser)
-
-if sys.version.startswith('3'):
-    unicode = str
 
 BaseProblemModel = IntertwineModel
 

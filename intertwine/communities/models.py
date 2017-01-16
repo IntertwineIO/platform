@@ -3,7 +3,6 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import sys
 from collections import namedtuple
 from itertools import groupby
 from operator import attrgetter
@@ -21,9 +20,6 @@ from ..problems.models import Problem
 from ..utils.mixins import Jsonable, JsonProperty
 from ..utils.structures import PeekableIterator
 from ..utils.tools import vardygrify
-
-if sys.version.startswith('3'):
-    unicode = str
 
 BaseCommunityModel = IntertwineModel
 

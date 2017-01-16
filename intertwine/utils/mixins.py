@@ -3,6 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import sys
 from collections import OrderedDict
 from itertools import chain
 from math import floor
@@ -19,6 +20,9 @@ from sqlalchemy.orm.relationships import RelationshipProperty as RP
 from ..utils.tools import stringify
 from .structures import InsertableOrderedDict
 from .tools import camelCaseTo_snake_case, kwargify
+
+if sys.version.startswith('3'):
+    unicode = str
 
 
 class AutoIdMixin(object):

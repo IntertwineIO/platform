@@ -3,7 +3,6 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import sys
 from collections import OrderedDict, namedtuple
 
 from sqlalchemy import Column, ForeignKey, Index, Table, desc, orm, types
@@ -12,9 +11,6 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 from .. import IntertwineModel
 from ..exceptions import AttributeConflict, CircularReference
 from ..utils.mixins import JsonProperty
-
-if sys.version.startswith('3'):
-    unicode = str
 
 # BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
 BaseGeoModel = IntertwineModel
