@@ -46,6 +46,7 @@ First make sure that you have the required pre-requisites:
    * `git <https://git-scm.com/downloads>`_
    * `virtualbox <https://www.virtualbox.org/wiki/Downloads>`_
    * `docker-toolkit <https://www.docker.com/products/docker-toolbox>`_
+   * `python <https://python.org>`
 
 
 Download Image

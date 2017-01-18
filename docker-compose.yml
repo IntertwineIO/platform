@@ -7,5 +7,5 @@ services:
     volumes:
       - .:/opt/repos/platform
     ports:
-      - 80:80
+      - 8000:80
       - 9191:9191
