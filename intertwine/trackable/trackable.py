@@ -7,6 +7,7 @@ import inspect
 
 from alchy.model import ModelMeta
 from past.builtins import basestring
+from sqlalchemy.exc import InvalidRequestError
 
 from .exceptions import InvalidRegistryKey, KeyRegisteredAndNoModify
 
@@ -192,7 +193,17 @@ class Trackable(ModelMeta):
             else:
                 key = cls.Key(*key)  # convert tuple to namedtuple
 
-        instance = cls.query.filter_by(**key._asdict()).first()
+        key_dict = key._asdict()
+        try:
+            instance = cls.query.filter_by(**key_dict).first()
+
+        except InvalidRequestError:  # cls does not have a field
+            for field, value in key._asdict().items():
+                if not hasattr(cls, field):
+                    del key_dict[field]
+                    key_dict[field + '_id'] = getattr(value, 'id')
+
+            instance = cls.query.filter_by(**key_dict).first()
 
         if instance is not None:
             cls[key] = instance

@@ -73,6 +73,7 @@ class JsonProperty(object):
 
 class Jsonable(object):
 
+    ROOT_KEY = 'root_key'
     PATH_DELIMITER = '.'
 
     @classmethod
@@ -271,6 +272,8 @@ class Jsonable(object):
         self_json = OrderedDict()
         if not nest:
             self_key = self.trepr(tight=tight, raw=raw)
+            if len(_json) == 0:
+                _json[self.ROOT_KEY] = self_key
             _json[self_key] = self_json
 
         fields = self.fields()
@@ -342,4 +345,6 @@ class Jsonable(object):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        return stringify(self.jsonify(depth=1, limit=-1), limit=10)
+        jsonified = self.jsonify(depth=1, limit=-1)
+        del jsonified[self.ROOT_KEY]
+        return stringify(jsonified, limit=10)

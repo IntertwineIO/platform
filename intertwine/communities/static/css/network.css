@@ -71,7 +71,7 @@
     /*resize: horizontal;*/
 }
 
-.broader-scroll {
+#broader-scroll {
     /* nowrap */
     flex-wrap: nowrap;
     align-items: flex-end;
@@ -210,6 +210,14 @@
 
 
 .problem-link {
+    color: #1A1A1A;
+}
+
+.submit-add-adjacent-problem-link {
+    color: #1A1A1A;
+}
+
+.cancel-add-adjacent-problem-link {
     color: #1A1A1A;
 }
 

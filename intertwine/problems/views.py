@@ -63,11 +63,14 @@ def add_problem_connection():
 
     Usage:
     curl -H "Content-Type: application/json" -X POST -d '{
-        "axis":"causal",
-        "problem_a_name":"Natural Disasters",
-        "problem_b_name":"Homelessness",
-        "community_problem_key":"homelessness",
-        "community_geo_key":"us/tx/austin"
+        "axis": "causal",
+        "problem_a_name": "Natural Disasters",
+        "problem_b_name": "Homelessness",
+        "community": {
+            "problem": "homelessness",
+            "org": null,
+            "geo": "us/tx/austin"
+        }
     }' 'http://localhost:5000/problems/connections'
     '''
     payload = request.get_json()
@@ -84,13 +87,13 @@ def add_problem_connection():
         if not problem_name:
             raise InvalidProblemName(problem_name=problem_name)
         problem_key = Problem.create_key(problem_name)
-        problem = Problem.query.filter_by(human_id=problem_key).first()
+        problem = Problem.query.filter_by(**problem_key._asdict()).first()
         if problem is None:
             try:
                 problem = Problem(problem_name)
             except NameError as e:
                 raise InvalidProblemName(str(e))
-            if problem.human_id != problem_key:
+            if problem.derive_key() != problem_key:
                 raise InvalidProblemName('Key derived from problem name '
                                          'differs from resource key')
         problems.append(problem)
@@ -113,13 +116,14 @@ def add_problem_connection():
     return jsonify(connection.jsonify())
 
     # # Temporary: Redirect instead of returning the connection JSON:
-    # community_problem_key = payload.get('community_problem_key')
-    # community_org_key = payload.get('community_org_key')
-    # community_geo_key = payload.get('community_geo_key')
+    # community_dict = payload.get('community')
+    # problem_human_id = community_dict.get('problem_human_id')
+    # org_human_id = community_dict.get('org_human_id')
+    # geo_human_id = community_dict.get('geo_human_id')
     # from ..communities.models import Community
-    # community_uri = Community.form_uri(problem=community_problem_key,
-    #                                    org=community_org_key,
-    #                                    geo=community_geo_key)
+    # community_uri = Community.form_uri(problem=problem_human_id,
+    #                                    org=org_human_id,
+    #                                    geo=geo_human_id)
     # return redirect(community_uri, code=302)
 
 
