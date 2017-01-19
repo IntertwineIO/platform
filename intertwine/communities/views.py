@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import flask
 from flask import abort, redirect, render_template
 
 from . import blueprint
-from .models import Community
+from ..geos.models import Geo
+from ..problems.models import Problem, ProblemConnection
 from ..utils.mixins import Jsonable
 from ..utils.tools import vardygrify
-from ..problems.models import Problem, ProblemConnection
-from ..geos.models import Geo
+from .models import Community
 
 
 def configure_community_json():
@@ -98,11 +99,11 @@ def render_community(problem_human_id, geo_human_id):
                                num_followers=0)
 
     config = configure_community_json()
+    payload = community.jsonify(config=config, depth=2)
 
     template = render_template(
         'community.html',
         current_app=flask.current_app,
         title=community.name,
-        payload=community.jsonify(config=config, depth=2),
-        key=community.trepr(tight=True, raw=False))
+        payload=payload)
     return template

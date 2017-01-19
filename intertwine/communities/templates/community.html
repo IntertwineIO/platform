@@ -2,7 +2,6 @@
 
 {% block styles %}
 {{ super() }}
-<script src="https://use.fontawesome.com/9f1bc01391.js"></script>
 <link href="{{ url_for('communities.static', filename='css/normalize.css') }}"
       rel="stylesheet" type="text/css">
 <link href="{{ url_for('communities.static', filename='css/general.css') }}"
@@ -32,9 +31,15 @@
 <!-- -->
 {% endblock %}
 
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('communities.static', filename='js/source/network.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 
-{% set community = payload[key] %}
+{% set root_key = payload['root_key'] %}
+{% set community = payload[root_key] %}
 {% set problem = payload[community['problem']] %}
 {% set org = community['org'] %}
 {% set geo = payload[community['geo']] %}
@@ -64,7 +69,9 @@
     <div class="h-connection-label-container">
         <i class="fa fa-circle add-problem-icon invisible"></i>
         <div class="connection-label">Broader</div>
-        <a href="/communities/"><i class="fa fa-plus-circle add-problem-icon"></i></a>
+        <a id="add-broader-problem" href=#>
+            <i class="fa fa-plus-circle add-problem-icon"></i>
+        </a>
     </div>
     <div class="h-problem-area">
         <div class="v-margin"></div>
@@ -72,7 +79,7 @@
             <a href=""><div class="arrow-left h-large-spacer"></div></a>
         </div>
         <div class="h-problem-scroll-container">
-            <div class="h-problem-scroll broader-scroll broader-edge">
+            <div id="broader-scroll" class="h-problem-scroll broader-edge">
             {% for aggregate_rating_key in aggregate_ratings['broader'] %}
                 {% set aggregate_rating = payload[aggregate_rating_key] %}
                 <div class="h-problem broader-problem">
@@ -209,8 +216,9 @@
     <div class="h-connection-label-container">
         <i class="fa fa-circle add-problem-icon invisible"></i>
         <div class="connection-label">Narrower</div>
-        <a href="/communities/"><i class="fa fa-plus-circle add-problem-icon"></i></a>
+        <i class="fa fa-plus-circle add-problem-icon"></i>
     </div>
+    <input id="payload" type="hidden" value='{{ payload|tojson }}'>
 </section> <!-- end network section -->
 
 {% endblock %}
