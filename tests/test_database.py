@@ -11,7 +11,7 @@ def test_app_created(options):
     from intertwine import create_app
 
     config = options['config']
-    app = create_app(config)
+    app = create_app(config=config)
     assert 'SERVER_NAME' in app.config
     server = '{}:{}'.format(options['host'], options['port'])
     host = (app.config.get('SERVER_NAME') or server).split(':')[0]
@@ -32,12 +32,12 @@ def test_database_created(options):
 
     # Find the database file
     config = options['config']
-    app = create_app(config)
+    app = create_app(config=config)
     filepath = app.config['DATABASE'].split('///')[-1]
     if os.path.exists(filepath):
         os.remove(filepath)
     # Start over -- this should recreate the database
-    app = create_app(config)
+    app = create_app(config=config)
     assert 'SERVER_NAME' in app.config
     server = '{}:{}'.format(options['host'], options['port'])
     host = (app.config.get('SERVER_NAME') or server).split(':')[0]

@@ -1,0 +1,195 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+'''
+Manages the execution of Intertwine's platform app using docker
+
+Usage:
+    run [options] [<command>...]
+
+Options:
+    -d --debug          Turn on debug
+    -C --clean-docker   Clean docker images and containers
+    -B --build          (Re)Builds docker image
+    -P --push           Pushes docker image
+    -R --no-run         Do not run
+    -i --image IMAGE    Image to use [default: intertwineio/platform]
+'''
+import os
+import shlex
+import subprocess
+from logging import getLogger
+
+import docker
+
+logger = getLogger(__file__)
+
+
+def get_package_metadata(project_name=None):
+    '''Captures metadata information for package
+
+    Providing the project name will reduce the search/install time.
+
+    Args:
+        project_name: top project folder and project name
+
+    Returns:
+        dict: package metdata
+    '''
+    top_folder = os.path.abspath(os.path.dirname(__file__))
+    required_fields = ['version', 'license', 'url', 'description', 'project']
+    metadata = {}
+    missing_message = []
+    for root, folder, files in os.walk(top_folder):
+        for filename in files:
+            if filename == '__metadata__.py':
+                filepath = os.path.join(root, filename)
+                relpath = filepath.replace(top_folder, '').lstrip('/')
+                with open(os.path.join(filepath)) as fd:
+                    exec(fd.read(), metadata)
+                if 'package_metadata' in metadata:
+                    metadata = metadata.get('package_metadata', {})
+                if not all(field in metadata for field in required_fields):
+                    missing = ', '.join(
+                        field
+                        for field in sorted(required_fields)
+                        if field not in metadata
+                    )
+                    missing_message.append('{} is missing: {}'.format(relpath, missing))
+                    metadata = {}
+            if metadata:
+                break
+        if metadata:
+            break
+    if not metadata:
+        print('Required package fields: {}'.format(', '.join(sorted(required_fields))))
+        print('\n'.join(missing_message))
+        raise Exception('Could not find package')
+    return metadata
+
+
+def cleanup_docker():
+    # docker rm -v $(docker ps -a -q -f status=exited)
+    # docker rmi $(docker images -f "dangling=true" -q)
+    cmd = 'docker rm -v $(docker ps -a -q -f status=exited)'
+    process = subprocess.Popen(cmd, shell=True, executable='/bin/bash')
+    process.wait()
+    # logger.debug('Started: Cleaning up docker images and containers')
+    # client = docker.from_env(assert_hostname=False)
+    # Search for the exited containers and remove those
+    # /bin/bash: docker rm $(docker ps -a -q)
+    # docker rm -v $(docker ps -a -q -f status=exited)
+    # removable_containers = {
+    #     container['Id'][:12]: container
+    #     for container in client.containers(all=True, filters={"status": "exited"})
+    # }
+    # for container_id, container in removable_containers.items():
+    #     client.remove_container(container_id)
+
+    # Search for the images
+    # docker rmi $(docker images -f "dangling=true" -q)
+    cmd = 'docker rmi $(docker images -f "dangling=true" -q)'
+    process = subprocess.Popen(cmd, shell=True, executable='/bin/bash')
+    process.wait()
+    # removable_images = {
+    #     image['Id'].split(':')[-1][:12]: image
+    #     for image in client.images()
+
+    #     if any('<none>' in tag for tag in image['RepoTags'] if image['RepoTags'])
+    # }
+    # for image_id, image in removable_images.items():
+    #     # Force doesn't always remove, but is needed or we error out
+    #     client.remove_image(image_id, force=True)
+    # logger.debug('Finished: Cleaning up docker images and containers')
+
+
+def build_docker_image():
+    '''Builds a docker image given a path and tags that new image'''
+    # docker build -t intertwineio/base -f Dockerfile-base .
+    metadata = get_package_metadata()
+    version=metadata.get('versionstr')
+    env = os.environ.copy()
+    env['VERSION'] = version
+
+    cmd = shlex.split('docker build -t intertwineio/base -f Dockerfile-base .')
+    process = subprocess.Popen(cmd)
+    return_code = process.wait()
+    if return_code != 0:
+        raise RuntimeError('Docker build for base exited early.')
+
+
+    # docker build -t intertwineio/platform .
+    cmd = shlex.split('docker build -t intertwineio/platform .')
+    process = subprocess.Popen(cmd, env=env)
+    return_code = process.wait()
+    if return_code != 0:
+        raise RuntimeError('Docker build for platform exited early.')
+
+
+def push_docker_image():
+    '''Pushes docker image to docker hub'''
+    # docker push intertwineio/base
+    cmd = shlex.split('docker push intertwineio/base')
+    process = subprocess.Popen(cmd)
+    return_code = process.wait()
+    if return_code != 0:
+        raise RuntimeError('Docker push for base exited early.')
+
+    # docker push intertwineio/platform
+    cmd = shlex.split('docker push intertwineio/platform')
+    process = subprocess.Popen(cmd)
+    return_code = process.wait()
+    if return_code != 0:
+        raise RuntimeError('Docker push for platform exited early.')
+
+
+def main(image, build=False, push=False, clean_docker=False, no_run=False, debug=False, command=None):
+    local_repo_path = os.path.abspath(os.path.dirname(__file__))
+    # client = docker.AutoVersionClient()
+    client = docker.from_env(assert_hostname=False)
+    host_config = client.create_host_config(
+        binds={
+            local_repo_path: '/opt/repos/platform',
+        },
+        read_only=True,
+    )
+
+    if clean_docker:
+        cleanup_docker()
+
+    if build:
+        build_docker_image()
+
+    if push:
+        push_docker_image()
+
+    if not no_run:
+        command = command or 'vex venv circusd circus.ini'
+        if isinstance(command, (tuple, list)):
+            command = ' '.join(command)
+        cmd = 'docker run -v {top_repo}:/opt/repos/platform -p 8000:8000 -p 8080:8080 -p 5555:5555 -p 5556:5556 -p 5557:5557 -it {image} {command}'
+        cmd = cmd.format(
+            image=image,
+            command=command,
+            top_repo=os.path.abspath(os.path.dirname(__file__))
+        )
+        cmd = shlex.split(cmd)
+        process = subprocess.Popen(cmd)
+        process.wait()
+        # container = client.create_container(
+        #     image=options.get('image'),
+        #     command=command,
+        #     host_config=host_config,
+
+        # )
+        # client.start(container, publish_all_ports=True)
+        # print(client.logs(container))
+
+
+if __name__ == '__main__':
+    from docopt import docopt
+
+    options = {
+        k.lstrip('-<').rstrip('>').replace('-', '_'): v
+        for k, v in docopt(__doc__, options_first=True).items()
+    }
+    main(**options)

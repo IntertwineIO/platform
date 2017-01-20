@@ -3,18 +3,16 @@
 import pytest
 
 
-@pytest.mark.skip('Feature requires refactoring')
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_decode_problem(options):
+@pytest.mark.xfail(reason='cannot decode')
+def test_decode_problem(options, session):
     '''Tests decoding a standard problem'''
     from intertwine.problems.models import Problem
-    from data.data_process import DataSessionManager, erase_data, decode
+    from data.data_process import decode
     # To test in interpreter, use below:
     # from config import DevConfig; test_config = DevConfig
     test_config = options['config']
-    dsm = DataSessionManager(test_config.DATABASE)
-    session = dsm.session
     assert session is not None
     assert session.query(Problem).all() == []
 
@@ -33,23 +31,18 @@ def test_decode_problem(options):
     assert len(p1.impacts.all()) > 0
     assert len(p1.broader.all()) > 0
     assert len(p1.narrower.all()) > 0
-    # Clean up after ourselves
-    erase_data(session, confirm='ERASE')
-    assert session.query(Problem).all() == []
 
 
-@pytest.mark.skip('Feature requires refactoring')
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_decode_problem_connection(options):
+@pytest.mark.xfail(reason='homelessness is already registered')
+def test_decode_problem_connection(options, session):
     '''Tests decoding a standard problem connection'''
     from intertwine.problems.models import Problem, ProblemConnection
-    from data.data_process import DataSessionManager, erase_data, decode
+    from data.data_process import decode
     # To test in interpreter, use below:
     # from config import DevConfig; test_config = DevConfig
     test_config = options['config']
-    dsm = DataSessionManager(test_config.DATABASE)
-    session = dsm.session
     assert session is not None
     assert session.query(Problem).all() == []
     assert session.query(ProblemConnection).all() == []
@@ -70,25 +63,19 @@ def test_decode_problem_connection(options):
     assert c1.axis == 'scoped'
     assert c1.broader == p0
     assert c1.narrower == p1
-    # Clean up after ourselves
-    erase_data(session, confirm='ERASE')
-    assert session.query(Problem).all() == []
-    assert session.query(ProblemConnection).all() == []
 
 
-@pytest.mark.skip('Feature requires refactoring')
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_decode_problem_connection_rating(options):
+@pytest.mark.xfail(reason='homelessness is already registered')
+def test_decode_problem_connection_rating(options, session):
     '''Tests decoding ratings on a single problem connection'''
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
-    from data.data_process import DataSessionManager, erase_data, decode
+    from data.data_process import decode
     # To test in interpreter, use below:
     # from config import DevConfig; test_config = DevConfig
     test_config = options['config']
-    dsm = DataSessionManager(test_config.DATABASE)
-    session = dsm.session
     assert session is not None
     assert session.query(Problem).all() == []
     assert session.query(ProblemConnection).all() == []
@@ -113,28 +100,21 @@ def test_decode_problem_connection_rating(options):
     assert len(rs1.all()) > 0
     for r in rs1:
         assert r.connection == c1
-    # Clean up after ourselves
-    erase_data(session, confirm='ERASE')
-    assert session.query(Problem).all() == []
-    assert session.query(ProblemConnection).all() == []
-    assert session.query(ProblemConnectionRating).all() == []
 
 
-@pytest.mark.skip('Feature requires refactoring')
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_incremental_decode(options):
+@pytest.mark.xfail(reason='python3: poverty is already registered')
+def test_incremental_decode(options, session):
     '''Tests decoding incrementally'''
     from intertwine.trackable import Trackable
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
-    from data.data_process import DataSessionManager, erase_data, decode
+    from data.data_process import decode
 
     # To test in interpreter, use below:
     # from config import DevConfig; test_config = DevConfig
     test_config = options['config']
-    dsm = DataSessionManager(test_config.DATABASE)
-    session = dsm.session
     assert session is not None
     assert session.query(Problem).all() == []
     assert session.query(ProblemConnection).all() == []
@@ -216,9 +196,3 @@ def test_incremental_decode(options):
     u2_repeat = decode(session, 'data/problems/problems02.json')
     for updates in u2_repeat.values():
         assert len(updates) == 0
-
-    # Clean up after ourselves
-    erase_data(session, confirm='ERASE')
-    assert session.query(Problem).all() == []
-    assert session.query(ProblemConnection).all() == []
-    assert session.query(ProblemConnectionRating).all() == []

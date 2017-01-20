@@ -5,9 +5,9 @@ FROM debian:jessie
 # ======================================================================
 ENV TERM xterm-256color
 ENV DEBIAN_FRONTEND noninteractive
-ENV PYTHON2_VERSION 2.7.12
-ENV PYTHON3_VERSION 3.5.2
-ENV PYPY_VERSION 5.4.1
+ENV PYTHON2_VERSION 2.7.13
+ENV PYTHON3_VERSION 3.6.0
+ENV PYPY_VERSION 5.6
 ENV LANG C.UTF-8
 
 # ======================================================================
@@ -51,6 +51,7 @@ RUN set -ex \
         libyaml-dev \
         locales \
         make \
+        nginx \
         openssh-client \
         patch \
         procps \
@@ -65,7 +66,7 @@ RUN set -ex \
     && apt-get purge -y python.* \
 
 # ======================================================================
-#  Python 2.7.11
+#  Python 2.7.13
 # ======================================================================
     && curl -fSL "https://www.python.org/ftp/python/${PYTHON2_VERSION%%[a-z]*}/Python-$PYTHON2_VERSION.tar.xz" -o python.tar.xz \
     && mkdir -p /usr/src/python \
@@ -75,16 +76,16 @@ RUN set -ex \
     && curl -fSL 'https://bootstrap.pypa.io/get-pip.py' | python2 \
 
 # ======================================================================
-#  Python 3.5.1
+#  Python 3.6.0
 # ======================================================================
     && curl -fSL "https://www.python.org/ftp/python/${PYTHON3_VERSION%%[a-z]*}/Python-$PYTHON3_VERSION.tar.xz" -o python3.tar.xz \
     && mkdir -p /usr/src/python3 \
     && tar -xJC /usr/src/python3 --strip-components=1 -f python3.tar.xz \
     && rm python3.tar.xz \
-    && (cd /usr/src/python3 && ./configure --enable-shared --enable-unicode=ucs4 --prefix=/usr/local && make -j$(expr `nproc` + 1) && make install && ldconfig) \
+    && (cd /usr/src/python3 && ./configure --enable-shared --prefix=/usr/local && make -j$(expr `nproc` + 1) && make install && ldconfig) \
 
 # ======================================================================
-#  Pypy 5.0.1  (Python 2.7 compatible)
+#  Pypy 5.6.0  (Python 2.7 compatible)
 # ======================================================================
     && curl -fSL "https://bitbucket.org/squeaky/portable-pypy/downloads/pypy-$PYPY_VERSION-linux_x86_64-portable.tar.bz2" -o pypy.tbz2 \
     && mkdir -p /usr/local/pypy \
@@ -106,7 +107,9 @@ RUN set -ex \
 # ======================================================================
     && wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true \
     && zsh --version \
+    && which zsh | tee -a /etc/shells \
     && chsh -s "$(which zsh)" `whoami` \
+    && echo $SHELL \
 
 # ======================================================================
 #  Python cleanup

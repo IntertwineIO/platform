@@ -22,7 +22,7 @@ from intertwine.config import DevConfig
 from intertwine.auth import auth_db
 from intertwine.auth.models import User, Role
 
-app = create_app(DevConfig)
+app = create_app(config=DevConfig)
 
 
 def read_data(path, exclude=None):
