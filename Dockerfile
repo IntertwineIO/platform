@@ -9,15 +9,16 @@ ENV WORKON_HOME /root/.envs
 # Install package
 RUN set -ex \
     && cd /opt/repos/platform \
+    && pip install -U pip vex \
     && vex -m --python python venv pip install --process-dependency-links -e .[all] \
     && vex -m --python python3 venv3 pip install --process-dependency-links -e .[all] \
-    && vex -m --python pypy venvpy pip install --process-dependency-links -e .[all] \
     && apt-get clean autoclean \
     && apt-get autoremove -y \
     && rm -Rf .eggs \
     && rm -rf /var/lib/{apt,dpkg,cache,log}/
+    # && vex -m --python pypy venvpy pip install --process-dependency-links -e .[all] \
 
-CMD ["vex", "venv3", "./run.py", "-p", "8000", "-d"]
+CMD ["vex", "venv", "circusd", "circus.ini"]
 
 ARG VERSION=Undefined
 LABEL org.label-schema.vendor="Intertwine.io" \

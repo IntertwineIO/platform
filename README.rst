@@ -13,13 +13,32 @@ to help foster a community of individuals who are interested in specific
 social problems within the context of geography regardless of their
 background.
 
+
+Docker Compose
+~~~~~~~~~~~~~~
+
 You can run with:
 
     $ docker-compose up
 
 And then point your window to:
 
-    $ open http://$(docker-machine ip)
+    $ open http://$(docker-machine ip):8000
+
+    or
+
+    $ open http://localhost:8000
+
+
+run-docker script
+~~~~~~~~~~~~~~~~~
+
+Another option is to use the `run-docker` script included at the top of
+the repo.
+
+    $ pip install docker-py docopt
+    $ ./run-docker
+
 
 We use (or WIP will use) the following tech stack:
 
@@ -34,6 +53,7 @@ We use (or WIP will use) the following tech stack:
    * `Sass <http://sass-lang.com>`_
    * `Sphinx <http://www.sphinx-doc.org/>`_
    * `uWSGI <https://uwsgi-docs.readthedocs.io/en/latest/>`_
+
 
 Installation
 ------------

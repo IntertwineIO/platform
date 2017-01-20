@@ -29,7 +29,7 @@ def main(**options):
         fp = os.path.realpath(os.path.join(os.path.dirname(__file__), fp))
         os.system('rm {}'.format(fp))
         print('Removed file: {}'.format(fp))
-    app = create_app(options.get('config'))
+    app = create_app(config=options.get('config'))
     if options.get('_run_', False):
         debug = app.config.get('DEBUG') or options.get('debug')
         host = app.config.get('HOST') or options.get('host')
