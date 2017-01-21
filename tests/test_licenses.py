@@ -72,6 +72,7 @@ def test_licenses(**options):
         'graphitesend',      # Apache
 
         # Unknown - where did they come from?
+        'aniso8601',         # Nonstandard/permissive: https://goo.gl/0kTVx3
         'gnureadline',       # GPL 2    - TODO: Alternatives?
         'ptyprocess',        # ISC
 

@@ -120,6 +120,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
             set of ratings to be aggregated. Ratings and rating/weight
             cannot both be specified.
     '''
+    BLUEPRINT_SUBCATEGORY = 'rated_connections'
     STRICT = 'strict'
 
     community_id = Column(types.Integer, ForeignKey('community.id'))
@@ -189,7 +190,8 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         aggregate problem connection rating instance. The key is a
         namedtuple of community, connection, and aggregation fields.
         '''
-        return self.__class__.Key(self.community, self.connection, self.aggregation)
+        return self.__class__.Key(
+            self.community, self.connection, self.aggregation)
 
     @classmethod
     def calculate_values(cls, ratings):
@@ -707,9 +709,11 @@ class ProblemConnection(BaseProblemModel):
         '''Initialize a new problem connection
 
         Required inputs include axis, a string with value 'causal' or
-        'scoped' and two problem instances. An axis of 'causal' means
-        problem_a is a driver of problem_b, while an axis of 'scoped'
-        means problem_a is broader than problem_b.
+        'scoped' and two problem instances or problem names. An axis of
+        'causal' means problem_a is a driver of problem_b, while an axis
+        of 'scoped' means problem_a is broader than problem_b. If a
+        problem name is provided and no matching problem exists, a new
+        problem is created.
 
         The optional ratings_data parameter is a list of ratings based
         on the JSON problem connection rating schema. The problem
@@ -717,12 +721,28 @@ class ProblemConnection(BaseProblemModel):
         is required to define a problem connection rating.
         '''
         # TODO: make axis an Enum
-        if axis not in (self.CAUSAL, self.SCOPED):
+        if axis not in self.AXES:
             raise InvalidConnectionAxis(axis=axis)
         if problem_a is problem_b:
             raise CircularConnection(problem=problem_a)
         self.axis = axis
         is_causal = self.axis == self.CAUSAL
+
+        problems = []
+        for problem in (problem_a, problem_b):
+            if not problem:
+                raise ValueError('Invalid problem or problem name: {p}'
+                                 .format(p=problem))
+            if isinstance(problem, basestring):
+                problem_name = problem
+                problem_key = Problem.create_key(problem_name)
+                problem = Problem[problem_key]
+                if problem is None:
+                    problem = Problem(problem_name)
+            problems.append(problem)
+
+        problem_a, problem_b = problems
+
         self.driver = problem_a if is_causal else None
         self.impact = problem_b if is_causal else None
         self.broader = problem_a if not is_causal else None
