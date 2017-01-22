@@ -10,6 +10,9 @@ from functools import partial
 from inspect import getargspec, getargvalues, stack
 from itertools import chain
 from mock import create_autospec
+from numbers import Real
+
+from past.builtins import basestring
 
 if sys.version.startswith('3'):
     izip = zip
@@ -228,5 +231,7 @@ def vardygrify(cls, **kwds):
             # properties must be set on the type to be used on an instance
             if isinstance(attribute, property):
                 setattr(type(vardygr), attr_name, property(attribute.fget))
+            elif isinstance(attribute, (basestring, Real, tuple, list)):
+                setattr(vardygr, attr_name, attribute)
 
     return vardygr
