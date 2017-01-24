@@ -213,11 +213,11 @@
     color: #1A1A1A;
 }
 
-.submit-add-adjacent-problem-link {
+.submit-add-adjacent-connection-link {
     color: #1A1A1A;
 }
 
-.cancel-add-adjacent-problem-link {
+.cancel-add-adjacent-connection-link {
     color: #1A1A1A;
 }
 
@@ -432,29 +432,29 @@ header, section, .problem-focus-icon .problem-focus-label {
   transform: rotate(-90deg);
 
   /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
-  -webkit-transform-origin: 100% 90%;
-  -moz-transform-origin: 100% 90%;
-  -ms-transform-origin: 100% 90%;
-  -o-transform-origin: 100% 90%;
-  transform-origin: 80% 79%;
+  -webkit-transform-origin: 80% 120%;
+  -moz-transform-origin: 80% 120%;
+  -ms-transform-origin: 80% 120%;
+  -o-transform-origin: 80% 120%;
+  transform-origin: 80% 120%;
 
   /* Should be unset in IE9+ I think. */
   filter: progid: DXImageTransform.Microsoft.BasicImage(rotation=3);
 }
 
 .rotate-impacts {
-  -webkit-transform: rotate(90deg);
-  -moz-transform: rotate(90deg);
-  -ms-transform: rotate(90deg);
-  -o-transform: rotate(90deg);
-  transform: rotate(90deg);
+  -webkit-transform: rotate(-90deg);
+  -moz-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  -o-transform: rotate(-90deg);
+  transform: rotate(-90deg);
 
   /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
-  -webkit-transform-origin: 120% 10%;
-  -moz-transform-origin: 120% 10%;
-  -ms-transform-origin: 120% 10%;
-  -o-transform-origin: 120% 10%;
-  transform-origin: 86% 10%;
+  -webkit-transform-origin: 80% 140%;
+  -moz-transform-origin: 80% 140%;
+  -ms-transform-origin: 80% 140%;
+  -o-transform-origin: 80% 140%;
+  transform-origin: 95% 135%;
 
   /* Should be unset in IE9+ I think. */
   filter: progid: DXImageTransform.Microsoft.BasicImage(rotation=3);
