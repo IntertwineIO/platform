@@ -11,12 +11,31 @@ $(document).ready(function() {
     var geo = geoKey ? payload[geoKey]: null;
 
     var isAddingConnection = {'driver': false, 'impact': false, 'broader': false, 'narrower': false};
+    var animateDuration = 1000;
+
+    function deriveAxis(category) {
+        if (category == 'driver' || category == 'impact') {
+            axis = 'causal';
+        } else if (category == 'broader' || category == 'narrower') {
+            axis = 'scoped';
+        } else {
+            console.log('Unknown category: ' + category);
+        }
+        return axis;
+    }
 
     function renderNewConnectionForm(category) {
         var begHTML, adjacentProblemNameHTML, adjacentProblemIconHTML, endHTML;
         var renderedConnectionForm;
+        var axis = deriveAxis(category);
+        var connectionScroll = $('#' + category + '-scroll');
 
-        if (category == 'driver' || category == 'impact') {
+        if (isAddingConnection[category]) {
+            return;
+        }
+        isAddingConnection[category] = true;
+
+        if (axis == 'causal') {
             begHTML = '<div id="add-' + category + '-connection-component" class="v-problem">\n';
             adjacentProblemNameHTML = (
                 '<div class="v-problem-link-container v-align-inner word-break">\n' +
@@ -34,7 +53,7 @@ $(document).ready(function() {
             renderedConnectionForm = (category == 'driver') ?
                 begHTML + adjacentProblemNameHTML + adjacentProblemIconHTML + endHTML :
                 begHTML + adjacentProblemIconHTML + adjacentProblemNameHTML + endHTML
-        } else {  // 'broader' or 'narrower'
+        } else if (axis == 'scoped') {
             begHTML = '<div id="add-' + category + '-connection-component" class="h-problem ' + category + '-problem">\n';
             adjacentProblemNameHTML = (
                 '<div class="h-problem-link-container word-break">\n' +
@@ -51,7 +70,25 @@ $(document).ready(function() {
                 begHTML + adjacentProblemIconHTML + adjacentProblemNameHTML + endHTML
         }
 
-        $('#' + category + '-scroll').prepend(renderedConnectionForm);
+        connectionScroll.prepend(renderedConnectionForm);
+
+        $('#submit-add-' + category + '-connection').on('click', function() {
+            submitAddConnection(category);
+        });
+
+        $('#cancel-add-' + category + '-connection').on('click', function() {
+            cancelAddConnection(category);
+        });
+
+        if (axis == 'causal') {
+            connectionScroll.animate({
+                scrollTop: connectionScroll[0].clientHeight - connectionScroll[0].scrollHeight
+            }, animateDuration);
+        } else if (axis == 'scoped') {
+            connectionScroll.animate({
+                scrollLeft: connectionScroll[0].clientWidth - connectionScroll[0].scrollWidth
+            }, animateDuration);
+        }
     }
 
 
@@ -60,8 +97,10 @@ $(document).ready(function() {
         var ratedConnection = ratedConnectionPayload[rootKey];
         var begHTML, adjacentProblemNameHTML, adjacentProblemIconHTML, endHTML;
         var renderedRatedConnection;
+        var axis = deriveAxis(category);
+        var connectionScroll = $('#' + category + '-scroll');
 
-        if (category == 'driver' || category == 'impact') {
+        if (axis == 'causal') {
             begHTML = '<div class="v-problem">\n';
             adjacentProblemNameHTML = (
                 '<div class="v-problem-link-container v-align-inner word-break">\n' +
@@ -80,7 +119,7 @@ $(document).ready(function() {
             renderedRatedConnection = (category == 'driver') ?
                 begHTML + adjacentProblemNameHTML + adjacentProblemIconHTML + endHTML :
                 begHTML + adjacentProblemIconHTML + adjacentProblemNameHTML + endHTML
-        } else {  // 'broader' or 'narrower'
+        } else if (axis == 'scoped') {
             begHTML = '<div class="h-problem ' + category + '-problem">\n';
             adjacentProblemNameHTML = (
                 '<div class="h-problem-link-container word-break">\n' +
@@ -100,6 +139,16 @@ $(document).ready(function() {
         }
 
         $('#' + category + '-scroll').append(renderedRatedConnection);
+
+        if (axis == 'causal') {
+            connectionScroll.animate({
+                scrollTop: connectionScroll[0].scrollHeight - connectionScroll[0].clientHeight
+            }, animateDuration);
+        } else if (axis == 'scoped') {
+            connectionScroll.animate({
+                scrollLeft: connectionScroll[0].scrollWidth - connectionScroll[0].clientWidth
+            }, animateDuration);
+        }
     }
 
     function submitAddConnection(category) {
@@ -142,36 +191,19 @@ $(document).ready(function() {
         isAddingConnection[category] = false;
     }
 
-    function showNewConnectionForm(category) {
-        if (isAddingConnection[category]) {
-            return;
-        }
-        isAddingConnection[category] = true;
-
-        renderNewConnectionForm(category);
-
-        $('#submit-add-' + category + '-connection').on('click', function() {
-            submitAddConnection(category);
-        });
-
-        $('#cancel-add-' + category + '-connection').on('click', function() {
-            cancelAddConnection(category);
-        });
-    }
-
     $('#add-driver-connection').on('click', function() {
-        showNewConnectionForm('driver');
+        renderNewConnectionForm('driver');
     });
 
     $('#add-impact-connection').on('click', function() {
-        showNewConnectionForm('impact');
+        renderNewConnectionForm('impact');
     });
 
     $('#add-broader-connection').on('click', function() {
-        showNewConnectionForm('broader');
+        renderNewConnectionForm('broader');
     });
 
     $('#add-narrower-connection').on('click', function() {
-        showNewConnectionForm('narrower');
+        renderNewConnectionForm('narrower');
     });
 });
