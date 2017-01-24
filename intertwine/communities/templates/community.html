@@ -69,7 +69,7 @@
     <div class="h-connection-label-container">
         <i class="fa fa-circle add-problem-icon invisible"></i>
         <div class="connection-label">Broader</div>
-        <a id="add-broader-problem" href=#>
+        <a id="add-broader-connection" href=#>
             <i class="fa fa-plus-circle add-problem-icon"></i>
         </a>
     </div>
@@ -104,14 +104,20 @@
     <div class="middle-network-area">
         <div class="v-margin"></div>
         <div class="v-connection-label-container">
-            <div class="connection-label rotate-drivers">Drivers</div>
+            <a id="add-driver-connection" href=#>
+                <i class="fa fa-plus-circle add-problem-icon"></i>
+            </a>
+            <div class="connection-label rotate-drivers">
+                Drivers
+            </div>
+            <i class="fa fa-circle add-problem-icon invisible"></i>
         </div>
         <div class="v-problem-area">
             <div class="v-arrow-container">
                 <a href=""><div class="arrow-up v-large-spacer"></div></a>
             </div>
             <div class="v-problem-scroll-container">
-                <div class="v-problem-scroll driver-scroll driver-edge">
+                <div id="driver-scroll" class="v-problem-scroll driver-scroll driver-edge">
                 {% for aggregate_rating_key in aggregate_ratings['drivers'] %}
                     {% set aggregate_rating = payload[aggregate_rating_key] %}
                     <div class="v-problem">
@@ -157,7 +163,7 @@
                 <a href=""><div class="arrow-up v-large-spacer"></div></a>
             </div>
             <div class="v-problem-scroll-container">
-                <div class="v-problem-scroll impact-scroll impact-edge">
+                <div id="impact-scroll" class="v-problem-scroll impact-scroll impact-edge">
                 {% for aggregate_rating_key in aggregate_ratings['impacts'] %}
                     {% set aggregate_rating = payload[aggregate_rating_key] %}
                     <div class="v-problem">
@@ -181,7 +187,13 @@
             </div>
         </div>
         <div class="v-connection-label-container">
-            <div class="connection-label rotate-impacts">Impacts</div>
+            <a id="add-impact-connection" href=#>
+                <i class="fa fa-plus-circle add-problem-icon"></i>
+            </a>
+            <div class="v-connection-label-container">
+                <div class="connection-label rotate-impacts">Impacts</div>
+            </div>
+            <i class="fa fa-circle add-problem-icon invisible"></i>
         </div>
         <div class="v-margin"></div>
     </div>
@@ -191,7 +203,7 @@
             <a href=""><div class="arrow-left h-large-spacer"></div></a>
         </div>
         <div class="h-problem-scroll-container">
-            <div class="h-problem-scroll narrower-scroll narrower-edge">
+            <div id="narrower-scroll" class="h-problem-scroll narrower-scroll narrower-edge">
             {% for aggregate_rating_key in aggregate_ratings['narrower'] %}
                 {% set aggregate_rating = payload[aggregate_rating_key] %}
                 <div class="h-problem narrower-problem">
@@ -216,7 +228,9 @@
     <div class="h-connection-label-container">
         <i class="fa fa-circle add-problem-icon invisible"></i>
         <div class="connection-label">Narrower</div>
-        <i class="fa fa-plus-circle add-problem-icon"></i>
+        <a id="add-narrower-connection" href=#>
+            <i class="fa fa-plus-circle add-problem-icon"></i>
+        </a>
     </div>
     <input id="payload" type="hidden" value='{{ payload|tojson }}'>
 </section> <!-- end network section -->

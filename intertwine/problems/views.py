@@ -127,9 +127,7 @@ def add_rated_problem_connection():
             "org": null,
             "geo": "us/tx/austin"
         },
-        "aggregation": "strict",
-        "rating": -1,
-        "weight": 0
+        "aggregation": "strict"
     }' 'http://localhost:5000/problems/rated_connections'
     '''
     from ..geos.models import Geo
