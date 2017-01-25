@@ -13,6 +13,19 @@ $(document).ready(function() {
     var isAddingConnection = {'driver': false, 'impact': false, 'broader': false, 'narrower': false};
     var animateDuration = 1000;
 
+    function scrollTo(direction, axis, scrollDiv) {
+        var directionSign = (direction == 'beginning') ? 1 : ((direction == 'end') ? -1 : null);
+        if (axis == 'causal') {
+            scrollDiv.animate({
+                scrollTop: (scrollDiv[0].clientHeight - scrollDiv[0].scrollHeight) * directionSign
+            }, animateDuration);
+        } else if (axis == 'scoped') {
+            scrollDiv.animate({
+                scrollLeft: (scrollDiv[0].clientWidth - scrollDiv[0].scrollWidth) * directionSign
+            }, animateDuration);
+        }
+    }
+
     function deriveAxis(category) {
         if (category == 'driver' || category == 'impact') {
             axis = 'causal';
@@ -24,13 +37,24 @@ $(document).ready(function() {
         return axis;
     }
 
-    function renderNewConnectionForm(category) {
+    function renderAddConnectionForm(category) {
+        return (
+            '<form id="add-' + category + '-connection-form" class="add-connection-form" action="add-' + category + '-connection" method="post">\n' +
+                '<input id="' + category + '-problem-name-input" class="adjacent-problem-name-input" type="text" name="' + category + '-problem-name-input" maxlength="60" placeholder="Problem Name"><br>\n' +
+                '<a href=# id="submit-add-' + category + '-connection" class="submit-add-adjacent-connection-link"><i class="fa fa-check submit-icon" aria-hidden="true"></i> Add </a>\n' +
+                '<a href=# id="cancel-add-' + category + '-connection" class="cancel-add-adjacent-connection-link"><i class="fa fa-times cancel-icon" aria-hidden="true"></i> Cancel </a>\n' +
+            '</form>\n');
+    }
+
+    function renderAddConnectionFormContainer(category) {
         var begHTML, adjacentProblemNameHTML, adjacentProblemIconHTML, endHTML;
         var renderedConnectionForm;
         var axis = deriveAxis(category);
         var connectionScroll = $('#' + category + '-scroll');
 
         if (isAddingConnection[category]) {
+            scrollTo('beginning', axis, connectionScroll);
+            $('#' + category + '-problem-name-input').focus()
             return;
         }
         isAddingConnection[category] = true;
@@ -39,11 +63,7 @@ $(document).ready(function() {
             begHTML = '<div id="add-' + category + '-connection-component" class="v-problem">\n';
             adjacentProblemNameHTML = (
                 '<div class="v-problem-link-container v-align-inner word-break">\n' +
-                    '<form id="add-' + category + '-connection-form" action="add-' + category + '-connection" method="post">\n' +
-                        '<input id="new-' + category + '-problem-name" type="text" name="new-' + category + '-problem-name" maxlength="60" placeholder="Problem Name" autofocus><br>\n' +
-                        '<a href=# id="submit-add-' + category + '-connection" class="submit-add-adjacent-connection-link"> Add </a>\n' +
-                        '<a href=# id="cancel-add-' + category + '-connection" class="cancel-add-adjacent-connection-link"> Cancel </a>\n' +
-                    '</form>\n' +
+                    renderAddConnectionForm(category) +
                 '</div>\n');
             adjacentProblemIconHTML = (
                 '<div class="v-align-inner">\n' +
@@ -54,14 +74,10 @@ $(document).ready(function() {
                 begHTML + adjacentProblemNameHTML + adjacentProblemIconHTML + endHTML :
                 begHTML + adjacentProblemIconHTML + adjacentProblemNameHTML + endHTML
         } else if (axis == 'scoped') {
-            begHTML = '<div id="add-' + category + '-connection-component" class="h-problem ' + category + '-problem">\n';
+            begHTML = '<div id="add-' + category + '-connection-component" class="h-problem add-scoped-connection-container ' + category + '-problem">\n';
             adjacentProblemNameHTML = (
                 '<div class="h-problem-link-container word-break">\n' +
-                    '<form id="add-' + category + '-connection-form" action="add-' + category + '-connection" method="post">\n' +
-                        '<input id="new-' + category + '-problem-name" type="text" name="new-' + category + '-problem-name" maxlength="60" placeholder="Problem Name" autofocus><br>\n' +
-                        '<a href=# id="submit-add-' + category + '-connection" class="submit-add-adjacent-connection-link"> Add </a>\n' +
-                        '<a href=# id="cancel-add-' + category + '-connection" class="cancel-add-adjacent-connection-link"> Cancel </a>\n' +
-                    '</form>\n' +
+                    renderAddConnectionForm(category) +
                 '</div>\n');
             adjacentProblemIconHTML = '<i class="fa fa-circle problem-icon ' + category + '-icon"></i>\n';
             endHTML = '</div>';
@@ -69,26 +85,17 @@ $(document).ready(function() {
                 begHTML + adjacentProblemNameHTML + adjacentProblemIconHTML + endHTML :
                 begHTML + adjacentProblemIconHTML + adjacentProblemNameHTML + endHTML
         }
-
         connectionScroll.prepend(renderedConnectionForm);
 
         $('#submit-add-' + category + '-connection').on('click', function() {
             submitAddConnection(category);
         });
-
         $('#cancel-add-' + category + '-connection').on('click', function() {
             cancelAddConnection(category);
         });
+        scrollTo('beginning', axis, connectionScroll);
 
-        if (axis == 'causal') {
-            connectionScroll.animate({
-                scrollTop: connectionScroll[0].clientHeight - connectionScroll[0].scrollHeight
-            }, animateDuration);
-        } else if (axis == 'scoped') {
-            connectionScroll.animate({
-                scrollLeft: connectionScroll[0].clientWidth - connectionScroll[0].scrollWidth
-            }, animateDuration);
-        }
+        $('#' + category + '-problem-name-input').focus()
     }
 
 
@@ -140,22 +147,14 @@ $(document).ready(function() {
 
         $('#' + category + '-scroll').append(renderedRatedConnection);
 
-        if (axis == 'causal') {
-            connectionScroll.animate({
-                scrollTop: connectionScroll[0].scrollHeight - connectionScroll[0].clientHeight
-            }, animateDuration);
-        } else if (axis == 'scoped') {
-            connectionScroll.animate({
-                scrollLeft: connectionScroll[0].scrollWidth - connectionScroll[0].clientWidth
-            }, animateDuration);
-        }
+        scrollTo('end', axis, connectionScroll);
     }
 
     function submitAddConnection(category) {
-        var newProblemName = $('#new-' + category + '-problem-name').val();
+        var adjacentProblemName = $('#' + category + '-problem-name-input').val();
         var axis = (category == 'driver' || category == 'impact') ? 'causal' : 'scoped';
-        var problemA = (category == 'driver' || category == 'broader') ? newProblemName : problem['name'];
-        var problemB = (category == 'driver' || category == 'broader') ? problem['name'] : newProblemName;
+        var problemA = (category == 'driver' || category == 'broader') ? adjacentProblemName : problem['name'];
+        var problemB = (category == 'driver' || category == 'broader') ? problem['name'] : adjacentProblemName;
 
         var addConnectionPayload = {
             "connection": {
@@ -192,18 +191,18 @@ $(document).ready(function() {
     }
 
     $('#add-driver-connection').on('click', function() {
-        renderNewConnectionForm('driver');
+        renderAddConnectionFormContainer('driver');
     });
 
     $('#add-impact-connection').on('click', function() {
-        renderNewConnectionForm('impact');
+        renderAddConnectionFormContainer('impact');
     });
 
     $('#add-broader-connection').on('click', function() {
-        renderNewConnectionForm('broader');
+        renderAddConnectionFormContainer('broader');
     });
 
     $('#add-narrower-connection').on('click', function() {
-        renderNewConnectionForm('narrower');
+        renderAddConnectionFormContainer('narrower');
     });
 });

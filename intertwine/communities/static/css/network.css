@@ -208,9 +208,12 @@
 
 
 
+.adjacent-problem-name-input {
+    width: 10em;
+}
 
-.problem-link {
-    color: #1A1A1A;
+.add-scoped-connection-container {
+    min-width: 10em;
 }
 
 .submit-add-adjacent-connection-link {
@@ -218,6 +221,14 @@
 }
 
 .cancel-add-adjacent-connection-link {
+    color: #1A1A1A;
+}
+
+
+
+
+
+.problem-link {
     color: #1A1A1A;
 }
 
@@ -243,10 +254,18 @@
     color: #07A5A5;
 }
 
-.add-problem-icon {
+.add-connection-icon {
     color: #1A1A1A;
     font-size: 1.2em;
     margin: 0.3em;
+}
+
+.submit-icon {
+    color: #49C549;
+}
+
+.cancel-icon {
+    color: #C54949;
 }
 
 .problem-focus-icon {
