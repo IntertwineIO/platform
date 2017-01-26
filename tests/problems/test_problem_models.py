@@ -5,12 +5,10 @@ import pytest
 
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_problem_model(options, session):
+def test_problem_model(session):
     '''Tests simple problem model interaction'''
     from intertwine.problems.models import Image, Problem
-    # To test in interpreter, use below:
-    # from config import DevConfig; test_config = DevConfig
-    test_config = options['config']
+
     assert session is not None
     assert session.query(Problem).all() == []
     assert session.query(Image).all() == []
@@ -23,12 +21,10 @@ def test_problem_model(options, session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_problem_connection_model(options, session):
+def test_problem_connection_model(session):
     '''Tests simple problem connection model interaction'''
     from intertwine.problems.models import Problem, ProblemConnection
-    # To test in interpreter, use below:
-    # from config import DevConfig; test_config = DevConfig
-    test_config = options['config']
+
     assert session is not None
     assert session.query(Problem).all() == []
     assert session.query(ProblemConnection).all() == []
@@ -54,16 +50,12 @@ def test_problem_connection_model(options, session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-@pytest.mark.xfail(reason='python3: test_geo has already been registered')
-def test_problem_connection_rating_model(options, session):
+def test_problem_connection_rating_model(session):
     '''Tests simple problem connection rating model interaction'''
     from intertwine.geos.models import Geo
     from intertwine.problems.models import (Problem,
                                             ProblemConnection,
                                             ProblemConnectionRating)
-    # To test in interpreter, use below:
-    # from config import DevConfig; test_config = DevConfig
-    test_config = options['config']
 
     assert session is not None
     assert session.query(Problem).all() == []
@@ -102,8 +94,8 @@ def test_problem_connection_rating_model(options, session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-@pytest.mark.xfail(reason='python3: deleted or otherwise not present')
-def test_aggregate_problem_connection_rating_model(options, session):
+@pytest.mark.xfail(reason='Alchy bound session not handled in test fixtures')
+def test_aggregate_problem_connection_rating_model(session):
     '''Tests aggregate problem connection rating model interaction'''
     from intertwine.communities.models import Community
     from intertwine.geos.models import Geo
@@ -111,9 +103,6 @@ def test_aggregate_problem_connection_rating_model(options, session):
                                             ProblemConnection,
                                             ProblemConnectionRating,
                                             AggregateProblemConnectionRating)
-    # To test in interpreter, use below:
-    # from config import DevConfig; test_config = DevConfig
-    test_config = options['config']
 
     assert session is not None
     assert session.query(Problem).all() == []
@@ -131,6 +120,13 @@ def test_aggregate_problem_connection_rating_model(options, session):
     geo1 = Geo('Austin')
     community1 = Community(problem=problem1, org=org1, geo=geo1)
     user1, user2, user3, user4 = 'user1', 'user2', 'user3', 'user4'
+
+    session.add(geo1)
+    session.add(problem1)
+    session.add(problem2)
+    session.add(connection12)
+    session.add(community1)
+    session.commit()
 
     rating1 = ProblemConnectionRating(problem=problem1,
                                       connection=connection12,
@@ -160,21 +156,26 @@ def test_aggregate_problem_connection_rating_model(options, session):
                                       user=user4,
                                       rating=4,
                                       weight=4)
-    session.add(geo1)
-    session.add(problem1)
-    session.add(problem2)
-    session.add(connection12)
-    session.add(community1)
+
     for rating in connection12.ratings:
         session.add(rating)
 
     session.commit()
-    ar1 = AggregateProblemConnectionRating(connection=connection12,
-                                           community=community1,
+
+    rs = session.query(ProblemConnectionRating).order_by(
+                       ProblemConnectionRating.id).all()
+
+    assert rs[0].rating == rating1.rating
+    assert rs[1].rating == rating2.rating
+    assert rs[2].rating == rating3.rating
+    assert rs[3].rating == rating4.rating
+
+    ar1 = AggregateProblemConnectionRating(community=community1,
+                                           connection=connection12,
                                            aggregation='strict')
     session.add(ar1)
-
     session.commit()
+
     ars = session.query(AggregateProblemConnectionRating).order_by(
                         AggregateProblemConnectionRating.id).all()
     assert len(ars) == 1

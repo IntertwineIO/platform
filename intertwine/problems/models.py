@@ -268,9 +268,10 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
         elif rating is None:
             if aggregation == self.STRICT:
-                rq = ProblemConnectionRating.query.filter_by(
-                    problem=problem, org=org, geo=geo,
-                    connection=connection)
+                # rq = ProblemConnectionRating.query.filter_by(
+                #     problem=problem, org=org, geo=geo,
+                #     connection=connection)
+                rq = connection.ratings
                 # TODO: implement inclusive aggregation
                 # Removed since it is not strict:
                 # rq = rq.filter_by(org=org) if org else rq

@@ -6,13 +6,11 @@ import pytest
 @pytest.mark.unit
 @pytest.mark.smoke
 @pytest.mark.xfail(reason='cannot decode')
-def test_decode_problem(options, session):
+def test_decode_problem(session):
     '''Tests decoding a standard problem'''
     from intertwine.problems.models import Problem
     from data.data_process import decode
-    # To test in interpreter, use below:
-    # from config import DevConfig; test_config = DevConfig
-    test_config = options['config']
+
     assert session is not None
     assert session.query(Problem).all() == []
 

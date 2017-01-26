@@ -58,13 +58,10 @@ def test_geo_model_create(session, parent_name, parent_abbrev, child_name):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_geo_data_model(session, options):
+def test_geo_data_model(session):
     '''Tests simple geo data model interaction'''
     from intertwine.geos.models import Geo, GeoData
-    # To test in interpreter, use below:
-    # from config import DevConfig; config = DevConfig
 
-    config = options['config']
     assert session is not None
     assert session.query(Geo).all() == []
     assert session.query(GeoData).all() == []
@@ -108,12 +105,10 @@ def test_geo_data_model(session, options):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_geo_level_model(options, session):
+def test_geo_level_model(session):
     '''Tests simple geo level model interaction'''
     from intertwine.geos.models import Geo, GeoLevel
-    # To test in interpreter, use below:
-    # from config import DevConfig; config = DevConfig
-    config = options['config']
+
     assert session is not None
     assert session.query(Geo).all() == []
     assert session.query(GeoLevel).all() == []
@@ -145,13 +140,10 @@ def test_geo_level_model(options, session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-@pytest.mark.xfail(reason='trackable issue')
-def test_geo_id_model(options, session):
+def test_geo_id_model(session):
     '''Tests simple geo id model interaction'''
     from intertwine.geos.models import Geo, GeoLevel, GeoID
-    # To test in interpreter, use below:
-    # from config import DevConfig; config = DevConfig
-    config = options['config']
+
     assert session is not None
     assert session.query(Geo).all() == []
     assert session.query(GeoLevel).all() == []
@@ -187,12 +179,9 @@ def test_geo_id_model(options, session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_form_aggregate_geo(options, session):
+def test_form_aggregate_geo(session):
     '''Tests geo creation that aggregates children data at a geo level'''
     from intertwine.geos.models import Geo, GeoData, GeoLevel
-    # To test in interpreter, use below:
-    # from config import DevConfig; config = DevConfig
-    config = options['config']
     assert session is not None
     assert session.query(Geo).all() == []
     assert session.query(GeoData).all() == []
@@ -278,13 +267,10 @@ def test_form_aggregate_geo(options, session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-@pytest.mark.xfail(reason='trackable issue')
-def test_geo_aliases(options, session):
+def test_geo_aliases(session):
     '''Tests creation of geo aliases and promoting an alias'''
     from intertwine.geos.models import Geo, GeoData, GeoLevel
-    # To test in interpreter, use below:
-    # from config import DevConfig; config = DevConfig
-    config = options['config']
+
     assert session is not None
     assert session.query(Geo).all() == []
     assert session.query(GeoData).all() == []

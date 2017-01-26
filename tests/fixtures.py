@@ -6,6 +6,7 @@ import pytest
 
 from intertwine import create_app
 from intertwine import intertwine_db
+from intertwine.trackable import Trackable
 from config import ToxConfig
 
 
@@ -77,6 +78,8 @@ def session(db, request):
     db.session = session
 
     def teardown():
+        Trackable.clear_instances()
+        Trackable.clear_updates()
         transaction.rollback()
         connection.close()
         session.remove()
