@@ -145,7 +145,7 @@ $(document).ready(function() {
                 begHTML + adjacentProblemIconHTML + adjacentProblemNameHTML + endHTML
         }
 
-        $('#' + category + '-scroll').append(renderedRatedConnection);
+        connectionScroll.append(renderedRatedConnection);
 
         scrollTo('end', axis, connectionScroll);
     }
@@ -178,7 +178,7 @@ $(document).ready(function() {
             contentType : "application/json",
             success: function(ratedConnectionPayload){
                 renderNewRatedConnection(category, ratedConnectionPayload);
-            } // TODO: Add new connection and feedback message
+            } // TODO: Add failure handling
         });
 
         $('#add-' + category + '-connection-component').remove();
