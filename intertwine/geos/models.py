@@ -30,8 +30,8 @@ class Geo(BaseGeoModel):
     GeoData and be tied to one or more GeoLevels (which in turn may be
     tied to one or more GeoIDs)
 
-    The human_id is a human-readable unique for each geo and is composed
-    as follows:
+    The human_id is a human-readable unique id for each geo and is
+    composed as follows:
 
     path/(abbrev or name + qualifier)
 

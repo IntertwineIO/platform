@@ -94,7 +94,6 @@ def test_problem_connection_rating_model(session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-@pytest.mark.xfail(reason='Alchy bound session not handled in test fixtures')
 def test_aggregate_problem_connection_rating_model(session):
     '''Tests aggregate problem connection rating model interaction'''
     from intertwine.communities.models import Community
