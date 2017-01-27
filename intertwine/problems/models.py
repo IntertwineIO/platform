@@ -537,13 +537,22 @@ class ProblemConnectionRating(BaseProblemModel):
                                         else connection.NARROWER)
 
         if isinstance(problem, basestring):
-            problem = Problem.query.filter_by(human_id=problem).one()
+            problem_human_id = problem
+            problem = Problem[problem_human_id]
+            if not problem:
+                raise KeyError('Problem does not exist for human_id {human_id}'
+                               .format(human_id=problem_human_id))
+
         if problem not in (p_a, p_b):
             raise InvalidProblemForConnection(problem=problem,
                                               connection=connection)
 
         if isinstance(geo, basestring):
-            geo = Geo.query.filter_by(human_id=geo).one()
+            geo_human_id = geo
+            geo = Geo[geo_human_id]
+            if not geo:
+                raise KeyError('Geo does not exist for human_id {human_id}'
+                               .format(human_id=geo_human_id))
 
         # TODO: take user instance in addition to user_id
         if user is None or user == '':
@@ -935,9 +944,9 @@ class Problem(BaseProblemModel):
         return name.strip().lower().replace(' ', '_')
 
     @staticmethod
-    def infer_name_from_key(key):
+    def infer_name_from_human_id(human_id):
         '''Infer name from key assuming ordinary titlecase rules'''
-        return titlecase(key.replace('_', ' '))
+        return titlecase(human_id.replace('_', ' '))
 
     def __init__(self, name, definition=None, definition_url=None,
                  sponsor=None, images=[],

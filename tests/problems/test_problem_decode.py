@@ -3,27 +3,39 @@
 import pytest
 
 
+def create_geo_data(session):
+    '''Util to create geos referenced in problem JSON'''
+    from intertwine.geos.models import Geo
+
+    assert session.query(Geo).all() == []
+    us = Geo(name='United States', abbrev='U.S.')
+    tx = Geo(name='Texas', abbrev='TX', path_parent=us, parents=[us])
+    austin = Geo(name='Austin', path_parent=tx, parents=[tx])
+    session.add_all((us, tx, austin))
+    session.commit()
+    assert Geo['us/tx/austin'] is austin
+
+
 @pytest.mark.unit
 @pytest.mark.smoke
-@pytest.mark.xfail(reason='cannot decode')
-def test_decode_problem(options, session):
-    '''Tests decoding a standard problem'''
+@pytest.mark.xfail(reason='python3.6 unicode issue')
+def test_decode_problem(session):
+    '''Test decoding a standard problem'''
     from intertwine.problems.models import Problem
     from data.data_process import decode
-    # To test in interpreter, use below:
-    # from config import DevConfig; test_config = DevConfig
-    test_config = options['config']
+
     assert session is not None
     assert session.query(Problem).all() == []
 
-    # Decode
+    create_geo_data(session)
+
     u1 = decode(session, 'data/problems/problems01.json')
     for updates in u1.values():
         session.add_all(updates)
     session.commit()
 
     p1 = session.query(Problem).filter_by(name='Homelessness').one()
-    assert p1.name == 'Homelessness'
+    assert p1 is Problem['homelessness']
     assert len(p1.definition) > 0
     assert len(p1.definition_url) > 0
     assert len(p1.images.all()) > 0
@@ -35,26 +47,27 @@ def test_decode_problem(options, session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-@pytest.mark.xfail(reason='homelessness is already registered')
-def test_decode_problem_connection(options, session):
+@pytest.mark.xfail(reason='Tox issue')
+def test_decode_problem_connection(session):
     '''Tests decoding a standard problem connection'''
     from intertwine.problems.models import Problem, ProblemConnection
     from data.data_process import decode
-    # To test in interpreter, use below:
-    # from config import DevConfig; test_config = DevConfig
-    test_config = options['config']
+
     assert session is not None
     assert session.query(Problem).all() == []
     assert session.query(ProblemConnection).all() == []
 
-    # Decode
+    create_geo_data(session)
+
     u0 = decode(session, 'data/problems/problems00.json')
     for updates in u0.values():
         session.add_all(updates)
     session.commit()
 
     p0 = session.query(Problem).filter_by(name='Poverty').one()
+    assert p0 is Problem['poverty']
     p1 = session.query(Problem).filter_by(name='Homelessness').one()
+    assert p1 is Problem['homelessness']
 
     c1 = session.query(ProblemConnection).filter(
         ProblemConnection.axis == 'scoped',
@@ -67,22 +80,21 @@ def test_decode_problem_connection(options, session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-@pytest.mark.xfail(reason='homelessness is already registered')
-def test_decode_problem_connection_rating(options, session):
+@pytest.mark.xfail(reason='python3.6 unicode issue')
+def test_decode_problem_connection_rating(session):
     '''Tests decoding ratings on a single problem connection'''
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
     from data.data_process import decode
-    # To test in interpreter, use below:
-    # from config import DevConfig; test_config = DevConfig
-    test_config = options['config']
+
     assert session is not None
     assert session.query(Problem).all() == []
     assert session.query(ProblemConnection).all() == []
     assert session.query(ProblemConnectionRating).all() == []
 
-    # Decode directory:
-    u = decode(session, 'data/problems/')
+    create_geo_data(session)
+
+    u = decode(session, 'data/problems/')  # Decode entire directory
     for updates in u.values():
         session.add_all(updates)
     session.commit()
@@ -99,26 +111,26 @@ def test_decode_problem_connection_rating(options, session):
         ProblemConnectionRating.connection == c1)
     assert len(rs1.all()) > 0
     for r in rs1:
-        assert r.connection == c1
+        assert r.connection is c1
 
 
 @pytest.mark.unit
 @pytest.mark.smoke
-@pytest.mark.xfail(reason='python3: poverty is already registered')
-def test_incremental_decode(options, session):
-    '''Tests decoding incrementally'''
+@pytest.mark.xfail(reason='python3.6 unicode issue')
+def test_incremental_decode(session):
+    '''Tests decoding multiple files incrementally'''
     from intertwine.trackable import Trackable
+    from intertwine.geos.models import Geo
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
     from data.data_process import decode
 
-    # To test in interpreter, use below:
-    # from config import DevConfig; test_config = DevConfig
-    test_config = options['config']
     assert session is not None
     assert session.query(Problem).all() == []
     assert session.query(ProblemConnection).all() == []
     assert session.query(ProblemConnectionRating).all() == []
+
+    create_geo_data(session)
 
     # Initial data load:
     u0 = decode(session, 'data/problems/problems00.json')
@@ -126,71 +138,101 @@ def test_incremental_decode(options, session):
         session.add_all(updates)
     session.commit()
     p0 = session.query(Problem).filter_by(name='Poverty').one()
-    assert p0.name == 'Poverty'
+    assert p0 is Problem['poverty']
 
     # Simulate impact of app restart on Trackable by clearing it:
-    Trackable.clear_instances()
+    Trackable.clear_all()
 
     # Next data load:
     u1 = decode(session, 'data/problems/problems01.json')
     for updates in u1.values():
         session.add_all(updates)
     session.commit()
+    p0 = session.query(Problem).filter_by(name='Poverty').one()
+    assert p0 is Problem['poverty']
     p1 = session.query(Problem).filter_by(name='Homelessness').one()
-    assert p1.name == 'Homelessness'
+    assert p1 is Problem['homelessness']
 
     # Simulate impact of app restart on Trackable by clearing it:
-    Trackable.clear_instances()
+    Trackable.clear_all()
 
     # Next data load:
     u2 = decode(session, 'data/problems/problems02.json')
     for updates in u2.values():
         session.add_all(updates)
     session.commit()
-    p2 = session.query(Problem).filter_by(name='Domestic Violence').one()
-    assert p2.name == 'Domestic Violence'
 
     # Make sure they're still the same problems
-    assert p0 == Problem['poverty']
-    assert p1 == Problem['homelessness']
-    assert p2 == Problem['domestic_violence']
+    p0 = session.query(Problem).filter_by(name='Poverty').one()
+    assert p0 is Problem['poverty']
+    p1 = session.query(Problem).filter_by(name='Homelessness').one()
+    assert p1 is Problem['homelessness']
+    p2 = session.query(Problem).filter_by(name='Domestic Violence').one()
+    assert p2 is Problem['domestic_violence']
 
     c1 = session.query(ProblemConnection).filter(
         ProblemConnection.axis == 'scoped',
         ProblemConnection.broader == p0,
         ProblemConnection.narrower == p1).one()
     assert c1.axis == 'scoped'
-    assert c1.broader == p0
-    assert c1.narrower == p1
+    assert c1.broader is p0
+    assert c1.narrower is p1
 
     c2 = session.query(ProblemConnection).filter(
         ProblemConnection.axis == 'causal',
         ProblemConnection.driver == p2,
         ProblemConnection.impact == p1).one()
     assert c2.axis == 'causal'
-    assert c2.driver == p2
-    assert c2.impact == p1
+    assert c2.driver is p2
+    assert c2.impact is p1
 
     rs1 = session.query(ProblemConnectionRating).filter(
         ProblemConnectionRating.connection == c1)
     assert len(rs1.all()) > 0
     for r in rs1:
-        assert r.connection == c1
+        assert r.connection is c1
 
+    geo = Geo['us/tx/austin']
     rs2 = session.query(ProblemConnectionRating).filter(
         ProblemConnectionRating.problem == p1,
         ProblemConnectionRating.connection == c2,
         ProblemConnectionRating.org.is_(None),
-        ProblemConnectionRating.geo == 'United States/Texas/Austin')
+        ProblemConnectionRating.geo == geo)
     assert len(rs2.all()) > 0
     for r in rs2:
         assert r.problem == p1
         assert r.connection == c2
         assert r.org is None
-        assert r.geo == 'United States/Texas/Austin'
+        assert r.geo is geo
+
+
+@pytest.mark.unit
+@pytest.mark.smoke
+@pytest.mark.xfail(reason='python3.6 unicode issue and decoding same '
+                          'data is broken')
+def test_decode_same_data(session):
+    '''Tests decoding incrementally'''
+    from intertwine.trackable import Trackable
+    from intertwine.problems.models import (Problem, ProblemConnection,
+                                            ProblemConnectionRating)
+    from data.data_process import decode
+
+    assert session is not None
+    assert session.query(Problem).all() == []
+    assert session.query(ProblemConnection).all() == []
+    assert session.query(ProblemConnectionRating).all() == []
+
+    create_geo_data(session)
+
+    u2 = decode(session, 'data/problems/problems02.json')
+    for updates in u2.values():
+        session.add_all(updates)
+    session.commit()
+    p2 = session.query(Problem).filter_by(name='Domestic Violence').one()
+    assert p2 is Problem['domestic_violence']
 
     # Simulate impact of app restart on Trackable by clearing it:
-    Trackable.clear_instances()
+    Trackable.clear_all()
 
     # Try reloading existing data (none should be loaded):
     u2_repeat = decode(session, 'data/problems/problems02.json')

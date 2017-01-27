@@ -277,6 +277,18 @@ class Trackable(ModelMeta):
             cls._updates = set()
 
     @classmethod
+    def clear_all(meta, *args):
+        '''Clear all instances/updates tracked by Trackable classes
+
+        If no arguments are provided, all Trackable classes have their
+        updates cleared (i.e. reset). If one or more classes are passed
+        as input, only these classes have their updates cleared. If a
+        class is not Trackable, a TypeError is raised.
+        '''
+        meta.clear_instances(*args)
+        meta.clear_updates(*args)
+
+    @classmethod
     def catalog_updates(meta, *args):
         '''Catalog updates tracked by Trackable classes
 
