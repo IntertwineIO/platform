@@ -49,6 +49,7 @@ def test_licenses(**options):
         'greenlet',          # MIT
         'mccabe',            # Expat
         'ordereddict',       # MIT
+        'pbr',               # BSD
         'pep8',              # Expat
         'pluggy',            # MIT
         'py',                # MIT

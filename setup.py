@@ -159,8 +159,8 @@ def get_package_requirements(package_requires, required=None):
         # Required for installation
         'setup': [
             'pip',
-            'pytest-runner',
-            'libsass >= 0.6.0',
+            # 'pytest-runner',
+            # 'libsass >= 0.6.0',
         ],
 
         # Required for running scripts folder
