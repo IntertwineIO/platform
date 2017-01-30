@@ -41,6 +41,9 @@ CHANGES:
      - changed dictionaries to lists where appropriate
      - more fine-grained authority parsing and normalisation
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import re
 import sys
 
@@ -81,6 +84,14 @@ if sys.version_info.major == 3:
     unicode = str
     xrange = range
     unichr = chr
+
+    def b(x):
+        return x.encode("utf-8")
+else:
+    bytes = str
+
+    def b(x):
+        return x
 
 
 class InvalidUrl(Exception):
@@ -142,24 +153,24 @@ def unquote_fragment(s):
 
 def unquote_safe(s, unsafe_list):
     """unquote percent escaped string except for percent escape sequences that are in unsafe_list"""
-    # note: this build utf8 raw strings ,then does a .decode('utf8') at the end.
+    # note: this builds utf8 raw strings, then does a .decode('utf8') at the end.
     # as a result it's doing .encode('utf8') on each block of the string as it's processed.
-    res = _utf8(s).split('%')
+    res = _utf8(s).split(b('%'))
     for i in range(1, len(res)):
         item = res[i]
         try:
             raw_chr = _hextochr[item[:2]]
             if raw_chr in unsafe_list or ord(raw_chr) < 20:
                 # leave it unescaped (but uppercase the percent escape)
-                res[i] = '%' + item[:2].upper() + item[2:]
+                res[i] = b('%') + item[:2].upper() + item[2:]
             else:
                 res[i] = raw_chr + item[2:]
         except KeyError:
-            res[i] = '%' + item
+            res[i] = b('%') + item
         except UnicodeDecodeError:
             # note: i'm not sure what this does
             res[i] = unichr(int(item[:2], 16)) + item[2:]
-    o = "".join(res)
+    o = b('').join(res)
     return _unicode(o)
 
 
@@ -171,13 +182,13 @@ def norm(url):
     return urlunparse(normalized_tuple)
 
 
-def norm_tuple(scheme, authority, path, parameters, query, fragment):
+def norm_tuple(scheme, netloc, path, parameters, query, fragment):
     """given individual url components, return its normalized form"""
     scheme = str(scheme).lower()
     if not scheme:
         raise InvalidUrl('missing URL scheme')
-    authority = norm_netloc(scheme, authority)
-    if not authority:
+    netloc = norm_netloc(scheme, netloc)
+    if not netloc:
         raise InvalidUrl('missing netloc')
     path = norm_path(scheme, path)
     # TODO: put query in sorted order; or at least group parameters together
@@ -186,7 +197,7 @@ def norm_tuple(scheme, authority, path, parameters, query, fragment):
     parameters = unquote_params(parameters)
     query = unquote_qs(query)
     fragment = unquote_fragment(fragment)
-    return (scheme, authority, path, parameters, query, fragment)
+    return (scheme, netloc, path, parameters, query, fragment)
 
 
 def norm_path(scheme, path):
@@ -271,12 +282,12 @@ def _idn(subdomain):
 def _utf8(value):
     if isinstance(value, unicode):
         return value.encode("utf-8")
-    assert isinstance(value, str)
+    assert isinstance(value, bytes)
     return value
 
 
 def _unicode(value):
-    if isinstance(value, str):
+    if isinstance(value, bytes):
         return value.decode("utf-8")
     assert isinstance(value, unicode)
     return value
