@@ -28,5 +28,3 @@ class EC2Config(EnvironmentConfig):
 class EBConfig(EnvironmentConfig):
     '''AWS Elastic Beanstalk Based configuration'''
     ERROR_404_HELP = False  # Flask-Restful setting
-
-
