@@ -208,8 +208,6 @@ def test_incremental_decode(session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-@pytest.mark.xfail(reason='python3 unicode issue and decoding same '
-                          'data is broken')
 def test_decode_same_data(session):
     '''Tests decoding incrementally'''
     from intertwine.trackable import Trackable
@@ -236,5 +234,5 @@ def test_decode_same_data(session):
 
     # Try reloading existing data (none should be loaded):
     u2_repeat = decode(session, 'data/problems/problems02.json')
-    for updates in u2_repeat.values():
+    for key, updates in u2_repeat.items():
         assert len(updates) == 0

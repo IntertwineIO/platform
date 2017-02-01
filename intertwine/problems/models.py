@@ -432,8 +432,30 @@ class ProblemConnectionRating(BaseProblemModel):
 
         Return a key allowing the Trackable metaclass to register a
         problem connection rating instance. The key is a namedtuple of
-        connection, problem, org, geo, and user.
+        connection, problem, org, geo, and user. The problem and geo may
+        be keys instead of instances.
         '''
+        is_causal = connection.axis == connection.CAUSAL
+        p_a = connection.driver if is_causal else connection.broader
+        p_b = connection.impact if is_causal else connection.narrower
+
+        if not isinstance(problem, Problem):
+            problem_key = problem
+            problem = Problem[problem_key]
+            if not problem:
+                raise KeyError('Problem does not exist for key {key}'
+                               .format(key=problem_key))
+
+        if problem not in (p_a, p_b):
+            raise InvalidProblemForConnection(problem=problem,
+                                              connection=connection)
+
+        if not isinstance(geo, Geo):
+            geo_key = geo
+            geo = Geo[geo_key]
+            if not geo:
+                raise KeyError('Geo does not exist for key {key}'
+                               .format(key=geo_key))
         return cls.Key(connection, problem, org, geo, user)
 
     def derive_key(self):
@@ -513,6 +535,7 @@ class ProblemConnectionRating(BaseProblemModel):
                                                    new_user_weight=weight,
                                                    old_user_rating=old_rating,
                                                    old_user_weight=old_weight)
+        return has_updated
 
     def __init__(self, rating, problem, connection, org=None, geo=None,
                  user='Intertwine', weight=None):
@@ -578,8 +601,9 @@ class ProblemConnectionRating(BaseProblemModel):
         rating = kwds.get('rating', None)
         weight = kwds.get('weight', None)
         try:
-            self.update_values(rating=rating, weight=weight)
-            self._modified.add(self)
+            has_updated = self.update_values(rating=rating, weight=weight)
+            if has_updated:
+                self._modified.add(self)
         except ValueError:
             pass
 
@@ -957,7 +981,7 @@ class Problem(BaseProblemModel):
         '''
         self.name = name
         self.definition = definition.strip() if definition else None
-        self.definition_url = (definition_url.strip()
+        self.definition_url = (urlnorm.norm(definition_url)
                                if definition_url else None)
         self.sponsor = sponsor.strip() if sponsor else None
         self.images = []
