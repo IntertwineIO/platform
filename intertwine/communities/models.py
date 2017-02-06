@@ -79,9 +79,9 @@ class Community(BaseCommunityModel):
     def form_uri(problem, org=None, geo=None):
         problem_human_id = (Problem.Key(problem).human_id
                             if isinstance(problem, basestring)
-                            else problem.derive_key())
+                            else problem.derive_key().human_id)
         geo_human_id = (Geo.Key(geo).human_id if isinstance(geo, basestring)
-                        else (geo.derive_key() if geo else ''))
+                        else (geo.derive_key().human_id if geo else ''))
 
         return '/{blueprint}/{problem_human_id}{slash}{geo_human_id}'.format(
             blueprint='communities',
