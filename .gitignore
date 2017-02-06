@@ -44,9 +44,6 @@ nosetests.xml
 coverage.xml
 *,cover
 
-# Directory of test files such as input history %saved from ipython
-test/
-
 # Translations
 *.mo
 *.pot

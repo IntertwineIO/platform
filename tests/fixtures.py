@@ -92,4 +92,5 @@ def session(db, request):
         session.remove()
 
     request.addfinalizer(teardown)
+    assert session is not None
     return session

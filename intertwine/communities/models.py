@@ -77,16 +77,17 @@ class Community(BaseCommunityModel):
 
     @staticmethod
     def form_uri(problem, org=None, geo=None):
-        problem_key = (Problem.Key(problem) if isinstance(problem, basestring)
-                       else problem.derive_key())
-        geo_key = (Geo.Key(geo) if isinstance(geo, basestring) else (
-                   geo.derive_key() if geo else ''))
+        problem_human_id = (Problem.Key(problem).human_id
+                            if isinstance(problem, basestring)
+                            else problem.derive_key())
+        geo_human_id = (Geo.Key(geo).human_id if isinstance(geo, basestring)
+                        else (geo.derive_key() if geo else ''))
 
         return '/{blueprint}/{problem_human_id}{slash}{geo_human_id}'.format(
             blueprint='communities',
-            problem_human_id=problem_key.human_id,
-            slash='/' if geo_key else '',
-            geo_human_id=geo_key.human_id)
+            problem_human_id=problem_human_id,
+            slash='/' if geo_human_id else '',
+            geo_human_id=geo_human_id)
 
     @property
     def problem(self):
