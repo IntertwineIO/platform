@@ -87,11 +87,6 @@ def test_decode_problem_connection_rating(session):
                                             ProblemConnectionRating)
     from data.data_process import decode
 
-    assert session is not None
-    assert Problem.query.all() == []
-    assert ProblemConnection.query.all() == []
-    assert ProblemConnectionRating.query.all() == []
-
     create_geo_data(session)
 
     u = decode(session, 'data/problems/')  # Decode entire directory
@@ -124,11 +119,6 @@ def test_incremental_decode(session):
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
     from data.data_process import decode
-
-    assert session is not None
-    assert Problem.query.all() == []
-    assert ProblemConnection.query.all() == []
-    assert ProblemConnectionRating.query.all() == []
 
     create_geo_data(session)
 
@@ -215,11 +205,6 @@ def test_decode_same_data(session):
                                             ProblemConnectionRating)
     from data.data_process import decode
 
-    assert session is not None
-    assert Problem.query.all() == []
-    assert ProblemConnection.query.all() == []
-    assert ProblemConnectionRating.query.all() == []
-
     create_geo_data(session)
 
     u2 = decode(session, 'data/problems/problems02.json')
@@ -234,5 +219,5 @@ def test_decode_same_data(session):
 
     # Try reloading existing data (none should be loaded):
     u2_repeat = decode(session, 'data/problems/problems02.json')
-    for key, updates in u2_repeat.items():
+    for updates in u2_repeat.values():
         assert len(updates) == 0

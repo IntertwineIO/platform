@@ -62,10 +62,6 @@ def test_geo_data_model(session):
     '''Tests simple geo data model interaction'''
     from intertwine.geos.models import Geo, GeoData
 
-    assert session is not None
-    assert session.query(Geo).all() == []
-    assert session.query(GeoData).all() == []
-
     total_pop, urban_pop = 1000, 800
     latitude, longitude = 30, -97
     land_area, water_area = 4321, 1234
@@ -109,10 +105,6 @@ def test_geo_level_model(session):
     '''Tests simple geo level model interaction'''
     from intertwine.geos.models import Geo, GeoLevel
 
-    assert session is not None
-    assert session.query(Geo).all() == []
-    assert session.query(GeoLevel).all() == []
-
     level = 'place'
     designation = 'city'
     geo = Geo(name='Test Geo Place')
@@ -143,11 +135,6 @@ def test_geo_level_model(session):
 def test_geo_id_model(session):
     '''Tests simple geo id model interaction'''
     from intertwine.geos.models import Geo, GeoLevel, GeoID
-
-    assert session is not None
-    assert session.query(Geo).all() == []
-    assert session.query(GeoLevel).all() == []
-    assert session.query(GeoID).all() == []
 
     standard = 'Test Standard'
     code = '12345'
@@ -182,10 +169,6 @@ def test_geo_id_model(session):
 def test_form_aggregate_geo(session):
     '''Tests geo creation that aggregates children data at a geo level'''
     from intertwine.geos.models import Geo, GeoData, GeoLevel
-    assert session is not None
-    assert session.query(Geo).all() == []
-    assert session.query(GeoData).all() == []
-    assert session.query(GeoLevel).all() == []
 
     data_level = 'place'
 
@@ -270,11 +253,6 @@ def test_form_aggregate_geo(session):
 def test_geo_aliases(session):
     '''Tests creation of geo aliases and promoting an alias'''
     from intertwine.geos.models import Geo, GeoData, GeoLevel
-
-    assert session is not None
-    assert session.query(Geo).all() == []
-    assert session.query(GeoData).all() == []
-    assert session.query(GeoLevel).all() == []
 
     geo_data_dict = {'total_pop': 100,
                      'urban_pop': 80,

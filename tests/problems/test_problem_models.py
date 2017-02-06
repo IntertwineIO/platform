@@ -9,14 +9,12 @@ def test_problem_model(session):
     '''Tests simple problem model interaction'''
     from intertwine.problems.models import Image, Problem
 
-    assert session is not None
-    assert session.query(Problem).all() == []
-    assert session.query(Image).all() == []
     problem_name = 'This is a Test Problem'
     problem = Problem(problem_name)
+    assert Problem[problem.derive_key()] is problem
     session.add(problem)
     session.commit()
-    assert session.query(Problem).first() == problem
+    assert session.query(Problem).first() is problem
 
 
 @pytest.mark.unit
@@ -25,27 +23,24 @@ def test_problem_connection_model(session):
     '''Tests simple problem connection model interaction'''
     from intertwine.problems.models import Problem, ProblemConnection
 
-    assert session is not None
-    assert session.query(Problem).all() == []
-    assert session.query(ProblemConnection).all() == []
-
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
     problem2 = Problem(problem_name_base + ' 02')
     connection = ProblemConnection('causal', problem1, problem2)
+    assert ProblemConnection[connection.derive_key()] is connection
     session.add(problem1)
     session.add(problem2)
     session.add(connection)
     session.commit()
     problems = session.query(Problem).order_by(Problem.name).all()
     assert len(problems) == 2
-    assert problems[0] == problem1
-    assert problems[1] == problem2
+    assert problems[0] is problem1
+    assert problems[1] is problem2
     connections = session.query(ProblemConnection).all()
     assert len(connections) == 1
-    assert connection == connections[0]
-    assert problem1.impacts.all()[0].impact == problem2
-    assert problem2.drivers.all()[0].driver == problem1
+    assert connections[0] is connection
+    assert problem1.impacts.all()[0].impact is problem2
+    assert problem2.drivers.all()[0].driver is problem1
 
 
 @pytest.mark.unit
@@ -56,12 +51,6 @@ def test_problem_connection_rating_model(session):
     from intertwine.problems.models import (Problem,
                                             ProblemConnection,
                                             ProblemConnectionRating)
-
-    assert session is not None
-    assert session.query(Problem).all() == []
-    assert session.query(ProblemConnection).all() == []
-    assert session.query(ProblemConnectionRating).all() == []
-    assert session.query(Geo).all() == []
 
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
@@ -75,6 +64,8 @@ def test_problem_connection_rating_model(session):
                                      org=org,
                                      geo=geo,
                                      user='new_user')
+
+    assert ProblemConnectionRating[rating.derive_key()] is rating
     session.add(geo)
     session.add(problem1)
     session.add(problem2)
@@ -102,14 +93,6 @@ def test_aggregate_problem_connection_rating_model(session):
                                             ProblemConnection,
                                             ProblemConnectionRating,
                                             AggregateProblemConnectionRating)
-
-    assert session is not None
-    assert session.query(Problem).all() == []
-    assert session.query(ProblemConnection).all() == []
-    assert session.query(ProblemConnectionRating).all() == []
-    assert session.query(AggregateProblemConnectionRating).all() == []
-    assert session.query(Geo).all() == []
-    assert session.query(Community).all() == []
 
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
@@ -164,14 +147,16 @@ def test_aggregate_problem_connection_rating_model(session):
     rs = session.query(ProblemConnectionRating).order_by(
                        ProblemConnectionRating.id).all()
 
-    assert rs[0].rating == rating1.rating
-    assert rs[1].rating == rating2.rating
-    assert rs[2].rating == rating3.rating
-    assert rs[3].rating == rating4.rating
+    assert rs[0].rating is rating1.rating
+    assert rs[1].rating is rating2.rating
+    assert rs[2].rating is rating3.rating
+    assert rs[3].rating is rating4.rating
 
     ar1 = AggregateProblemConnectionRating(community=community1,
                                            connection=connection12,
                                            aggregation='strict')
+
+    assert AggregateProblemConnectionRating[ar1.derive_key()] is ar1
     session.add(ar1)
     session.commit()
 
