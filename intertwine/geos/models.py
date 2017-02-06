@@ -568,7 +568,7 @@ class Geo(BaseGeoModel):
                        .order_by(desc(GeoData.total_pop)).limit(limit).all()])
                 for lvl in levels)
 
-        for lvl, geos in rv.items():
+        for lvl, geos in list(rv.items()):
             if len(geos) == 0:
                 rv.pop(lvl)
 
