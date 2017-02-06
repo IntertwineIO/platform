@@ -59,13 +59,13 @@ def test_jsonify(session, problem_name, org_name, geo_name, num_followers):
 @pytest.mark.unit
 @pytest.mark.parametrize("problem_name, org_name, geo_name, num_followers", [
     ('Homelessness', None, None, 100000),
-    # ('Homelessness', None, 'Austin', 10000),
-    # ('Sexual Assault', 'University of Texas', None, 10000),
-    # ('Sexual Assault', 'University of Texas', 'Austin', 5000),
-    # ('Homeless Often Lack ID', None, 'Travis County', 100),
-    # ('Lack of Standard Homeless Metrics', None, 'Greater Austin', 3),
-    # ('Homelessness', None, u'Lopeño', 0),
-    # ('Homelessness', None, 'Waxahachie', None),
+    ('Homelessness', None, 'Austin', 10000),
+    ('Sexual Assault', 'University of Texas', None, 10000),
+    ('Sexual Assault', 'University of Texas', 'Austin', 5000),
+    ('Homeless Often Lack ID', None, 'Travis County', 100),
+    ('Lack of Standard Homeless Metrics', None, 'Greater Austin', 3),
+    ('Homelessness', None, u'Lopeño', 0),
+    ('Homelessness', None, 'Waxahachie', None),
 ])
 def test_jsonify_depth2(session, problem_name, org_name, geo_name,
                         num_followers):
