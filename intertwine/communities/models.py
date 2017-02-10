@@ -256,8 +256,9 @@ class Community(BaseCommunityModel):
         community is created and linked to the new aggregate ratings.
         '''
         community = self
-        community_exists = type(self) is Community
-        problem, org, geo = self.derive_key()
+        is_real_community = type(self) is Community
+        community_key = self.derive_key()
+        problem, org, geo = community_key
 
         if aggregation not in ('strict'):
             raise InvalidAggregation(aggregation=aggregation)
@@ -266,11 +267,15 @@ class Community(BaseCommunityModel):
                          .order_by(PCR.connection_category, PCR.connection_id))
         pcrs = PeekableIterator(pcrs)
         # Create and persist a community only if necessary
-        if not community_exists and pcrs.has_next():
-            community = Community(problem=problem, org=org, geo=geo)
-            session = community.session()
-            session.add(community)
-            session.commit()
+        if not is_real_community and pcrs.has_next():
+            existing_community = Community[community_key]
+            if existing_community:
+                community = existing_community
+            else:
+                community = Community(problem=problem, org=org, geo=geo)
+                session = community.session()
+                session.add(community)
+                session.commit()
 
         # TODO: give Trackable fine-grained registration and register
         # aggregate ratings associated with the community to enable the

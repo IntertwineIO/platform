@@ -204,7 +204,7 @@ def vardygrify(cls, **kwds):
     A convenience method for creating a non-persisted mock instance of
     a classes. Adds method mimicry capabilities on top of Mock.
     '''
-    EXCLUDED_BUILTINS = {'__new__', '__init__'}
+    EXCLUDED_BUILTINS = {'__new__', '__init__', '__class__', '__setattr__'}
     INCLUDED_BUILTINS = {'__repr__', '__str__', '__unicode__'}
 
     vardygr = create_autospec(cls, spec_set=False, instance=True)
