@@ -157,6 +157,11 @@ def test_aggregate_problem_connection_rating_model(session):
                                            aggregation='strict')
 
     assert AggregateProblemConnectionRating[ar1.derive_key()] is ar1
+    adjacent_problem = problem2
+    assert ar1.adjacent_problem_name == adjacent_problem.name
+    adjacent_community_uri = Community.form_uri(adjacent_problem, org1, geo1)
+    assert ar1.adjacent_community_uri == adjacent_community_uri
+
     session.add(ar1)
     session.commit()
 
