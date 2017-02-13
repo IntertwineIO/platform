@@ -47,9 +47,10 @@ def app(request):
 
     def teardown():
         Trackable.clear_all()
+        ctx.pop()
 
     # Teardown application context at the end of usage (session)
-    request.addfinalizer(ctx.pop)
+    request.addfinalizer(teardown)
     return app
 
 
@@ -59,14 +60,14 @@ def db(app, request):
     if os.path.exists(TESTDB_PATH):
         os.unlink(TESTDB_PATH)
 
+    intertwine_db.app = app
+    intertwine_db.create_all()
+
     def teardown():
         Trackable.clear_all()
         intertwine_db.drop_all()
         if os.path.exists(TESTDB_PATH):
             os.unlink(TESTDB_PATH)
-
-    intertwine_db.app = app
-    intertwine_db.create_all()
 
     request.addfinalizer(teardown)
     return intertwine_db
@@ -94,3 +95,16 @@ def session(db, request):
     request.addfinalizer(teardown)
     assert session is not None
     return session
+
+
+@pytest.fixture(scope='function')
+def client(app, request):
+    '''Creates a test client'''
+    app.config['TESTING'] = True
+    client = app.test_client()
+
+    def teardown():
+        app.config['TESTING'] = False
+
+    request.addfinalizer(teardown)
+    return client

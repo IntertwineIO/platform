@@ -164,7 +164,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         return adjacent_problem.name
 
     @property
-    def adjacent_community_uri(self):
+    def adjacent_community_url(self):
         from ..communities.models import Community
         key = self.connection.derive_key()
         problem = self.community.problem
