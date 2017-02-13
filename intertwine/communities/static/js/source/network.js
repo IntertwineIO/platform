@@ -111,14 +111,14 @@ $(document).ready(function() {
             begHTML = '<div class="v-problem">\n';
             adjacentProblemNameHTML = (
                 '<div class="v-problem-link-container v-align-inner word-break">\n' +
-                    '<a href="' + ratedConnection.adjacent_community_uri + '" class="problem-link">' +
+                    '<a href="' + ratedConnection.adjacent_community_url + '" class="problem-link">' +
                         ratedConnection.adjacent_problem_name +
                         ' (' + ratedConnection.rating + ')\n' +
                     '</a>\n' +
                 '</div>\n');
             adjacentProblemIconHTML = (
                 '<div class="v-align-inner">\n' +
-                    '<a href="' + ratedConnection.adjacent_community_uri + '">\n' +
+                    '<a href="' + ratedConnection.adjacent_community_url + '">\n' +
                         '<i class="fa fa-circle problem-icon ' + category + '-icon"></i>\n' +
                     '</a>\n' +
                 '</div>\n');
@@ -130,13 +130,13 @@ $(document).ready(function() {
             begHTML = '<div class="h-problem ' + category + '-problem">\n';
             adjacentProblemNameHTML = (
                 '<div class="h-problem-link-container word-break">\n' +
-                    '<a href="' + ratedConnection.adjacent_community_uri + '" class="problem-link">' +
+                    '<a href="' + ratedConnection.adjacent_community_url + '" class="problem-link">' +
                         ratedConnection.adjacent_problem_name +
                         ' (' + ratedConnection.rating + ')\n' +
                     '</a>\n' +
                 '</div>\n');
             adjacentProblemIconHTML = (
-                '<a href="' + ratedConnection.adjacent_community_uri + '">\n' +
+                '<a href="' + ratedConnection.adjacent_community_url + '">\n' +
                     '<i class="fa fa-circle problem-icon ' + category + '-icon"></i>\n' +
                 '</a>\n');
             endHTML = '</div>\n';

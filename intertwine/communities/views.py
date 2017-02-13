@@ -24,7 +24,7 @@ def configure_community_json():
         config[Jsonable.form_path('.aggregate_ratings', category,
                                   'adjacent_problem_name')] = 1
         config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'adjacent_community_uri')] = 1
+                                  'adjacent_community_url')] = 1
     return config
 
 
