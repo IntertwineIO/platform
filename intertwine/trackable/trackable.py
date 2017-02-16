@@ -4,12 +4,15 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import inspect
+import sys
 
 from alchy.model import ModelMeta
 from past.builtins import basestring
 from sqlalchemy.exc import InvalidRequestError
 
 from .exceptions import InvalidRegistryKey, KeyRegisteredAndNoModify
+
+u_literal = 'u' if sys.version_info.major == 2 else ''
 
 
 def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
@@ -54,7 +57,7 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
         return repr(self)
     elif isinstance(self, basestring):
         # repr adds u''s and extra escapes for printing unicode
-        return repr(self) if raw else u"u'{}'".format(self)
+        return repr(self) if raw else u"{u}'{s}'".format(u=u_literal, s=self)
 
     osqb, op, cp, csqb = '[', '(', ')', ']'
     cls = self.__class__.__name__
