@@ -1,45 +1,63 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import pytest
+import sys
+
+from intertwine.problems.models import ProblemConnection as PC
+from intertwine.problems.models import AggregateProblemConnectionRating as APCR
+
+
+u_literal = 'u' if sys.version_info.major == 2 else ''
 
 
 @pytest.mark.unit
 @pytest.mark.smoke
-# @pytest.mark.skip('Requires test client')
-def test_add_rated_problem_connection(session, client):
+@pytest.mark.parametrize("connection_category, is_real_community", [
+    (connection_category, is_real_community)
+    for connection_category in PC.CATEGORY_MAP
+    for is_real_community in (True, False)])
+def test_add_rated_problem_connection(session, client, connection_category,
+                                      is_real_community):
     '''Tests aggregate problem connection rating model interaction'''
     import json
 
     from intertwine.communities.models import Community
     from intertwine.geos.models import Geo
-    from intertwine.problems.models import (Problem,
-                                            ProblemConnection,
-                                            ProblemConnectionRating,
-                                            AggregateProblemConnectionRating)
+    from intertwine.problems.models import Problem
 
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
-    org1 = 'University of Texas'
-    geo1 = Geo('Austin')
-    community1 = Community(problem=problem1, org=org1, geo=geo1)
+    org = 'University of Texas'
+    geo = Geo('Austin')
+    session.add(problem1)
+    session.add(geo)
+    # TODO: fix scope so endpoint can see community in DB
+    if is_real_community:
+        community = Community(problem=problem1, org=org, geo=geo)
+        session.add(community)
 
-    session.add(community1)
     session.commit()
 
-    axis12 = 'causal'
+    axis = (PC.CAUSAL if connection_category in {PC.DRIVERS, PC.IMPACTS}
+            else PC.SCOPED)
     problem2_name = problem_name_base + ' 02'
-    aggregation = 'strict'
+    problem_a_name, problem_b_name = (
+        (problem1.name, problem2_name)
+        if connection_category in {PC.IMPACTS, PC.NARROWER}
+        else (problem2_name, problem1.name))
+
+    aggregation = APCR.STRICT
 
     request_payload = {
         'connection': {
-            'axis': axis12,
-            'problem_a': problem1.name,
-            'problem_b': problem2_name
+            'axis': axis,
+            'problem_a': problem_a_name,
+            'problem_b': problem_b_name
         },
         'community': {
             'problem': problem1.human_id,
-            'org': org1,
-            'geo': geo1.human_id
+            'org': org,
+            'geo': geo.human_id
         },
         'aggregation': aggregation
     }
@@ -61,3 +79,17 @@ def test_add_rated_problem_connection(session, client):
     root_key = response_payload['root_key']
     rated_connection = response_payload[root_key]
     assert rated_connection['adjacent_problem_name'] == problem2_name
+    assert rated_connection['aggregation'] == APCR.STRICT
+
+    assert rated_connection['community'] == (
+        "Community[({problem},{u}'{org}',{geo})]".format(
+            problem=problem1.trepr(), u=u_literal, org=org, geo=geo.trepr()))
+
+    problem_a_trepr = ("Problem[{u}'{human_id}']".format(u=u_literal,
+                       human_id=Problem.create_key(problem_a_name).human_id))
+    problem_b_trepr = ("Problem[{u}'{human_id}']".format(u=u_literal,
+                       human_id=Problem.create_key(problem_b_name).human_id))
+    assert rated_connection['connection'] == (
+        "ProblemConnection[({u}'{axis}',{problem_a},{problem_b})]".format(
+            u=u_literal, axis=axis,
+            problem_a=problem_a_trepr, problem_b=problem_b_trepr))
