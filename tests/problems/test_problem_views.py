@@ -31,7 +31,7 @@ def test_add_rated_problem_connection(session, client, connection_category,
     geo = Geo('Austin')
     session.add(problem1)
     session.add(geo)
-    # TODO: fix scope so endpoint can see community in DB
+
     if is_real_community:
         community = Community(problem=problem1, org=org, geo=geo)
         session.add(community)
@@ -70,9 +70,8 @@ def test_add_rated_problem_connection(session, client, connection_category,
 
     assert response is not None
 
-    # This doesn't work yet...
-    # problem2 = Problem[problem2_name]
-    # assert problem2 is not None
+    problem2 = Problem[Problem.create_key(problem2_name)]
+    assert problem2 is not None
 
     response_data = response.get_data(as_text=True)
     response_payload = json.loads(response_data)
