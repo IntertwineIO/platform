@@ -16,7 +16,7 @@ u_literal = 'u' if sys.version_info.major == 2 else ''
 
 
 def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
-    ''''Trackable Representation', Default repr for Trackable classes
+    ''''Trackable Representation' - default repr for Trackable classes
 
     Returns a string that when evaluated returns the instance. It works
     by utilizing the registry and indexability provided by Trackable.
@@ -49,9 +49,9 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
     True
     '''
     if tight:
-        sp = ind = ''
+        sp = ind1 = ''
     else:
-        sp, ind, ind_p1 = ' ', (' ' * 4 * _lvl), (' ' * 4 * (_lvl + 1))
+        sp, ind1, ind2 = ' ', (' ' * 4 * _lvl), (' ' * 4 * (_lvl + 1))
 
     if self is None:
         return repr(self)
@@ -89,13 +89,13 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
                   .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
                           treprs=(u',' + sp).join(treprs), cp=cp, csqb=csqb))
 
-    if len(ind) + len(all_1_line) < Trackable.max_width or tight:
+    if len(ind1) + len(all_1_line) < Trackable.max_width or tight:
         return all_1_line
     else:
-        return (u'{cls}{osqb}{key_name}{op}\n{ind_p1}{treprs}\n{ind}{cp}{csqb}'
+        return (u'{cls}{osqb}{key_name}{op}\n{ind2}{treprs}\n{ind1}{cp}{csqb}'
                 .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
-                        ind_p1=ind_p1, treprs=(u',\n' + ind_p1).join(treprs),
-                        ind=ind, cp=cp, csqb=csqb))
+                        ind2=ind2, treprs=(u',\n' + ind2).join(treprs),
+                        ind1=ind1, cp=cp, csqb=csqb))
 
 
 def _repr_(self):
