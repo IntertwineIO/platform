@@ -2,18 +2,16 @@
 # -*- coding: utf-8 -*-
 import logging
 
-log = logging.getLogger('intertwine.problems.exceptions')
+log = logging.getLogger('intertwine.exceptions')
 
 
 class IntertwineException(Exception):
     '''Base Intertwine exception class'''
 
     def __init__(self, message=None, *args, **kwds):
-        if message is not None:
-            message = message.format(**kwds) if kwds else message
-        else:
-            normalized_doc = ' '.join(self.__doc__.split())
-            message = normalized_doc.format(**kwds) if kwds else normalized_doc
+        template = message if message else ' '.join(self.__doc__.split())
+        message = template.format(**kwds) if kwds else (
+            template.format(*args) if args else template)
         log.error(message)
         # TODO: Change to super() once on Python 3.6
         Exception.__init__(self, message)

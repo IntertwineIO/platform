@@ -137,15 +137,14 @@ def add_rated_problem_connection():
 
     community_dict = payload.get('community')
 
-    community_problem = Problem[community_dict.get('problem')]
-    community_org = community_dict.get('org')  # Replace with Org model
-    community_geo = Geo[community_dict.get('geo')]
-    community = Community[(community_problem, community_org, community_geo)]
-
-    if not community:
+    problem = Problem[community_dict.get('problem')]
+    org = community_dict.get('org')  # Replace with Org model
+    geo = Geo[community_dict.get('geo')]
+    try:
+        community = Community[(problem, org, geo)]
+    except KeyError:
         community = vardygrify(
-            cls=Community, problem=community_problem, org=community_org,
-            geo=community_geo, num_followers=0)
+            cls=Community, problem=problem, org=org, geo=geo, num_followers=0)
 
     connection_dict = payload.get('connection')
     connection = ProblemConnection(**connection_dict)

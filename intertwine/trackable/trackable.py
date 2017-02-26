@@ -10,18 +10,22 @@ from alchy.model import ModelMeta
 from past.builtins import basestring
 from sqlalchemy.exc import InvalidRequestError
 
-from .exceptions import InvalidRegistryKey, KeyRegisteredAndNoModify
+from .exceptions import (InvalidRegistryKey, KeyMissingFromRegistryAndDatabase,
+                         KeyRegisteredAndNoModify)
 
 u_literal = 'u' if sys.version_info.major == 2 else ''
 
 
 def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
-    ''''Trackable Representation' - default repr for Trackable classes
+    '''
+    Trackable Representation (trepr)
 
-    Returns a string that when evaluated returns the instance. It works
-    by utilizing the registry and indexability provided by Trackable.
-    The following inputs may be specified:
+    trepr is the default repr for Trackable classes.
 
+    It returns a string that when evaluated returns the instance. It
+    utilizes the registry and indexability provided by Trackable.
+
+    I/O:
     named=False:     By default, named tuples are treated as regular
                      tuples. Set to True to print named tuple info.
 
@@ -105,7 +109,14 @@ def _repr_(self):
 
 
 class Trackable(ModelMeta):
-    '''Metaclass providing ability to track instances
+    '''
+    Trackable
+
+    Trackable is a metaclass for tracking instances. This enables the
+    following capabilities:
+    - dirty detection
+    - caching with failover to query
+    - default repr based on natural keys
 
     Each class of type Trackable maintains a registry of instances. New
     instances are automatically registered and the constructor only
@@ -184,18 +195,49 @@ class Trackable(ModelMeta):
         return inst
 
     def __getitem__(cls, key):
+        instance = cls.tget(key)
+        if instance is None:
+            raise KeyMissingFromRegistryAndDatabase(key=key)
+        return instance
+
+    def tget(cls, key, default=None, query_on_miss=True):
+        '''
+        Trackable get (tget)
+
+        Given a key, gets the corresponding instance from the registry.
+        If the key is unregistered and query_on_miss is True (default),
+        the database is queried. Returns any instance found, otherwise
+        returns the default.
+
+        I/O:
+        key:
+            A natural key tuple as defined by the create_key/derive_key
+            methods on the Trackable class. In the case of a 1-tuple,
+            the key may be the unpacked 1-tuple (the value within).
+
+        default=None:
+            The value returned if no instance is found.
+
+        query_on_miss=True:
+            When True, the database is queried if the key is not found
+            in the registry.
+        '''
         try:
             return cls._instances[key]
         except KeyError:
-            if not isinstance(key, tuple):
-                key = cls.Key(key)  # convert non-tuple to namedtuple
-                try:
-                    return cls._instances[key]
-                except KeyError:
-                    pass
-            else:
-                key = cls.Key(*key)  # convert tuple to namedtuple
+            pass
 
+        if not isinstance(key, tuple):
+            key = (key,)  # convert non-tuple to 1-tuple
+            try:
+                return cls._instances[key]
+            except KeyError:
+                pass
+
+        if not query_on_miss:
+            return default
+
+        key = cls.Key(*key)  # convert tuple to namedtuple
         key_dict = key._asdict()
         try:
             instance = cls.query.filter_by(**key_dict).first()
@@ -208,8 +250,10 @@ class Trackable(ModelMeta):
 
             instance = cls.query.filter_by(**key_dict).first()
 
-        if instance is not None:
-            cls[key] = instance
+        if instance is None:
+            return default
+
+        cls[key] = instance
         return instance
 
     def __setitem__(cls, key, value):
@@ -233,7 +277,8 @@ class Trackable(ModelMeta):
 
     @classmethod
     def register_existing(meta, session, *args):
-        '''Register existing instances of Trackable classes (in the DB)
+        '''
+        Register existing instances of Trackable classes
 
         Takes a session and optional Trackable classes as input. The
         specified classes have their instances loaded from the database
@@ -251,7 +296,8 @@ class Trackable(ModelMeta):
 
     @classmethod
     def clear_instances(meta, *args):
-        '''Clear instances tracked by Trackable classes
+        '''
+        Clear instances tracked by Trackable classes
 
         If no arguments are provided, all Trackable classes have their
         instances cleared from the registry. If one or more classes are
@@ -266,7 +312,8 @@ class Trackable(ModelMeta):
 
     @classmethod
     def clear_updates(meta, *args):
-        '''Clear updates tracked by Trackable classes
+        '''
+        Clear updates tracked by Trackable classes
 
         If no arguments are provided, all Trackable classes have their
         updates cleared (i.e. reset). If one or more classes are passed
@@ -281,7 +328,8 @@ class Trackable(ModelMeta):
 
     @classmethod
     def clear_all(meta, *args):
-        '''Clear all instances/updates tracked by Trackable classes
+        '''
+        Clear all instances/updates tracked by Trackable classes
 
         If no arguments are provided, all Trackable classes have their
         updates cleared (i.e. reset). If one or more classes are passed
@@ -293,7 +341,8 @@ class Trackable(ModelMeta):
 
     @classmethod
     def catalog_updates(meta, *args):
-        '''Catalog updates tracked by Trackable classes
+        '''
+        Catalog updates tracked by Trackable classes
 
         Returns a dictionary keyed by class name, where the values are
         the corresponding sets of updated instances.

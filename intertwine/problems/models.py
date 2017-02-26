@@ -769,8 +769,9 @@ class ProblemConnection(BaseProblemModel):
             if isinstance(problem, basestring):
                 problem_name = problem
                 problem_key = Problem.create_key(problem_name)
-                problem = Problem[problem_key]
-                if problem is None:
+                try:
+                    problem = Problem[problem_key]
+                except KeyError:
                     problem = Problem(problem_name)
             problems.append(problem)
 
