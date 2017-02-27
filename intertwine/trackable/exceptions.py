@@ -22,7 +22,7 @@ class InvalidRegistryKey(TrackableException):
 
 
 class KeyMissingFromRegistryAndDatabase(TrackableException, KeyError):
-    '''Key missing from Trackable registry and database: {key}'''
+    '''Key missing from Trackable registry and database: {key!r}'''
 
 
 class KeyRegisteredAndNoModify(TrackableException):
