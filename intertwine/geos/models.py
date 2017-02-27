@@ -247,10 +247,11 @@ class Geo(BaseGeoModel):
     def human_id(self, val):
         if val is None:
             raise ValueError('human_id cannot be set to None')
-        # check if it's already registered by a different geo
-        geo = Geo[val]
+        # check if it's new
+        key = Geo.create_key(human_id=val)
+        geo = Geo.tget(val)
         if geo is not None and geo is not self:
-            raise ValueError("'{}' is already registered.".format(val))
+            raise ValueError("Key already exists: '{}'".format(val))
         if hasattr(self, '_human_id'):  # unregister old human_id
             # Default None since Trackable registers after Geo.__init__()
             Geo._instances.pop(self.human_id, None)
@@ -626,11 +627,11 @@ class GeoData(BaseGeoModel):
             raise ValueError('Cannot be set to None')
 
         if self._geo is not None:  # Not during __init__()
-            # ensure new key is not already registered
+            # ensure key is new
             key = GeoData.create_key(geo=val)
-            inst = GeoData[key]
+            inst = GeoData.tget(key)
             if inst is not None and inst is not self:
-                raise ValueError('{!r} is already registered.'.format(key))
+                raise ValueError('Key already exists: {!r}'.format(key))
             # update registry with new key
             GeoData.unregister(self)
             GeoData[key] = self
@@ -782,11 +783,11 @@ class GeoLevel(BaseGeoModel):
             raise ValueError('Cannot be set to None')
 
         if self._geo is not None:  # Not during __init__()
-            # ensure new key is not already registered
+            # ensure key is new
             key = GeoLevel.create_key(geo=val, level=self.level)
-            inst = GeoLevel[key]
+            inst = GeoLevel.tget(key)
             if inst is not None and inst is not self:
-                raise ValueError('{} is already registered.'.format(key))
+                raise ValueError('Key already exists: {}'.format(key))
             # update registry with new key
             GeoLevel.unregister(self)
             GeoLevel[key] = self  # register the new key
@@ -805,11 +806,11 @@ class GeoLevel(BaseGeoModel):
             raise ValueError('Cannot be set to None')
 
         if self._level is not None:  # Not during __init__()
-            # ensure new key is not already registered
+            # ensure key is new
             key = GeoLevel.create_key(geo=self.geo, level=val)
-            inst = GeoLevel[key]
+            inst = GeoLevel.tget(key)
             if inst is not None and inst is not self:
-                raise ValueError('{} is already registered.'.format(key))
+                raise ValueError('Key already exists: {}'.format(key))
             # update registry with new key
             GeoLevel.unregister(self)
             GeoLevel[key] = self  # register the new key
@@ -886,11 +887,11 @@ class GeoID(BaseGeoModel):
             raise ValueError('Cannot be set to None')
 
         if self._standard is not None:  # Not during __init__()
-            # ensure new key is not already registered
+            # ensure key is new
             key = GeoID.create_key(standard=val, code=self.code)
-            inst = GeoID[key]
+            inst = GeoID.tget(key)
             if inst is not None and inst is not self:
-                raise ValueError('{} is already registered.'.format(key))
+                raise ValueError('Key already exists: {}'.format(key))
             # update registry with new key
             GeoID.unregister(self)
             GeoID[key] = self
@@ -909,11 +910,11 @@ class GeoID(BaseGeoModel):
             raise ValueError('Cannot be set to None')
 
         if self._code is not None:  # Not during __init__()
-            # ensure new key is not already registered
+            # ensure key is new
             key = GeoID.create_key(standard=self.standard, code=val)
-            inst = GeoID[key]
+            inst = GeoID.tget(key)
             if inst is not None and inst is not self:
-                raise ValueError('{} is already registered.'.format(key))
+                raise ValueError('Key already exists: {}'.format(key))
             # update registry with new key
             GeoID.unregister(self)
             GeoID[key] = self
