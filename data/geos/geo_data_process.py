@@ -9,13 +9,14 @@ from alchy.model import extend_declarative_base
 
 from config import DevConfig
 from data.data_process import DataSessionManager
-from data.geos.models import (BaseGeoDataModel, State, CBSA, County, Place,
+from data.geos.models import (BaseGeoDataModel,
+                              State, CBSA, County, Cousub, Place,
                               LSAD, Geoclass,  # Keep - used in globals()
                               GHRP)
-from intertwine.utils import Trackable
+from intertwine.trackable import Trackable
 from intertwine.utils.structures import PeekableIterator
 from intertwine.geos.models import (BaseGeoModel, Geo, GeoData, GeoLevel,
-                                    GeoID, geo_association_table)
+                                    GeoID)
 
 
 def load_geos(geo_session, session):
@@ -30,7 +31,8 @@ def load_geos(geo_session, session):
 
 
 def derive_columns(classes, fields):
-    '''Derive columns from classes and fields
+    '''
+    Derive columns from classes and fields
 
     Returns a list of sqlalchemy columns derived from a list of class
     names and a list of fields, often from a named tuple used to store
@@ -39,7 +41,8 @@ def derive_columns(classes, fields):
 
         <lowercase class name>_<column name>
 
-    Example: 'county_aland_sqmi' becomes column County.aland_sqmi'''
+    Example: 'county_aland_sqmi' becomes column County.aland_sqmi
+    '''
     classmap = {cls.lower(): cls for cls in classes}
     columns = [getattr(globals()[classmap[f.split('_')[0]]],  # class
                        '_'.join(f.split('_')[1:]))  # attribute
@@ -100,7 +103,7 @@ def load_subdivision1_geos(geo_session, session):
 
     # Remaining U.S. territories
     territories = {
-        #      fips  ansi        tpop   upop   latitude     longitude     land water (sq. km.)
+        # id   fips  ansi        tpop   upop   latitude     longitude     land water (sq. km.)
         'AS': ('60', '01802701', 55519, 48645, -14.2638166, -170.6620902, 198, 1307),
         'GU': ('66', '01802705', 159358, 149918, +13.4383000, +144.7729285, 543, 935),
         'MP': ('69', '01779809', 53883, 48997, +14.9367835, +145.6010210, 472, 4644),
@@ -232,7 +235,7 @@ def load_subdivision2_geos(geo_session, session):
 def load_place_geos(geo_session, session):
 
     PlaceRecord = namedtuple('PlaceRecord',
-                             'place_name, lsad_display, '
+                             'place_name, lsad_description, '
                              'ghrp_statefp, ghrp_countyid, ghrp_countycc, '
                              'ghrp_placeid, ghrp_placens, '
                              'ghrp_p0020001, ghrp_p0020002, '
@@ -295,7 +298,7 @@ def load_place_geos(geo_session, session):
         if (not records.has_next() or
                 PlaceRecord(*records.peek()).ghrp_placeid != placeid):
 
-            desig = r.lsad_display
+            desig = r.lsad_description
             desig = desig.split(' (actual text)')[0]
             desig = desig.split(' (prefix)')[0]
             desig = desig.split(' (suffix)')[0]
@@ -898,6 +901,7 @@ if __name__ == '__main__':
     geo_dsm = DataSessionManager(db_config=DevConfig.GEO_DATABASE,
                                  ModelBases=[BaseGeoDataModel])
     geo_session = geo_dsm.session
+    extend_declarative_base(BaseGeoDataModel, session=geo_session)
 
     # Session for main Intertwine db, where geo data is loaded
     db = Manager(Model=BaseGeoModel, config=DevConfig)

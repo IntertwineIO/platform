@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from collections import OrderedDict, namedtuple
+
 from alchy.model import ModelBase, make_declarative_base
 from sqlalchemy import (orm, types, Column, ForeignKey, Index,
                         PrimaryKeyConstraint, ForeignKeyConstraint)
 
-from intertwine.utils import AutoTablenameMixin
+from intertwine.utils.mixins import AutoTablenameMixin
 
 BaseGeoDataModel = make_declarative_base(Base=ModelBase)
 
@@ -17,6 +19,7 @@ class State(BaseGeoDataModel, AutoTablenameMixin):
 
 
 class CBSA(BaseGeoDataModel, AutoTablenameMixin):
+    '''Core Based Statistical Area (CBSA)'''
     cbsa_code = Column(types.String(5))                 # 12420
     metro_division_code = Column(types.String(5))
     csa_code = Column(types.String(3))
@@ -56,6 +59,24 @@ class County(BaseGeoDataModel, AutoTablenameMixin):
     intptlong = Column(types.Float)                     # -97.69127
 
 
+class Cousub(BaseGeoDataModel, AutoTablenameMixin):
+    stusps = Column(types.String(2),                    # MA
+                    ForeignKey('state.stusps'))
+    state = orm.relationship('State')
+    geoid = Column(types.String(10), primary_key=True)  # 2502178690
+    ansicode = Column(types.String(8), unique=True)     # 00618333
+    name = Column(types.String(60))                     # Westwood town
+    funcstat = Column(types.String(1))                  # A
+    pop10 = Column(types.Integer)                       # 14618
+    hu10 = Column(types.Integer)                        # 5431
+    aland = Column(types.Integer)                       # 28182837
+    awater = Column(types.Integer)                      # 740388
+    aland_sqmi = Column(types.Float)                    # 10.881
+    awater_sqmi = Column(types.Float)                   # 0.286
+    intptlat = Column(types.Float)                      # 42.219645
+    intptlong = Column(types.Float)                     # -71.216769
+
+
 class Place(BaseGeoDataModel, AutoTablenameMixin):
     stusps = Column(types.String(2),                    # TX
                     ForeignKey('state.stusps'))
@@ -78,11 +99,37 @@ class Place(BaseGeoDataModel, AutoTablenameMixin):
 
 
 class LSAD(BaseGeoDataModel, AutoTablenameMixin):
+    LSADMapRecord = namedtuple(
+        'LSADMapRecord',
+        ('lsad_code', 'description', 'geo_entity_type', 'display', 'affix'))
+    _lsad_map = None
+
     lsad_code = Column(types.String(2), primary_key=True)  # 25
-    display = Column(types.String(60))                  # 'city (suffix)'
+    description = Column(types.String(60))              # 'city (suffix)'
     geo_entity_type = Column(types.String(600))         # 'Consolidated City,
     # County or Equivalent Feature, County Subdivision, Economic Census Place,
     # Incorporated Place'
+
+    @classmethod
+    def get_lsad_map(cls):
+        if not cls._lsad_map:
+            cls.create_lsad_map()
+        return cls._lsad_map
+
+    @classmethod
+    def create_lsad_map(cls):
+        lsads = cls.query.order_by(cls.lsad_code)
+        cls._lsad_map = OrderedDict(
+            (lsad.lsad_code, cls.LSADMapRecord(
+                lsad_code=lsad.lsad_code,
+                description=lsad.description,
+                geo_entity_type=lsad.geo_entity_type,
+                display=(lsad.description.split(' (actual text)')[0]
+                                         .split(' (prefix)')[0]
+                                         .split(' (suffix)')[0]),
+                affix=('prefix' if ('prefix' in lsad.description) else
+                       'suffix' if ('suffix' in lsad.description) else None)
+                )) for lsad in lsads)
 
 
 class Geoclass(BaseGeoDataModel, AutoTablenameMixin):
@@ -95,12 +142,15 @@ class Geoclass(BaseGeoDataModel, AutoTablenameMixin):
 
 
 class GHRP(BaseGeoDataModel):
-    '''Base class for Geographic Header Row Plus
+    '''
+    Geographic Header Row Plus (GHRP)
 
-    Contains all columns from the Geographic Header Row (GHR) plus a
-    county_id column, the concatenation of statefp and countyfp, plus
-    a place_id column, the concatenation of statefp and placefp, plus
-    all columns from File 02.'''
+    Contains all columns from the Geographic Header Row (GHR) plus:
+    county_id, the concatenation of statefp and countyfp
+    cousub_id, the concatenation of statefp, countyfp, and cousubfp
+    place_id, the concatenation of statefp and placefp
+    all columns from File 02.
+    '''
     __tablename__ = 'ghrp'
 
     # RECORD CODES
@@ -127,7 +177,7 @@ class GHRP(BaseGeoDataModel):
     countyclass = orm.relationship('Geoclass', foreign_keys='GHRP.countycc')
 
     countysc = Column(types.String(2))
-    cousub = Column(types.String(5))
+    cousubfp = Column(types.String(5))
     cousubcc = Column(types.String(2))
     cousubsc = Column(types.String(2))
 
@@ -192,7 +242,9 @@ class GHRP(BaseGeoDataModel):
     hu100 = Column(types.Integer)
     intptlat = Column(types.Float)
     intptlon = Column(types.Float)
-    lsadc = Column(types.String(2))
+    lsadc = Column(types.String(2), ForeignKey('lsad.lsad_code'))
+    lsad = orm.relationship('LSAD')
+
     partflag = Column(types.String(1))
 
     # SPECIAL AREA CODES
@@ -224,9 +276,13 @@ class GHRP(BaseGeoDataModel):
     puma = Column(types.String(5))
     reserved = Column(types.String(18))
 
-    # Added - concatenation of statefp and placefp
+    # Added - concatenation of statefp and countyfp
     countyid = Column(types.String(5), ForeignKey('county.geoid'))
     county = orm.relationship('County')
+
+    # Added - concatenation of statefp, countyfp, and cousubfp
+    cousubid = Column(types.String(10), ForeignKey('cousub.geoid'))
+    cousub = orm.relationship('Cousub')
 
     # Added - concatenation of statefp and placefp
     placeid = Column(types.String(7), ForeignKey('place.geoid'))

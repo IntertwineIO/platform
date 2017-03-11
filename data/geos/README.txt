@@ -10,6 +10,7 @@ state     state.txt.tmp                        '|'   https://www2.census.gov/geo
 cbsa_tmp  cbsa_utf-8.csv.tmp                   ','   https://www.census.gov/population/metro/files/lists/2013/List1.xls (open in Numbers and export to utf-8)
 cbsa      n/a (created in database)            n/a   cbsa_tmp
 county    Gaz_counties_national_utf-8.txt.tmp  '\t'  http://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_counties_national.zip
+cousub    Gaz_cousubs_national_utf-8.txt.tmp   '\t'  http://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_cousubs_national.zip
 place     Gaz_places_national_utf-8.txt.tmp    '\t'  https://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_places_national.zip (then converted to utf-8 and headers removed)
 lsad      lsad.csv.tmp                         ','   https://www.census.gov/geo/reference/lsad.html (copied from html table)
 geoclass  geoclass.csv.tmp                     ','   http://www.census.gov/prod/cen2010/doc/sf1.pdf#165 (55-2 copied from pdf)
@@ -51,10 +52,15 @@ cd data/geos
 mkdir tmp
 cd tmp
 
-# Download 2010 US Census Counties National Gazetteer Files (163k)
+# Download 2010 US Census Counties National Gazetteer File (163k)
 # dir: intertwine/platform/data/geos/tmp
 curl "http://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_counties_national.zip" -o "Gaz_counties_national.zip"
 unzip Gaz_counties_national.zip
+
+# Download 2010 US Census County Subdivisions National Gazetteer File (1.6MB)
+# dir: intertwine/platform/data/geos/tmp
+curl "http://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_cousubs_national.zip" -o "Gaz_cousubs_national.zip"
+unzip Gaz_cousubs_national.zip
 
 # Download 2010 US Census Places National Gazetteer Files (1.2MB)
 # dir: intertwine/platform/data/geos/tmp
@@ -187,6 +193,7 @@ SELECT
     trim(SUBSTR(full_string,478,5)) AS PUMA,
     trim(SUBSTR(full_string,483,18)) AS RESERVED,
     trim(SUBSTR(full_string,28,2) || SUBSTR(full_string,30,3)) AS COUNTYID,
+    trim(SUBSTR(full_string,28,2) || SUBSTR(full_string,30,3) || SUBSTR(full_string,37,5)) AS COUSUBID,
     trim(SUBSTR(full_string,28,2) || SUBSTR(full_string,46,5)) AS PLACEID
 FROM ghr_bulk;
 
@@ -216,6 +223,7 @@ cd tmp
 
 # Convert files from ISO-8859-15 to UTF-8:
 ../../../scripts/encode-file.py -e iso-8859-1 Gaz_counties_national.txt > Gaz_counties_national_utf-8.txt
+../../../scripts/encode-file.py -e iso-8859-1 Gaz_cousubs_national.txt > Gaz_cousubs_national_utf-8.txt
 ../../../scripts/encode-file.py -e iso-8859-1 Gaz_places_national.txt > Gaz_places_national_utf-8.txt
 
 mkdir us2010.ur1.utf-8
@@ -228,6 +236,7 @@ tail -n +2 "../national_county.txt" > "national_county.txt.tmp"
 tail -n +2 "../lsad.csv" > "lsad.csv.tmp"
 tail -n +2 "../geoclass.csv" > "geoclass.csv.tmp"
 tail -n +2 "Gaz_counties_national_utf-8.txt" > "Gaz_counties_national_utf-8.txt.tmp"
+tail -n +2 "Gaz_cousubs_national_utf-8.txt" > "Gaz_cousubs_national_utf-8.txt.tmp"
 tail -n +2 "Gaz_places_national_utf-8.txt" > "Gaz_places_national_utf-8.txt.tmp"
 
 # Create copy without first 3 rows:
@@ -291,6 +300,22 @@ CREATE TABLE county(
     "intptlong" REAL
 );
 
+CREATE TABLE cousub(
+    "stusps" TEXT,
+    "geoid" TEXT,
+    "ansicode" TEXT,
+    "name" TEXT,
+    "funcstat" TEXT,
+    "pop10" INTEGER,
+    "hu10" INTEGER,
+    "aland" INTEGER,
+    "awater" INTEGER,
+    "aland_sqmi" REAL,
+    "awater_sqmi" REAL,
+    "intptlat" REAL,
+    "intptlong" REAL
+);
+
 CREATE TABLE place(
     "stusps" TEXT,
     "geoid" TEXT,
@@ -310,7 +335,7 @@ CREATE TABLE place(
 
 CREATE TABLE lsad(
     "lsad_code" TEXT,
-    "display" TEXT,
+    "description" TEXT,
     "geo_entity_type" TEXT
 );
 
@@ -335,7 +360,7 @@ CREATE TABLE ghr(
     "countyfp" TEXT,
     "countycc" TEXT,
     "countysc" TEXT,
-    "cousub" TEXT,
+    "cousubfp" TEXT,
     "cousubcc" TEXT,
     "cousubsc" TEXT,
     "placefp" TEXT,
@@ -424,6 +449,7 @@ CREATE TABLE ghr(
     "puma" TEXT,
     "reserved" TEXT,
     "countyid" TEXT,
+    "cousubid" TEXT,
     "placeid" TEXT
 );
 
@@ -455,10 +481,10 @@ CREATE TABLE f02(
 
 .separator "\t"
 .import tmp/Gaz_counties_national_utf-8.txt.tmp county
+.import tmp/Gaz_cousubs_national_utf-8.txt.tmp cousub
 .import tmp/Gaz_places_national_utf-8.txt.tmp place
 
 .separator ","
-.import tmp/national_county.txt.tmp county
 .import tmp/cbsa.csv.tmp cbsa_tmp
 .import tmp/lsad.csv.tmp lsad
 .import tmp/geoclass.csv.tmp geoclass
@@ -473,6 +499,7 @@ CREATE TABLE f02(
 
 # dir: intertwine/platform/data/geos
 # sqlite3 geo.db
+
 CREATE TABLE cbsa AS
 SELECT *, statefp || countyfp AS countyid
 FROM cbsa_tmp;
