@@ -738,18 +738,16 @@ class GeoLevel(BaseGeoModel):
 
     DOWN = OrderedDict((
         ('country', ('subdivision1',)),
-        ('subdivision1', ('csa', 'cbsa', 'subdivision2', 'subdivision3',
-                          'place')),
-        ('csa', ('cbsa', 'subdivision2', 'subdivision3', 'place')),
-        ('cbsa', ('subdivision2', 'subdivision3', 'place')),
+        ('subdivision1', ('csa', 'cbsa', 'subdivision2', 'place')),
+        ('csa', ('cbsa', 'subdivision2', 'place')),
+        ('cbsa', ('subdivision2', 'place')),
         ('subdivision2', ('subdivision3', 'place',)),
         ('subdivision3', ('place',)),
         ('place', ())
     ))
 
     UP = OrderedDict((
-        ('place', ('subdivision3', 'subdivision2', 'cbsa', 'csa',
-                   'subdivision1')),
+        ('place', ('subdivision2', 'cbsa', 'csa', 'subdivision1')),
         ('subdivision3', ('subdivision2', 'cbsa', 'csa', 'subdivision1')),
         ('subdivision2', ('cbsa', 'csa', 'subdivision1')),
         ('cbsa', ('csa', 'subdivision1')),
