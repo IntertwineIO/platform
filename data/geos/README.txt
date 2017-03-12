@@ -3,17 +3,20 @@ SOURCES
 TABLE     FILE                                 SEP   SOURCE
 ghr_bulk  usgeo2010.ur1                        fix   https://www2.census.gov/census_2010/04-Summary_File_1/Urban_Rural_Update/National/us2010.ur1.zip
 ghr_txt   n/a (created in database)            n/a   ghr_bulk
-ghr       usgeo2010.ur1.utf-8.csv.tmp          ','   Exported from ghr_txt, then converted to utf-8 and headers removed
-f02       us000022010.ur1.utf-8.csv.tmp        ','   Same as usgeo2010.ur1, then converted to utf-8 (no headers to remove)
+ghr       usgeo2010.ur1.utf-8.csv.tmp          ','   Exported from ghr_txt *
+f02       us000022010.ur1.utf-8.csv.tmp        ','   Same as usgeo2010.ur1 **
 ghrp      n/a (created in database)            n/a   ghr and f02
 state     state.txt.tmp                        '|'   https://www2.census.gov/geo/docs/reference/state.txt
-cbsa_tmp  cbsa_utf-8.csv.tmp                   ','   https://www.census.gov/population/metro/files/lists/2013/List1.xls (open in Numbers and export to utf-8)
+cbsa_tmp  cbsa_utf-8.csv.tmp                   ','   https://www.census.gov/population/metro/files/lists/2013/List1.xls (open in Numbers, utf-8 export)
 cbsa      n/a (created in database)            n/a   cbsa_tmp
-county    Gaz_counties_national_utf-8.txt.tmp  '\t'  http://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_counties_national.zip
-cousub    Gaz_cousubs_national_utf-8.txt.tmp   '\t'  http://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_cousubs_national.zip
-place     Gaz_places_national_utf-8.txt.tmp    '\t'  https://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_places_national.zip (then converted to utf-8 and headers removed)
+county    Gaz_counties_national_utf-8.txt.tmp  '\t'  http://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_counties_national.zip *
+cousub    Gaz_cousubs_national_utf-8.txt.tmp   '\t'  http://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_cousubs_national.zip *
+place     Gaz_places_national_utf-8.txt.tmp    '\t'  https://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_places_national.zip *
 lsad      lsad.csv.tmp                         ','   https://www.census.gov/geo/reference/lsad.html (copied from html table)
 geoclass  geoclass.csv.tmp                     ','   http://www.census.gov/prod/cen2010/doc/sf1.pdf#165 (55-2 copied from pdf)
+
+* converted to utf-8 and headers removed
+** converted to utf-8 (no headers to remove)
 __________
 
 KEY
@@ -24,7 +27,8 @@ ur1       Urban Rural Update 1 (released in 2012)
 ghr       Geographic Header Record
 f02       File 02, which contains urban vs. rural population counts
 cbsa      Core Based Statistical Area, a general term that applies to metropolitan and micropolitan statistical areas
-place     Census term for an incorporated place or a census designated place (CDP)
+cousub    County Subdivision, which may be a census county division, census subarea, minor civil division, or unorganized territory
+place     Incorporated place, census designated place (CDP), or minor civil division
 lsad      Legal/Statistical Area Description (city, town, borough, CDP, etc.)
 geoclass  FIPS code describing legal, statistical, governmental, and/or relationship status of a geo
 __________
@@ -62,7 +66,7 @@ unzip Gaz_counties_national.zip
 curl "http://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_cousubs_national.zip" -o "Gaz_cousubs_national.zip"
 unzip Gaz_cousubs_national.zip
 
-# Download 2010 US Census Places National Gazetteer Files (1.2MB)
+# Download 2010 US Census Places National Gazetteer File (1.2MB)
 # dir: intertwine/platform/data/geos/tmp
 curl "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/Gaz_places_national.zip" -o "Gaz_places_national.zip"
 unzip Gaz_places_national.zip
@@ -232,7 +236,6 @@ mkdir us2010.ur1.utf-8
 
 # Create copies without first row as we create the table first to handle non-text types:
 tail -n +2 "../state.txt" > "state.txt.tmp"
-tail -n +2 "../national_county.txt" > "national_county.txt.tmp"
 tail -n +2 "../lsad.csv" > "lsad.csv.tmp"
 tail -n +2 "../geoclass.csv" > "geoclass.csv.tmp"
 tail -n +2 "Gaz_counties_national_utf-8.txt" > "Gaz_counties_national_utf-8.txt.tmp"
