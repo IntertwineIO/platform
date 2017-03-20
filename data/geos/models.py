@@ -13,9 +13,22 @@ BaseGeoDataModel = make_declarative_base(Base=ModelBase)
 
 class State(BaseGeoDataModel, AutoTablenameMixin):
     statefp = Column(types.String(2), primary_key=True)  # 48
-    stusps = Column(types.String(2), unique=True)       # TX
-    name = Column(types.String(60), unique=True)        # Texas
-    statens = Column(types.String(8), unique=True)      # 01779801
+    stusps = Column(types.String(2), unique=True)        # TX
+    name = Column(types.String(60), unique=True)         # Texas
+    statens = Column(types.String(8), unique=True)       # 01779801
+    _state_map = None
+
+    @classmethod
+    def get_map(cls):
+        if not cls._state_map:
+            cls._create_map()
+        return cls._state_map
+
+    @classmethod
+    def _create_map(cls):
+        states = cls.query.order_by(cls.statefp)
+        cls._state_map = OrderedDict(
+            (state.statefp, state) for state in states)
 
 
 class CBSA(BaseGeoDataModel, AutoTablenameMixin):
@@ -99,6 +112,13 @@ class Place(BaseGeoDataModel, AutoTablenameMixin):
 
 
 class LSAD(BaseGeoDataModel, AutoTablenameMixin):
+    PREFIX = 'prefix'
+    SUFFIX = 'suffix'
+    AFFIXES = {PREFIX, SUFFIX}
+
+    ACTUAL_TEXT = 'actual text'
+    ANNOTATIONS = ['({})'.format(a) for a in (ACTUAL_TEXT, PREFIX, SUFFIX)]
+
     LSADMapRecord = namedtuple(
         'LSADMapRecord',
         ('lsad_code', 'description', 'geo_entity_type', 'display', 'affix'))
@@ -111,25 +131,61 @@ class LSAD(BaseGeoDataModel, AutoTablenameMixin):
     # Incorporated Place'
 
     @classmethod
-    def get_lsad_map(cls):
+    def get_map(cls):
         if not cls._lsad_map:
-            cls.create_lsad_map()
+            cls._create_map()
         return cls._lsad_map
 
     @classmethod
-    def create_lsad_map(cls):
+    def _create_map(cls):
         lsads = cls.query.order_by(cls.lsad_code)
         cls._lsad_map = OrderedDict(
             (lsad.lsad_code, cls.LSADMapRecord(
                 lsad_code=lsad.lsad_code,
                 description=lsad.description,
                 geo_entity_type=lsad.geo_entity_type,
-                display=(lsad.description.split(' (actual text)')[0]
-                                         .split(' (prefix)')[0]
-                                         .split(' (suffix)')[0]),
-                affix=('prefix' if ('prefix' in lsad.description) else
-                       'suffix' if ('suffix' in lsad.description) else None)
+                display=cls.deannotate(lsad.description),
+                affix=(cls.PREFIX if (cls.PREFIX in lsad.description) else
+                       cls.SUFFIX if (cls.SUFFIX in lsad.description) else
+                       None)
                 )) for lsad in lsads)
+
+    @classmethod
+    def deannotate(cls, text):
+        for annotation in cls.ANNOTATIONS:
+            text = text.split(' ' + annotation)[0]
+        return text
+
+    @classmethod
+    def deaffix(cls, affixed_name, lsad_code):
+        lsad_record = cls.get_map()[lsad_code]
+        lsad, affix = lsad_record.display, lsad_record.affix
+
+        if affix is None:
+            return affixed_name, lsad
+
+        lsad_tag_len = len(lsad) + 1
+
+        if affix == cls.SUFFIX:
+            lsad_tag = ' ' + lsad
+            name = affixed_name[:-lsad_tag_len]
+            removed_value = affixed_name[-lsad_tag_len:]
+
+        elif affix == cls.PREFIX:
+            lsad_tag = lsad + ' '
+            name = affixed_name[lsad_tag_len:]
+            removed_value = affixed_name[:lsad_tag_len]
+
+        else:
+            raise ValueError("Affix '{affix}' must be in {affixes}"
+                             .format(affix=affix, affixes=cls.AFFIXES))
+
+        if removed_value != lsad_tag:
+            raise ValueError(
+                "'{lsad_tag}' not found as {affix} of '{name}'"
+                .format(lsad_tag=lsad_tag, affix=affix, name=affixed_name))
+
+        return name, lsad
 
 
 class Geoclass(BaseGeoDataModel, AutoTablenameMixin):
@@ -175,18 +231,20 @@ class GHRP(BaseGeoDataModel):
     countyfp = Column(types.String(3))
     countycc = Column(types.String(2), ForeignKey('geoclass.geoclassfp'))
     countyclass = orm.relationship('Geoclass', foreign_keys='GHRP.countycc')
-
     countysc = Column(types.String(2))
+
+    # Renamed from cousub
     cousubfp = Column(types.String(5))
-    cousubcc = Column(types.String(2))
+    cousubcc = Column(types.String(2), ForeignKey('geoclass.geoclassfp'))
+    cousubclass = orm.relationship('Geoclass', foreign_keys='GHRP.cousubcc')
     cousubsc = Column(types.String(2))
 
     # Renamed from place
     placefp = Column(types.String(5))
     placecc = Column(types.String(2), ForeignKey('geoclass.geoclassfp'))
     placeclass = orm.relationship('Geoclass', foreign_keys='GHRP.placecc')
-
     placesc = Column(types.String(2))
+
     tract = Column(types.String(6))
     blkgrp = Column(types.String(1))
     block = Column(types.String(4))

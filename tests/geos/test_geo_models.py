@@ -218,7 +218,7 @@ def test_form_aggregate_geo(session):
 
     parent_geo = Geo(name='Parent Test Geo',
                      children=[child_a_geo, child_b_geo, child_c_geo],
-                     data_level=data_level)  # aggregate places only
+                     child_data_level=data_level)  # aggregate places only
 
     session.add(parent_geo)
     session.add(child_a_geo)

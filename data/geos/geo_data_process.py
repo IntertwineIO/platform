@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''Loads geo data into Intertwine'''
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 from collections import namedtuple
 
 from sqlalchemy import desc
@@ -15,8 +18,13 @@ from data.geos.models import (BaseGeoDataModel,
                               GHRP)
 from intertwine.trackable import Trackable
 from intertwine.utils.structures import PeekableIterator
-from intertwine.geos.models import (BaseGeoModel, Geo, GeoData, GeoLevel,
-                                    GeoID)
+from intertwine.geos.models import (
+    BaseGeoModel, Geo, GeoData, GeoLevel, GeoID,
+    # GeoLevel constants
+    COUNTRY, SUBDIVISION1, SUBDIVISION2, SUBDIVISION3, PLACE,
+    CORE_AREA, COMBINED_AREA,
+    # GeoID constants
+    FIPS, ANSI, ISO_A2, ISO_A3, ISO_N3, CSA_2010, CBSA_2010)
 
 
 def load_geos(geo_session, session):
@@ -34,8 +42,8 @@ def derive_columns(classes, fields):
     '''
     Derive columns from classes and fields
 
-    Returns a list of sqlalchemy columns derived from a list of class
-    names and a list of fields, often from a named tuple used to store
+    Returns a list of sqlalchemy columns derived from a list of classes
+    and a list of fields, often from a named tuple used to store
     queried records. Column names may contain underscores, but class
     names may not. The fields must be in this format:
 
@@ -43,7 +51,7 @@ def derive_columns(classes, fields):
 
     Example: 'county_aland_sqmi' becomes column County.aland_sqmi
     '''
-    classmap = {cls.lower(): cls for cls in classes}
+    classmap = {cls.__name__.lower(): cls.__name__ for cls in classes}
     columns = [getattr(globals()[classmap[f.split('_')[0]]],  # class
                        '_'.join(f.split('_')[1:]))  # attribute
                for f in fields]
@@ -60,13 +68,13 @@ def load_country_geos(geo_session, session):
             longitude=-98.585522,
             land_area=0,
             water_area=0)
-    # 0 values to be calculated from children
+    # 0 values to be recalculated from children
     # land: 9158022, water: 699284 www.census.gov/geo/reference/state-area.html
 
-    glvl = GeoLevel(geo=us, level='country', designation='federal republic')
-    GeoID(level=glvl, standard='ISO A2', code='US')  # ISO 3166-1 alpha-2
-    GeoID(level=glvl, standard='ISO A3', code='USA')  # ISO 3166-1 alpha-3
-    GeoID(level=glvl, standard='ISO N3', code='840')  # ISO 3166-1 numeric-3
+    glvl = GeoLevel(geo=us, level=COUNTRY, designation='federal republic')
+    GeoID(level=glvl, standard=ISO_A2, code='US')
+    GeoID(level=glvl, standard=ISO_A3, code='USA')
+    GeoID(level=glvl, standard=ISO_N3, code='840')
 
 
 def load_subdivision1_geos(geo_session, session):
@@ -76,10 +84,10 @@ def load_subdivision1_geos(geo_session, session):
                                            # GHRP.statefp == '48'
                                            ).all()
     us = Geo['us']
-    print 'Loading states and equivalents...'
+    print('Loading states and equivalents...')
     for ghrp in ghrps:
         state = ghrp.state
-        print '\t{usps} - {name}'.format(usps=state.stusps, name=state.name)
+        print('\t{usps} - {name}'.format(usps=state.stusps, name=state.name))
         g = Geo(name=state.name,
                 abbrev=state.stusps,
                 path_parent=us,
@@ -91,15 +99,15 @@ def load_subdivision1_geos(geo_session, session):
                 longitude=ghrp.intptlon,
                 land_area=(ghrp.arealand * 1.0)/10**6,
                 water_area=(ghrp.areawatr * 1.0)/10**6)
-        glvl = GeoLevel(geo=g, level='subdivision1', designation='state')
-        GeoID(level=glvl, standard='FIPS', code=ghrp.statefp)
-        GeoID(level=glvl, standard='ANSI', code=ghrp.statens)
+        glvl = GeoLevel(geo=g, level=SUBDIVISION1, designation='state')
+        GeoID(level=glvl, standard=FIPS, code=ghrp.statefp)
+        GeoID(level=glvl, standard=ANSI, code=ghrp.statens)
 
     # Handle special cases
     pr = us['pr']
-    pr.levels['subdivision1'].designation = 'territory'
+    pr.levels[SUBDIVISION1].designation = 'territory'
     dc = us['dc']
-    dc.levels['subdivision1'].designation = 'federal district'
+    dc.levels[SUBDIVISION1].designation = 'federal district'
 
     # Remaining U.S. territories
     territories = {
@@ -116,7 +124,7 @@ def load_subdivision1_geos(geo_session, session):
     more_areas = geo_session.query(State).filter(
             State.stusps.in_(['AS', 'GU', 'MP', 'UM', 'VI'])).all()
     for area in more_areas:
-        print '\t{usps} - {name}'.format(usps=area.stusps, name=area.name)
+        print('\t{usps} - {name}'.format(usps=area.stusps, name=area.name))
         g = Geo(name=area.name,
                 abbrev=area.stusps,
                 path_parent=us,
@@ -130,9 +138,9 @@ def load_subdivision1_geos(geo_session, session):
                 longitude=longitude,
                 land_area=land_area,
                 water_area=water_area)
-        glvl = GeoLevel(geo=g, level='subdivision1', designation='territory')
-        GeoID(level=glvl, standard='FIPS', code=fips)
-        GeoID(level=glvl, standard='ANSI', code=ansi)
+        glvl = GeoLevel(geo=g, level=SUBDIVISION1, designation='territory')
+        GeoID(level=glvl, standard=FIPS, code=fips)
+        GeoID(level=glvl, standard=ANSI, code=ansi)
 
     # Update US population and area values based on subdivision1 values
     children = us.children.all()
@@ -143,39 +151,43 @@ def load_subdivision1_geos(geo_session, session):
 
 
 def load_subdivision2_geos(geo_session, session):
-    CountyRecord = namedtuple('CountyRecord',
-                              'county_name, county_stusps, geoclass_name, '
-                              'ghrp_countyid, ghrp_countyns, '
-                              'ghrp_p0020001, ghrp_p0020002, '
-                              'ghrp_intptlat, ghrp_intptlon, '
-                              'ghrp_arealand, ghrp_areawatr')
+    CountyRecord = namedtuple(
+        'CountyRecord',
+        'ghrp_name, ghrp_lsadc, ghrp_statefp, '  # geoclass_name removed
+        'ghrp_countyid, ghrp_countyns, ghrp_p0020001, ghrp_p0020002, '
+        'ghrp_intptlat, ghrp_intptlon, ghrp_arealand, ghrp_areawatr')
 
-    columns = derive_columns(classes=['County', 'Geoclass', 'GHRP'],
+    columns = derive_columns(classes=(GHRP,),  # Geoclass removed
                              fields=CountyRecord._fields)
 
     # U.S. counties including independent cities
-    records = (geo_session.query(GHRP).join(GHRP.county)
-                                      .join(GHRP.countyclass)
-                                      .filter(GHRP.sumlev == '050',
-                                              GHRP.geocomp == '00')
-                                      .values(*columns))
-    # Counties containing the 3 Chula Vista CDPs:
-    #                         GHRP.countyid.in_(['48061', '48323', '48507']),
+    records = (geo_session.query(GHRP)
+               # .join(GHRP.countyclass)  # geoclass_name removed
+               .filter(GHRP.sumlev == '050', GHRP.geocomp == '00',
+                       # Counties containing the 3 Chula Vista CDPs:
+                       # GHRP.countyid.in_(['48061', '48323', '48507'])
+                       )
+               .order_by(GHRP.statefp, GHRP.countyid)
+               .values(*columns))
 
     us = Geo['us']
     state = None
     stusps = prior_stusps = None
-    print 'Loading counties and equivalents in...'
+    print('Loading counties and equivalents in...')
     for r in (CountyRecord(*record) for record in records):
-        stusps = r.county_stusps
+
+        stusps = State.get_map()[r.ghrp_statefp].stusps
         if stusps != prior_stusps:
             state = us[stusps]
-            print '\t' + state.name
+            print('\t{usps} - {name}'.format(usps=state.abbrev,
+                                             name=state.name))
             prior_stusps = stusps
-        name = r.county_name
-        g = Geo(name=name,
-                path_parent=state,
-                parents=[state])
+
+        name = r.ghrp_name
+        lsad = LSAD.get_map()[r.ghrp_lsadc].display
+
+        g = Geo(name=name, path_parent=state, parents=[state])
+
         GeoData(geo=g,
                 total_pop=r.ghrp_p0020001,
                 urban_pop=r.ghrp_p0020002,
@@ -183,32 +195,34 @@ def load_subdivision2_geos(geo_session, session):
                 longitude=r.ghrp_intptlon,
                 land_area=(r.ghrp_arealand * 1.0) / 10**6,
                 water_area=(r.ghrp_areawatr * 1.0) / 10**6)
-        glvl = GeoLevel(geo=g, level='subdivision2',
-                        designation=r.geoclass_name.lower())
-        GeoID(level=glvl, standard='FIPS', code=r.ghrp_countyid)
+
+        glvl = GeoLevel(geo=g, level=SUBDIVISION2, designation=lsad)
+
+        GeoID(level=glvl, standard=FIPS, code=r.ghrp_countyid)
+
         ansi = r.ghrp_countyns
-        if ansi is not None and GeoID[('ANSI', ansi)] is None:
-            GeoID(level=glvl, standard='ANSI', code=r.ghrp_countyns)
+        if ansi is not None and GeoID[(ANSI, ansi)] is None:
+            GeoID(level=glvl, standard=ANSI, code=r.ghrp_countyns)
 
     # County equivalents in remaining U.S. territories
     # TODO: Find and add data (they do not show up as children without data)
     more_areas = (
         # fips     ansi      stusps  name                desig
-        ('60010', '01805240', 'AS', 'Eastern District', 'District'),
-        ('60020', '01805242', 'AS', "Manu'a District", 'District'),
-        ('60030', '01805243', 'AS', 'Rose Island', 'Island'),
-        ('60040', '01805244', 'AS', 'Swains Island', 'Island'),
-        ('60050', '01805241', 'AS', 'Western District', 'District'),
-        ('66010', '01802705', 'GU', 'Guam', 'County Equivalent'),  # dup ansi
+        ('60010', '01805240', 'AS', 'Eastern District', 'district'),
+        ('60020', '01805242', 'AS', "Manu'a District", 'district'),
+        ('60030', '01805243', 'AS', 'Rose Island', 'island'),
+        ('60040', '01805244', 'AS', 'Swains Island', 'island'),
+        ('60050', '01805241', 'AS', 'Western District', 'district'),
+        ('66010', '01802705', 'GU', 'Guam', 'county equivalent'),  # dup ansi
         ('69085', '01805245', 'MP', 'Northern Islands Municipality',
-                                    'Municipality'),
-        ('69100', '01805246', 'MP', 'Rota Municipality', 'Municipality'),
-        ('69110', '01805247', 'MP', 'Saipan Municipality', 'Municipality'),
-        ('69120', '01805248', 'MP', 'Tinian Municipality', 'Municipality'),
-        ('74300', None, 'UM', 'Midway Islands', 'Islands'),
-        ('78010', '02378248', 'VI', 'St. Croix Island', 'Island'),
-        ('78020', '02378249', 'VI', 'St. John Island', 'Island'),
-        ('78030', '02378250', 'VI', 'St. Thomas Island', 'Island'),
+                                    'municipality'),
+        ('69100', '01805246', 'MP', 'Rota Municipality', 'municipality'),
+        ('69110', '01805247', 'MP', 'Saipan Municipality', 'municipality'),
+        ('69120', '01805248', 'MP', 'Tinian Municipality', 'municipality'),
+        ('74300', None, 'UM', 'Midway Islands', 'islands'),
+        ('78010', '02378248', 'VI', 'St. Croix Island', 'island'),
+        ('78020', '02378249', 'VI', 'St. John Island', 'island'),
+        ('78030', '02378250', 'VI', 'St. Thomas Island', 'island'),
         # Sources:
         # www.census.gov/newsroom/releases/archives/2010_census/cb13-tps62.html
     )
@@ -216,20 +230,135 @@ def load_subdivision2_geos(geo_session, session):
     territory = None
     stusps = prior_stusps = None
     for fips, ansi, stusps, name, desig in more_areas:
+
         if stusps != prior_stusps:
             territory = us[stusps]
-            print '\t' + territory.name
+            print('\t{usps} - {name}'.format(usps=territory.abbrev,
+                                             name=territory.name))
             prior_stusps = stusps
-        g = Geo(name=name,
-                path_parent=territory,
-                parents=[territory])
-        glvl = GeoLevel(geo=g, level='subdivision2',
-                        designation=desig.lower())
-        GeoID(level=glvl, standard='FIPS', code=fips)
-        if ansi is not None and GeoID[('ANSI', ansi)] is None:
-            GeoID(level=glvl, standard='ANSI', code=ansi)
+
+        g = Geo(name=name, path_parent=territory, parents=[territory])
+
+        glvl = GeoLevel(geo=g, level=SUBDIVISION2, designation=desig)
+
+        GeoID(level=glvl, standard=FIPS, code=fips)
+
+        if ansi is not None and GeoID.tget((ANSI, ansi)) is None:
+            GeoID(level=glvl, standard=ANSI, code=ansi)
 
     # TODO: Consolidate Guam county into Guam the territory
+
+
+def load_subdivision3_geos(geo_session, session):
+    CountySubdivisionRecord = namedtuple(
+        'CountySubdivisionRecord',
+        'ghrp_name, ghrp_lsadc, ghrp_statefp, '
+        'ghrp_countyid, ghrp_countyns, ghrp_cousubid, ghrp_cousubns, '
+        'ghrp_p0020001, ghrp_p0020002, ghrp_intptlat, ghrp_intptlon, '
+        'ghrp_arealand, ghrp_areawatr')
+
+    columns = derive_columns(classes=(GHRP,),
+                             fields=CountySubdivisionRecord._fields)
+
+    # U.S. county subdivisions including independent cities
+    records = (geo_session.query(GHRP)
+               # State-County-County Subdivision
+               .filter(GHRP.sumlev == '060', GHRP.geocomp == '00',
+                       # GHRP.statefp == '11',
+                       GHRP.countyid == '25021',  # Norfolk County, MA
+                       # GHRP.statefp == '72',
+                       # GHRP.countyid == '19013',  # Black Hawk County, IA
+                       )
+               .order_by(GHRP.statefp, GHRP.countyid, GHRP.cousubid)
+               .values(*columns))
+
+    us = Geo['us']
+    state = None
+    stusps = prior_stusps = None
+    print('Loading county subdivisions and equivalents in...')
+    for r in (CountySubdivisionRecord(*record) for record in records):
+
+        stusps = State.get_map()[r.ghrp_statefp].stusps
+        if stusps != prior_stusps:
+            state = us[stusps]
+            print(u'\t{usps} - {name}'.format(usps=state.abbrev,
+                                              name=state.name))
+            prior_stusps = stusps
+
+        county = GeoID[(FIPS, r.ghrp_countyid)].level.geo
+        name, lsad = LSAD.deaffix(r.ghrp_name, r.ghrp_lsadc)
+
+        geo_key = Geo.create_key(name=name, path_parent=county)
+        existing_g = Geo.tget(geo_key)
+
+        if not existing_g:
+            g = Geo(name=name,
+                    path_parent=county,
+                    parents=[county, state])
+
+            GeoData(geo=g,
+                    total_pop=r.ghrp_p0020001,
+                    urban_pop=r.ghrp_p0020002,
+                    latitude=r.ghrp_intptlat,
+                    longitude=r.ghrp_intptlon,
+                    land_area=(r.ghrp_arealand * 1.0) / 10**6,
+                    water_area=(r.ghrp_areawatr * 1.0) / 10**6)
+        else:
+            g = (existing_g if not existing_g.alias_target
+                 else existing_g.alias_target)
+
+        glvl_key = GeoLevel.create_key(geo=g, level=SUBDIVISION3)
+        existing_glvl = GeoLevel.tget(glvl_key)
+
+        if not existing_glvl:
+            glvl = GeoLevel(geo=g, level=SUBDIVISION3, designation=lsad)
+
+            if existing_g:
+                print('\t\tAdding level to existing geo: {}'
+                      .format(glvl.trepr()))  # DC only
+
+        elif existing_glvl.designation != lsad:
+            # There are 2 cousubs with the same name in the same county!
+            # e.g. Cedar Falls city vs. township, Black Hawk County, IA
+            # Each will have its qualifier set to the lsad
+            # An alias without a qualifier will point to the larger one
+
+            alias = existing_g if existing_g.alias_target else None
+            existing_g = existing_g.alias_target if alias else existing_g
+            existing_g.qualifier = existing_glvl.designation
+
+            g = Geo(name=name,
+                    qualifier=lsad,
+                    path_parent=county,
+                    parents=[county, state])
+
+            GeoData(geo=g,
+                    total_pop=r.ghrp_p0020001,
+                    urban_pop=r.ghrp_p0020002,
+                    latitude=r.ghrp_intptlat,
+                    longitude=r.ghrp_intptlon,
+                    land_area=(r.ghrp_arealand * 1.0) / 10**6,
+                    water_area=(r.ghrp_areawatr * 1.0) / 10**6)
+
+            glvl = GeoLevel(geo=g, level=SUBDIVISION3, designation=lsad)
+
+            larger_g = (g if g.data.total_pop > existing_g.data.total_pop else
+                        existing_g)
+
+            if alias:
+                alias.alias_target = larger_g
+
+            else:
+                alias = Geo(
+                    name=name, path_parent=county, alias_target=larger_g)
+                print(u'\t\tMultiple cousubs in same county with same name: {}'
+                      .format(geo_key.human_id))
+
+        GeoID(level=glvl, standard=FIPS, code=r.ghrp_cousubid)
+
+        ansi = r.ghrp_cousubns
+        if ansi is not None and GeoID.tget((ANSI, ansi)) is None:
+            GeoID(level=glvl, standard=ANSI, code=r.ghrp_cousubns)
 
 
 def load_place_geos(geo_session, session):
@@ -242,7 +371,7 @@ def load_place_geos(geo_session, session):
                              'place_intptlat, place_intptlong, '
                              'ghrp_arealand, ghrp_areawatr')
 
-    columns = derive_columns(classes=['Place', 'LSAD', 'GHRP'],
+    columns = derive_columns(classes=(Place, LSAD, GHRP),
                              fields=PlaceRecord._fields)
 
     # U.S. places by county equivalent
@@ -266,14 +395,14 @@ def load_place_geos(geo_session, session):
     land_area = water_area = 0
     conflicts = {}
     consolidated = {}
-    print 'Loading places in...'
+    print('Loading places in...')
     for r in (PlaceRecord(*record) for record in records):
 
         statefp = r.ghrp_statefp
         # If it's a new state, update variables
         if statefp != prior_statefp:
-            state = GeoID[('FIPS', statefp)].level.geo
-            print '\t' + state.name
+            state = GeoID[(FIPS, statefp)].level.geo
+            print('\t' + state.name)
             prior_statefp = statefp
 
         placeid = r.ghrp_placeid
@@ -285,7 +414,7 @@ def load_place_geos(geo_session, session):
             land_area = water_area = 0
             prior_placeid = placeid
 
-        county = GeoID[('FIPS', r.ghrp_countyid)].level.geo
+        county = GeoID[(FIPS, r.ghrp_countyid)].level.geo
 
         if county is not None:
             counties.append(county)
@@ -307,7 +436,7 @@ def load_place_geos(geo_session, session):
                 place_name = place_name.split(desig)[0].strip()
             qualifier = None
 
-            print '\t\t' + place_name + '(' + placeid + ')'
+            print('\t\t' + place_name + '(' + placeid + ')')
 
             # check for existing place with same key
             key = Geo.create_key(name=place_name, path_parent=state)
@@ -316,8 +445,8 @@ def load_place_geos(geo_session, session):
                 if existing.alias_target is None:
                     # if existing conflict is a place, rename it, make
                     # an alias to it, and keep track of its population
-                    if (existing.levels.get('place', None) is not None):
-                        existing_desig = existing.levels['place'].designation
+                    if (existing.levels.get(PLACE, None) is not None):
+                        existing_desig = existing.levels[PLACE].designation
                         existing.qualifier = (existing_desig + ' in ' +
                                               existing.parents[0].name)
                         alias = Geo(name=place_name,
@@ -326,19 +455,19 @@ def load_place_geos(geo_session, session):
                         conflicts[key] = existing.data.total_pop
                     # if existing conflict is a parent county, just add
                     # a geo level for the place to the county
-                    elif (existing.levels.get(
-                                            'subdivision2', None) is not None):
+                    elif (existing.levels.get(SUBDIVISION2, None) is not None):
                         if existing not in counties:
                             raise NameError('place key conflicts with '
                                             'subdivision2 key, yet place is '
                                             'not in subdivision2')
                         glvl = GeoLevel(geo=existing,
-                                        level='place',
+                                        level=PLACE,
                                         designation=desig)
-                        GeoID(level=glvl, standard='FIPS', code=placeid)
+                        GeoID(level=glvl, standard=FIPS, code=placeid)
                         placens = r.ghrp_placens
-                        if GeoID[('ANSI', placens)] is None:
-                            GeoID(level=glvl, standard='ANSI', code=placens)
+                        if GeoID[(ANSI, placens)] is None:
+                            GeoID(
+                                level=glvl, standard=ANSI, code=placens)
 
                         continue
                     else:
@@ -359,11 +488,11 @@ def load_place_geos(geo_session, session):
                     longitude=r.place_intptlong,
                     land_area=land_area,
                     water_area=water_area)
-            glvl = GeoLevel(geo=g, level='place', designation=desig)
-            GeoID(level=glvl, standard='FIPS', code=placeid)
+            glvl = GeoLevel(geo=g, level=PLACE, designation=desig)
+            GeoID(level=glvl, standard=FIPS, code=placeid)
             placens = r.ghrp_placens
-            if GeoID[('ANSI', placens)] is None:
-                GeoID(level=glvl, standard='ANSI', code=placens)
+            if GeoID[(ANSI, placens)] is None:
+                GeoID(level=glvl, standard=ANSI, code=placens)
 
             # Update alias to point at the geo with the largest pop
             # TODO: convert alias_target to alias_targets and order by
@@ -386,10 +515,10 @@ def load_place_geos(geo_session, session):
     # Need to sum remainders across county subdivisions within a county
 
     # Add missing consolidated counties
-    dc_county = GeoID[('FIPS', '11001')].level.geo
+    dc_county = GeoID[(FIPS, '11001')].level.geo
     consolidated[dc_county] = dc_county.children.all()
     # Yakutat City and Borough contains Yakutat CDP
-    # yak_cab = GeoID[('FIPS', '02282')].level.geo
+    # yak_cab = GeoID[(FIPS, '02282')].level.geo
     # consolidated[yak_cab] = yak_cab.children.all()
 
     for county, places in consolidated.items():
@@ -425,11 +554,11 @@ def load_place_geos(geo_session, session):
                 place_name = place_name.split('/')[0]
 
                 balance.name = base_name + ' (balance)'
-                balance.levels['place'].designation = (
+                balance.levels[PLACE].designation = (
                                         'consolidated government (balance)')
                 # balance geos only related to immediate parents
                 balance.parents.remove(balance.path_parent)
-                GeoLevel(geo=county, level='place', designation='city')
+                GeoLevel(geo=county, level=PLACE, designation='city')
                 alias = Geo(name=base_name, alias_target=county)
                 if place_name != base_name:
                     Geo(name=place_name, alias_target=county)
@@ -437,8 +566,8 @@ def load_place_geos(geo_session, session):
 
             continue
         place = places[0]
-        county_parents = [p for p in place.parents if
-                          p.levels.get('subdivision2', None) is not None]
+        county_parents = [p for p in place.parents
+                          if p.levels.get(SUBDIVISION2, None) is not None]
 
         # The counties of NYC
         if len(county_parents) != 1:
@@ -457,8 +586,8 @@ def load_place_geos(geo_session, session):
         #     Carson City, NV
         #     Anaconda-Deer Lodge County, MT
         #     Hartsville/Trousdale County, TN
-        if place.levels['place'].designation == '':
-            place.levels['place'].designation = u'city'
+        if place.levels[PLACE].designation == '':
+            place.levels[PLACE].designation = u'city'
 
         for glvl in place.levels.values():
             glvl.geo = county
@@ -477,11 +606,11 @@ def load_place_geos(geo_session, session):
     # Combine with DC the district and fix aliases
     us = Geo['us']
     dc = us['dc']
-    w = GeoID[('FIPS', '1150000')].level.geo  # Washington, DC (place)
+    w = GeoID[(FIPS, '1150000')].level.geo  # Washington, DC (place)
     GeoData.unregister(w.data)
     w.data = None
-    w.levels['subdivision2'].geo = dc
-    w.levels['place'].geo = dc
+    w.levels[SUBDIVISION2].geo = dc
+    w.levels[PLACE].geo = dc
     w.parents = []
     w.alias_target = dc
     wdc = dc['district_of_columbia']
@@ -502,11 +631,11 @@ def load_place_geos(geo_session, session):
 
     mf = Geo(name='Milford', path_parent=ct, parents=[nhc, ct],
              children=[mfb, wm])  # sets geo data based on children
-    mfb.levels['place'].geo = mf  # move levels and ids
-    mf.levels['place'].designation = 'city'
+    mfb.levels[PLACE].geo = mf  # move levels and ids
+    mf.levels[PLACE].designation = 'city'
 
     mfb.name = 'Milford (balance)'
-    GeoLevel(geo=mfb, level='place', designation='city balance')
+    GeoLevel(geo=mfb, level=PLACE, designation='city balance')
     mfb.parents = [mf]  # balance geos only related to immediate parents
 
     # Fix missing tilde in Española, NM. Note: ñ appears correctly elsewhere:
@@ -522,7 +651,7 @@ def load_cbsa_geos(geo_session, session):
                             'ghrp_statefp, ghrp_countyid, ghrp_placeid, '
                             'ghrp_p0020001, ghrp_p0020002')
 
-    columns = derive_columns(classes=['CBSA', 'GHRP'],
+    columns = derive_columns(classes=(CBSA, GHRP),
                              fields=CBSARecord._fields)
 
     # U.S. places by county equivalent with CBSA/CSA data
@@ -554,7 +683,7 @@ def load_cbsa_geos(geo_session, session):
     # cbsas_not_aliased_by_top_place = {}
     csa = None
 
-    print 'Loading CBSAs and CSAs...'
+    print('Loading CBSAs and CSAs...')
     for r in (CBSARecord(*record) for record in records):
 
         # If it's a new CBSA, initialize variables
@@ -582,8 +711,8 @@ def load_cbsa_geos(geo_session, session):
                 prior_csa_code = csa_code
 
         statefp = r.ghrp_statefp
-        state = GeoID[('FIPS', statefp)].level.geo
-        if state.levels.get('subdivision1', None) is None:
+        state = GeoID[(FIPS, statefp)].level.geo
+        if state.levels.get(SUBDIVISION1, None) is None:
             raise ValueError('State {!r} missing geo level'.format(state))
         if state.alias_target is not None:
             raise ValueError('State {!r} is an alias'.format(state))
@@ -593,8 +722,8 @@ def load_cbsa_geos(geo_session, session):
         cbsa_states[state] += r.ghrp_p0020001
 
         countyid = r.ghrp_countyid
-        county = GeoID[('FIPS', countyid)].level.geo
-        if county.levels.get('subdivision2', None) is None:
+        county = GeoID[(FIPS, countyid)].level.geo
+        if county.levels.get(SUBDIVISION2, None) is None:
             raise ValueError('County {!r} missing geo level'.format(county))
         if county.alias_target is not None:
             raise ValueError('County {!r} is an alias'.format(county))
@@ -603,8 +732,8 @@ def load_cbsa_geos(geo_session, session):
             cbsa_counties[county] = county.data.total_pop
 
         placeid = r.ghrp_placeid
-        place = GeoID[('FIPS', placeid)].level.geo
-        if place.levels.get('place', None) is None:
+        place = GeoID[(FIPS, placeid)].level.geo
+        if place.levels.get(PLACE, None) is None:
             raise ValueError('Place {!r} missing geo level'.format(place))
         if place.alias_target is not None:
             raise ValueError('Place {!r} is an alias'.format(place))
@@ -615,7 +744,7 @@ def load_cbsa_geos(geo_session, session):
 
         # Add consolidated counties with children as places
         # (those without children are already added)
-        if (county.levels.get('place', None) is not None and
+        if (county.levels.get(PLACE, None) is not None and
                 cbsa_places.get(county, None) is None):
             cbsa_places[county] = county.data.total_pop
 
@@ -624,19 +753,20 @@ def load_cbsa_geos(geo_session, session):
                 CBSARecord(*records.peek()).cbsa_cbsa_code != cbsa_code):
 
             cbsa_name = r.cbsa_cbsa_name
-            print u'\t\tCBSA: {name} ({code})'.format(name=cbsa_name,
-                                                      code=cbsa_code)
+            print(u'\t\tCBSA: {name} ({code})'.format(name=cbsa_name,
+                                                      code=cbsa_code))
 
             cbsa = Geo(name=cbsa_name + ' Area',
                        uses_the=True,
                        path_parent=us,
                        parents=cbsa_states.keys(),
                        children=cbsa_counties.keys() + cbsa_places.keys(),
-                       data_level='subdivision2')  # Calculate from counties
+                       child_data_level=SUBDIVISION2)  # Sum from counties
 
-            cbsa_glvl = GeoLevel(geo=cbsa, level='cbsa',
+            cbsa_glvl = GeoLevel(geo=cbsa,
+                                 level=CORE_AREA,
                                  designation=r.cbsa_cbsa_type.lower())
-            GeoID(level=cbsa_glvl, standard='CBSA', code=cbsa_code)
+            GeoID(level=cbsa_glvl, standard=CBSA_2010, code=cbsa_code)
 
             for place in cbsa_places:
                 if (cbsa_place_1 is None or
@@ -648,7 +778,7 @@ def load_cbsa_geos(geo_session, session):
 
             #     # Prioritize non-CDPs over CDPs
             #     # Removed because these are actually exceptions
-            #     if place.levels['place'].designation == 'CDP':
+            #     if place.levels[PLACE].designation == 'CDP':
             #         continue
             #     if (cbsa_non_cdp_1 is None or
             #             cbsa_places[place] > cbsa_places[cbsa_non_cdp_1]):
@@ -717,11 +847,11 @@ def load_cbsa_geos(geo_session, session):
 
                 # We're on the last record for a valid CSA, so create geo
                 if (not records.has_next() or
-                    CBSARecord(*records.peek()).cbsa_csa_code != csa_code):
+                        CBSARecord(*records.peek()).cbsa_csa_code != csa_code):
 
                     csa_name = r.cbsa_csa_name
-                    print u'\t\tCSA: {name} ({code})'.format(name=csa_name,
-                                                             code=csa_code)
+                    print(u'\t\tCSA: {name} ({code})'.format(name=csa_name,
+                                                             code=csa_code))
 
                     csa = Geo(name='Greater ' + csa_name + ' Area',
                               uses_the=True,
@@ -730,11 +860,12 @@ def load_cbsa_geos(geo_session, session):
                               children=(csa_cbsa_main_places.keys() +
                                         csa_counties.keys() +
                                         csa_places.keys()),
-                              data_level='cbsa')  # Calculate from cbsas
+                              child_data_level=CORE_AREA)  # Sum from cbsas
 
-                    csa_glvl = GeoLevel(geo=csa, level='csa',
+                    csa_glvl = GeoLevel(geo=csa,
+                                        level=COMBINED_AREA,
                                         designation='CSA')
-                    GeoID(level=csa_glvl, standard='CSA', code=csa_code)
+                    GeoID(level=csa_glvl, standard=CSA_2010, code=csa_code)
 
                     if (csa_cbsa_2 is None or
                         csa_cbsa_1.data.total_pop >
@@ -782,8 +913,9 @@ def load_cbsa_geos(geo_session, session):
 
                 if csa:
                     cbsa_main_place = csa_cbsa_main_places[cbsa_target]
-                    alias_states = (p for p in cbsa_target.parents
-                                    if p.levels.get('subdivision1', None))
+                    alias_states = (
+                        p for p in cbsa_target.parents
+                        if p.levels.get(SUBDIVISION1, None))
                 else:
                     alias_states = cbsa_states.iterkeys()
 
@@ -793,7 +925,7 @@ def load_cbsa_geos(geo_session, session):
                 for alias_state in alias_states:
 
                     if ((csa and csa_main_cbsa is cbsa_target) or
-                        cbsa_target.levels['cbsa'].designation ==
+                        cbsa_target.levels[CORE_AREA].designation ==
                             'micropolitan statistical area'):
                         cbsa_area_alias = (
                             Geo(name=cbsa_mp_name + ' Area',
@@ -859,16 +991,16 @@ def load_cbsa_geos(geo_session, session):
                           uses_the=False)
     greater_dc.promote_to_alias_target()
 
-    print 'CBSAs with unnamed main places...'
+    print('CBSAs with unnamed main places...')
     for cbsa, (cbsa_places, cbsa_main_place) in (
                                 cbsas_with_unnamed_main_places.items()):
         sorted_places = sorted(cbsa_places.keys(),
                                key=lambda p: cbsa_places[p],
                                reverse=True)
-        print u'\t{cbsa}:'.format(cbsa=cbsa.trepr())
+        print(u'\t{cbsa}:'.format(cbsa=cbsa.trepr()))
         for i, place in enumerate(sorted_places):
             if i == 10:
-                print '\t\t(10 of {} places)'.format(len(sorted_places))
+                print('\t\t(10 of {} places)'.format(len(sorted_places)))
                 break
             cbsa_pop = cbsa_places[place]
             pop_total = place.data.total_pop
@@ -879,22 +1011,24 @@ def load_cbsa_geos(geo_session, session):
                    (' of {pop_total:,}'.format(
                     pop_total=pop_total) if cbsa_pop != pop_total else ''))
 
-    print 'CBSAs without main places...'
+    print('CBSAs without main places...')
     for cbsa, (p1_tuple, p2_tuple) in cbsas_without_main_places.items():
         p1_geo, p1_pop = p1_tuple
         p2_geo, p2_pop = p2_tuple
         p1_total, p2_total = p1_geo.data.total_pop, p2_geo.data.total_pop
-        print u'\t{cbsa}:'.format(cbsa=cbsa.trepr())
-        print (u'\t\t{p1_geo}: {p1_pop:,}'.format(
-                    p1_geo=p1_geo.trepr(),
-                    p1_pop=p1_pop) +
-               (' of {p1_total:,}'.format(
-                    p1_total=p1_total) if p1_pop != p1_total else ''))
-        print (u'\t\t{p2_geo}: {p2_pop:,} of {p2_total:,}'.format(
-                    p2_geo=p2_geo.trepr(),
-                    p2_pop=p2_pop) +
-               (' of {p2_total:,}'.format(
-                    p2_total=p2_total) if p2_pop != p2_total else ''))
+        print(u'\t{cbsa}:'.format(cbsa=cbsa.trepr()))
+        print(
+            u'\t\t{p1_geo}: {p1_pop:,}'.format(
+                p1_geo=p1_geo.trepr(),
+                p1_pop=p1_pop) +
+            (' of {p1_total:,}'.format(
+                p1_total=p1_total) if p1_pop != p1_total else ''))
+        print(
+            u'\t\t{p2_geo}: {p2_pop:,} of {p2_total:,}'.format(
+                p2_geo=p2_geo.trepr(),
+                p2_pop=p2_pop) +
+            (' of {p2_total:,}'.format(
+                p2_total=p2_total) if p2_pop != p2_total else ''))
 
 if __name__ == '__main__':
     # Session for geo.db, which contains the geo source data

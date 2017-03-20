@@ -38,10 +38,27 @@ def camelCaseTo_snake_case(string):
     return string
 
 
+def define_constants_at_module_scope(module_name, module_class,
+                                     constant_values):
+    '''
+    Defines constants at module scope
+
+    Enforces constant naming convention of ALL_CAPS with _'s instead of
+    spaces.
+    '''
+    module = sys.modules[module_name]
+
+    for constant_value in constant_values:
+        setattr(
+            module, constant_value.upper().replace(' ', '_'),
+            getattr(module_class, constant_value.upper().replace(' ', '_')))
+
+
 def kwargify(arg_names=None, arg_values=None, kwargs=None,
              parg_names=None, parg_values=None, pargs=None,
              exclude=None, selfish=False):
-    '''Kwargify
+    '''
+    Kwargify
 
     Consolidate positional args, *args, and **kwargs into a new dict.
 
@@ -118,7 +135,8 @@ def kwargify(arg_names=None, arg_values=None, kwargs=None,
 
 
 def stringify(thing, limit=10, _lvl=0):
-    '''Stringify
+    '''
+    Stringify
 
     Converts things into nicely formatted unicode strings for printing.
     The input, 'thing', may be a 'literal' (e.g. integer, boolean,
@@ -186,7 +204,8 @@ def stringify(thing, limit=10, _lvl=0):
 
 
 def vardygrify(cls, **kwds):
-    u'''Vardygrify
+    u'''
+    Vardygrify
 
     From Wikipedia (https://en.wikipedia.org/wiki/Vard%C3%B8ger):
 

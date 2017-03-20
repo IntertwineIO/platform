@@ -8,9 +8,10 @@ from collections import OrderedDict, namedtuple
 from sqlalchemy import Column, ForeignKey, Index, Table, desc, orm, types
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-from .. import IntertwineModel
-from ..exceptions import AttributeConflict, CircularReference
-from ..utils.mixins import JsonProperty
+from intertwine import IntertwineModel
+from intertwine.exceptions import AttributeConflict, CircularReference
+from intertwine.utils.mixins import JsonProperty
+from intertwine.utils.tools import define_constants_at_module_scope
 
 # BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
 BaseGeoModel = IntertwineModel
@@ -24,29 +25,92 @@ geo_association_table = Table(
 
 
 class Geo(BaseGeoModel):
-    '''Base class for geos
+    '''
+    Geo
 
-    A 'geo' is geographical entity, legal or otherwise. Geos may have
-    GeoData and be tied to one or more GeoLevels (which in turn may be
-    tied to one or more GeoIDs)
+    A 'geo' is a geographical entity, legal or otherwise. Geos may have
+    GeoData and one or more GeoLevels, which in turn may have one or
+    more GeoIDs.
 
-    The human_id is a human-readable unique id for each geo and is
-    composed as follows:
+    Each geo has a human_id used in its URI and composed as follows:
 
-    path/(abbrev or name + qualifier)
+        <path>/<transformed(<abbrev or name>[ <qualifier>])>
 
-    The 'path' is established by the 'path_parent' field. If the geo has
-    an 'abbrev', it is used, otherwise the name is used. The 'qualifier'
-    is used to distinguish geos with the same name/abbrev with the same
-    path (e.g. Chula Vista, TX, Chevy Chase, MD, and many others).
+    The abbrev, name, and qualifier are transformed as follows:
+        '.' -> ''
+        '/' or ', ' -> '-'
+        ' ' -> '_'
 
-    level         geo                   path_parent  human_id
-    country       US                    (none)       us
-    subdivision1  TX                    US           us/tx
-    csa           Greater Houston       TX           us/tx/greater_houston
-    cbsa          Greater Austin        TX           us/tx/greater_austin
-    subdivision2  Travis County         TX           us/tx/travis_county
-    place         Austin                TX           us/tx/austin
+    level          abbrev/name      path_parent   human_id
+    --------------------------------------------------------------------
+    country        U.S.               (none)      us
+    subdivision1   MA                   US        us/ma
+    combined_area  Greater Boston       MA        us/ma/greater_boston
+    core_area      Boston Area          MA        us/ma/boston_area
+    subdivision2   Norfolk County       MA        us/ma/norfolk_county
+    place          Westwood             MA        us/ma/westwood
+    subdivision3   Westwood       Norfolk County  us/ma/norfolk_county/westwood
+
+    I/O:
+    name:
+        The primary name of the Geo, used for display and in the
+        human_id, unless the geo has an abbreviation.
+
+    abbrev=None:
+        The common abbreviation of the Geo, which replaces the name in
+        the human_id.
+
+    qualifier=None:
+        Used to distinguish geos that share the same name/abbreviation
+        and path for the purpose of creating a unique human_id. For such
+        geos in the US, the qualifier takes these forms:
+
+        geo level     qualifier
+        ----------------------------------------------------------------
+        place         <geo level designation> in <subdivision2 name>
+        subdivision3  <geo level designation>
+
+        Examples:
+        Geo['us/md/chevy_chase_cdp_in_montgomery_county']
+        Geo['us/md/chevy_chase_town_in_montgomery_county']
+
+    path_parent=None:
+        Indicates another geo as an immediate parent for the purpose of
+        determining the path.  The human_id of a geo's path_parent is
+        the path of the geo's human_id.
+
+    alias_target=None:
+        Identifies the geo as an alias of the specified target geo. If
+        no path_parent is provided, the alias_target's path_parent is
+        used instead. A value of None indicates the geo is not an alias.
+
+    uses_the=None:
+        A boolean indicating the name should begin with 'the ' when
+        displayed. It is derived automatically by default: True if the
+        name includes 'states', 'islands', 'republic' or 'district', and
+        False otherwise. When provided, a value serves as an override.
+
+    data=None:
+        When provided, creates an associated GeoData instance. The JSON
+        format is a GeoData field/value map without the geo. When not
+        provided, data is aggregated from the geo's children at the
+        level specified by child_data_level.
+
+    levels=None:
+        When provided, creates associated GeoLevel instances. The JSON
+        is a dictionary of GeoLevel field/value maps keyed by level,
+        where the GeoLevel maps lack the geo and level.
+
+    parents=None:
+        List of geos to be associated as parents of the geo.
+
+    children=None:
+        List of geos to be associated as children of the geo.
+
+    child_data_level=None:
+        The level of the geo's children whose data is to be aggregated
+        to calculate the geo's data. If None, all children are included.
+        Only used if data is not provided as a parameter.
     '''
     HUMAN_ID = 'human_id'
 
@@ -60,8 +124,6 @@ class Geo(BaseGeoModel):
         name='display', after='human_id', method='display', kwargs=dict(
             max_path=1, show_the=True, show_abbrev=False, abbrev_path=True))
 
-    # If geo.alias_target is None, the geo is not an alias, but it could
-    # be the target of one or more aliases.
     alias_target_id = Column(types.Integer, ForeignKey('geo.id'))
     _alias_target = orm.relationship(
         'Geo',
@@ -247,15 +309,17 @@ class Geo(BaseGeoModel):
     def human_id(self, val):
         if val is None:
             raise ValueError('human_id cannot be set to None')
-        # check if it's new
-        key = Geo.create_key(human_id=val)
-        geo = Geo.tget(val)
-        if geo is not None and geo is not self:
-            raise ValueError("Key already exists: '{}'".format(val))
-        if hasattr(self, '_human_id'):  # unregister old human_id
-            # Default None since Trackable registers after Geo.__init__()
-            Geo._instances.pop(self.human_id, None)
-        Geo[val] = self  # register the new human_id
+
+        if self._human_id is not None:  # Not during __init__()
+            # ensure key is new
+            key = Geo.Key(human_id=val)
+            inst = Geo.tget(key)
+            if inst is not None and inst is not self:
+                raise ValueError('Key already exists: {!r}'.format(key))
+            # update registry with new key
+            Geo.unregister(self)
+            Geo[key] = self
+
         self._human_id = val  # set human_id last
         # recursively propagate change to path_children
         for pc in self.path_children:
@@ -317,47 +381,35 @@ class Geo(BaseGeoModel):
     @classmethod
     def create_key(cls, name=None, abbrev=None, qualifier=None,
                    path_parent=None, alias_target=None, **kwds):
-        '''Create key for a geo
+        '''
+        Create Trackable key (human_id 1-tupled) for a geo
 
-        Return a registry key allowing the Trackable metaclass to look
-        up a geo instance. The key is created by concatenating the
-        human_id of the path_parent with the name, separated by the Geo
-        delimiter. If an abbreviation is provided, it is us used instead
-        of the name. If a qualifier is provided, it is added to the end,
-        separated by a space. If no path_parent is provided, but there
-        is an alias_target, the human_id of the alias_target's
-        path_parent is used instead. Prohibited characters and sequences
-        are either replaced or removed.
+        The key is created by concatenating the human_id of the
+        path_parent with the name, separated by the Geo delimiter. If an
+        abbreviation is provided, it replaces the name in the key.
+
+        If a qualifier is provided, it is appended, delimited by a
+        space. If an alias_target and no path_parent is provided, the
+        path_parent of the alias_target is used instead. Prohibited
+        characters and sequences are either replaced or removed.
         '''
         if path_parent is None and alias_target is not None:
             path_parent = alias_target.path_parent
         path = path_parent.human_id + Geo.PATH_DELIMITER if path_parent else ''
-        nametag = u'{a_or_n}{qualifier}'.format(
-            a_or_n=abbrev if abbrev else name,
+        nametag = u'{abbrev_or_name}{qualifier}'.format(
+            abbrev_or_name=abbrev if abbrev else name,
             qualifier=' ' + qualifier if qualifier else '')
         nametag = (nametag.replace('.', '').replace(', ', '-')
                    .replace('/', '-').replace(' ', '_').lower())
         return cls.Key(path + nametag)
 
     def derive_key(self):
-        '''Derive key from a geo instance
-
-        Return the registry key used by the Trackable metaclass from a
-        geo instance. The key is the human_id.
-        '''
+        '''Derive Trackable key (human_id 1-tupled) from a geo'''
         return self.__class__.Key(self.human_id)
 
     def __init__(self, name, abbrev=None, qualifier=None, path_parent=None,
-                 alias_target=None, uses_the=None, data=None, levels={},
-                 parents=[], children=[], data_level=None):
-        '''Initialize a new geo
-
-        The data parameter is the GeoData JSON, though the geo need not
-        be specified since the geo should be self. The levels parameter
-        is a dictionary of GeoLevel JSON keyed by level, where the geo
-        and level need not be specified in the GeoLevel JSON since the
-        geo should be self and the level should match the key.
-        '''
+                 alias_target=None, uses_the=None, data=None, levels=None,
+                 parents=None, children=None, child_data_level=None):
         self.name = name
         if uses_the is not None:  # Override calculated value, if provided
             self.uses_the = uses_the
@@ -375,62 +427,39 @@ class Geo(BaseGeoModel):
         # if self.alias_target is not None:
         #     return
 
-        self.parents = parents
-        self.children = children
+        self.parents = parents or []
+        self.children = children or []
 
-        data_children = (self.children.all() if data_level is None
-                         else [child for child in self.children
-                               if child.levels.get(data_level) is not None])
-
-        if data is not None:
-            # The geo for the data should always be self. If a geo key
-            # is provided, make sure it matches and remove it.
-            data_geo = data.get('geo', None)
-            if data_geo == self.trepr(tight=True, raw=False):
-                data = data.copy()
-                data.pop('geo')
-            elif data_geo is not None:
-                raise KeyError('Geo data json contains a geo key that '
-                               'does not match geo being created')
-
-        # if no data, calculate the data from children (if any)
-        elif len(data_children) > 0:
-            fields = ('total_pop', 'urban_pop', 'land_area', 'water_area')
-            data = {f: sum((c.data[f] for c in data_children)) for f in fields}
-            fields = ('latitude', 'longitude')
-            for f in fields:
-                data[f] = (
-                    sum(((c.data['land_area'] + c.data['water_area']) *
-                        c.data[f] for c in data_children)) * 1.0 /
-                    sum(((c.data['land_area'] + c.data['water_area'])
-                        for c in data_children)))
-
-        self.data = GeoData(geo=self, **data) if data is not None else None
+        self.data = (
+            GeoData(geo=self, **data) if data else
+            GeoData.create_parent_data(
+                self, child_level=child_data_level) if self.children else None)
 
         self.levels = {}
-        for lvl, glvl in levels.items():
-            new_glvl = glvl
-            # The geo for the geolevel should always be self. If a geo
-            # key is provided, make sure it matches and remove it.
-            glvl_geo = new_glvl.get('geo', None)
-            if glvl_geo == self.trepr(tight=True, raw=False):
-                new_glvl = glvl.copy()
-                new_glvl.pop('geo')
-            elif glvl_geo is not None:
-                raise KeyError('Geo level json contains a geo key that '
-                               'does not match geo being created')
-            # The level for the geolevel should always be the key. If a
-            # level is provided, make sure it matches and remove it.
-            glvl_level = new_glvl.get('level', None)
-            if glvl_level == lvl:
-                if new_glvl == glvl:
+        if levels:
+            for lvl, glvl in levels.items():
+                new_glvl = glvl
+                # The geo for the geolevel should always be self. If a geo
+                # key is provided, make sure it matches and remove it.
+                glvl_geo = new_glvl.get('geo', None)
+                if glvl_geo == self.trepr(tight=True, raw=False):
                     new_glvl = glvl.copy()
-                new_glvl.pop('level')
+                    new_glvl.pop('geo')
+                elif glvl_geo is not None:
+                    raise KeyError('Geo level json contains a geo key that '
+                                   'does not match geo being created')
+                # The level for the geolevel should always be the key. If a
+                # level is provided, make sure it matches and remove it.
+                glvl_level = new_glvl.get('level', None)
+                if glvl_level == lvl:
+                    if new_glvl == glvl:
+                        new_glvl = glvl.copy()
+                    new_glvl.pop('level')
 
-            elif glvl_level is not None:
-                raise KeyError('Geo level json contains a level that '
-                               'does not match key for the geo level')
-            self.levels[lvl] = GeoLevel(geo=self, level=lvl, **new_glvl)
+                elif glvl_level is not None:
+                    raise KeyError('Geo level json contains a level that '
+                                   'does not match key for the geo level')
+                self.levels[lvl] = GeoLevel(geo=self, level=lvl, **new_glvl)
 
     def __getitem__(self, key):
         return Geo[Geo.create_key(name=key, path_parent=self)]
@@ -439,11 +468,13 @@ class Geo(BaseGeoModel):
     # always be derived from the value
 
     def transfer_references(self, geo):
-        '''Transfer references
+        '''
+        Transfer references
 
-        Utility function for transfering references to another geo, for
+        Utility function for transferring references to another geo, for
         example, when making a geo an alias of another geo. Path
-        references remain unchanged.'''
+        references remain unchanged.
+        '''
         attributes = {'parents': ('dynamic', []),
                       'children': ('dynamic', []),
                       'data': ('not dynamic', None),
@@ -465,7 +496,8 @@ class Geo(BaseGeoModel):
                 setattr(self, attr, empty)
 
     def promote_to_alias_target(self):
-        '''Promote alias to alias_target
+        '''
+        Promote alias to alias_target
 
         Used to convert an alias into an alias_target. The existing
         alias_target is converted into an alias of the new alias_target.
@@ -486,7 +518,8 @@ class Geo(BaseGeoModel):
     def display(self, show_the=True, show_The=False, show_abbrev=True,
                 show_qualifier=True, abbrev_path=True, max_path=float('Inf'),
                 **json_kwargs):
-        '''Generate text for displaying a geo to a user
+        '''
+        Generate text for displaying a geo to a user
 
         Returns a string derived from the name, abbrev, uses_the, and
         the geo path established by the path_parent. The following
@@ -531,7 +564,8 @@ class Geo(BaseGeoModel):
         return ', '.join(geostr)
 
     def jsonify_related_geos(self, relation, **json_kwargs):
-        '''Jsonify related geos by level
+        '''
+        Jsonify related geos by level
 
         Given a relation (e.g. parent/child), returns an ordered
         dictionary of geo reprs stratified (keyed) by level. The levels
@@ -592,6 +626,16 @@ class GeoData(BaseGeoModel):
     '''Base class for geo data'''
     GEO = 'geo'
 
+    TOTAL_POP = 'total_pop'
+    URBAN_POP = 'urban_pop'
+    LATITUDE = 'latitude'
+    LONGITUDE = 'longitude'
+    LAND_AREA = 'land_area'
+    WATER_AREA = 'water_area'
+
+    SUMMED_FIELDS = (TOTAL_POP, URBAN_POP, LAND_AREA, WATER_AREA)
+    AREA_AVERAGED_FIELDS = (LATITUDE, LONGITUDE)
+
     geo_id = Column(types.Integer, ForeignKey('geo.id'))
     _geo = orm.relationship('Geo', back_populates='_data')
 
@@ -616,6 +660,10 @@ class GeoData(BaseGeoModel):
                       Index('ix_geo_data:total_pop',
                             # ix for index
                             'total_pop'),)
+
+    @property
+    def total_area(self):
+        return self.land_area + self.water_area
 
     @property
     def geo(self):
@@ -644,20 +692,51 @@ class GeoData(BaseGeoModel):
 
     @classmethod
     def create_key(cls, geo, **kwds):
-        '''Create key for geo data
-
-        Return a key allowing the Trackable metaclass to register a geo
-        data instance. The key is the corresponding geo.
-        '''
+        '''Create Trackable key (geo 1-tupled) for a geo data'''
         return cls.Key(geo)
 
     def derive_key(self):
-        '''Derive key from a geo data instance
-
-        Return the registry key used by the Trackable metaclass from a
-        geo data instance. The key is the geo to which it is linked.
-        '''
+        '''Derive Trackable key (geo 1-tupled) from a geo data'''
         return self.__class__.Key(self.geo)
+
+    @classmethod
+    def create_parent_data(cls, parent_geo, child_level=None):
+        '''
+        Create parent data
+
+        Constructor for aggregating geo data for a parent geo from its
+        children geos at a given level.
+
+        IO:
+        parent_geo:
+            The parent geo for which data is to be aggregated.
+
+        child_level=None:
+            The level of the children whose data is to be aggregated.
+            Default of None includes all children data.
+
+        returns:
+            A GeoData instance in which values are aggregated from the
+            parent_geo's children at the given level, if there are any.
+            Or None if there are no children.
+        '''
+        children = (
+            parent_geo.children.all() if child_level is None
+            else [child for child in parent_geo.children
+                  if child.levels.get(child_level) is not None])
+
+        if not children:
+            return None
+
+        data = {field: sum((child.data[field] for child in children))
+                for field in cls.SUMMED_FIELDS}
+
+        for field in cls.AREA_AVERAGED_FIELDS:
+            data[field] = (sum((child.data.total_area * child.data[field]
+                                for child in children)) * 1.0 /
+                           sum((child.data.total_area for child in children)))
+
+        return cls(parent_geo, **data)
 
     def __init__(self, geo, total_pop=None, urban_pop=None,
                  longitude=None, latitude=None,
@@ -673,12 +752,14 @@ class GeoData(BaseGeoModel):
 
 
 class GeoLevel(BaseGeoModel):
-    '''Base class for geo levels
+    '''
+    Base class for geo levels
 
     A geo level contains level information for a particular geo, where
     the level indicates the type of geo and/or where the geo fits in the
     geo tree. The levels were designed to allow global normalization and
-    include country, subdivision1..subdivisionN, place, csa, and cbsa.
+    include country, subdivision1..subdivisionN, combined_area,
+    core_area, and place.
 
     The designation indicates how the geo is described at the given
     level. For example, in the U.S., the subdivision1 geos are mainly
@@ -688,9 +769,38 @@ class GeoLevel(BaseGeoModel):
     A single geo may have multiple levels. For example, San Francisco
     has a consolidated government that is both a county (subdivision2)
     and a city (place). DC is simultaneously a federal district
-    (subdivision1), a county equivalent (subdivision2), and a city
+    (subdivision1), a county equivalent (subdivision2), a county
+    subdivision equivalent (subdivision3), and a city
     (place).
     '''
+    COUNTRY = 'country'
+    SUBDIVISION1 = 'subdivision1'
+    SUBDIVISION2 = 'subdivision2'
+    SUBDIVISION3 = 'subdivision3'
+    COMBINED_AREA = 'combined_area'
+    CORE_AREA = 'core_area'
+    PLACE = 'place'
+
+    DOWN = OrderedDict((
+        (COUNTRY, (SUBDIVISION1,)),
+        (SUBDIVISION1, (COMBINED_AREA, CORE_AREA, SUBDIVISION2, PLACE)),
+        (COMBINED_AREA, (CORE_AREA, SUBDIVISION2, PLACE)),
+        (CORE_AREA, (SUBDIVISION2, PLACE)),
+        (SUBDIVISION2, (SUBDIVISION3, PLACE,)),
+        (SUBDIVISION3, (PLACE,)),
+        (PLACE, ())
+    ))
+
+    UP = OrderedDict((
+        (PLACE, (SUBDIVISION2, CORE_AREA, COMBINED_AREA, SUBDIVISION1)),
+        (SUBDIVISION3, (SUBDIVISION2, CORE_AREA, COMBINED_AREA, SUBDIVISION1)),
+        (SUBDIVISION2, (CORE_AREA, COMBINED_AREA, SUBDIVISION1)),
+        (CORE_AREA, (COMBINED_AREA, SUBDIVISION1)),
+        (COMBINED_AREA, (SUBDIVISION1,)),
+        (SUBDIVISION1, (COUNTRY,)),
+        (COUNTRY, ())
+    ))
+
     geo_id = Column(types.Integer, ForeignKey('geo.id'))
     # _geo relationship defined via backref on Geo._levels
 
@@ -736,43 +846,15 @@ class GeoLevel(BaseGeoModel):
                             'level',
                             unique=True),)
 
-    DOWN = OrderedDict((
-        ('country', ('subdivision1',)),
-        ('subdivision1', ('csa', 'cbsa', 'subdivision2', 'place')),
-        ('csa', ('cbsa', 'subdivision2', 'place')),
-        ('cbsa', ('subdivision2', 'place')),
-        ('subdivision2', ('subdivision3', 'place',)),
-        ('subdivision3', ('place',)),
-        ('place', ())
-    ))
-
-    UP = OrderedDict((
-        ('place', ('subdivision2', 'cbsa', 'csa', 'subdivision1')),
-        ('subdivision3', ('subdivision2', 'cbsa', 'csa', 'subdivision1')),
-        ('subdivision2', ('cbsa', 'csa', 'subdivision1')),
-        ('cbsa', ('csa', 'subdivision1')),
-        ('csa', ('subdivision1',)),
-        ('subdivision1', ('country',)),
-        ('country', ())
-    ))
-
     Key = namedtuple('GeoLevelKey', 'geo, level')
 
     @classmethod
     def create_key(cls, geo, level, **kwds):
-        '''Create key for a geo level
-
-        Return a key allowing the Trackable metaclass to register a geo
-        level instance. The key is a namedtuple of geo and level.
-        '''
+        '''Create Trackable key (geo/level tuple) for a geo level'''
         return cls.Key(geo, level)
 
     def derive_key(self):
-        '''Derive key from a geo level instance
-
-        Return the registry key used by the Trackable metaclass from a
-        geo level instance. The key is a namedtuple of geo and level.
-        '''
+        '''Derive Trackable key (geo/level tuple) from a geo level'''
         return self.__class__.Key(self.geo, self.level)
 
     @property
@@ -831,10 +913,21 @@ class GeoLevel(BaseGeoModel):
 
 
 class GeoID(BaseGeoModel):
-    '''Geo ID base class
+    '''
+    Geo ID base class
 
     Used to map geos (by level) to 3rd party IDs and vice versa.
     '''
+    FIPS = 'FIPS'  # Federal Information Processing Series (formerly Standard)
+    ANSI = 'ANSI'  # American National Standards Institute
+    ISO_A2 = 'ISO_A2'  # ISO 3166-1 alpha-2
+    ISO_A3 = 'ISO_A3'  # ISO 3166-1 alpha-3
+    ISO_N3 = 'ISO_N3'  # ISO 3166-1 numeric-3
+    CSA_2010 = 'CSA_2010'  # Combined Statistical Area, 2010
+    CBSA_2010 = 'CBSA_2010'  # Core Based Statistical Area, 2010
+
+    STANDARDS = {FIPS, ANSI, ISO_A2, ISO_A3, ISO_N3, CSA_2010, CBSA_2010}
+
     level_id = Column(types.Integer, ForeignKey('geo_level.id'))
     # level relationship defined via backref on GeoLevel.ids
 
@@ -864,19 +957,11 @@ class GeoID(BaseGeoModel):
 
     @classmethod
     def create_key(cls, standard, code, **kwds):
-        '''Create key for a geo ID
-
-        Return a key allowing the Trackable metaclass to register a
-        geo ID instance. The key is a namedtuple of standard and code.
-        '''
+        '''Create Trackable key (standard/code tuple) for a geo ID'''
         return cls.Key(standard, code)
 
     def derive_key(self):
-        '''Derive key from a geo ID instance
-
-        Return the registry key used by the Trackable metaclass from a
-        geo ID instance. The key is a namedtuple of standard and code.
-        '''
+        '''Derive Trackable key (standard/code tuple) from a geo ID'''
         return self.__class__.Key(self.standard, self.code)
 
     @property
@@ -932,3 +1017,7 @@ class GeoID(BaseGeoModel):
 
         # Must follow standard assignment to create key for GeoLevel.ids
         self.level = level
+
+
+define_constants_at_module_scope(__name__, GeoLevel, GeoLevel.DOWN.keys())
+define_constants_at_module_scope(__name__, GeoID, GeoID.STANDARDS)
