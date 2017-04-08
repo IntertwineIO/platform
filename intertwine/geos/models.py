@@ -61,9 +61,9 @@ class Geo(BaseGeoModel):
         the human_id.
 
     qualifier=None:
-        Used to distinguish geos that share the same name/abbreviation
-        and path for the purpose of creating a unique human_id. For such
-        geos in the US, the qualifier takes these forms:
+        Distinguish geos that share the same name/abbreviation and path
+        for the purpose of creating a unique human_id. For such geos in
+        the US, the qualifier takes these forms:
 
         geo level     qualifier
         ----------------------------------------------------------------
@@ -75,12 +75,12 @@ class Geo(BaseGeoModel):
         Geo['us/md/chevy_chase_town_in_montgomery_county']
 
     path_parent=None:
-        Indicates another geo as an immediate parent for the purpose of
+        Indicate another geo as an immediate parent for the purpose of
         determining the path.  The human_id of a geo's path_parent is
         the path of the geo's human_id.
 
     alias_target=None:
-        Identifies the geo as an alias of the specified target geo. If
+        Identify the geo as an alias of the specified target geo. If
         no path_parent is provided, the alias_target's path_parent is
         used instead. A value of None indicates the geo is not an alias.
 
@@ -88,18 +88,18 @@ class Geo(BaseGeoModel):
         A boolean indicating the name should begin with 'the ' when
         displayed. It is derived automatically by default: True if the
         name includes 'states', 'islands', 'republic' or 'district', and
-        False otherwise. When provided, a value serves as an override.
+        False otherwise. When provided, a value serves as an override,
+        but it will be recalculated whenever the name changes.
 
     data=None:
-        When provided, creates an associated GeoData instance. The JSON
-        format is a GeoData field/value map without the geo. When not
-        provided, data is aggregated from the geo's children at the
-        level specified by child_data_level.
+        Create an associated GeoData instance from JSON, a field/value
+        map excluding geo. When not provided, data is aggregated from
+        the geo's children at the level specified by child_data_level.
 
     levels=None:
-        When provided, creates associated GeoLevel instances. The JSON
-        is a dictionary of GeoLevel field/value maps keyed by level,
-        where the GeoLevel maps lack the geo and level.
+        Create associated GeoLevel instances. The JSON is a dictionary
+        of GeoLevel field/value maps keyed by level, where the GeoLevel
+        maps exclude geo and level.
 
     parents=None:
         List of geos to be associated as parents of the geo.
