@@ -43,8 +43,8 @@ def define_constants_at_module_scope(module_name, module_class,
     '''
     Defines constants at module scope
 
-    Enforces constant naming convention of ALL_CAPS with _'s instead of
-    spaces.
+    Enforces naming convention in which constant names match the values,
+    but are in ALL_CAPS with _'s instead of spaces.
     '''
     module = sys.modules[module_name]
 
