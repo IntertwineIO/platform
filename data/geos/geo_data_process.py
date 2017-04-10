@@ -201,7 +201,7 @@ def load_subdivision2_geos(geo_session, session):
         GeoID(level=glvl, standard=FIPS, code=r.ghrp_countyid)
 
         ansi = r.ghrp_countyns
-        if ansi is not None and GeoID[(ANSI, ansi)] is None:
+        if ansi is not None and GeoID.tget((ANSI, ansi)) is None:
             GeoID(level=glvl, standard=ANSI, code=r.ghrp_countyns)
 
     # County equivalents in remaining U.S. territories
@@ -265,7 +265,7 @@ def load_subdivision3_geos(geo_session, session):
                # State-County-County Subdivision
                .filter(GHRP.sumlev == '060', GHRP.geocomp == '00',
                        # GHRP.statefp == '11',
-                       GHRP.countyid == '25021',  # Norfolk County, MA
+                       # GHRP.countyid == '25021',  # Norfolk County, MA
                        # GHRP.statefp == '72',
                        # GHRP.countyid == '19013',  # Black Hawk County, IA
                        )
@@ -465,7 +465,7 @@ def load_place_geos(geo_session, session):
                                         designation=desig)
                         GeoID(level=glvl, standard=FIPS, code=placeid)
                         placens = r.ghrp_placens
-                        if GeoID[(ANSI, placens)] is None:
+                        if GeoID.tget((ANSI, placens)) is None:
                             GeoID(
                                 level=glvl, standard=ANSI, code=placens)
 
@@ -491,7 +491,7 @@ def load_place_geos(geo_session, session):
             glvl = GeoLevel(geo=g, level=PLACE, designation=desig)
             GeoID(level=glvl, standard=FIPS, code=placeid)
             placens = r.ghrp_placens
-            if GeoID[(ANSI, placens)] is None:
+            if GeoID.tget((ANSI, placens)) is None:
                 GeoID(level=glvl, standard=ANSI, code=placens)
 
             # Update alias to point at the geo with the largest pop
