@@ -440,7 +440,7 @@ def load_place_geos(geo_session, session):
 
             # check for existing place with same key
             key = Geo.create_key(name=place_name, path_parent=state)
-            existing = Geo[key]
+            existing = Geo.tget(key)
             if existing is not None:
                 if existing.alias_target is None:
                     # if existing conflict is a place, rename it, make
