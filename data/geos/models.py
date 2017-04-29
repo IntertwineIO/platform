@@ -16,19 +16,43 @@ class State(BaseGeoDataModel, AutoTablenameMixin):
     stusps = Column(types.String(2), unique=True)        # TX
     name = Column(types.String(60), unique=True)         # Texas
     statens = Column(types.String(8), unique=True)       # 01779801
-    _state_map = None
+    _map_by_fips = None
 
     @classmethod
-    def get_map(cls):
-        if not cls._state_map:
-            cls._create_map()
-        return cls._state_map
+    def get_map_by_fips(cls):
+        if not cls._map_by_fips:
+            cls._create_map_by_fips()
+        return cls._map_by_fips
 
     @classmethod
-    def _create_map(cls):
+    def _create_map_by_fips(cls):
         states = cls.query.order_by(cls.statefp)
-        cls._state_map = OrderedDict(
+        cls._map_by_fips = OrderedDict(
             (state.statefp, state) for state in states)
+
+    @classmethod
+    def get_map_by_abbrev(cls):
+        if not cls._map_by_abbrev:
+            cls._create_map_by_abbrev()
+        return cls._map_by_abbrev
+
+    @classmethod
+    def _create_map_by_abbrev(cls):
+        states = cls.query.order_by(cls.stusps)
+        cls._map_by_abbrev = OrderedDict(
+            (state.stusps, state) for state in states)
+
+    @classmethod
+    def get_map_by_name(cls):
+        if not cls._map_by_name:
+            cls._create_map_by_name()
+        return cls._map_by_name
+
+    @classmethod
+    def _create_map_by_name(cls):
+        states = cls.query.order_by(cls.name)
+        cls._map_by_name = OrderedDict(
+            (state.name, state) for state in states)
 
 
 class CBSA(BaseGeoDataModel, AutoTablenameMixin):

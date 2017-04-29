@@ -176,7 +176,7 @@ def load_subdivision2_geos(geo_session, session):
     print('Loading counties and equivalents in...')
     for r in (CountyRecord(*record) for record in records):
 
-        stusps = State.get_map()[r.ghrp_statefp].stusps
+        stusps = State.get_map_by_fips()[r.ghrp_statefp].stusps
         if stusps != prior_stusps:
             state = us[stusps]
             print('\t{usps} - {name}'.format(usps=state.abbrev,
@@ -278,7 +278,7 @@ def load_subdivision3_geos(geo_session, session):
     print('Loading county subdivisions and equivalents in...')
     for r in (CountySubdivisionRecord(*record) for record in records):
 
-        stusps = State.get_map()[r.ghrp_statefp].stusps
+        stusps = State.get_map_by_fips()[r.ghrp_statefp].stusps
         if stusps != prior_stusps:
             state = us[stusps]
             print(u'\t{usps} - {name}'.format(usps=state.abbrev,
