@@ -6,56 +6,21 @@ from alchy.model import ModelBase, make_declarative_base
 from sqlalchemy import (orm, types, Column, ForeignKey, Index,
                         PrimaryKeyConstraint, ForeignKeyConstraint)
 
-from intertwine.utils.mixins import AutoTablenameMixin
+from intertwine.utils.mixins import AutoTablenameMixin, KeyedUp
 
 BaseGeoDataModel = make_declarative_base(Base=ModelBase)
 
 
-class State(BaseGeoDataModel, AutoTablenameMixin):
-    statefp = Column(types.String(2), primary_key=True)  # 48
-    stusps = Column(types.String(2), unique=True)        # TX
+class State(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
     name = Column(types.String(60), unique=True)         # Texas
+    stusps = Column(types.String(2), unique=True)        # TX
+    statefp = Column(types.String(2), primary_key=True)  # 48
     statens = Column(types.String(8), unique=True)       # 01779801
-    _map_by_fips = None
 
-    @classmethod
-    def get_map_by_fips(cls):
-        if not cls._map_by_fips:
-            cls._create_map_by_fips()
-        return cls._map_by_fips
-
-    @classmethod
-    def _create_map_by_fips(cls):
-        states = cls.query.order_by(cls.statefp)
-        cls._map_by_fips = OrderedDict(
-            (state.statefp, state) for state in states)
-
-    @classmethod
-    def get_map_by_abbrev(cls):
-        if not cls._map_by_abbrev:
-            cls._create_map_by_abbrev()
-        return cls._map_by_abbrev
-
-    @classmethod
-    def _create_map_by_abbrev(cls):
-        states = cls.query.order_by(cls.stusps)
-        cls._map_by_abbrev = OrderedDict(
-            (state.stusps, state) for state in states)
-
-    @classmethod
-    def get_map_by_name(cls):
-        if not cls._map_by_name:
-            cls._create_map_by_name()
-        return cls._map_by_name
-
-    @classmethod
-    def _create_map_by_name(cls):
-        states = cls.query.order_by(cls.name)
-        cls._map_by_name = OrderedDict(
-            (state.name, state) for state in states)
+    KEYED_UP_FIELDS = ('name', 'stusps', 'statefp', 'statens')
 
 
-class CBSA(BaseGeoDataModel, AutoTablenameMixin):
+class CBSA(AutoTablenameMixin, BaseGeoDataModel):
     '''Core Based Statistical Area (CBSA)'''
     cbsa_code = Column(types.String(5))                 # 12420
     metro_division_code = Column(types.String(5))
@@ -77,7 +42,7 @@ class CBSA(BaseGeoDataModel, AutoTablenameMixin):
     county = orm.relationship('County', uselist=False, back_populates='cbsa')
 
 
-class County(BaseGeoDataModel, AutoTablenameMixin):
+class County(AutoTablenameMixin, BaseGeoDataModel):
     stusps = Column(types.String(2),                    # TX
                     ForeignKey('state.stusps'))
     state = orm.relationship('State')
@@ -96,7 +61,7 @@ class County(BaseGeoDataModel, AutoTablenameMixin):
     intptlong = Column(types.Float)                     # -97.69127
 
 
-class Cousub(BaseGeoDataModel, AutoTablenameMixin):
+class Cousub(AutoTablenameMixin, BaseGeoDataModel):
     stusps = Column(types.String(2),                    # MA
                     ForeignKey('state.stusps'))
     state = orm.relationship('State')
@@ -114,7 +79,7 @@ class Cousub(BaseGeoDataModel, AutoTablenameMixin):
     intptlong = Column(types.Float)                     # -71.216769
 
 
-class Place(BaseGeoDataModel, AutoTablenameMixin):
+class Place(AutoTablenameMixin, BaseGeoDataModel):
     stusps = Column(types.String(2),                    # TX
                     ForeignKey('state.stusps'))
     state = orm.relationship('State')
@@ -135,7 +100,7 @@ class Place(BaseGeoDataModel, AutoTablenameMixin):
     intptlong = Column(types.Float)                     # -97.755996
 
 
-class LSAD(BaseGeoDataModel, AutoTablenameMixin):
+class LSAD(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
     PREFIX = 'prefix'
     SUFFIX = 'suffix'
     AFFIXES = {PREFIX, SUFFIX}
@@ -143,46 +108,48 @@ class LSAD(BaseGeoDataModel, AutoTablenameMixin):
     ACTUAL_TEXT = 'actual text'
     ANNOTATIONS = ['({})'.format(a) for a in (ACTUAL_TEXT, PREFIX, SUFFIX)]
 
-    LSADMapRecord = namedtuple(
-        'LSADMapRecord',
-        ('lsad_code', 'description', 'geo_entity_type', 'display', 'affix'))
-    _lsad_map = None
-
     lsad_code = Column(types.String(2), primary_key=True)  # 25
     description = Column(types.String(60))              # 'city (suffix)'
     geo_entity_type = Column(types.String(600))         # 'Consolidated City,
     # County or Equivalent Feature, County Subdivision, Economic Census Place,
     # Incorporated Place'
 
-    @classmethod
-    def get_map(cls):
-        if not cls._lsad_map:
-            cls._create_map()
-        return cls._lsad_map
+    LSADMapRecord = namedtuple(
+        'LSADMapRecord',
+        ('lsad_code', 'description', 'geo_entity_type', 'display', 'affix',
+            'display_affix'))
+
+    KEYED_UP_FIELDS = ('lsad_code', 'display_affix')
 
     @classmethod
-    def _create_map(cls):
+    def _all_the_keyed_up_things(cls):
         lsads = cls.query.order_by(cls.lsad_code)
-        cls._lsad_map = OrderedDict(
-            (lsad.lsad_code, cls.LSADMapRecord(
+        lsad_records = [
+            cls.LSADMapRecord(
                 lsad_code=lsad.lsad_code,
                 description=lsad.description,
                 geo_entity_type=lsad.geo_entity_type,
-                display=cls.deannotate(lsad.description),
-                affix=(cls.PREFIX if (cls.PREFIX in lsad.description) else
-                       cls.SUFFIX if (cls.SUFFIX in lsad.description) else
-                       None)
-                )) for lsad in lsads)
+                display=lsad.display,
+                affix=lsad.affix,
+                display_affix=(lsad.display, lsad.affix))
+            for lsad in lsads]
+        return lsad_records
 
-    @classmethod
-    def deannotate(cls, text):
-        for annotation in cls.ANNOTATIONS:
+    @property
+    def display(self):
+        text = self.description
+        for annotation in self.ANNOTATIONS:
             text = text.split(' ' + annotation)[0]
         return text
 
+    @property
+    def affix(self):
+        return (self.PREFIX if (self.PREFIX in self.description) else
+                self.SUFFIX if (self.SUFFIX in self.description) else None)
+
     @classmethod
     def deaffix(cls, affixed_name, lsad_code):
-        lsad_record = cls.get_map()[lsad_code]
+        lsad_record = cls.get_by('lsad_code', lsad_code)
         lsad, affix = lsad_record.display, lsad_record.affix
 
         if affix is None:
@@ -212,7 +179,7 @@ class LSAD(BaseGeoDataModel, AutoTablenameMixin):
         return name, lsad
 
 
-class Geoclass(BaseGeoDataModel, AutoTablenameMixin):
+class Geoclass(AutoTablenameMixin, BaseGeoDataModel):
     # renamed from classfp
     geoclassfp = Column(types.String(2), primary_key=True)  # C1
     category = Column(types.String(60))                 # Incorporated Place

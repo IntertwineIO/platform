@@ -17,6 +17,7 @@ from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
 from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
+from ..utils.structures import MultiKeyMap
 from ..utils.tools import stringify
 from .structures import InsertableOrderedDict
 from .tools import camelCaseTo_snake_case, kwargify
@@ -348,3 +349,38 @@ class Jsonable(object):
         jsonified = self.jsonify(depth=1, limit=-1)
         del jsonified[self.ROOT_KEY]
         return stringify(jsonified, limit=10)
+
+
+class KeyedUp(object):
+    '''KeyedUp mixin for caching with multiple distinct field keys'''
+
+    # Override with fields to be used by KeyedUp
+    KEYED_UP_FIELDS = NotImplemented
+    _keyed_up_map = None
+
+    @classmethod
+    def get_by(cls, field, key, default=None):
+        if cls._keyed_up_map is None:
+            cls._create_keyed_up_map()
+        return cls._keyed_up_map.get_by(field, key, default)
+
+    @classmethod
+    def get_map_by(cls, field):
+        if cls._keyed_up_map is None:
+            cls._create_keyed_up_map()
+        return cls._keyed_up_map.get_map_by(field)
+
+    @classmethod
+    def _create_keyed_up_map(cls):
+        cls._keyed_up_map = MultiKeyMap(fields=cls.KEYED_UP_FIELDS,
+                                        things=cls._all_the_keyed_up_things())
+
+    @classmethod
+    def _all_the_keyed_up_things(cls):
+        return cls.query.all()
+
+    def __init__(self, *args, **kwds):
+        if self.KEYED_UP_FIELDS is NotImplemented:
+            raise NotImplementedError(
+                'KEYED_UP_FIELDS must be defined for KeyedUp class')
+        super(KeyedUp, self).__init__(*args, **kwds)
