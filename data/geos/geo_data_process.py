@@ -27,17 +27,6 @@ from intertwine.geos.models import (
     FIPS, ANSI, ISO_A2, ISO_A3, ISO_N3, CSA_2010, CBSA_2010)
 
 
-def load_geos(geo_session, session):
-
-    load_country_geos(geo_session, session)
-    load_subdivision1_geos(geo_session, session)
-    load_subdivision2_geos(geo_session, session)
-    load_place_geos(geo_session, session)
-    load_cbsa_geos(geo_session, session)
-
-    return Trackable.catalog_updates()
-
-
 def derive_columns(classes, fields):
     '''
     Derive columns from classes and fields
@@ -56,6 +45,17 @@ def derive_columns(classes, fields):
                        '_'.join(f.split('_')[1:]))  # attribute
                for f in fields]
     return columns
+
+
+def load_geos(geo_session, session):
+
+    load_country_geos(geo_session, session)
+    load_subdivision1_geos(geo_session, session)
+    load_subdivision2_geos(geo_session, session)
+    load_place_geos(geo_session, session)
+    load_cbsa_geos(geo_session, session)
+
+    return Trackable.catalog_updates()
 
 
 def load_country_geos(geo_session, session):
@@ -184,7 +184,7 @@ def load_subdivision2_geos(geo_session, session):
             prior_stusps = stusps
 
         name = r.ghrp_name
-        lsad = LSAD.get_map()[r.ghrp_lsadc].display
+        lsad = LSAD.get_by('lsad_code', r.ghrp_lsadc).display
 
         g = Geo(name=name, path_parent=state, parents=[state])
 
