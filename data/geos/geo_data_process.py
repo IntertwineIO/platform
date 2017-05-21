@@ -17,6 +17,7 @@ from data.geos.models import (BaseGeoDataModel,
                               LSAD, Geoclass,  # Keep - used in globals()
                               GHRP)
 from intertwine.trackable import Trackable
+from intertwine.trackable.exceptions import KeyRegisteredAndNoModify
 from intertwine.utils.structures import PeekableIterator
 from intertwine.geos.models import (
     BaseGeoModel, Geo, GeoData, GeoLevel, GeoID,
@@ -249,7 +250,7 @@ def load_subdivision2_geos(geo_session, session):
     # TODO: Consolidate Guam county into Guam the territory
 
 
-def load_subdivision3_geos(geo_session, session):
+def load_subdivision3_geos(geo_session, session, sub1keys=None):
     CountySubdivisionRecord = namedtuple(
         'CountySubdivisionRecord',
         'ghrp_name, ghrp_lsadc, ghrp_statefp, '
@@ -261,22 +262,37 @@ def load_subdivision3_geos(geo_session, session):
                              fields=CountySubdivisionRecord._fields)
 
     # U.S. county subdivisions including independent cities
-    records = (geo_session.query(GHRP)
-               # State-County-County Subdivision
-               .filter(GHRP.sumlev == '060', GHRP.geocomp == '00',
-                       # GHRP.statefp == '11',
-                       # GHRP.countyid == '25021',  # Norfolk County, MA
-                       # GHRP.statefp == '72',
-                       # GHRP.countyid == '19013',  # Black Hawk County, IA
-                       )
-               .order_by(GHRP.statefp, GHRP.countyid, GHRP.cousubid)
-               .values(*columns))
+    if sub1keys:
+        statefps = [State.get_by('stusps', k).statefp for k in sub1keys]
+        records = (geo_session.query(GHRP)
+                   # State-County-County Subdivision
+                   .filter(GHRP.sumlev == '060', GHRP.geocomp == '00',
+                           GHRP.statefp.in_(statefps))
+                   .order_by(GHRP.statefp, GHRP.countyid, GHRP.cousubid)
+                   .values(*columns))
+    else:
+        records = (geo_session.query(GHRP)
+                   # State-County-County Subdivision
+                   .filter(GHRP.sumlev == '060', GHRP.geocomp == '00',
+                           GHRP.statefp == '25',
+                           # GHRP.countyid == '25021',  # Norfolk County, MA
+                           # GHRP.statefp == '72',
+                           # GHRP.countyid == '19013',  # Black Hawk County, IA
+                           )
+                   .order_by(GHRP.statefp, GHRP.countyid, GHRP.cousubid)
+                   .values(*columns))
 
     us = Geo['us']
     state = None
     stusps = prior_stusps = None
+    countyid = prior_countyid = None
     print('Loading county subdivisions and equivalents in...')
     for r in (CountySubdivisionRecord(*record) for record in records):
+
+        # import ipdb; ipdb.set_trace()
+
+        if r.ghrp_cousubns == '00000000':
+            continue
 
         stusps = State.get_by('statefp', r.ghrp_statefp).stusps
         if stusps != prior_stusps:
@@ -285,80 +301,142 @@ def load_subdivision3_geos(geo_session, session):
                                               name=state.name))
             prior_stusps = stusps
 
-        county = GeoID[(FIPS, r.ghrp_countyid)].level.geo
+        countyid = r.ghrp_countyid
+        if countyid != prior_countyid:
+            county = GeoID[(FIPS, r.ghrp_countyid)].level.geo
+            print(u'\t\t{county_name} ({countyid})'.format(
+                county_name=county.name, countyid=r.ghrp_countyid))
+            prior_countyid = countyid
+
         name, lsad = LSAD.deaffix(r.ghrp_name, r.ghrp_lsadc)
 
-        geo_key = Geo.create_key(name=name, path_parent=county)
-        existing_g = Geo.tget(geo_key)
+        cousub_key = Geo.create_key(name=name, path_parent=county)
+        existing_cousub = Geo.tget(cousub_key)
 
-        if not existing_g:
-            g = Geo(name=name,
-                    path_parent=county,
-                    parents=[county, state])
+        qualifier = None
 
-            GeoData(geo=g,
-                    total_pop=r.ghrp_p0020001,
-                    urban_pop=r.ghrp_p0020002,
-                    latitude=r.ghrp_intptlat,
-                    longitude=r.ghrp_intptlon,
+        if not existing_cousub:
+            print('\t\t\t' + name + ' (' + r.ghrp_cousubid + ')')
+
+            cousub = Geo(name=name, path_parent=county,
+                         parents=[county, state])
+
+            GeoData(geo=cousub,
+                    total_pop=r.ghrp_p0020001, urban_pop=r.ghrp_p0020002,
+                    latitude=r.ghrp_intptlat, longitude=r.ghrp_intptlon,
                     land_area=(r.ghrp_arealand * 1.0) / 10**6,
                     water_area=(r.ghrp_areawatr * 1.0) / 10**6)
         else:
-            g = (existing_g if not existing_g.alias_target
-                 else existing_g.alias_target)
+            cousub = (existing_cousub if not existing_cousub.alias_target
+                      else existing_cousub.alias_target)
 
-        glvl_key = GeoLevel.create_key(geo=g, level=SUBDIVISION3)
+        glvl_key = GeoLevel.create_key(geo=cousub, level=SUBDIVISION3)
         existing_glvl = GeoLevel.tget(glvl_key)
 
         if not existing_glvl:
-            glvl = GeoLevel(geo=g, level=SUBDIVISION3, designation=lsad)
+            cousub_glvl = GeoLevel(geo=cousub, level=SUBDIVISION3,
+                                   designation=lsad)
 
-            if existing_g:
-                print('\t\tAdding level to existing geo: {}'
-                      .format(glvl.trepr()))  # DC only
+            if existing_cousub:
+                print('\t\t\tAdding level to existing geo: {}'
+                      .format(cousub_glvl.trepr()))  # DC only
 
-        elif existing_glvl.designation != lsad:
-            # There are 2 cousubs with the same name in the same county!
-            # e.g. Cedar Falls city vs. township, Black Hawk County, IA
-            # Each will have its qualifier set to the lsad
-            # An alias without a qualifier will point to the larger one
+        else:
+            # There's an existing glvl, hence an existing geo, so a new
+            # cousub must be created. Moreover, there are 2 cousubs with
+            # the same name in the same county! e.g. Cedar Falls city
+            # vs. township, Black Hawk County, IA. Each will have its
+            # qualifier set to the lsad. An alias without a qualifier
+            # will point to the larger one.
+            assert existing_glvl.designation != lsad
+            qualifier = lsad
 
-            alias = existing_g if existing_g.alias_target else None
-            existing_g = existing_g.alias_target if alias else existing_g
-            existing_g.qualifier = existing_glvl.designation
+            cousub_alias = (existing_cousub if existing_cousub.alias_target
+                            else None)
+            existing_cousub = (existing_cousub.alias_target if cousub_alias
+                               else existing_cousub)
+            existing_cousub.qualifier = existing_glvl.designation
 
-            g = Geo(name=name,
-                    qualifier=lsad,
-                    path_parent=county,
-                    parents=[county, state])
+            cousub = Geo(name=name, qualifier=qualifier,
+                         path_parent=county, parents=[county, state])
 
-            GeoData(geo=g,
-                    total_pop=r.ghrp_p0020001,
-                    urban_pop=r.ghrp_p0020002,
-                    latitude=r.ghrp_intptlat,
-                    longitude=r.ghrp_intptlon,
+            GeoData(geo=cousub,
+                    total_pop=r.ghrp_p0020001, urban_pop=r.ghrp_p0020002,
+                    latitude=r.ghrp_intptlat, longitude=r.ghrp_intptlon,
                     land_area=(r.ghrp_arealand * 1.0) / 10**6,
                     water_area=(r.ghrp_areawatr * 1.0) / 10**6)
 
-            glvl = GeoLevel(geo=g, level=SUBDIVISION3, designation=lsad)
+            cousub_glvl = GeoLevel(geo=cousub, level=SUBDIVISION3,
+                                   designation=lsad)
 
-            larger_g = (g if g.data.total_pop > existing_g.data.total_pop else
-                        existing_g)
+            larger_cousub = Geo.pick_larger_geo(cousub, existing_cousub)
 
-            if alias:
-                alias.alias_target = larger_g
+            if cousub_alias:
+                cousub_alias.alias_target = larger_cousub
 
             else:
-                alias = Geo(
-                    name=name, path_parent=county, alias_target=larger_g)
-                print(u'\t\tMultiple cousubs in same county with same name: {}'
-                      .format(geo_key.human_id))
+                cousub_alias = Geo(name=name, path_parent=county,
+                                   alias_target=larger_cousub)
 
-        GeoID(level=glvl, standard=FIPS, code=r.ghrp_cousubid)
+                print(u'\t\t\tMultiple cousubs in same county with same '
+                      'name: {}'.format(cousub_key.human_id))
+
+        GeoID(level=cousub_glvl, standard=FIPS, code=r.ghrp_cousubid)
 
         ansi = r.ghrp_cousubns
         if ansi is not None and GeoID.tget((ANSI, ansi)) is None:
-            GeoID(level=glvl, standard=ANSI, code=r.ghrp_cousubns)
+            GeoID(level=cousub_glvl, standard=ANSI, code=r.ghrp_cousubns)
+
+        if stusps in State.STATES_WHERE_MCDS_SERVE_AS_PLACES:
+            place_glvl = GeoLevel(geo=cousub, level=PLACE, designation=lsad)
+
+            try:
+                place = Geo(name=name, qualifier=qualifier,
+                            path_parent=state, alias_target=cousub)
+
+            # Name space conflict, so adjust qualifiers
+            except KeyRegisteredAndNoModify:
+                place_key = Geo.create_key(name=name, qualifier=qualifier,
+                                           path_parent=state)
+                conflict = Geo[place_key]
+
+                place_alias = conflict if conflict.alias_target else None
+                existing_place = (conflict.alias_target if place_alias
+                                  else conflict)
+
+                existing_place_designation = (
+                    existing_place.levels[SUBDIVISION3].designation)
+                place_designation = place_glvl.designation
+
+                if place_designation != existing_place_designation:
+                    existing_place.qualifier = existing_place_designation
+                    qualifier = place_designation
+                else:
+                    # county subdivisions are in 1 county by definition
+                    existing_county = existing_place.get_related_geos(
+                        relation='parents', level=SUBDIVISION2)[0]
+                    existing_place.qualifier = ' in '.join(
+                        (existing_place_designation, existing_county.name))
+                    qualifier = ' in '.join((place_designation, county.name))
+
+                # Temporarily an alias until promoted to target
+                place = Geo(name=name, qualifier=qualifier,
+                            path_parent=state, alias_target=cousub)
+
+                # place is still an alias, so need to use cousub
+                larger_place = Geo.pick_larger_geo(cousub, existing_place)
+
+                if place_alias:
+                    place_alias.alias_target = larger_place
+
+                else:
+                    place_alias = Geo(name=name, path_parent=state,
+                                      alias_target=larger_place)
+
+                    print(u'\t\t\tMultiple cousubs in same state with same '
+                          'name: {}'.format(place_key.human_id))
+
+            place.promote_to_alias_target()
 
 
 def load_place_geos(geo_session, session):
