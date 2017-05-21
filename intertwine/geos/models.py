@@ -563,22 +563,51 @@ class Geo(BaseGeoModel):
             plvl += 1
         return ', '.join(geostr)
 
+    @staticmethod
+    def pick_larger_geo(geo1, geo2):
+        larger = geo1 if geo1.data.total_pop > geo2.data.total_pop else geo2
+        return larger
+
+    def get_related_geos(self, relation, level=None):
+        '''
+        Get related geos (e.g. parents/children)
+
+        Given a relation, returns a list of related geos in descending
+        order by total population. Any geos missing data and/or levels
+        (e.g. aliases) are excluded.
+
+        I/O:
+        relation: parents, children, path_children, etc.
+        level=None: filter results by level, if provided
+        '''
+        if relation not in set(('parents', 'children', 'path_children')):
+            raise ValueError('{rel} is not an allowed value for relation'
+                             .format(rel=relation))
+        if level:
+            rv = (getattr(self, relation).join(Geo.data).join(Geo.levels)
+                  .filter(GeoLevel.level == level)
+                  .order_by(desc(GeoData.total_pop)).all())
+        else:
+            rv = (getattr(self, relation).join(Geo.data)
+                  .order_by(desc(GeoData.total_pop)).all())
+
+        return rv
+
     def jsonify_related_geos(self, relation, **json_kwargs):
         '''
         Jsonify related geos by level
 
-        Given a relation (e.g. parent/child), returns an ordered
+        Given a relation (e.g. parents/children), returns an ordered
         dictionary of geo reprs stratified (keyed) by level. The levels
         are ordered top to bottom for children and bottom to top for
         parents. Within each level, the geos are listed in descending
         order by total population. Any geos that are missing data and/or
         levels (e.g. aliases) are excluded.
 
-        The following inputs may be specified:
+        I/O:
         tight=True: make all repr values tight (without whitespace)
-        raw=False: when True, adds extra escapes (for printing)
-        limit=10: caps the number of list items within any geo level;
-                  a negative limit indicates no cap
+        raw=False: when True, add extra escapes (for printing)
+        limit=10: cap list items within each level; no cap if negative
         '''
         limit = json_kwargs['limit']
 
