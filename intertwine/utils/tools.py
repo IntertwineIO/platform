@@ -8,7 +8,7 @@ import re
 import sys
 from functools import partial
 from inspect import getargspec, getargvalues, stack
-from itertools import chain
+from itertools import chain, islice
 from mock import create_autospec
 from numbers import Real
 
@@ -132,6 +132,20 @@ def kwargify(arg_names=None, arg_values=None, kwargs=None,
             del kwargs[key]
 
     return kwargs
+
+
+def nth_key(iterable, n):
+    return next(islice(iterable, n, None))
+
+
+def nth_value(iterable, n):
+    key = nth_key(iterable, n)
+    return iterable[key]
+
+
+def nth_item(iterable, n):
+    key = nth_key(iterable, n)
+    return (key, iterable[key])
 
 
 def stringify(thing, limit=10, _lvl=0):
