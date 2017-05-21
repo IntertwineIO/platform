@@ -19,6 +19,16 @@ class State(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
 
     KEYED_UP_FIELDS = ('name', 'stusps', 'statefp', 'statens')
 
+    STATES_WITH_MCDS = {
+        'AR', 'CT', 'IA', 'IL', 'IN', 'KS', 'LA', 'MA', 'MD', 'ME', 'MI', 'MN',
+        'MO', 'MS', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NY', 'OH', 'PA', 'RI', 'SD',
+        'TN', 'VA', 'VT', 'WI', 'WV', 'PR', 'AS', 'GU', 'MP', 'VI'
+    }
+
+    STATES_WHERE_MCDS_SERVE_AS_PLACES = {
+        'CT', 'ME', 'MA', 'MI', 'MN', 'NH', 'NJ', 'NY', 'PA', 'RI', 'VT', 'WI'
+    }
+
 
 class CBSA(AutoTablenameMixin, BaseGeoDataModel):
     '''Core Based Statistical Area (CBSA)'''
