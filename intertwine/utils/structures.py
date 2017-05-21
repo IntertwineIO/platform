@@ -25,11 +25,16 @@ class Sentinel(object):
         return '<{cls}: {id}>'.format(cls=self.__class__.__name__, id=self.id)
 
 
-class InsertableOrderedDict(object):
+class InsertableOrderedDict(OrderedDict):
     '''InsertableOrderedDict is an OrderedDict that supports insertion'''
     sentinel = Sentinel()
     ValueTuple = namedtuple('InsertableOrderedDictValueTuple',
                             'value, next, prior')
+
+    @property
+    def _dict(self):
+        '''Property for accessing inherited dict'''
+        return super(InsertableOrderedDict, self)
 
     def insert(self, insert_key, key, value, after=False):
         '''
@@ -44,9 +49,9 @@ class InsertableOrderedDict(object):
         '''
         if after:
             prior_key = insert_key
-            next_key = self._iod[insert_key][1]
+            next_key = self._get(insert_key)[1]
         else:
-            prior_key = self._iod[insert_key][-1]
+            prior_key = self._get(insert_key)[-1]
             next_key = insert_key
 
         self._insert_between(prior_key=prior_key, next_key=next_key,
@@ -64,17 +69,17 @@ class InsertableOrderedDict(object):
         if self.get(key, self.sentinel) is not self.sentinel:
             raise KeyError(u"Key already exists: '{}'".format(key))
 
-        self._iod[key] = value, next_key, prior_key
+        self._setitem(key, (value, next_key, prior_key))
 
         if next_key is not self.sentinel:
-            next_item = self._iod[next_key]
-            self._iod[next_key] = (next_item[0], next_item[1], key)
+            next_item = self._get(next_key)
+            self._setitem(next_key, (next_item[0], next_item[1], key))
         else:
             self._end = key
 
         if prior_key is not self.sentinel:
-            prior_item = self._iod[prior_key]
-            self._iod[prior_key] = (prior_item[0], key, prior_item[-1])
+            prior_item = self._get(prior_key)
+            self._setitem(prior_key, (prior_item[0], key, prior_item[-1]))
         else:
             self._beg = key
 
@@ -85,47 +90,55 @@ class InsertableOrderedDict(object):
         cls = self.__class__.__name__
         return u'{cls}({tuples})'.format(cls=cls, tuples=tuple(self.items()))
 
-    def __len__(self):
-        return len(self._iod)
+    def _get(self, key, default=None):
+        return self._dict.get(key, default)
+
+    def get(self, key, default=None):
+        item = self._get(key, self.sentinel)
+        return item[0] if item is not self.sentinel else default
+
+    def _getitem(self, key):
+        return self._dict.__getitem__(key)
 
     def __getitem__(self, key):
-        return self._iod[key][0]
+        return self._getitem(key)[0]
+
+    def _setitem(self, key, value):
+        self._dict.__setitem__(key, value)
 
     def __setitem__(self, key, value):
         try:
-            item = self._iod[key]
-            self._iod[key] = (value, item[1], item[-1])
+            item = self._getitem(key)
+            self._setitem(key, (value, item[1], item[-1]))
         except KeyError:
             self.append(key, value)
 
+    def _delitem(self, key):
+        self._dict.__delitem__(key)
+
     def __delitem__(self, key):
-        _, next_key, prior_key = self._iod[key]
+        _, next_key, prior_key = self._getitem(key)
         if next_key is not self.sentinel:
-            next_item = self._iod[next_key]
-            self._iod[next_key] = (next_item[0], next_item[1], prior_key)
+            next_item = self._getitem(next_key)
+            self._setitem(next_key, (next_item[0], next_item[1], prior_key))
         else:
             self._end = prior_key
 
         if prior_key is not self.sentinel:
-            prior_item = self._iod[prior_key]
-            self._iod[prior_key] = (prior_item[0], next_key, prior_item[-1])
+            prior_item = self._getitem(prior_key)
+            self._setitem(prior_key, (prior_item[0], next_key, prior_item[-1]))
         else:
             self._beg = next_key
 
-        del self._iod[key]
+        self._delitem(key)
 
-    def __contains__(self, key):
-        return key in self._iod
-
-    def has_key(self, key):
-        return key in self._iod
-
-    def get(self, key, default=None):
-        item = self._iod.get(key, self.sentinel)
-        return item[0] if item is not self.sentinel else default
+    def pop(self, key):
+        pop_value = self[key]
+        del self[key]
+        return pop_value
 
     def clear(self):
-        self._iod.clear()
+        self._dict.clear()
         self._beg = self.sentinel
         self._end = self.sentinel
 
@@ -133,42 +146,37 @@ class InsertableOrderedDict(object):
         key = self._beg
         while key is not self.sentinel:
             yield key
-            key = self._iod[key][1]
+            key = self._getitem(key)[1]
 
     def __reversed__(self):
         key = self._end
         while key is not self.sentinel:
             yield key
-            key = self._iod[key][-1]
+            key = self._getitem(key)[-1]
 
     def reverse(self):
-        for key, item in self._iod.items():
-            self._iod[key] = (item[0], item[-1], item[1])
+        for key in tuple(self.keys()):  # copy keys to permit rewiring
+            item = self._getitem(key)
+            self._setitem(key, (item[0], item[-1], item[1]))
         self._beg, self._end = self._end, self._beg
 
     def items(self):
+        '''item generator (python 3 style)'''
         key = self._beg
         while key is not self.sentinel:
-            yield (key, self._iod[key][0])
-            key = self._iod[key][1]
+            yield (key, self._getitem(key)[0])
+            key = self._getitem(key)[1]
 
     def keys(self):
+        '''key generator (python 3 style)'''
         return self.__iter__()
 
     def values(self):
+        '''value generator (python 3 style)'''
         key = self._beg
         while key is not self.sentinel:
-            yield self._iod[key][0]
-            key = self._iod[key][1]
-
-    # def items(self):
-    #     return [item for item in self.iteritems()]
-
-    # def keys(self):
-    #     return [key for key in self.iterkeys()]
-
-    # def values(self):
-    #     return [value for value in self.itervalues()]
+            yield self._getitem(key)[0]
+            key = self._getitem(key)[1]
 
     def __eq__(self, other):
         if len(self) != len(other):
@@ -181,7 +189,7 @@ class InsertableOrderedDict(object):
         return not self.__eq__(other)
 
     def _initialize(self, _iter_or_map, _as_iter):
-        self._iod = {}
+        # self._dict = {}
         s = self.sentinel
         keygetter = itemgetter(0) if _as_iter else lambda x: x
         valgetter = itemgetter(1) if _as_iter else lambda x: _iter_or_map[x]
@@ -190,19 +198,19 @@ class InsertableOrderedDict(object):
         prior_key = s
         for obj in peekable:
             key, value = keygetter(obj), valgetter(obj)
-            if self._iod.get(key, s) is not s:
+            if self.get(key, s) is not s:
                 raise KeyError(u"Duplicate key: '{}'".format(key))
             next_key = keygetter(peekable.peek()) if peekable.has_next() else s
-            self._iod[key] = (value, next_key, prior_key)
+            self._setitem(key, (value, next_key, prior_key))
             prior_key = key
         self._end = key if self._beg is not s else s
 
     def __init__(self, _iter_or_map=(), *args, **kwds):
+        super(InsertableOrderedDict, self).__init__(*args, **kwds)
         try:
             self._initialize(_iter_or_map, _as_iter=True)
-        except IndexError:
+        except (IndexError, TypeError):
             self._initialize(_iter_or_map, _as_iter=False)
-        super(InsertableOrderedDict, self).__init__(*args, **kwds)
 
 
 class MultiKeyMap(object):
