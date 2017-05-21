@@ -12,7 +12,8 @@ class TrackableException(Exception):
         template = message if message else ' '.join(self.__doc__.split())
         message = template.format(**kwds) if kwds else (
             template.format(*args) if args else template)
-        log.error(message)
+        # No handlers could be found for logger "intertwine.trackable.exceptions"
+        # log.error(message)
         # TODO: Change to super() once on Python 3.6
         Exception.__init__(self, message)
 
