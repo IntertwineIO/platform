@@ -49,9 +49,9 @@ class InsertableOrderedDict(OrderedDict):
         '''
         if after:
             prior_key = insert_key
-            next_key = self._get(insert_key)[1]
+            next_key = self._get(insert_key).next
         else:
-            prior_key = self._get(insert_key)[-1]
+            prior_key = self._get(insert_key).prior
             next_key = insert_key
 
         self._insert_between(prior_key=prior_key, next_key=next_key,
@@ -69,17 +69,19 @@ class InsertableOrderedDict(OrderedDict):
         if self.get(key, self.sentinel) is not self.sentinel:
             raise KeyError(u"Key already exists: '{}'".format(key))
 
-        self._setitem(key, (value, next_key, prior_key))
+        self._setitem(key, self.ValueTuple(value, next_key, prior_key))
 
         if next_key is not self.sentinel:
             next_item = self._get(next_key)
-            self._setitem(next_key, (next_item[0], next_item[1], key))
+            self._setitem(next_key, self.ValueTuple(
+                next_item.value, next_item.next, key))
         else:
             self._end = key
 
         if prior_key is not self.sentinel:
             prior_item = self._get(prior_key)
-            self._setitem(prior_key, (prior_item[0], key, prior_item[-1]))
+            self._setitem(prior_key, self.ValueTuple(
+                prior_item.value, key, prior_item.prior))
         else:
             self._beg = key
 
@@ -94,14 +96,16 @@ class InsertableOrderedDict(OrderedDict):
         return self._dict.get(key, default)
 
     def get(self, key, default=None):
-        item = self._get(key, self.sentinel)
-        return item[0] if item is not self.sentinel else default
+        try:
+            return self[key]
+        except KeyError:
+            return default
 
     def _getitem(self, key):
         return self._dict.__getitem__(key)
 
     def __getitem__(self, key):
-        return self._getitem(key)[0]
+        return self._getitem(key).value
 
     def _setitem(self, key, value):
         self._dict.__setitem__(key, value)
@@ -109,7 +113,7 @@ class InsertableOrderedDict(OrderedDict):
     def __setitem__(self, key, value):
         try:
             item = self._getitem(key)
-            self._setitem(key, (value, item[1], item[-1]))
+            self._setitem(key, self.ValueTuple(value, item.next, item.prior))
         except KeyError:
             self.append(key, value)
 
@@ -120,13 +124,15 @@ class InsertableOrderedDict(OrderedDict):
         _, next_key, prior_key = self._getitem(key)
         if next_key is not self.sentinel:
             next_item = self._getitem(next_key)
-            self._setitem(next_key, (next_item[0], next_item[1], prior_key))
+            self._setitem(next_key, self.ValueTuple(
+                next_item.value, next_item.next, prior_key))
         else:
             self._end = prior_key
 
         if prior_key is not self.sentinel:
             prior_item = self._getitem(prior_key)
-            self._setitem(prior_key, (prior_item[0], next_key, prior_item[-1]))
+            self._setitem(prior_key, self.ValueTuple(
+                prior_item.value, next_key, prior_item.prior))
         else:
             self._beg = next_key
 
@@ -146,26 +152,28 @@ class InsertableOrderedDict(OrderedDict):
         key = self._beg
         while key is not self.sentinel:
             yield key
-            key = self._getitem(key)[1]
+            key = self._getitem(key).next
 
     def __reversed__(self):
         key = self._end
         while key is not self.sentinel:
             yield key
-            key = self._getitem(key)[-1]
+            key = self._getitem(key).prior
 
     def reverse(self):
-        for key in tuple(self.keys()):  # copy keys to permit rewiring
+        # copy keys to permit rewiring during iteration
+        for key in tuple(self.keys()):
             item = self._getitem(key)
-            self._setitem(key, (item[0], item[-1], item[1]))
+            self._setitem(key, self.ValueTuple(
+                item.value, item.prior, item.next))
         self._beg, self._end = self._end, self._beg
 
     def items(self):
         '''item generator (python 3 style)'''
         key = self._beg
         while key is not self.sentinel:
-            yield (key, self._getitem(key)[0])
-            key = self._getitem(key)[1]
+            yield (key, self._getitem(key).value)
+            key = self._getitem(key).next
 
     def keys(self):
         '''key generator (python 3 style)'''
@@ -175,8 +183,8 @@ class InsertableOrderedDict(OrderedDict):
         '''value generator (python 3 style)'''
         key = self._beg
         while key is not self.sentinel:
-            yield self._getitem(key)[0]
-            key = self._getitem(key)[1]
+            yield self._getitem(key).value
+            key = self._getitem(key).next
 
     def __eq__(self, other):
         if len(self) != len(other):
@@ -190,20 +198,22 @@ class InsertableOrderedDict(OrderedDict):
 
     def _initialize(self, _iter_or_map, _as_iter):
         # self._dict = {}
-        s = self.sentinel
+        sentinel = self.sentinel
         keygetter = itemgetter(0) if _as_iter else lambda x: x
         valgetter = itemgetter(1) if _as_iter else lambda x: _iter_or_map[x]
-        peekable = PeekableIterator(_iter_or_map, sentinel=s)
-        self._beg = keygetter(peekable.peek()) if peekable.has_next() else s
-        prior_key = s
+        peekable = PeekableIterator(_iter_or_map, sentinel=sentinel)
+        self._beg = (keygetter(peekable.peek()) if peekable.has_next()
+                     else sentinel)
+        prior_key = sentinel
         for obj in peekable:
             key, value = keygetter(obj), valgetter(obj)
-            if self.get(key, s) is not s:
+            if self.get(key, sentinel) is not sentinel:
                 raise KeyError(u"Duplicate key: '{}'".format(key))
-            next_key = keygetter(peekable.peek()) if peekable.has_next() else s
-            self._setitem(key, (value, next_key, prior_key))
+            next_key = (keygetter(peekable.peek()) if peekable.has_next()
+                        else sentinel)
+            self._setitem(key, self.ValueTuple(value, next_key, prior_key))
             prior_key = key
-        self._end = key if self._beg is not s else s
+        self._end = key if self._beg is not sentinel else sentinel
 
     def __init__(self, _iter_or_map=(), *args, **kwds):
         super(InsertableOrderedDict, self).__init__(*args, **kwds)
