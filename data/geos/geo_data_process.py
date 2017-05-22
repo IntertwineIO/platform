@@ -274,7 +274,7 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None):
         records = (geo_session.query(GHRP)
                    # State-County-County Subdivision
                    .filter(GHRP.sumlev == '060', GHRP.geocomp == '00',
-                           GHRP.statefp == '25',
+                           # GHRP.statefp == '25',
                            # GHRP.countyid == '25021',  # Norfolk County, MA
                            # GHRP.statefp == '72',
                            # GHRP.countyid == '19013',  # Black Hawk County, IA
@@ -310,14 +310,12 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None):
 
         name, lsad = LSAD.deaffix(r.ghrp_name, r.ghrp_lsadc)
 
-        cousub_key = Geo.create_key(name=name, path_parent=county)
-        existing_cousub = Geo.tget(cousub_key)
+        print('\t\t\t' + name + ' (' + r.ghrp_cousubid + ')')
 
+        cousub = existing_cousub = None
         qualifier = None
 
-        if not existing_cousub:
-            print('\t\t\t' + name + ' (' + r.ghrp_cousubid + ')')
-
+        try:
             cousub = Geo(name=name, path_parent=county,
                          parents=[county, state])
 
@@ -326,14 +324,17 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None):
                     latitude=r.ghrp_intptlat, longitude=r.ghrp_intptlon,
                     land_area=(r.ghrp_arealand * 1.0) / 10**6,
                     water_area=(r.ghrp_areawatr * 1.0) / 10**6)
-        else:
+
+        except KeyRegisteredAndNoModify:
+            cousub_key = Geo.create_key(name=name, path_parent=county)
+            existing_cousub = Geo.tget(cousub_key)
+            assert existing_cousub
             cousub = (existing_cousub if not existing_cousub.alias_target
                       else existing_cousub.alias_target)
 
-        glvl_key = GeoLevel.create_key(geo=cousub, level=SUBDIVISION3)
-        existing_glvl = GeoLevel.tget(glvl_key)
+        cousub_glvl = existing_glvl = None
 
-        if not existing_glvl:
+        try:
             cousub_glvl = GeoLevel(geo=cousub, level=SUBDIVISION3,
                                    designation=lsad)
 
@@ -341,13 +342,15 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None):
                 print('\t\t\tAdding level to existing geo: {}'
                       .format(cousub_glvl.trepr()))  # DC only
 
-        else:
+        except KeyRegisteredAndNoModify:
             # There's an existing glvl, hence an existing geo, so a new
             # cousub must be created. Moreover, there are 2 cousubs with
             # the same name in the same county! e.g. Cedar Falls city
             # vs. township, Black Hawk County, IA. Each will have its
             # qualifier set to the lsad. An alias without a qualifier
             # will point to the larger one.
+            glvl_key = GeoLevel.create_key(geo=cousub, level=SUBDIVISION3)
+            existing_glvl = GeoLevel.tget(glvl_key)
             assert existing_glvl.designation != lsad
             qualifier = lsad
 
