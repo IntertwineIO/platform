@@ -26,17 +26,16 @@ def test_sentinel():
         assert sentinel is not sentinel0
 
 
-def build_insertable_alphabet_map():
+def build_alphabet_map():
     ord_a = ord('a')
-    iod = InsertableOrderedDict(((chr(ord_a+i), i+1) for i in range(26)))
-    return iod
+    return ((chr(ord_a+i), i+1) for i in range(26))
 
 
 @pytest.mark.unit
 def test_insertable_ordered_dict_init():
     '''Test InsertableOrderedDict initialization'''
     # Initialize InsertableOrderedDict from iterable of 2-tuples
-    iod0 = build_insertable_alphabet_map()
+    iod0 = InsertableOrderedDict(build_alphabet_map())
     assert isinstance(iod0, InsertableOrderedDict)
     assert isinstance(iod0, OrderedDict)
     assert isinstance(iod0, dict)
@@ -73,10 +72,10 @@ def test_insertable_ordered_dict_init():
 @pytest.mark.unit
 def test_insertable_ordered_dict_insert():
     '''Test InsertableOrderedDict via insertions'''
-    iod0 = build_insertable_alphabet_map()
-    iod1 = InsertableOrderedDict(iod0)
-    iod2 = InsertableOrderedDict(iod0)
-    iod3 = InsertableOrderedDict(iod0)
+    iod0 = InsertableOrderedDict(build_alphabet_map())
+    iod1 = iod0.copy()
+    iod2 = iod0.copy()
+    iod3 = iod0.copy()
 
     # Test insertion before/after an element in the middle
     assert nth_item(iod1, 8-1) == ('h', 8)
@@ -111,10 +110,27 @@ def test_insertable_ordered_dict_insert():
 
 
 @pytest.mark.unit
+def test_insertable_ordered_dict_set_and_get():
+    '''Test InsertableOrderedDict set and get'''
+    iod0 = InsertableOrderedDict(build_alphabet_map())
+    iod1 = InsertableOrderedDict()
+
+    od = OrderedDict(build_alphabet_map())
+    assert len(iod0) == len(od)
+
+    for key, value in od.items():
+        assert iod0[key] == value
+        iod1[key] = value
+        assert iod1.get(key) == value
+
+    assert len(iod1) == len(od)
+
+
+@pytest.mark.unit
 def test_insertable_ordered_dict_delete():
     '''Test InsertableOrderedDict delete'''
-    iod0 = build_insertable_alphabet_map()
-    iod1 = InsertableOrderedDict(iod0)
+    iod0 = InsertableOrderedDict(build_alphabet_map())
+    iod1 = iod0.copy()
 
     # Test deletion of last element
     assert nth_item(iod1, 25-1) == ('y', 25)
@@ -142,10 +158,73 @@ def test_insertable_ordered_dict_delete():
 
 
 @pytest.mark.unit
+def test_insertable_ordered_dict_pop():
+    '''Test InsertableOrderedDict pop and popitem'''
+    iod0 = InsertableOrderedDict(build_alphabet_map())
+    iod1 = iod0.copy()
+
+    # Test popitem of last item
+    assert nth_item(iod1, 25-1) == ('y', 25)
+    assert nth_item(iod1, 26-1) == ('z', 26)
+    last_item = iod1.popitem()
+    assert last_item == ('z', 26)
+    assert nth_item(iod1, 25-1) == ('y', 25)
+    assert len(iod1) == len(iod0) - 1
+
+    # Test pop of item in the middle
+    assert nth_item(iod1, 9-1) == ('i', 9)
+    assert nth_item(iod1, 10-1) == ('j', 10)
+    assert nth_item(iod1, 11-1) == ('k', 11)
+    popped_value = iod1.pop('j')
+    assert popped_value == 10
+    assert nth_item(iod1, 9-1) == ('i', 9)
+    assert nth_item(iod1, 10-1) == ('k', 11)
+    assert len(iod1) == len(iod0) - 2
+
+    # Test popitem of first item
+    assert nth_item(iod1, 1-1) == ('a', 1)
+    assert nth_item(iod1, 2-1) == ('b', 2)
+    first_item = iod1.popitem(last=False)
+    assert first_item == ('a', 1)
+    assert nth_item(iod1, 1-1) == ('b', 2)
+    assert nth_item(iod1, 2-1) == ('c', 3)
+    assert len(iod1) == len(iod0) - 3
+
+
+@pytest.mark.unit
+def test_insertable_ordered_dict_iterables():
+    '''Test InsertableOrderedDict set and get'''
+    iod = InsertableOrderedDict(build_alphabet_map())
+
+    od = OrderedDict(build_alphabet_map())
+    od_keys = list(od.keys())
+    od_values = list(od.values())
+    od_items = list(od.items())
+
+    assert len(iod) == len(od)
+
+    for i, key in enumerate(iod):
+        assert key == od_keys[i]
+
+    assert list(iod.keys()) == list(od_keys)
+    for i, key in enumerate(iod.keys()):
+        assert key == od_keys[i]
+
+    assert list(iod.values()) == list(od_values)
+    for i, value in enumerate(iod.values()):
+        assert value == od_values[i]
+
+    assert list(iod.items()) == list(od_items)
+    for i, (key, value) in enumerate(iod.items()):
+        assert key == od_keys[i]
+        assert value == od_values[i]
+
+
+@pytest.mark.unit
 def test_insertable_ordered_dict_reversal():
     '''Test InsertableOrderedDict reverse and reversed'''
-    iod0 = build_insertable_alphabet_map()
-    iod1 = InsertableOrderedDict(iod0)
+    iod0 = InsertableOrderedDict(build_alphabet_map())
+    iod1 = iod0.copy()
     iod1_items = list(iod1.items())
 
     # Test in-place reverse()
