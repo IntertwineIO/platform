@@ -77,9 +77,9 @@ def test_add_rated_problem_connection(session, client, connection_category,
     response_payload = json.loads(response_data)
     root_key = response_payload['root_key']
     rated_connection = response_payload[root_key]
+
     assert rated_connection['adjacent_problem_name'] == problem2_name
     assert rated_connection['aggregation'] == APCR.STRICT
-
     assert rated_connection['community'] == (
         "Community[({problem},{u}'{org}',{geo})]".format(
             problem=problem1.trepr(), u=u_literal, org=org, geo=geo.trepr()))
@@ -88,7 +88,10 @@ def test_add_rated_problem_connection(session, client, connection_category,
                        human_id=Problem.create_key(problem_a_name).human_id))
     problem_b_trepr = ("Problem[{u}'{human_id}']".format(u=u_literal,
                        human_id=Problem.create_key(problem_b_name).human_id))
+
     assert rated_connection['connection'] == (
         "ProblemConnection[({u}'{axis}',{problem_a},{problem_b})]".format(
             u=u_literal, axis=axis,
             problem_a=problem_a_trepr, problem_b=problem_b_trepr))
+
+    assert rated_connection['connection_category'] == connection_category
