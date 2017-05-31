@@ -12,7 +12,6 @@ from operator import attrgetter, itemgetter
 
 from sqlalchemy import Column, Integer, orm
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm.collections import MappedCollection
 from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
 from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
@@ -306,39 +305,45 @@ class Jsonable(object):
 
             value = getattr(self, field)
 
-            if isinstance(value, orm.dynamic.AppenderQuery):
-                items = []
-                self_json[field] = items
-                for i, item in enumerate(value):
-                    item_key = item.trepr(tight=tight, raw=raw)
-                    items.append(item_key)
-                    if field_depth > 0 and item_key not in _json:
-                        item.jsonify(hide_all=field_hide_all,
-                                     depth=field_depth, _path=field_path,
-                                     **json_kwargs)
-                    if i + 1 == limit:
-                        break
-
-            elif hasattr(value, 'jsonify'):
+            if hasattr(value, 'jsonify'):
                 # TODO: Replace trepr with URI
                 item = value
                 item_key = item.trepr(tight=tight, raw=raw)
                 self_json[field] = item_key
                 if field_depth > 0 and item_key not in _json:
                     item.jsonify(hide_all=field_hide_all,
-                                 depth=field_depth, _path=field_path,
+                                 depth=field_depth,
+                                 _path=field_path,
                                  **json_kwargs)
-
-            elif (not hasattr(value, '__dict__') or
-                    isinstance(value, MappedCollection)):
-                self_json[field] = value
 
             elif isinstance(value, NonCallableMagicMock):
                 self_json[field] = None
 
             else:
-                raise NotImplementedError('{value} has no jsonify method'
-                                          .format(value=value))
+                try:
+                    if isinstance(value, (str, unicode)):
+                        raise TypeError
+                    # Check if iterable and raise TypeError if not
+                    value_iterator = iter(value)
+                    items = []
+                    self_json[field] = items
+                    for i, item in enumerate(value_iterator):
+                        if hasattr(item, 'jsonify'):
+                            item_key = item.trepr(tight=tight, raw=raw)
+                            items.append(item_key)
+                            if field_depth > 0 and item_key not in _json:
+                                item.jsonify(hide_all=field_hide_all,
+                                             depth=field_depth,
+                                             _path=field_path,
+                                             **json_kwargs)
+                        else:
+                            items.append(item)
+
+                        if i + 1 == limit:
+                            break
+
+                except TypeError:
+                    self_json[field] = value
 
         return self_json if nest else _json
 
