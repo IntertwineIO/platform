@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-
 from collections import OrderedDict, namedtuple
+from functools import reduce
 
 from sqlalchemy import Column, ForeignKey, Index, Table, desc, orm, types
 from sqlalchemy.orm.collections import attribute_mapped_collection
@@ -17,10 +17,17 @@ from intertwine.utils.tools import define_constants_at_module_scope
 BaseGeoModel = IntertwineModel
 
 
-geo_association_table = Table(
-    'geo_association', BaseGeoModel.metadata,
+geo_parent_child_association_table = Table(
+    'geo_parent_child_association', BaseGeoModel.metadata,
     Column('parent_id', types.Integer, ForeignKey('geo.id')),
     Column('child_id', types.Integer, ForeignKey('geo.id'))
+)
+
+
+geo_alias_association_table = Table(
+    'geo_alias_association', BaseGeoModel.metadata,
+    Column('alias_target_id', types.Integer, ForeignKey('geo.id')),
+    Column('alias_id', types.Integer, ForeignKey('geo.id'))
 )
 
 
@@ -124,14 +131,20 @@ class Geo(BaseGeoModel):
         name='display', after='human_id', method='display', kwargs=dict(
             max_path=1, show_the=True, show_abbrev=False, abbrev_path=True))
 
-    alias_target_id = Column(types.Integer, ForeignKey('geo.id'))
-    _alias_target = orm.relationship(
+    _alias_targets = orm.relationship(
         'Geo',
-        primaryjoin=('Geo.alias_target_id==Geo.id'),
-        remote_side='Geo.id',
-        backref=orm.backref('aliases', lazy='dynamic'),
+        secondary='geo_alias_association',
+        primaryjoin='Geo.id==geo_alias_association.c.alias_id',
+        secondaryjoin='Geo.id==geo_alias_association.c.alias_target_id',
         lazy='joined',
-        post_update=True)  # Needed to avoid CircularDependencyError
+        # post_update=True,  # Needed to avoid CircularDependencyError?
+        # order_by='desc(Geo.data.total_pop)',
+        # order_by=lambda: desc(Geo.data.total_pop),
+        backref=orm.backref(
+            '_aliases',
+            lazy='dynamic',
+            order_by='Geo.name',
+        ))
 
     _data = orm.relationship('GeoData', uselist=False, back_populates='_geo')
 
@@ -168,9 +181,9 @@ class Geo(BaseGeoModel):
 
     parents = orm.relationship(
         'Geo',
-        secondary='geo_association',
-        primaryjoin='Geo.id==geo_association.c.child_id',
-        secondaryjoin='Geo.id==geo_association.c.parent_id',
+        secondary='geo_parent_child_association',
+        primaryjoin='Geo.id==geo_parent_child_association.c.child_id',
+        secondaryjoin='Geo.id==geo_parent_child_association.c.parent_id',
         lazy='dynamic',
         # collection_class=attribute_mapped_collection('up_level_key'),
         backref=orm.backref(
@@ -204,7 +217,7 @@ class Geo(BaseGeoModel):
             key = Geo.create_key(name=val,
                                  qualifier=self.qualifier,
                                  path_parent=self.path_parent,
-                                 alias_target=self.alias_target)
+                                 alias_targets=self.alias_targets)
             self.human_id = key.human_id
         nstr = val.lower()
         self.uses_the = (nstr.find('states') > -1 or
@@ -225,7 +238,7 @@ class Geo(BaseGeoModel):
             key = Geo.create_key(name=self.name, abbrev=val,
                                  qualifier=self.qualifier,
                                  path_parent=self.path_parent,
-                                 alias_target=self.alias_target)
+                                 alias_targets=self.alias_targets)
             self.human_id = key.human_id
         self._abbrev = val  # set abbrev last
 
@@ -241,7 +254,7 @@ class Geo(BaseGeoModel):
             key = Geo.create_key(name=self.name, abbrev=self.abbrev,
                                  qualifier=val,
                                  path_parent=self.path_parent,
-                                 alias_target=self.alias_target)
+                                 alias_targets=self.alias_targets)
             self.human_id = key.human_id
         self._qualifier = val  # set qualifier last
 
@@ -257,21 +270,54 @@ class Geo(BaseGeoModel):
             key = Geo.create_key(name=self.name, abbrev=self.abbrev,
                                  qualifier=self.qualifier,
                                  path_parent=val,
-                                 alias_target=self.alias_target)
+                                 alias_targets=self.alias_targets)
             self.human_id = key.human_id
         self._path_parent = val
 
     path_parent = orm.synonym('_path_parent', descriptor=path_parent)
 
     @property
-    def alias_target(self):
-        return self._alias_target
+    def alias_targets(self):
+        return sorted(self._alias_targets, reverse=True,
+                      key=lambda g: g.data.total_pop if g.data else -1)
 
-    @alias_target.setter
-    def alias_target(self, val):
-        if val is None:
-            self._alias_target = None
-            return
+    @alias_targets.setter
+    def alias_targets(self, alias_targets):
+        current_targets = set(self._alias_targets)
+        new_targets = set(alias_targets)
+
+        removed_targets = current_targets - new_targets
+        for alias_target in removed_targets:
+            self.remove_alias_target(alias_target)
+
+        added_targets = new_targets - current_targets
+        for alias_target in added_targets:
+            self.add_alias_target(alias_target)
+
+    alias_targets = orm.synonym('_alias_targets', descriptor=alias_targets)
+
+    @property
+    def aliases(self):
+        return self._aliases
+
+    @aliases.setter
+    def aliases(self, aliases):
+        current_aliases = set(self._aliases)
+        new_aliases = set(aliases)
+
+        removed_aliases = current_aliases - new_aliases
+        for alias in removed_aliases:
+            alias.remove_alias_target(self)
+
+        added_aliases = new_aliases - current_aliases
+        for alias in added_aliases:
+            alias.add_alias_target(self)
+
+    aliases = orm.synonym('_aliases', descriptor=aliases)
+
+    def add_alias_target(self, val):
+        if val is self:
+            raise CircularReference(attr='alias_target', inst=self, value=val)
 
         aliases = self.aliases.all()
         if aliases:
@@ -279,27 +325,81 @@ class Geo(BaseGeoModel):
                 val.promote_to_alias_target()
             else:
                 for alias in aliases:
-                    alias.alias_target = val  # recurse on each alias
-                self.alias_target = val  # recurse on self w/o any alias
+                    alias.add_alias_target(val)  # recurse on each alias
+                self.add_alias_target(val)  # recurse on self w/o any aliases
             return
+        # all aliases of self have been redirected to val
+        assert not aliases
+        # val cannot be an alias as self would then be an alias of an alias
+        assert not val.alias_targets
 
-        # if val is an alias of some other geo, redirect to that geo
-        if val.alias_target is not None:
-            val = val.alias_target
-            # an alias cannot itself have an alias
-            assert val.alias_target is None
-
-        if val == self:
-            raise CircularReference(attr='alias_target', inst=self, value=val)
-
-        # if self is becoming an alias
-        if self.alias_target is None:  # and val is not None
-            # Transfer non-path references; aliases may be path parents
+        # if self is becoming an alias, transfer references
+        if not self.alias_targets:
             self.transfer_references(val)
 
-        self._alias_target = val
+        self._alias_targets.append(val)
 
-    alias_target = orm.synonym('_alias_target', descriptor=alias_target)
+    def remove_alias_target(self, val):
+        self._alias_targets.remove(val)
+
+    def promote_to_alias_target(self):
+        '''
+        Promote alias to alias_target
+
+        Convert an alias (A) with one target (B) into an alias target.
+        The existing target (B) is converted into an alias of the new
+        target (A), transferring references in the process. All
+        aliases of the existing target (B) become aliases of the new
+        target (A). Has no effect if the geo (A) is not an alias. The
+        alias (A) may not have multiple targets because each target
+        could have its own set of references, so data would be lost.
+        '''
+        alias_targets = self.alias_targets
+        if not alias_targets:  # self is already an alias_target
+            return
+
+        if len(alias_targets) > 1:
+            raise ValueError('An alias for multiple geos cannot be promoted')
+
+        at = alias_targets[0]
+        # an alias cannot itself have an alias
+        assert not at.alias_targets
+
+        self.alias_targets = []
+        for alias in at.aliases.all():
+            alias.remove_alias_target(at)
+            alias.add_alias_target(self)
+
+        # transfer references occurs here
+        at.add_alias_target(self)
+
+    def transfer_references(self, geo):
+        '''
+        Transfer references
+
+        Utility function for transferring references to another geo, for
+        example, when making a geo an alias of another geo. Path
+        references remain unchanged.
+        '''
+        attributes = {'parents': ('dynamic', []),
+                      'children': ('dynamic', []),
+                      'data': ('not dynamic', None),
+                      'levels': ('not dynamic', {})}
+
+        for attr, (load, empty) in attributes.items():
+            # load, rel = attributes[attr]
+            self_attr_val = getattr(self, attr)
+            if load == 'dynamic':
+                self_attr_val = self_attr_val.all()
+            if self_attr_val:
+                geo_attr_val = getattr(geo, attr)
+                if load == 'dynamic':
+                    geo_attr_val = geo_attr_val.all()
+                if geo_attr_val:
+                    raise AttributeConflict(inst1=self, attr1=attr,
+                                            inst2=geo, attr2=attr)
+                setattr(geo, attr, self_attr_val)
+                setattr(self, attr, empty)
 
     @property
     def human_id(self):
@@ -326,7 +426,7 @@ class Geo(BaseGeoModel):
             key = Geo.create_key(name=pc.name, abbrev=pc.abbrev,
                                  qualifier=pc.qualifier,
                                  path_parent=self,
-                                 alias_target=pc.alias_target)
+                                 alias_targets=pc.alias_targets)
             pc.human_id = key.human_id
     human_id = orm.synonym('_human_id', descriptor=human_id)
 
@@ -380,7 +480,7 @@ class Geo(BaseGeoModel):
 
     @classmethod
     def create_key(cls, name=None, abbrev=None, qualifier=None,
-                   path_parent=None, alias_target=None, **kwds):
+                   path_parent=None, alias_targets=None, **kwds):
         '''
         Create Trackable key (human_id 1-tupled) for a geo
 
@@ -389,12 +489,16 @@ class Geo(BaseGeoModel):
         abbreviation is provided, it replaces the name in the key.
 
         If a qualifier is provided, it is appended, delimited by a
-        space. If an alias_target and no path_parent is provided, the
+        space. If no path_parent and a single alias_target, the
         path_parent of the alias_target is used instead. Prohibited
         characters and sequences are either replaced or removed.
         '''
-        if path_parent is None and alias_target is not None:
-            path_parent = alias_target.path_parent
+        if path_parent is None and alias_targets:
+            if len(alias_targets) > 1:
+                raise ValueError('Path parent must be provided if '
+                                 'multiple alias targets')
+            path_parent = alias_targets[0].path_parent
+
         path = path_parent.human_id + Geo.PATH_DELIMITER if path_parent else ''
         nametag = u'{abbrev_or_name}{qualifier}'.format(
             abbrev_or_name=abbrev if abbrev else name,
@@ -408,23 +512,34 @@ class Geo(BaseGeoModel):
         return self.__class__.Key(self.human_id)
 
     def __init__(self, name, abbrev=None, qualifier=None, path_parent=None,
-                 alias_target=None, uses_the=None, data=None, levels=None,
-                 parents=None, children=None, child_data_level=None):
+                 alias_targets=None, aliases=None, uses_the=None,
+                 parents=None, children=None, data=None, levels=None,
+                 child_data_level=None):
         self.name = name
         if uses_the is not None:  # Override calculated value, if provided
             self.uses_the = uses_the
         self.abbrev = abbrev
         self.qualifier = qualifier
-        if path_parent is None and alias_target is not None:
-            path_parent = alias_target.path_parent
+
+        if path_parent is None and alias_targets:
+            if len(alias_targets) > 1:
+                raise ValueError('Path parent must be provided if '
+                                 'multiple alias targets')
+            path_parent = alias_targets[0].path_parent
+
         self.path_parent = path_parent
-        self.alias_target = alias_target
+
+        if alias_targets and aliases:
+            raise ValueError('An alias may not have any aliases')
+        self.alias_targets = alias_targets or []
+        self.aliases = aliases or []
+
         key = Geo.create_key(name=self.name, abbrev=self.abbrev,
                              qualifier=self.qualifier,
                              path_parent=self.path_parent,
-                             alias_target=self.alias_target)
+                             alias_targets=self.alias_targets)
         self.human_id = key.human_id
-        # if self.alias_target is not None:
+        # if self.alias_targets:
         #     return
 
         self.parents = parents or []
@@ -466,54 +581,6 @@ class Geo(BaseGeoModel):
 
     # __setitem__ is unnecessary and would be awkward since the key must
     # always be derived from the value
-
-    def transfer_references(self, geo):
-        '''
-        Transfer references
-
-        Utility function for transferring references to another geo, for
-        example, when making a geo an alias of another geo. Path
-        references remain unchanged.
-        '''
-        attributes = {'parents': ('dynamic', []),
-                      'children': ('dynamic', []),
-                      'data': ('not dynamic', None),
-                      'levels': ('not dynamic', {})}
-
-        for attr, (load, empty) in attributes.items():
-            # load, rel = attributes[attr]
-            self_attr_val = getattr(self, attr)
-            if load == 'dynamic':
-                self_attr_val = self_attr_val.all()
-            if self_attr_val:
-                geo_attr_val = getattr(geo, attr)
-                if load == 'dynamic':
-                    geo_attr_val = geo_attr_val.all()
-                if geo_attr_val:
-                    raise AttributeConflict(inst1=self, attr1=attr,
-                                            inst2=geo, attr2=attr)
-                setattr(geo, attr, self_attr_val)
-                setattr(self, attr, empty)
-
-    def promote_to_alias_target(self):
-        '''
-        Promote alias to alias_target
-
-        Used to convert an alias into an alias_target. The existing
-        alias_target is converted into an alias of the new alias_target.
-        Has no effect if the geo is already an alias_target.
-        '''
-        at = self.alias_target
-        if at is None:  # self is already an alias_target
-            return
-        # an alias cannot itself have an alias
-        assert at.alias_target is None
-
-        self.alias_target = None
-        aliases = at.aliases.all() + [at]
-        for alias in aliases:
-            # transfer references when alias_target setter called on at
-            alias.alias_target = self
 
     def display(self, show_the=True, show_The=False, show_abbrev=True,
                 show_qualifier=True, abbrev_path=True, max_path=float('Inf'),
@@ -564,9 +631,15 @@ class Geo(BaseGeoModel):
         return ', '.join(geostr)
 
     @staticmethod
-    def pick_larger_geo(geo1, geo2):
-        larger = geo1 if geo1.data.total_pop > geo2.data.total_pop else geo2
-        return larger
+    def sorted(*geos):
+        return sorted(geos, reverse=True,
+                      key=lambda g: g.data.total_pop if g.data else -1)
+
+    @staticmethod
+    def get_largest_geo(*geos):
+        geo_pop_tuples = ((geo, geo.data.total_pop) for geo in geos)
+        largest = reduce(lambda x, y: x if x[1] > y[1] else y, geo_pop_tuples)
+        return largest[0]
 
     def get_related_geos(self, relation, level=None):
         '''

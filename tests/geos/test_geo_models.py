@@ -278,10 +278,10 @@ def test_geo_aliases(session):
     child_geo.path_parent = geo
     child_geo.parents = [geo]
 
-    geo_alias_1 = Geo(name='Test Geo Alias 1', alias_target=geo,
+    geo_alias_1 = Geo(name='Test Geo Alias 1', alias_targets=[geo],
                       path_parent=geo)
-    geo_alias_2 = Geo(name='Test Geo Alias 2', alias_target=geo)
-    geo_alias_3 = Geo(name='Test Geo Alias 3', alias_target=geo)
+    geo_alias_2 = Geo(name='Test Geo Alias 2', alias_targets=[geo])
+    geo_alias_3 = Geo(name='Test Geo Alias 3', alias_targets=[geo])
 
     session.add(geo)
     session.commit()
@@ -297,9 +297,9 @@ def test_geo_aliases(session):
     assert geo_alias_2.path_parent is parent_geo
     assert geo_alias_3.path_parent is parent_geo
 
-    assert geo_alias_1.alias_target is geo
-    assert geo_alias_2.alias_target is geo
-    assert geo_alias_3.alias_target is geo
+    assert geo_alias_1.alias_targets[0] is geo
+    assert geo_alias_2.alias_targets[0] is geo
+    assert geo_alias_3.alias_targets[0] is geo
 
     aliases = geo.aliases.all()
     assert geo_alias_1 in aliases
@@ -315,10 +315,10 @@ def test_geo_aliases(session):
     assert geo_alias_3 in aliases
 
     geo_alias_1.promote_to_alias_target()
-    assert geo_alias_1.alias_target is None
-    assert geo_alias_2.alias_target is geo_alias_1
-    assert geo_alias_3.alias_target is geo_alias_1
-    assert geo.alias_target is geo_alias_1
+    assert not geo_alias_1.alias_targets
+    assert geo_alias_2.alias_targets[0] is geo_alias_1
+    assert geo_alias_3.alias_targets[0] is geo_alias_1
+    assert geo.alias_targets[0] is geo_alias_1
 
     assert geo_alias_1.data is gdata
     assert geo_alias_1.levels[level] is glvl
