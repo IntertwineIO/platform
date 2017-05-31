@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 
 from alchy.model import ModelBase, make_declarative_base
 from sqlalchemy import (orm, types, Column, ForeignKey, Index,
@@ -22,12 +22,14 @@ class State(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
     STATES_WITH_MCDS = {
         'AR', 'CT', 'IA', 'IL', 'IN', 'KS', 'LA', 'MA', 'MD', 'ME', 'MI', 'MN',
         'MO', 'MS', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NY', 'OH', 'PA', 'RI', 'SD',
-        'TN', 'VA', 'VT', 'WI', 'WV', 'PR', 'AS', 'GU', 'MP', 'VI'
-    }
+        'TN', 'VA', 'VT', 'WI', 'WV', 'PR', 'AS', 'GU', 'MP', 'VI'}
+
+    STATES_WITH_MCDS_AS_GOVERNMENTAL_UNITS = {
+        'CT', 'IL', 'IN', 'KS', 'ME', 'MA', 'MI', 'MN', 'MO', 'NE', 'NH', 'NJ',
+        'NY', 'ND', 'OH', 'PA', 'RI', 'SD', 'VT', 'WI'}
 
     STATES_WHERE_MCDS_SERVE_AS_PLACES = {
-        'CT', 'ME', 'MA', 'MI', 'MN', 'NH', 'NJ', 'NY', 'PA', 'RI', 'VT', 'WI'
-    }
+        'CT', 'ME', 'MA', 'MI', 'MN', 'NH', 'NJ', 'NY', 'PA', 'RI', 'VT', 'WI'}
 
 
 class CBSA(AutoTablenameMixin, BaseGeoDataModel):
