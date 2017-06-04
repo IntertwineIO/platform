@@ -49,9 +49,8 @@ def define_constants_at_module_scope(module_name, module_class,
     module = sys.modules[module_name]
 
     for constant_value in constant_values:
-        setattr(
-            module, constant_value.upper().replace(' ', '_'),
-            getattr(module_class, constant_value.upper().replace(' ', '_')))
+        constant_name = constant_value.upper().replace(' ', '_')
+        setattr(module, constant_name, getattr(module_class, constant_name))
 
 
 def kwargify(arg_names=None, arg_values=None, kwargs=None,
