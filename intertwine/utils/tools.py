@@ -41,9 +41,9 @@ def camelCaseTo_snake_case(string):
 def define_constants_at_module_scope(module_name, module_class,
                                      constant_values):
     '''
-    Defines constants at module scope
+    Define constants at module scope
 
-    Enforces naming convention in which constant names match the values,
+    Enforce naming convention in which constant names match the values,
     but are in ALL_CAPS with _'s instead of spaces.
     '''
     module = sys.modules[module_name]
@@ -51,6 +51,28 @@ def define_constants_at_module_scope(module_name, module_class,
     for constant_value in constant_values:
         constant_name = constant_value.upper().replace(' ', '_')
         setattr(module, constant_name, getattr(module_class, constant_name))
+
+
+def isiterator(iterable):
+    '''Determine if an iterable (or any object) is an iterator'''
+    return hasattr(iterable, '__iter__') and not hasattr(iterable, '__len__')
+
+
+def nth_key(iterable, n):
+    '''Return the nth key from an iterable'''
+    return next(islice(iterable, n, None))
+
+
+def nth_value(iterable, n):
+    '''Return the nth value from an iterable'''
+    key = nth_key(iterable, n)
+    return iterable[key]
+
+
+def nth_item(iterable, n):
+    '''Return the nth item from an iterable'''
+    key = nth_key(iterable, n)
+    return (key, iterable[key])
 
 
 def kwargify(arg_names=None, arg_values=None, kwargs=None,
@@ -131,20 +153,6 @@ def kwargify(arg_names=None, arg_values=None, kwargs=None,
             del kwargs[key]
 
     return kwargs
-
-
-def nth_key(iterable, n):
-    return next(islice(iterable, n, None))
-
-
-def nth_value(iterable, n):
-    key = nth_key(iterable, n)
-    return iterable[key]
-
-
-def nth_item(iterable, n):
-    key = nth_key(iterable, n)
-    return (key, iterable[key])
 
 
 def stringify(thing, limit=10, _lvl=0):
