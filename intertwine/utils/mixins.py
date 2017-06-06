@@ -17,7 +17,7 @@ from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 from ..utils.structures import MultiKeyMap
-from ..utils.tools import stringify
+from ..utils.tools import isiterator, stringify
 from .structures import InsertableOrderedDict
 from .tools import camelCaseTo_snake_case, kwargify
 
@@ -67,7 +67,8 @@ class JsonProperty(object):
             merged_kwds.update(kwds)
             rv = func(*args, **merged_kwds)
         else:
-            rv = getattr(obj, self.name)
+            value = getattr(obj, self.name)
+            rv = list(value) if isiterator(value) else value
         return rv
 
 
