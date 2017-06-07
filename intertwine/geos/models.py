@@ -721,6 +721,10 @@ class Geo(BaseGeoModel):
         if val is self:
             raise CircularReference(attr='alias_target', inst=self, value=val)
 
+        alias_targets = self.alias_targets
+        if val in alias_targets:  # nothing to do
+            return
+
         aliases = self.aliases.all()
         if aliases:
             if val in aliases:  # val is an alias of self
@@ -736,7 +740,7 @@ class Geo(BaseGeoModel):
         assert not val.alias_targets
 
         # if self is becoming an alias, transfer references
-        if not self.alias_targets:
+        if not alias_targets:
             self.transfer_references(val)
 
         self._alias_targets.append(val)
@@ -882,17 +886,27 @@ class Geo(BaseGeoModel):
     def level_down_keys(self):
         return (lvl for lvl in GeoLevel.DOWN if lvl in set(self.levels))
 
+    jsonified_level_down_keys = JsonProperty(name='level_down_keys',
+                                             after=LEVELS)
+
     @property
     def level_up_keys(self):
         return (lvl for lvl in GeoLevel.UP if lvl in set(self.levels))
+
+    jsonified_level_up_keys = JsonProperty(name='level_up_keys', show=False)
 
     @property
     def top_level_key(self):
         return next(self.level_down_keys) if self.levels else None
 
+    jsonified_top_level_key = JsonProperty(name='top_level_key', show=False)
+
     @property
     def bottom_level_key(self):
         return next(self.level_up_keys) if self.levels else None
+
+    jsonified_bottom_level_key = JsonProperty(name='bottom_level_key',
+                                              show=False)
 
     Key = namedtuple('GeoKey', (HUMAN_ID,))
 
