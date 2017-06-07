@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import re
 from collections import namedtuple
 
 from alchy.model import ModelBase, make_declarative_base
@@ -30,6 +31,9 @@ class State(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
 
     STATES_WHERE_MCDS_SERVE_AS_PLACES = {
         'CT', 'ME', 'MA', 'MI', 'MN', 'NH', 'NJ', 'NY', 'PA', 'RI', 'VT', 'WI'}
+
+    STATES_WITH_NON_PLACE_COUSUBS = {
+        'AR', 'IL', 'KS', 'LA', 'MD', 'MN', 'MS', 'NC', 'NE', 'TN', 'VA', 'WV'}
 
 
 class CBSA(AutoTablenameMixin, BaseGeoDataModel):
@@ -89,6 +93,8 @@ class Cousub(AutoTablenameMixin, BaseGeoDataModel):
     awater_sqmi = Column(types.Float)                   # 0.286
     intptlat = Column(types.Float)                      # 42.219645
     intptlong = Column(types.Float)                     # -71.216769
+
+    invalid_name_pattern = re.compile(r'\d+')
 
 
 class Place(AutoTablenameMixin, BaseGeoDataModel):
