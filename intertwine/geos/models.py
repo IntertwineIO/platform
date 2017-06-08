@@ -531,7 +531,7 @@ class Geo(BaseGeoModel):
     ALIASES = 'aliases'
     ALIAS_TARGETS = 'alias_targets'
 
-    GEO_RELATIONS = {PARENTS, CHILDREN, PATH_CHILDREN, ALIASES, ALIAS_TARGETS}
+    RELATIONS = {PARENTS, CHILDREN, PATH_CHILDREN, ALIASES, ALIAS_TARGETS}
 
     DYNAMIC = 'dynamic'
     NOT_DYNAMIC = 'not_dynamic'
@@ -1085,7 +1085,7 @@ class Geo(BaseGeoModel):
         relation: parents, children, path_children, etc.
         level=None: filter results by level, if provided
         '''
-        if relation not in self.GEO_RELATIONS:
+        if relation not in self.RELATIONS:
             raise ValueError('{rel} is not an allowed value for relation'
                              .format(rel=relation))
         if level:
@@ -1116,7 +1116,7 @@ class Geo(BaseGeoModel):
         '''
         limit = json_kwargs['limit']
 
-        if relation not in self.GEO_RELATIONS:
+        if relation not in self.RELATIONS:
             raise ValueError('{rel} is not an allowed value for relation'
                              .format(rel=relation))
 
@@ -1158,4 +1158,4 @@ class Geo(BaseGeoModel):
 
 define_constants_at_module_scope(__name__, GeoID, GeoID.STANDARDS)
 define_constants_at_module_scope(__name__, GeoLevel, GeoLevel.DOWN)
-define_constants_at_module_scope(__name__, Geo, Geo.GEO_RELATIONS)
+define_constants_at_module_scope(__name__, Geo, Geo.RELATIONS)
