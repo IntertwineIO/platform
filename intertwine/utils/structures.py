@@ -89,8 +89,8 @@ class InsertableOrderedDict(OrderedDict):
         return self.__class__(self)
 
     def __repr__(self):
-        cls = self.__class__.__name__
-        return u'{cls}({tuples})'.format(cls=cls, tuples=tuple(self.items()))
+        return u'{cls}({tuples})'.format(cls=self.__class__.__name__,
+                                         tuples=tuple(self.items()))
 
     def _get(self, key, default=None):
         return self._dict.get(key, default)
