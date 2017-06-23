@@ -168,10 +168,16 @@ class LSAD(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
     @classmethod
     def deaffix(cls, affixed_name, lsad_code):
         lsad_record = cls.get_by('lsad_code', lsad_code)
+
+        if not lsad_record:
+            return affixed_name, None, None
+
         lsad, affix = lsad_record.display, lsad_record.affix
 
-        if affix is None:
-            return affixed_name, lsad
+        lsad = lsad if lsad else None
+
+        if lsad is None or affix is None:
+            return affixed_name, lsad, affix
 
         lsad_tag_len = len(lsad) + 1
 
@@ -194,7 +200,7 @@ class LSAD(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
                 "'{lsad_tag}' not found as {affix} of '{name}'"
                 .format(lsad_tag=lsad_tag, affix=affix, name=affixed_name))
 
-        return name, lsad
+        return name, lsad, affix
 
 
 class Geoclass(AutoTablenameMixin, BaseGeoDataModel):
