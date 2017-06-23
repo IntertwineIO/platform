@@ -166,6 +166,7 @@ class GeoLevel(BaseGeoModel):
     COMBINED_AREA = 'combined_area'
     CORE_AREA = 'core_area'
     PLACE = 'place'
+    SUBPLACE = 'subplace'
 
     DOWN = OrderedDict((
         (COUNTRY, (SUBDIVISION1,)),
@@ -174,10 +175,13 @@ class GeoLevel(BaseGeoModel):
         (CORE_AREA, (SUBDIVISION2, PLACE)),
         (SUBDIVISION2, (SUBDIVISION3, PLACE,)),
         (SUBDIVISION3, (PLACE,)),
-        (PLACE, ())
+        (PLACE, (SUBPLACE, )),
+        (SUBPLACE, ())
     ))
 
     UP = OrderedDict((
+        (SUBPLACE, (PLACE, SUBDIVISION3, SUBDIVISION2, CORE_AREA,
+                    COMBINED_AREA, SUBDIVISION1)),
         (PLACE, (SUBDIVISION2, CORE_AREA, COMBINED_AREA, SUBDIVISION1)),
         (SUBDIVISION3, (SUBDIVISION2, CORE_AREA, COMBINED_AREA, SUBDIVISION1)),
         (SUBDIVISION2, (CORE_AREA, COMBINED_AREA, SUBDIVISION1)),
