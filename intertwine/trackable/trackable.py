@@ -5,7 +5,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import inspect
 import sys
-from itertools import islice, izip
+from itertools import islice
 
 from alchy.model import ModelMeta
 from past.builtins import basestring
@@ -14,7 +14,12 @@ from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from .exceptions import (InvalidRegistryKey, KeyMissingFromRegistryAndDatabase,
                          KeyRegisteredAndNoModify)
 
-u_literal = 'u' if sys.version_info.major == 2 else ''
+if sys.version_info.major == 2:
+    from itertools import izip
+    u_literal = 'u'
+else:
+    izip = zip
+    u_literal = ''
 
 
 def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
