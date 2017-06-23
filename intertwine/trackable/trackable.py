@@ -5,10 +5,11 @@ from __future__ import (absolute_import, division, print_function,
 
 import inspect
 import sys
+from itertools import islice, izip
 
 from alchy.model import ModelMeta
 from past.builtins import basestring
-from sqlalchemy.exc import InvalidRequestError
+from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
 from .exceptions import (InvalidRegistryKey, KeyMissingFromRegistryAndDatabase,
                          KeyRegisteredAndNoModify)
@@ -170,12 +171,7 @@ class Trackable(ModelMeta):
         return new_cls
 
     def __call__(cls, *args, **kwds):
-        # Convert args to kwds for create_key() and modify() so
-        # parameter order need not match __init__()
-        all_kwds = kwds.copy()
-        arg_names = inspect.getargspec(cls.__init__)[0][1:len(args) + 1]
-        for arg_name, arg in zip(arg_names, args):
-            all_kwds[arg_name] = arg
+        all_kwds = cls.merge_args(*args, **kwds)
         key = cls.create_key(**all_kwds)
         if key is None or key == '':
             raise InvalidRegistryKey(key=key, classname=cls.__name__)
@@ -193,6 +189,87 @@ class Trackable(ModelMeta):
             cls._updates.update(inst._modified)
             del inst._modified
         return inst
+
+    def get_or_create(cls, *args, **kwds):
+        '''
+        Get or create
+
+        Given args/kwds as defined by the model's __init__, return the
+        existing object if one exists, otherwise create it. The return
+        value is a tuple of the object and a boolean indicating whether
+        the object was created.
+
+        The existence check first looks in Trackable's registry and upon
+        a miss looks in the database. The create fails over to looking
+        for an existing object to address race conditions.
+        '''
+        all_kwds = cls.merge_args(*args, **kwds)
+        key = cls.create_key(**all_kwds)
+
+        try:
+            inst = cls[key]
+            return inst, False
+
+        except KeyMissingFromRegistryAndDatabase:
+            session = cls.session()
+            try:
+                with session.begin_nested():
+                    inst = cls(*args, **kwds)
+                    session.add(inst)
+                    session.flush()
+                return inst, True
+
+            except IntegrityError:
+                session.rollback()
+
+            # Remove once __call__() is refactored to no longer get
+            except KeyRegisteredAndNoModify:
+                pass
+
+            inst = cls[key]
+            return inst, False
+
+    def update_or_create(cls, *args, **kwds):
+        '''
+        Update or create
+
+        Given args/kwds as defined by the model's __init__, look for an
+        existing object based on the unique key fields. If found, the
+        object is updated based on the remaining fields. If not found,
+        an new object is created. The return value is a tuple of the
+        object and a boolean indicating whether the object was created.
+
+        The existence check first looks in Trackable's registry and upon
+        a miss looks in the database. The create fails over to looking
+        for an existing object to address race conditions.
+        '''
+        all_kwds = cls.merge_args(*args, **kwds)
+        inst, created = cls.get_or_create(**all_kwds)
+
+        if created:
+            return inst, True
+
+        inst.update(**all_kwds)
+        return inst, False
+
+    def merge_args(cls, *args, **kwds):
+        '''
+        Convert args to kwds for create_key(), modify(), etc. so
+        parameter order need not match __init__()
+        '''
+        if not args:
+            return kwds
+
+        init_args = inspect.getargspec(cls.__init__)[0]
+        arg_names_gen = islice(init_args, 1, len(args) + 1)
+
+        for arg_name, arg_value in izip(arg_names_gen, args):
+            if arg_name in kwds:
+                raise TypeError('Keyword arg {kwd_name} conflicts with '
+                                'positional arg'.format(kwd_name=arg_name))
+            kwds[arg_name] = arg_value
+
+        return kwds
 
     def __getitem__(cls, key):
         instance = cls.tget(key)
