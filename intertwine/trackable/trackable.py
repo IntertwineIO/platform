@@ -15,10 +15,10 @@ from .exceptions import (InvalidRegistryKey, KeyMissingFromRegistryAndDatabase,
                          KeyRegisteredAndNoModify)
 
 if sys.version_info.major == 2:
-    from itertools import izip
+    lzip = zip  # legacy zip returning list of tuples
+    from itertools import izip as zip
     u_literal = 'u'
 else:
-    izip = zip
     u_literal = ''
 
 
@@ -268,7 +268,7 @@ class Trackable(ModelMeta):
         init_args = inspect.getargspec(cls.__init__)[0]
         arg_names_gen = islice(init_args, 1, len(args) + 1)
 
-        for arg_name, arg_value in izip(arg_names_gen, args):
+        for arg_name, arg_value in zip(arg_names_gen, args):
             if arg_name in kwds:
                 raise TypeError('Keyword arg {kwd_name} conflicts with '
                                 'positional arg'.format(kwd_name=arg_name))

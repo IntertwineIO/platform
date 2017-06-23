@@ -82,13 +82,14 @@ __version__ = "1.1.5"
 # Python3 compatibilities
 if sys.version_info.major == 3:
     unicode = str
-    xrange = range
     unichr = chr
 
     def b(x):
         return x.encode("utf-8")
 else:
     bytes = str
+    lrange = range  # legacy range returning list
+    range = xrange
 
     def b(x):
         return x

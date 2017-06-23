@@ -7,10 +7,9 @@ import sys
 from collections import Counter, OrderedDict, namedtuple
 from operator import eq, attrgetter, itemgetter
 
-if sys.version.startswith('3'):
-    imap = map
-else:
-    from itertools import imap
+if sys.version_info.major == 2:
+    lmap = map  # legacy map returning list
+    from itertools import imap as map
 
 
 class Sentinel(object):
@@ -190,7 +189,7 @@ class InsertableOrderedDict(OrderedDict):
         if len(self) != len(other):
             return False
         if isinstance(other, (OrderedDict, InsertableOrderedDict)):
-            return all(imap(eq, self.items(), other.items()))
+            return all(map(eq, self.items(), other.items()))
         return all((eq(self[key], other.get(key)) for key in self))
 
     def __ne__(self, other):
