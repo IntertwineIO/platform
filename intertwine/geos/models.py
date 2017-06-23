@@ -1117,11 +1117,13 @@ class Geo(BaseGeoModel):
 
     @staticmethod
     def sorted(*geos):
+        '''Return new list of geos sorted by population, descending'''
         return sorted(geos, reverse=True,
                       key=lambda g: g.data.total_pop if g.data else -1)
 
     @staticmethod
     def get_largest_geo(*geos):
+        '''Return largest of given geos based on population'''
         geo_pop_tuples = ((geo, geo.data.total_pop) for geo in geos)
         largest = reduce(lambda x, y: x if x[1] > y[1] else y, geo_pop_tuples)
         return largest[0]
