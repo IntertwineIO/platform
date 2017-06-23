@@ -53,20 +53,20 @@ class InsertableOrderedDict(OrderedDict):
             prior_key = self._get(insert_key).prior
             next_key = insert_key
 
-        self._insert_between(prior_key=prior_key, next_key=next_key,
-                             key=key, value=value)
+        self._insert_between(key=key, value=value, next_key=next_key,
+                             prior_key=prior_key)
 
     def append(self, key, value):
-        self._insert_between(prior_key=self._end, next_key=self.sentinel,
-                             key=key, value=value)
+        self._insert_between(key=key, value=value, next_key=self.sentinel,
+                             prior_key=self._end)
 
     def prepend(self, key, value):
-        self._insert_between(prior_key=self.sentinel, next_key=self._beg,
-                             key=key, value=value)
+        self._insert_between(key=key, value=value, next_key=self._beg,
+                             prior_key=self.sentinel)
 
-    def _insert_between(self, prior_key, next_key, key, value):
+    def _insert_between(self, key, value, next_key, prior_key):
         if self.get(key, self.sentinel) is not self.sentinel:
-            raise KeyError(u"Key already exists: '{}'".format(key))
+            raise KeyError('Key already exists: {!r}'.format(key))
 
         self._setitem(key, self.ValueTuple(value, next_key, prior_key))
 
