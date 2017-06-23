@@ -951,8 +951,8 @@ class Geo(BaseGeoModel):
         nametag = u'{abbrev_or_name}{qualifier}'.format(
             abbrev_or_name=abbrev if abbrev else name,
             qualifier=' ' + qualifier if qualifier else '')
-        nametag = (nametag.replace('.', '').replace(', ', '-')
-                   .replace('/', '-').replace(' ', '_').lower())
+        nametag = (nametag.replace('.', '').replace(', ', '_')
+                   .replace(' ', '_').lower().replace('/', '-'))
         return cls.Key(path + nametag)
 
     def derive_key(self):
