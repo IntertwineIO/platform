@@ -121,6 +121,12 @@ class GeoID(BaseGeoModel):
 
     def __init__(self, level, standard, code):
         '''Initialize a new geo ID'''
+        if standard not in self.STANDARDS:
+            raise ValueError('Unknown standard: {}'.format(standard))
+        if not code:
+            raise ValueError('Invalid code: {}'.format(code))
+        if not level:
+            raise ValueError('Invalid level: {}'.format(level))
         self.standard = standard
         self.code = code
 
