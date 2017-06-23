@@ -370,6 +370,12 @@ class GeoData(BaseGeoModel):
 
     Key = namedtuple('GeoDataKey', (GEO,))
 
+    def matches(self, **kwds):
+        for field, value in kwds.items():
+            if getattr(self, field) != value:
+                return False
+        return True
+
     @classmethod
     def create_key(cls, geo, **kwds):
         '''Create Trackable key (geo 1-tupled) for a geo data'''
