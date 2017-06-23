@@ -136,7 +136,10 @@ def test_geo_id_model(session):
     '''Tests simple geo id model interaction'''
     from intertwine.geos.models import Geo, GeoLevel, GeoID
 
-    standard = 'Test Standard'
+    TEST_STANDARD = 'Test Standard'
+
+    GeoID.STANDARDS.add(TEST_STANDARD)
+    standard = TEST_STANDARD
     code = '12345'
 
     geo = Geo(name='Test Geo Place')
