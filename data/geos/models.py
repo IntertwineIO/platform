@@ -13,12 +13,19 @@ BaseGeoDataModel = make_declarative_base(Base=ModelBase)
 
 
 class State(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
+    STATE = 'state'
+    TERRITORY = 'territory'
+    FEDERAL_DISTRICT = 'federal district'
+
     name = Column(types.String(60), unique=True)         # Texas
     stusps = Column(types.String(2), unique=True)        # TX
     statefp = Column(types.String(2), primary_key=True)  # 48
     statens = Column(types.String(8), unique=True)       # 01779801
 
     KEYED_UP_FIELDS = ('name', 'stusps', 'statefp', 'statens')
+
+    TERRITORIES = {'PR', 'AS', 'GU', 'MP', 'UM', 'VI'}
+    SMALL_TERRITORIES = {'AS', 'GU', 'MP', 'UM', 'VI'}
 
     STATES_WITH_MCDS = {
         'AR', 'CT', 'IA', 'IL', 'IN', 'KS', 'LA', 'MA', 'MD', 'ME', 'MI', 'MN',
@@ -38,6 +45,8 @@ class State(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
 
 class CBSA(AutoTablenameMixin, BaseGeoDataModel):
     '''Core Based Statistical Area (CBSA)'''
+    CORE_BASED_STATISTICAL_AREA = 'core based statistical area'
+
     cbsa_code = Column(types.String(5))                 # 12420
     metro_division_code = Column(types.String(5))
     csa_code = Column(types.String(3))
@@ -59,6 +68,8 @@ class CBSA(AutoTablenameMixin, BaseGeoDataModel):
 
 
 class County(AutoTablenameMixin, BaseGeoDataModel):
+    COUNTY = 'county'
+
     stusps = Column(types.String(2),                    # TX
                     ForeignKey('state.stusps'))
     state = orm.relationship('State')
@@ -78,6 +89,8 @@ class County(AutoTablenameMixin, BaseGeoDataModel):
 
 
 class Cousub(AutoTablenameMixin, BaseGeoDataModel):
+    COUNTY_SUBDIVISION = 'county subdivision'
+
     stusps = Column(types.String(2),                    # MA
                     ForeignKey('state.stusps'))
     state = orm.relationship('State')
@@ -98,6 +111,8 @@ class Cousub(AutoTablenameMixin, BaseGeoDataModel):
 
 
 class Place(AutoTablenameMixin, BaseGeoDataModel):
+    PLACE = 'place'
+
     stusps = Column(types.String(2),                    # TX
                     ForeignKey('state.stusps'))
     state = orm.relationship('State')
