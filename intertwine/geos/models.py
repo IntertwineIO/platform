@@ -1062,6 +1062,43 @@ class Geo(BaseGeoModel):
             plvl += 1
         return ', '.join(geostr)
 
+    def is_known_by(self, match_string, full_name=True, case_sensitive=True,
+                    include_abbrev=True, include_aliases=True):
+        '''
+        Is Known By
+
+        Determine if match string is a name by which the geo is known.
+
+        I/O:
+        match_string: string used for name-matching
+        full_name=True: if True, match string must span the full name
+        case_sensitive=True: if True, matches must be case-sensitive
+        include_abbrev=True: if True, geo abbrev may be matched
+        include_aliases=True: if True, aliases may be matched
+        return: True iff match string matches geo name/abbrev/aliases
+        '''
+        names = {self.name}
+        if include_abbrev and self.abbrev:
+            names.add(self.abbrev)
+        if include_aliases and self.aliases:
+            names |= set(alias.name for alias in self.aliases)
+            if include_abbrev:
+                names |= set(alias.abbrev for alias in self.aliases
+                             if alias.abbrev)
+
+        if not case_sensitive:
+            match_string = match_string.lower()
+            names = {name.lower() for name in names}
+
+        if full_name:
+            return match_string in names
+
+        for name in names:
+            if match_string in name:
+                return True
+
+        return False
+
     @staticmethod
     def sorted(*geos):
         return sorted(geos, reverse=True,
