@@ -18,14 +18,18 @@ class TrackableException(Exception):
         Exception.__init__(self, message)
 
 
-class InvalidRegistryKey(TrackableException):
+class InvalidRegistryKey(TrackableException, KeyError):
     '''{key!r} is not a valid registry key for class {classname}'''
+
+
+class KeyConflictError(TrackableException, KeyError):
+    '''Key has already been registered: {key!r}'''
 
 
 class KeyMissingFromRegistryAndDatabase(TrackableException, KeyError):
     '''Key missing from Trackable registry and database: {key!r}'''
 
 
-class KeyRegisteredAndNoModify(TrackableException):
+class KeyRegisteredAndNoModify(TrackableException, KeyError):
     '''{key!r} has already been registered for class {classname} and
     {classname}.modify() has not been implemented'''
