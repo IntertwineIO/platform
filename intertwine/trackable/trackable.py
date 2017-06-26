@@ -11,8 +11,9 @@ from alchy.model import ModelMeta
 from past.builtins import basestring
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
-from .exceptions import (InvalidRegistryKey, KeyMissingFromRegistryAndDatabase,
-                         KeyRegisteredAndNoModify)
+from .exceptions import (
+    InvalidRegistryKey, KeyConflictError, KeyMissingFromRegistryAndDatabase,
+    KeyRegisteredAndNoModify)
 
 if sys.version_info.major == 2:
     lzip = zip  # legacy zip returning list of tuples
@@ -276,12 +277,6 @@ class Trackable(ModelMeta):
 
         return kwds
 
-    def __getitem__(cls, key):
-        instance = cls.tget(key)
-        if instance is None:
-            raise KeyMissingFromRegistryAndDatabase(key=key)
-        return instance
-
     def tget(cls, key, default=None, query_on_miss=True):
         '''
         Trackable get (tget)
@@ -335,11 +330,24 @@ class Trackable(ModelMeta):
         if instance is None:
             return default
 
-        cls[key] = instance
+        cls._instances[key] = instance
+        return instance
+
+    def __getitem__(cls, key):
+        instance = cls.tget(key)
+        if instance is None:
+            raise KeyMissingFromRegistryAndDatabase(key=key)
         return instance
 
     def __setitem__(cls, key, value):
+        existing = cls.tget(key)
+        if existing is not None and existing is not value:
+            raise KeyConflictError(key=key)
         cls._instances[key] = value
+
+    def __delitem__(cls, key):
+        del cls._instances[key]  # Throw exception if key not found
+        cls._updates.discard(key)  # Fail silently if key not found
 
     def __iter__(cls):
         for inst in cls._instances.values():
@@ -347,15 +355,11 @@ class Trackable(ModelMeta):
 
     def register(cls, inst):
         key = inst.derive_key()
-        existing = cls[key]
-        if existing is not None and existing is not inst:
-            raise ValueError('{} is already registered.'.format(key))
-        cls[key] = inst
+        cls[key] = inst  # Invoke __setitem__()
 
     def unregister(cls, inst):
         key = inst.derive_key()
-        cls._instances.pop(key)  # Throw exception if key not found
-        cls._updates.discard(key)  # Fail silently if key not found
+        del cls[key]  # Invoke __delitem__()
 
     @classmethod
     def register_existing(meta, session, *args):
