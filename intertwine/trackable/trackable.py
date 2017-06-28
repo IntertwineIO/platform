@@ -180,7 +180,7 @@ def register_update(self, key, _prefix='_', _suffix=''):
     self.deregister()
     updated = self._update_(**key._asdict())
     self.register()
-    assert self.derive_key == key
+    assert self.derive_key() == key
     return updated
 
 
