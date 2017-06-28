@@ -115,6 +115,75 @@ def _repr_(self):
     return '\n' + trepr(self)
 
 
+def _update_(self, _prefix='_', _suffix='', **fields):
+    '''
+    Update (fields)
+
+    Private method to update fields without invoking setter properties.
+    An "affix" (prefix/suffix) convention is applied to find underlying
+    fields. An affixed field update is attempted first and fails over to
+    the field as given.
+
+    I/O:
+    _prefix='_': string prepended to field to identify affixed fields
+    _suffix='': string postpended to field to identify affixed fields
+    **fields: unaffixed fields to be updated
+    return: True iff any fields have been updated with new values
+    '''
+    updated = False
+    for field, value in fields.items():
+        affixed_field = '{prefix}{field}{suffix}'.format(
+            prefix=_prefix, field=field, suffix=_suffix)
+        try:
+            old_value = getattr(self, affixed_field)
+
+        except AttributeError:
+            old_value = getattr(self, field)
+            affixed_field = field
+
+        if value == old_value:
+            continue
+
+        setattr(self, affixed_field, value)
+        updated = True
+
+    return updated
+
+
+def register(self):
+    '''Register itself by deriving key from the instance'''
+    key = self.derive_key()
+    self.__class__[key] = self  # Invoke Trackable.__setitem__()
+
+
+def deregister(self):
+    '''Deregister itself by deriving key from the instance'''
+    key = self.derive_key()
+    del self.__class__[key]  # Invoke Trackable.__delitem__()
+
+
+def register_update(self, key, _prefix='_', _suffix=''):
+    '''Register update
+
+    Register update should be used from within a setter property when
+    updating a field that is a component of the registry key. Derives
+    new field values from the key, updates field values without invoking
+    setter properties (to avoid infinite recursion), and updates the
+    registry key.
+
+    I/O:
+    key: key composed of new values with which to update self
+    _prefix='_': string prepended to field to identify affixed fields
+    _suffix='': string postpended to field to identify affixed fields
+    return: True iff any fields have been updated with new values
+    '''
+    self.deregister()
+    updated = self._update_(**key._asdict())
+    self.register()
+    assert self.derive_key == key
+    return updated
+
+
 class Trackable(ModelMeta):
     '''
     Trackable
@@ -171,6 +240,10 @@ class Trackable(ModelMeta):
         custom_repr = attr.get('__repr__', None)
         attr['__repr__'] = _repr_ if custom_repr is None else custom_repr
         attr['trepr'] = trepr
+        attr['_update_'] = _update_
+        attr['register'] = register
+        attr['deregister'] = deregister
+        attr['register_update'] = register_update
         new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
         if new_cls.__name__ != 'Base':
             meta._classes[name] = new_cls
@@ -339,11 +412,11 @@ class Trackable(ModelMeta):
             raise KeyMissingFromRegistryAndDatabase(key=key)
         return instance
 
-    def __setitem__(cls, key, value):
+    def __setitem__(cls, key, inst):
         existing = cls.tget(key)
-        if existing is not None and existing is not value:
+        if existing is not None and existing is not inst:
             raise KeyConflictError(key=key)
-        cls._instances[key] = value
+        cls._instances[key] = inst
 
     def __delitem__(cls, key):
         del cls._instances[key]  # Throw exception if key not found
@@ -352,14 +425,6 @@ class Trackable(ModelMeta):
     def __iter__(cls):
         for inst in cls._instances.values():
             yield inst
-
-    def register(cls, inst):
-        key = inst.derive_key()
-        cls[key] = inst  # Invoke __setitem__()
-
-    def unregister(cls, inst):
-        key = inst.derive_key()
-        del cls[key]  # Invoke __delitem__()
 
     @classmethod
     def register_existing(meta, session, *args):

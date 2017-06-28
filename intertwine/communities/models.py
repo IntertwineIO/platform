@@ -96,16 +96,13 @@ class Community(BaseCommunityModel):
     @problem.setter
     def problem(self, val):
         # val is None is valid and means 'All Problems'
-        if self._problem is not None:  # Not during __init__()
-            # ensure new key is not already registered
-            key = Community.create_key(problem=val, org=self.org, geo=self.geo)
-            inst = Community[key]
-            if inst is not None and inst is not self:
-                raise ValueError('{!r} is already registered.'.format(key))
-            # update registry with new key
-            Community.unregister(self)
-            Community[key] = self
-        self._problem = val  # set new value last
+        # During __init__()
+        if self._problem is None:
+            self._problem = val
+            return
+        # Not during __init__()
+        key = self.__class__.Key(problem=val, org=self.org, geo=self.geo)
+        self.register_update(key)
 
     problem = orm.synonym('_problem', descriptor=problem)
 
@@ -116,17 +113,13 @@ class Community(BaseCommunityModel):
     @org.setter
     def org(self, val):
         # val is None is valid and means 'Any Organization (or None)'
-        if self._org is not None:  # Not during __init__()
-            # ensure new key is not already registered
-            key = Community.create_key(problem=self.problem, org=val,
-                                       geo=self.val)
-            inst = Community[key]
-            if inst is not None and inst is not self:
-                raise ValueError('{!r} is already registered.'.format(key))
-            # update registry with new key
-            Community.unregister(self)
-            Community[key] = self
-        self._org = val  # set new value last
+        # During __init__()
+        if self._org is None:
+            self._org = val
+            return
+        # Not during __init__()
+        key = self.__class__.Key(problem=self.problem, org=val, geo=self.val)
+        self.register_update(key)
 
     org = orm.synonym('_org', descriptor=org)
 
@@ -137,17 +130,13 @@ class Community(BaseCommunityModel):
     @geo.setter
     def geo(self, val):
         # if val is None is valid and means 'The World'
-        if self._geo is not None:  # Not during __init__()
-            # ensure new key is not already registered
-            key = Community.create_key(problem=self.problem, geo=val,
-                                       org=self.org)
-            inst = Community[key]
-            if inst is not None and inst is not self:
-                raise ValueError('{!r} is already registered.'.format(key))
-            # update registry with new key
-            Community.unregister(self)
-            Community[key] = self
-        self._geo = val  # set new value last
+        # During __init__()
+        if self._geo is None:
+            self._geo = val
+            return
+        # Not during __init__()
+        key = self.__class__.Key(problem=self.problem, org=self.org, geo=val)
+        self.register_update(key)
 
     geo = orm.synonym('_geo', descriptor=geo)
 

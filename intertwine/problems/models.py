@@ -12,9 +12,9 @@ from past.builtins import basestring
 from sqlalchemy import Column, ForeignKey, Index, or_, orm, types
 from titlecase import titlecase
 
-from .. import IntertwineModel
-from ..geos.models import Geo
-from ..third_party import urlnorm
+from intertwine import IntertwineModel
+from intertwine.geos.models import Geo
+from intertwine.third_party import urlnorm
 from .exceptions import (CircularConnection, InconsistentArguments,
                          InvalidAggregateConnectionRating, InvalidAggregation,
                          InvalidConnectionAxis, InvalidEntity,
@@ -953,15 +953,15 @@ class Problem(BaseProblemModel):
 
     @human_id.setter
     def human_id(self, val):
-        # check if it's already registered by a different problem
-        problem = Problem._instances.get(val, None)
-        if problem is not None and problem is not self:
-            raise NameError("'{}' is already registered.".format(val))
-        if hasattr(self, '_human_id'):  # unregister old human_id
-            # Default None since Trackable registers after Problem.__init__()
-            Problem._instances.pop(self.human_id, None)
-        Problem[val] = self  # register the new human_id
-        self._human_id = val  # set the new human_id last
+        if val is None:
+            raise ValueError('human_id cannot be set to None')
+        # During __init__()
+        if self._human_id is None:
+            self._human_id = val
+            return
+        # Not during __init__()
+        key = self.__class__.Key(human_id=val)
+        self.register_update(key)
 
     human_id = orm.synonym('_human_id', descriptor=human_id)
 

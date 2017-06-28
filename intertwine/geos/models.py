@@ -81,18 +81,13 @@ class GeoID(BaseGeoModel):
     def standard(self, val):
         if val is None:
             raise ValueError('Cannot be set to None')
-
-        if self._standard is not None:  # Not during __init__()
-            # ensure key is new
-            key = GeoID.create_key(standard=val, code=self.code)
-            inst = GeoID.tget(key)
-            if inst is not None and inst is not self:
-                raise ValueError('Key already exists: {}'.format(key))
-            # update registry with new key
-            GeoID.unregister(self)
-            GeoID[key] = self
-
-        self._standard = val  # set new value last
+        # During __init__()
+        if self._standard is None:
+            self._standard = val
+            return
+        # Not during __init__()
+        key = self.__class__.Key(standard=val, code=self.code)
+        self.register_update(key)
 
     standard = orm.synonym('_standard', descriptor=standard)
 
@@ -104,18 +99,13 @@ class GeoID(BaseGeoModel):
     def code(self, val):
         if val is None:
             raise ValueError('Cannot be set to None')
-
-        if self._code is not None:  # Not during __init__()
-            # ensure key is new
-            key = GeoID.create_key(standard=self.standard, code=val)
-            inst = GeoID.tget(key)
-            if inst is not None and inst is not self:
-                raise ValueError('Key already exists: {}'.format(key))
-            # update registry with new key
-            GeoID.unregister(self)
-            GeoID[key] = self
-
-        self._code = val  # set new value last
+        # During __init__()
+        if self._code is None:
+            self._code = val
+            return
+        # Not during __init__()
+        key = self.__class__.Key(standard=self.standard, code=val)
+        self.register_update(key)
 
     code = orm.synonym('_code', descriptor=code)
 
@@ -255,18 +245,13 @@ class GeoLevel(BaseGeoModel):
     def geo(self, val):
         if val is None:
             raise ValueError('Cannot be set to None')
-
-        if self._geo is not None:  # Not during __init__()
-            # ensure key is new
-            key = GeoLevel.create_key(geo=val, level=self.level)
-            inst = GeoLevel.tget(key)
-            if inst is not None and inst is not self:
-                raise ValueError('Key already exists: {}'.format(key))
-            # update registry with new key
-            GeoLevel.unregister(self)
-            GeoLevel[key] = self  # register the new key
-
-        self._geo = val  # set new value last
+        # During __init__()
+        if self._geo is None:
+            self._geo = val
+            return
+        # Not during __init__()
+        key = self.__class__.Key(geo=val, level=self.level)
+        self.register_update(key)
 
     geo = orm.synonym('_geo', descriptor=geo)
 
@@ -278,18 +263,13 @@ class GeoLevel(BaseGeoModel):
     def level(self, val):
         if val is None:
             raise ValueError('Cannot be set to None')
-
-        if self._level is not None:  # Not during __init__()
-            # ensure key is new
-            key = GeoLevel.create_key(geo=self.geo, level=val)
-            inst = GeoLevel.tget(key)
-            if inst is not None and inst is not self:
-                raise ValueError('Key already exists: {}'.format(key))
-            # update registry with new key
-            GeoLevel.unregister(self)
-            GeoLevel[key] = self  # register the new key
-
-        self._level = val  # set new value last
+        # During __init__()
+        if self._level is None:
+            self._level = val
+            return
+        # Not during __init__()
+        key = self.__class__.Key(geo=self.geo, level=val)
+        self.register_update(key)
 
     level = orm.synonym('_level', descriptor=level)
 
@@ -353,18 +333,13 @@ class GeoData(BaseGeoModel):
     def geo(self, val):
         if val is None:
             raise ValueError('Cannot be set to None')
-
-        if self._geo is not None:  # Not during __init__()
-            # ensure key is new
-            key = GeoData.create_key(geo=val)
-            inst = GeoData.tget(key)
-            if inst is not None and inst is not self:
-                raise ValueError('Key already exists: {!r}'.format(key))
-            # update registry with new key
-            GeoData.unregister(self)
-            GeoData[key] = self
-
-        self._geo = val  # set new value last
+        # During __init__()
+        if self._geo is None:
+            self._geo = val
+            return
+        # Not during __init__()
+        key = self.__class__.Key(geo=val)
+        self.register_update(key)
 
     geo = orm.synonym('_geo', descriptor=geo)
 
@@ -831,25 +806,23 @@ class Geo(BaseGeoModel):
     def human_id(self, val):
         if val is None:
             raise ValueError('human_id cannot be set to None')
-
-        if self._human_id is not None:  # Not during __init__()
-            # ensure key is new
-            key = Geo.Key(human_id=val)
-            inst = Geo.tget(key)
-            if inst is not None and inst is not self:
-                raise ValueError('Key already exists: {!r}'.format(key))
-            # update registry with new key
-            Geo.unregister(self)
-            Geo[key] = self
-
-        self._human_id = val  # set human_id last
+        # During __init__()
+        if self._human_id is None:
+            self._human_id = val
+            return
+        # Not during __init__()
+        cls = self.__class__
+        key = cls.Key(human_id=val)
+        if not self.register_update(key):
+            return
         # recursively propagate change to path_children
         for pc in self.path_children:
-            key = Geo.create_key(name=pc.name, abbrev=pc.abbrev,
+            key = cls.create_key(name=pc.name, abbrev=pc.abbrev,
                                  qualifier=pc.qualifier,
                                  path_parent=self,
                                  alias_targets=pc.alias_targets)
             pc.human_id = key.human_id
+
     human_id = orm.synonym('_human_id', descriptor=human_id)
 
     @property
