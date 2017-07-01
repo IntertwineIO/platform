@@ -11,7 +11,8 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 from intertwine import IntertwineModel
 from intertwine.exceptions import AttributeConflict, CircularReference
 from intertwine.utils.mixins import JsonProperty
-from intertwine.utils.tools import define_constants_at_module_scope
+from intertwine.utils.tools import (define_constants_at_module_scope,
+                                    find_any_words)
 
 # BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
 BaseGeoModel = IntertwineModel
@@ -487,11 +488,9 @@ class Geo(BaseGeoModel):
         None is converted to [] and indicates the geo is not an alias.
 
     uses_the=None:
-        A boolean indicating the name should begin with 'the ' when
-        displayed. It is derived automatically by default: True if the
-        name includes 'states', 'islands', 'republic' or 'district', and
-        False otherwise. When provided, a value serves as an override,
-        but it will be recalculated whenever the name changes.
+        Boolean indicating name should begin with 'the ' when displayed.
+        Derived automatically by default: True iff name includes certain
+        key words. Overrides when provided, but reset with name changes.
 
     data=None:
         Create an associated GeoData instance from JSON, a field/value
@@ -529,6 +528,8 @@ class Geo(BaseGeoModel):
 
     DATA = 'data'
     LEVELS = 'levels'
+
+    KEYWORDS_FOR_USES_THE = {'states', 'islands', 'republic', 'district'}
 
     uses_the = Column(types.Boolean)  # e.g. 'The United States'
     _name = Column('name', types.String(60))
@@ -613,10 +614,7 @@ class Geo(BaseGeoModel):
                                  alias_targets=self.alias_targets)
             self.human_id = key.human_id
         nstr = val.lower()
-        self.uses_the = (nstr.find('states') > -1 or
-                         nstr.find('islands') > -1 or
-                         nstr.find('republic') > -1 or
-                         nstr.find('district') > -1)
+        self.uses_the = find_any_words(nstr, self.KEYWORDS_FOR_USES_THE)
         self._name = val  # set name last
 
     name = orm.synonym('_name', descriptor=name)

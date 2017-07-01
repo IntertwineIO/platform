@@ -53,6 +53,22 @@ def define_constants_at_module_scope(module_name, module_class,
         setattr(module, constant_name, getattr(module_class, constant_name))
 
 
+def find_all_words(text, words):
+    '''Find all exact search words (a set) in text'''
+    search_words = words if isinstance(words, set) else set(words)
+    text_words = set(text.split())
+    return text_words & search_words
+
+
+def find_any_words(text, words):
+    '''True iff any exact search words (a set) found in text'''
+    search_words = words if isinstance(words, set) else set(words)
+    for text_word in text.split():
+        if text_word in search_words:
+            return True
+    return False
+
+
 def isiterator(iterable):
     '''Determine if an iterable (or any object) is an iterator'''
     return hasattr(iterable, '__iter__') and not hasattr(iterable, '__len__')
