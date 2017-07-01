@@ -83,8 +83,9 @@ def render_community(problem_human_id, geo_human_id):
             # <geo_3>
             abort(404)
 
-        if geo.alias_target:
-            return redirect(Community.form_uri(problem, org, geo.alias_target),
+        alias_targets = geo.alias_targets
+        if alias_targets:
+            return redirect(Community.form_uri(problem, org, alias_targets[0]),
                             code=302)
         if corrected_url:
             return redirect(Community.form_uri(problem, org, geo), code=302)

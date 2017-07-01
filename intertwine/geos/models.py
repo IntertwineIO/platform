@@ -481,10 +481,10 @@ class Geo(BaseGeoModel):
         determining the path.  The human_id of a geo's path_parent is
         the path of the geo's human_id.
 
-    alias_target=None:
-        Identify the geo as an alias of the specified target geo. If
-        no path_parent is provided, the alias_target's path_parent is
-        used instead. A value of None indicates the geo is not an alias.
+    alias_targets=None:
+        Identify the geo as an alias of the specified target geos. If no
+        path_parent and just one target, use the target's path_parent.
+        None is converted to [] and indicates the geo is not an alias.
 
     uses_the=None:
         A boolean indicating the name should begin with 'the ' when
