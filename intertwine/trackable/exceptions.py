@@ -26,6 +26,12 @@ class KeyConflictError(TrackableException, KeyError):
     '''Key has already been registered: {key!r}'''
 
 
+class KeyInconsistencyError(TrackableException, KeyError):
+    '''Derived key inconsistent with registered key.
+    Derived: {derived_key!r} Registered: {registered_key!r}
+    Registry repaired: {registry_repaired}'''
+
+
 class KeyMissingFromRegistryAndDatabase(TrackableException, KeyError):
     '''Key missing from Trackable registry and database: {key!r}'''
 

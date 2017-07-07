@@ -12,8 +12,8 @@ from past.builtins import basestring
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
 from .exceptions import (
-    InvalidRegistryKey, KeyConflictError, KeyMissingFromRegistryAndDatabase,
-    KeyRegisteredAndNoModify)
+    InvalidRegistryKey, KeyConflictError, KeyInconsistencyError,
+    KeyMissingFromRegistryAndDatabase, KeyRegisteredAndNoModify)
 
 if sys.version_info.major == 2:
     lzip = zip  # legacy zip returning list of tuples
@@ -115,6 +115,45 @@ def _repr_(self):
     return '\n' + trepr(self)
 
 
+def register(self, key=None):
+    '''Register itself by deriving key from the instance'''
+    key = key or self.derive_key()
+    self.__class__[key] = self  # Invoke Trackable.__setitem__()
+
+
+def deregister(self, key=None):
+    '''Deregister itself by deriving key from the instance'''
+    key = key or self.derive_key()
+    del self.__class__[key]  # Invoke Trackable.__delitem__()
+
+
+def register_update(self, key, _prefix='_', _suffix=''):
+    '''Register update
+
+    Register update should be used from within a model's setter property
+    when updating a field that is a component of the registry key.
+
+    Register the instance with the new key, derive new field values from
+    the key, and update field values without invoking setter properties
+    (to avoid infinite recursion).
+
+    Also validate that the newly registered key matches the self-derived
+    key. If not, attempt to correct the registry to use the derived key
+    before raising KeyInconsistencyError.
+
+    I/O:
+    key: new registry key, a namedtuple
+    _prefix='_': string prepended to field to identify affixed fields
+    _suffix='': string appended to field to identify affixed fields
+    return: True iff any fields have been updated with new values
+    '''
+    self.register(key)  # Raise KeyConflictError if already registered
+    self.deregister()
+    updated = self._update_(_prefix=_prefix, _suffix=_suffix, **key._asdict())
+    self._validate_(key)
+    return updated
+
+
 def _update_(self, _prefix='_', _suffix='', **fields):
     '''
     Update (fields)
@@ -150,38 +189,26 @@ def _update_(self, _prefix='_', _suffix='', **fields):
     return updated
 
 
-def register(self):
-    '''Register itself by deriving key from the instance'''
-    key = self.derive_key()
-    self.__class__[key] = self  # Invoke Trackable.__setitem__()
-
-
-def deregister(self):
-    '''Deregister itself by deriving key from the instance'''
-    key = self.derive_key()
-    del self.__class__[key]  # Invoke Trackable.__delitem__()
-
-
-def register_update(self, key, _prefix='_', _suffix=''):
-    '''Register update
-
-    Register update should be used from within a setter property when
-    updating a field that is a component of the registry key. Derives
-    new field values from the key, updates field values without invoking
-    setter properties (to avoid infinite recursion), and updates the
-    registry key.
-
-    I/O:
-    key: key composed of new values with which to update self
-    _prefix='_': string prepended to field to identify affixed fields
-    _suffix='': string postpended to field to identify affixed fields
-    return: True iff any fields have been updated with new values
+def _validate_(self, registered_key):
     '''
-    self.deregister()
-    updated = self._update_(**key._asdict())
-    self.register()
-    assert self.derive_key() == key
-    return updated
+    Validate (key)
+
+    Validate that the given registered key matches the self-derived key.
+    If not, attempt to correct the registry to use the derived key
+    before raising KeyInconsistencyError.
+    '''
+    derived_key = self.derive_key()
+    if derived_key != registered_key:
+        try:
+            self.register(derived_key)
+            registry_repaired = True
+        except KeyConflictError:
+            registry_repaired = False
+        finally:
+            self.deregister(registered_key)
+            raise KeyInconsistencyError(derived_key=derived_key,
+                                        registered_key=registered_key,
+                                        registry_repaired=registry_repaired)
 
 
 class Trackable(ModelMeta):
@@ -240,10 +267,11 @@ class Trackable(ModelMeta):
         custom_repr = attr.get('__repr__', None)
         attr['__repr__'] = _repr_ if custom_repr is None else custom_repr
         attr['trepr'] = trepr
-        attr['_update_'] = _update_
         attr['register'] = register
         attr['deregister'] = deregister
         attr['register_update'] = register_update
+        attr['_update_'] = _update_
+        attr['_validate_'] = _validate_
         new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
         if new_cls.__name__ != 'Base':
             meta._classes[name] = new_cls
