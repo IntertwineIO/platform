@@ -191,7 +191,7 @@ class GeoLevel(BaseGeoModel):
     # designations: state, county, city, etc. (lsad for place)
     designation = Column(types.String(60))
 
-    # ids is a dictionary where GeoID.standard is the key
+    # ids is a dictionary of GeoID codes keyed by GeoID standards
     ids = orm.relationship(
         'GeoID',
         collection_class=attribute_mapped_collection(GeoID.STANDARD),
@@ -273,6 +273,22 @@ class GeoLevel(BaseGeoModel):
         self.register_update(key)
 
     level = orm.synonym('_level', descriptor=level)
+
+    @classmethod
+    def redesignate_or_create(cls, geo, level, designation, ids):
+        '''
+        Redesignate (existing geolevel) or create (a new one)
+
+        Also create a geoid for each standard/code in ids if it doesn't
+        already exist.
+        '''
+        place_glvl, created = GeoLevel.update_or_create(
+            geo=geo, level=level, designation=designation)
+
+        for standard, code in ids.items():
+            GeoID.get_or_create(level=place_glvl, standard=standard, code=code)
+
+        return place_glvl, created
 
     def __init__(self, geo, level, designation=None):
         '''Initialize a new geo level'''
