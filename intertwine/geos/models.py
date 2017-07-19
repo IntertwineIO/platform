@@ -275,7 +275,8 @@ class GeoLevel(BaseGeoModel):
     level = orm.synonym('_level', descriptor=level)
 
     @classmethod
-    def redesignate_or_create(cls, geo, level, designation, ids):
+    def redesignate_or_create(cls, geo, level, designation, ids,
+                              _query_on_miss=True, _nested_transaction=True):
         '''
         Redesignate (existing geolevel) or create (a new one)
 
@@ -283,10 +284,14 @@ class GeoLevel(BaseGeoModel):
         already exist.
         '''
         place_glvl, created = GeoLevel.update_or_create(
-            geo=geo, level=level, designation=designation)
+            geo=geo, level=level, designation=designation,
+            _query_on_miss=_query_on_miss,
+            _nested_transaction=_nested_transaction)
 
         for standard, code in ids.items():
-            GeoID.get_or_create(level=place_glvl, standard=standard, code=code)
+            GeoID.get_or_create(level=place_glvl, standard=standard, code=code,
+                                _query_on_miss=_query_on_miss,
+                                _nested_transaction=_nested_transaction)
 
         return place_glvl, created
 

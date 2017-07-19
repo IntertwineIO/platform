@@ -13,7 +13,8 @@ from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
 from .exceptions import (
     InvalidRegistryKey, KeyConflictError, KeyInconsistencyError,
-    KeyMissingFromRegistryAndDatabase, KeyRegisteredAndNoModify)
+    KeyMissingFromRegistry, KeyMissingFromRegistryAndDatabase,
+    KeyRegisteredAndNoModify)
 
 if sys.version_info.major == 2:
     lzip = zip  # legacy zip returning list of tuples
@@ -297,7 +298,15 @@ class Trackable(ModelMeta):
             del inst._modified
         return inst
 
-    def get_or_create(cls, *args, **kwds):
+    def _create_(cls, *args, **kwds):
+        inst = cls(*args, **kwds)
+        session = cls.session()
+        session.add(inst)
+        session.flush()
+        return inst
+
+    def get_or_create(cls, _query_on_miss=True, _nested_transaction=True,
+                      *args, **kwds):
         '''
         Get or create
 
@@ -314,16 +323,23 @@ class Trackable(ModelMeta):
         key = cls.create_key(**all_kwds)
 
         try:
-            inst = cls[key]
+            inst = cls.tget(key, query_on_miss=_query_on_miss)
+            if not inst:
+                raise KeyMissingFromRegistry
             return inst, False
 
-        except KeyMissingFromRegistryAndDatabase:
+        except KeyMissingFromRegistry:
             session = cls.session()
             try:
-                with session.begin_nested():
-                    inst = cls(*args, **kwds)
-                    session.add(inst)
-                    session.flush()
+                if _nested_transaction:
+                    # pysqlite DBAPI driver bugs render SERIALIZABLE isolation,
+                    # transactional DDL, and SAVEPOINT non-functional. In order
+                    # to use these features, workarounds must be taken. (TODO)
+                    # stackoverflow: https://goo.gl/aGibhe
+                    with session.begin_nested():
+                        inst = cls._create_(*args, **kwds)
+                else:
+                    inst = cls._create_(*args, **kwds)
                 return inst, True
 
             except IntegrityError:
@@ -336,7 +352,8 @@ class Trackable(ModelMeta):
             inst = cls[key]
             return inst, False
 
-    def update_or_create(cls, *args, **kwds):
+    def update_or_create(cls, _query_on_miss=True, _nested_transaction=True,
+                         _prefix='_', _suffix='', *args, **kwds):
         '''
         Update or create
 
@@ -351,12 +368,14 @@ class Trackable(ModelMeta):
         for an existing object to address race conditions.
         '''
         all_kwds = cls.merge_args(*args, **kwds)
-        inst, created = cls.get_or_create(**all_kwds)
+        inst, created = cls.get_or_create(
+            _query_on_miss=_query_on_miss,
+            _nested_transaction=_nested_transaction, **all_kwds)
 
         if created:
             return inst, True
 
-        inst.update(**all_kwds)
+        inst._update_(_prefix=_prefix, _suffix=_suffix, **all_kwds)
         return inst, False
 
     def merge_args(cls, *args, **kwds):

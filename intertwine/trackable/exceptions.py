@@ -32,7 +32,11 @@ class KeyInconsistencyError(TrackableException, KeyError):
     Registry repaired: {registry_repaired}'''
 
 
-class KeyMissingFromRegistryAndDatabase(TrackableException, KeyError):
+class KeyMissingFromRegistry(TrackableException, KeyError):
+    '''Key missing from Trackable registry: {key!r}'''
+
+
+class KeyMissingFromRegistryAndDatabase(KeyMissingFromRegistry):
     '''Key missing from Trackable registry and database: {key!r}'''
 
 
