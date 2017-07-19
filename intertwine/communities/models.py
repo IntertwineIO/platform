@@ -257,7 +257,7 @@ class Community(BaseCommunityModel):
         pcrs = PeekableIterator(pcrs)
         # Create and persist a community only if necessary
         if not is_real_community and pcrs.has_next():
-            existing_community = Community[community_key]
+            existing_community = Community.tget(community_key)
             if existing_community:
                 community = existing_community
             else:
