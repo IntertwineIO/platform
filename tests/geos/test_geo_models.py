@@ -283,8 +283,10 @@ def test_geo_aliases(session):
 
     geo_alias_1 = Geo(name='Test Geo Alias 1', alias_targets=[geo],
                       path_parent=geo)
-    geo_alias_2 = Geo(name='Test Geo Alias 2', alias_targets=[geo])
-    geo_alias_3 = Geo(name='Test Geo Alias 3', alias_targets=[geo])
+    geo_alias_2 = Geo(name='Test Geo Alias 2', alias_targets=[geo],
+                      path_parent=parent_geo)
+    geo_alias_3 = Geo(name='Test Geo Alias 3', alias_targets=[geo],
+                      path_parent=parent_geo)
 
     session.add(geo)
     session.commit()
