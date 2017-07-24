@@ -504,9 +504,8 @@ class Geo(BaseGeoModel):
         the path of the geo's human_id.
 
     alias_targets=None:
-        Identify the geo as an alias of the specified target geos. If no
-        path_parent and just one target, use the target's path_parent.
-        None is converted to [] and indicates the geo is not an alias.
+        Identify the geo as an alias of the specified target geos. None
+        is converted to empty list, indicating the geo is not an alias.
 
     uses_the=None:
         Boolean indicating name should begin with 'the ' when displayed.
@@ -928,17 +927,9 @@ class Geo(BaseGeoModel):
         path_parent with the name, separated by the Geo delimiter. If an
         abbreviation is provided, it replaces the name in the key.
 
-        If a qualifier is provided, it is appended, delimited by a
-        space. If no path_parent and a single alias_target, the
-        path_parent of the alias_target is used instead. Prohibited
-        characters and sequences are either replaced or removed.
+        When provided, a qualifier is appended, delimited by a space.
+        Prohibited characters/sequences are either replaced or removed.
         '''
-        if path_parent is None and alias_targets:
-            if len(alias_targets) > 1:
-                raise ValueError('Path parent must be provided if '
-                                 'multiple alias targets')
-            path_parent = alias_targets[0].path_parent
-
         path = path_parent.human_id + Geo.PATH_DELIMITER if path_parent else ''
         nametag = u'{abbrev_or_name}{qualifier}'.format(
             abbrev_or_name=abbrev if abbrev else name,
@@ -955,18 +946,13 @@ class Geo(BaseGeoModel):
                  alias_targets=None, aliases=None, uses_the=None,
                  parents=None, children=None, data=None, levels=None,
                  child_data_level=None):
+
         self.name = name
         if uses_the is not None:  # Override calculated value, if provided
             self.uses_the = uses_the
+
         self.abbrev = abbrev
         self.qualifier = qualifier
-
-        if path_parent is None and alias_targets:
-            if len(alias_targets) > 1:
-                raise ValueError('Path parent must be provided if '
-                                 'multiple alias targets')
-            path_parent = alias_targets[0].path_parent
-
         self.path_parent = path_parent
 
         if alias_targets and aliases:
@@ -987,8 +973,8 @@ class Geo(BaseGeoModel):
 
         self.data = (
             GeoData(geo=self, **data) if data else
-            GeoData.create_parent_data(
-                self, child_level=child_data_level) if self.children else None)
+            GeoData.create_parent_data(self, child_level=child_data_level)
+            if child_data_level and self.children else None)
 
         self.levels = {}
         if levels:
