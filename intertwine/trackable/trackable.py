@@ -148,6 +148,9 @@ def register_update(self, key, _prefix='_', _suffix=''):
     _suffix='': string appended to field to identify affixed fields
     return: True iff any fields have been updated with new values
     '''
+    derived_key = self.derive_key()
+    if key == derived_key:
+        return False
     self.register(key)  # Raise KeyConflictError if already registered
     self.deregister()
     updated = self._update_(_prefix=_prefix, _suffix=_suffix, **key._asdict())
