@@ -718,6 +718,8 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None):
         print(value)
         print()
 
+    return tracker
+
 
 def create_place_from_cousub(cousub, county=None, state=None, lsad=None,
                              designation=None, ansi=None, tracker=None):
@@ -863,15 +865,14 @@ def load_place_geos(geo_session, session, sub1keys=None):
 
         # Place remainder or missing place (already created from cousub)
         if placens == '99999999':
-            place_created_from_cousub = cousub.levels.get(PLACE) is not None
-
-            if (stusps in State.STATES_WITH_MCDS_AS_GOVERNMENTAL_UNITS and
-                    not place_created_from_cousub):
-                tracker['cousub_missing_places'].append(cousub)
-
             is_remainder = LSAD.PREFIX_REMAINDER_OF in extra_prefixes
             if not is_remainder:
                 tracker['missing_places'].append(cousub)
+
+            place_created_from_cousub = cousub.levels.get(PLACE) is not None
+            if (stusps in State.STATES_WITH_MCDS_AS_GOVERNMENTAL_UNITS and
+                    not place_created_from_cousub):
+                tracker['cousub_missing_places'].append(cousub)
 
             print(u'\t{name}, {state} ({standard}, {placens}) is '
                   "{skipped_place} cousub {cousub} ({standard}, '{cousubns}')"
@@ -938,10 +939,18 @@ def load_place_geos(geo_session, session, sub1keys=None):
         if r.ghrp_countycc in {'H6', 'C7'}:
             tracker['consolidated'].append((county, cousub, place, created))
 
+    # Fix ñ in Española, NM. Note: ñ appears correctly elsewhere:
+    # Peñasco, NM; Cañones, NM; La Cañada Flintridge, CA; etc.
+    esp = Geo.tget(u'us/nm/espanola')
+    if esp:
+        esp.name = u'Espa\xf1ola'  # Geo[u'us/nm/espa\xf1ola']
+
     for key, value in tracker.items():
         print(' '.join(word.capitalize() for word in key.split('_')) + ':')
         print(value)
         print()
+
+    return tracker
 
 
 def manifest_geo(level, name, path_parent, state, county,
@@ -1401,89 +1410,6 @@ def deaffix_place(full_name, lsad_code, placens):
     }
 
     return PLACE_PATCH_MAP[placens]
-
-
-def temp_load_places():
-    consolidated = {}
-    # Fix missing tilde in Española, NM. Note: ñ appears correctly elsewhere:
-    # Peñasco, NM; Cañones, NM; La Cañada Flintridge, CA; etc.
-    esp = Geo[u'us/nm/espanola']
-    esp.name = u'Espa\xf1ola'  # Geo[u'us/nm/espa\xf1ola']
-
-    for county, places in consolidated.items():
-
-        place = places[0]
-        county_parents = [p for p in place.parents
-                          if p.levels.get(SUBDIVISION2, None) is not None]
-
-        # The counties of NYC
-        if len(county_parents) != 1:
-            continue
-        assert county_parents[0] == county
-
-        # Possible because county remainders are not yet loaded
-        if place.data.total_pop != county.data.total_pop:
-            continue
-
-        # Consolidate geos for each 1:1 consolidated county/place
-        GeoData.deregister(place.data)
-        place.data = None
-
-        # Fix 3 of 10 consolidated places with lsad_code == '00':
-        #     Carson City, NV
-        #     Anaconda-Deer Lodge County, MT
-        #     Hartsville/Trousdale County, TN
-        if place.levels[PLACE].designation == '':
-            place.levels[PLACE].designation = u'city'
-
-        for glvl in place.levels.values():
-            glvl.geo = county
-
-        place.parents = []
-        # Move any children of the place to the county
-        for child in place.children.all():
-            if county not in child.parents:
-                child.parents = [county] + child.parents
-
-        # Make the place an alias for the county
-        place.alias_target = county
-        # Reverse the relationship, making the county the alias
-        place.promote_to_alias_target()
-
-    # Combine with DC the district and fix aliases
-    us = Geo['us']
-    dc = us['dc']
-    w = GeoID[(FIPS, '1150000')].level.geo  # Washington, DC (place)
-    GeoData.deregister(w.data)
-    w.data = None
-    w.levels[SUBDIVISION2].geo = dc
-    w.levels[PLACE].geo = dc
-    w.parents = []
-    w.alias_target = dc
-    wdc = dc['district_of_columbia']
-    wdc.name = 'Washington, D.C.'
-    wdc.path_parent = us
-
-    # Clean up remaining place (1 of 10) with lsad_code == '00':
-    # Milford city (balance), CT
-    # Parent is a city (not county!):
-    # Milford; city [MISSING]
-    #     Milford (balance); city balance
-    #     Woodmont; borough
-    #     Devon; unincorporated village [MISSING]
-    ct = Geo['us/ct']
-    nhc = Geo['us/ct/new_haven_county']
-    wm = Geo['us/ct/woodmont']
-    mfb = Geo['us/ct/milford_city_(balance)']
-
-    mf = Geo(name='Milford', path_parent=ct, parents=[nhc, ct],
-             children=[mfb, wm])  # sets geo data based on children
-    mfb.levels[PLACE].geo = mf  # move levels and ids
-    mf.levels[PLACE].designation = 'city'
-
-    mfb.name = 'Milford (balance)'
-    GeoLevel(geo=mfb, level=PLACE, designation='city balance')
-    mfb.parents = [mf]  # balance geos only related to immediate parents
 
 
 def load_cbsa_geos(geo_session, session):
