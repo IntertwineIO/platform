@@ -91,6 +91,14 @@ class County(AutoTablenameMixin, BaseGeoDataModel):
 class Cousub(AutoTablenameMixin, BaseGeoDataModel):
     COUNTY_SUBDIVISION = 'county subdivision'
 
+    BRONX = '00978756'
+    BROOKLYN = '00978759'
+    MANHATTAN = '00979190'
+    QUEENS = '00979404'
+    STATEN_ISLAND = '00979522'
+
+    NYC_ANSI_CODES = {BRONX, BROOKLYN, MANHATTAN, QUEENS, STATEN_ISLAND}
+
     stusps = Column(types.String(2),                    # MA
                     ForeignKey('state.stusps'))
     state = orm.relationship('State')
@@ -112,6 +120,7 @@ class Cousub(AutoTablenameMixin, BaseGeoDataModel):
 
 class Place(AutoTablenameMixin, BaseGeoDataModel):
     PLACE = 'place'
+    CDP = 'CDP'
 
     stusps = Column(types.String(2),                    # TX
                     ForeignKey('state.stusps'))
@@ -138,8 +147,25 @@ class LSAD(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
     SUFFIX = 'suffix'
     AFFIXES = {PREFIX, SUFFIX}
 
-    ACTUAL_TEXT = 'actual text'
-    ANNOTATIONS = ['({})'.format(a) for a in (ACTUAL_TEXT, PREFIX, SUFFIX)]
+    ACTUAL_TEXT_TAG = '(actual text)'
+
+    PREFIX_TAG_PREFIX = '(prefix)'
+    PREFIX_TAG_OF = ' of'
+    PREFIX_TAG_DE = ' de'
+    PREFIX_TAGS = (PREFIX_TAG_PREFIX, PREFIX_TAG_OF, PREFIX_TAG_DE)
+
+    SUFFIX_TAG_SUFFIX = '(suffix)'
+    SUFFIX_TAG_BALANCE = '(balance)'
+    SUFFIX_TAGS = (SUFFIX_TAG_SUFFIX, SUFFIX_TAG_BALANCE)
+
+    LSAD_ANNOTATIONS = (ACTUAL_TEXT_TAG, PREFIX_TAG_PREFIX, SUFFIX_TAG_SUFFIX)
+
+    PREFIX_REMAINDER_OF = 'Remainder of'
+    EXTRA_PREFIXES = (PREFIX_REMAINDER_OF,)
+
+    SUFFIX_PART = '(part)'
+    SUFFIX_BALANCE = '(balance)'
+    EXTRA_SUFFIXES = (SUFFIX_PART, SUFFIX_BALANCE)
 
     lsad_code = Column(types.String(2), primary_key=True)  # 25
     description = Column(types.String(60))              # 'city (suffix)'
@@ -171,51 +197,80 @@ class LSAD(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
     @property
     def display(self):
         text = self.description
-        for annotation in self.ANNOTATIONS:
-            text = text.split(' ' + annotation)[0]
+        for annotation in self.LSAD_ANNOTATIONS:
+            annotation_len = len(annotation)
+            if text[-annotation_len:] == annotation:
+                text = text[:-annotation_len].strip()
         return text
 
     @property
     def affix(self):
-        return (self.PREFIX if (self.PREFIX in self.description) else
-                self.SUFFIX if (self.SUFFIX in self.description) else None)
+        for suffix_tag in self.SUFFIX_TAGS:
+            suffix_tag_len = len(suffix_tag)
+            if self.description[-suffix_tag_len:] == suffix_tag:
+                return self.SUFFIX
+
+        for prefix_tag in self.PREFIX_TAGS:
+            prefix_tag_len = len(prefix_tag)
+            if self.description[-prefix_tag_len:] == prefix_tag:
+                return self.PREFIX
 
     @classmethod
     def deaffix(cls, affixed_name, lsad_code):
+        deannotated_name = affixed_name
+
+        extra_prefixes, extra_suffixes = set(), set()
+
+        # Add all extra prefixes/suffixes found, but only remove first?
+        # Or remove extras 1 by 1 checking for LSAD match?
+
+        for prefix in cls.EXTRA_PREFIXES:
+            prefix_len = len(prefix)
+            if affixed_name[:prefix_len] == prefix:
+                extra_prefixes.add(prefix)
+                deannotated_name = deannotated_name[prefix_len:].strip()
+                break
+
+        for suffix in cls.EXTRA_SUFFIXES:
+            suffix_len = len(suffix)
+            if affixed_name[-suffix_len:] == suffix:
+                extra_suffixes.add(suffix)
+                deannotated_name = deannotated_name[:-suffix_len].strip()
+                break
+
         lsad_record = cls.get_by('lsad_code', lsad_code)
 
         if not lsad_record:
-            return affixed_name, None, None
+            return deannotated_name, None, None, extra_prefixes, extra_suffixes
 
         lsad, affix = lsad_record.display, lsad_record.affix
 
         lsad = lsad if lsad else None
 
         if lsad is None or affix is None:
-            return affixed_name, lsad, affix
+            return (deannotated_name, lsad, affix, extra_prefixes,
+                    extra_suffixes)
 
-        lsad_tag_len = len(lsad) + 1
+        lsad_len = len(lsad)
 
         if affix == cls.SUFFIX:
-            lsad_tag = ' ' + lsad
-            name = affixed_name[:-lsad_tag_len]
-            removed_value = affixed_name[-lsad_tag_len:]
+            name = deannotated_name[:-lsad_len].strip()
+            removed_value = deannotated_name[-lsad_len:]
 
         elif affix == cls.PREFIX:
-            lsad_tag = lsad + ' '
-            name = affixed_name[lsad_tag_len:]
-            removed_value = affixed_name[:lsad_tag_len]
+            name = deannotated_name[lsad_len:].strip()
+            removed_value = deannotated_name[:lsad_len]
 
         else:
             raise ValueError("Affix '{affix}' must be in {affixes}"
                              .format(affix=affix, affixes=cls.AFFIXES))
 
-        if removed_value != lsad_tag:
+        if removed_value != lsad:
             raise ValueError(
-                "'{lsad_tag}' not found as {affix} of '{name}'"
-                .format(lsad_tag=lsad_tag, affix=affix, name=affixed_name))
+                "'{lsad}' not found as {affix} of '{name}'"
+                .format(lsad=lsad, affix=affix, name=affixed_name))
 
-        return name, lsad, affix
+        return name, lsad, affix, extra_prefixes, extra_suffixes
 
 
 class Geoclass(AutoTablenameMixin, BaseGeoDataModel):
@@ -237,6 +292,9 @@ class GHRP(BaseGeoDataModel):
     place_id, the concatenation of statefp and placefp
     all columns from File 02.
     '''
+    DATA_FIELDS = (
+        'p0020001', 'p0020002', 'intptlat', 'intptlon', 'arealand', 'areawatr')
+
     __tablename__ = 'ghrp'
 
     # RECORD CODES

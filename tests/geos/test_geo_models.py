@@ -177,10 +177,10 @@ def test_form_aggregate_geo(session):
 
     child_a_dict = {'total_pop': 100,
                     'urban_pop': 80,
-                    'latitude': 42,
-                    'longitude': -71,
-                    'land_area': 321,
-                    'water_area': 123}
+                    'latitude': GeoData.convert_coordinate(42),
+                    'longitude': GeoData.convert_coordinate(-71),
+                    'land_area': GeoData.convert_area(321),
+                    'water_area': GeoData.convert_area(123)}
 
     child_a_geo = Geo(name='Child Test Geo A')
     GeoData(geo=child_a_geo, **child_a_dict)
@@ -188,10 +188,10 @@ def test_form_aggregate_geo(session):
 
     child_b_dict = {'total_pop': 300,
                     'urban_pop': 240,
-                    'latitude': 44,
-                    'longitude': -73,
-                    'land_area': 456,
-                    'water_area': 21}
+                    'latitude': GeoData.convert_coordinate(44),
+                    'longitude': GeoData.convert_coordinate(-73),
+                    'land_area': GeoData.convert_area(456),
+                    'water_area': GeoData.convert_area(21)}
 
     child_b_geo = Geo(name='Child Test Geo B')
     GeoData(geo=child_b_geo, **child_b_dict)
@@ -199,10 +199,10 @@ def test_form_aggregate_geo(session):
 
     child_c_dict = {'total_pop': 1000,
                     'urban_pop': 800,
-                    'latitude': 30,
-                    'longitude': -97,
-                    'land_area': 4321,
-                    'water_area': 1234}
+                    'latitude': GeoData.convert_coordinate(30),
+                    'longitude': GeoData.convert_coordinate(-97),
+                    'land_area': GeoData.convert_area(4321),
+                    'water_area': GeoData.convert_area(1234)}
 
     child_c_geo = Geo(name='Child Test Geo C')
     GeoData(geo=child_c_geo, **child_c_dict)
@@ -214,9 +214,9 @@ def test_form_aggregate_geo(session):
     child_a_area = child_a_dict['land_area'] + child_a_dict['water_area']
     child_b_area = child_b_dict['land_area'] + child_b_dict['water_area']
     for field in weighted_average_fields:
-        aggregate_dict[field] = (
+        aggregate_dict[field] = GeoData.convert_coordinate(
             (child_a_dict[field] * child_a_area +
-                child_b_dict[field] * child_b_area) * 1.0 /
+                child_b_dict[field] * child_b_area) /
             (child_a_area + child_b_area))
 
     parent_geo = Geo(name='Parent Test Geo',

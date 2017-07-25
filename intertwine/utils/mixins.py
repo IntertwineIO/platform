@@ -5,6 +5,8 @@ from __future__ import (absolute_import, division, print_function,
 
 import sys
 from collections import OrderedDict
+from datetime import datetime
+from decimal import Decimal
 from itertools import chain
 from math import floor
 from mock.mock import NonCallableMagicMock
@@ -194,13 +196,21 @@ class Jsonable(object):
         return fields
 
     @classmethod
+    def ensure_json_safe(cls, value):
+        if isinstance(value, Decimal):
+            return str(value)
+        if isinstance(value, datetime):
+            return value.isoformat()
+        raise TypeError
+
+    @classmethod
     def form_path(cls, base, *fields):
         path_components = list(fields)
         path_components.insert(0, base)
         return cls.PATH_DELIMITER.join(path_components)
 
     def jsonify(self, config=None, hide_all=False, hide=None, nest=False,
-                tight=True, raw=False, limit=10, depth=1,
+                tight=True, raw=False, limit=10, depth=1, default=None,
                 _path=None, _json=None):
         '''Jsonify
 
@@ -254,6 +264,10 @@ class Jsonable(object):
                 2: current object and 1st relation objects
                 3: current object and 1st+2nd relation objects
 
+        default=None:
+            Default function used to ensure value is json-safe. Defaults
+            to Jsonable.ensure_json_safe.
+
         _path=None:
             Path to current field from the base object:
                 .<base_field>.<related_object_field> (etc.)
@@ -265,6 +279,7 @@ class Jsonable(object):
         config = {} if config is None else config
         hide = set() if hide is None else hide
         hide = set(hide) if not isinstance(hide, set) else hide
+        default = default or self.ensure_json_safe
         _path = '' if _path is None else _path
         _json = OrderedDict() if _json is None else _json
         json_kwargs = kwargify(exclude=('hide_all', 'depth', '_path'))
@@ -316,16 +331,23 @@ class Jsonable(object):
                                  depth=field_depth,
                                  _path=field_path,
                                  **json_kwargs)
+                continue
 
-            elif isinstance(value, NonCallableMagicMock):
+            if isinstance(value, NonCallableMagicMock):
                 self_json[field] = None
+                continue
 
-            else:
+            for exception_flow_control in range(1):
                 try:
                     if isinstance(value, (str, unicode)):
                         raise TypeError
-                    # Check if iterable and raise TypeError if not
+                    # Raise TypeError if not iterable
                     value_iterator = iter(value)
+
+                except TypeError:
+                    pass  # Execution proceeds after else clause
+
+                else:
                     items = []
                     self_json[field] = items
                     for i, item in enumerate(value_iterator):
@@ -342,9 +364,15 @@ class Jsonable(object):
 
                         if i + 1 == limit:
                             break
+                    continue  # Execution proceeds after single loop
+
+                try:
+                    self_json[field] = default(value)
 
                 except TypeError:
                     self_json[field] = value
+
+                continue  # Execution proceeds after single loop
 
         return self_json if nest else _json
 

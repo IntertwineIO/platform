@@ -3,6 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from collections import OrderedDict, namedtuple
+from decimal import Decimal
 from functools import reduce
 
 from sqlalchemy import Column, ForeignKey, Index, Table, desc, orm, types
@@ -318,6 +319,18 @@ class GeoData(BaseGeoModel):
     SUMMED_FIELDS = (TOTAL_POP, URBAN_POP, LAND_AREA, WATER_AREA)
     AREA_AVERAGED_FIELDS = (LATITUDE, LONGITUDE)
 
+    COORDINATE_FIELDS = {LATITUDE, LONGITUDE}
+    AREA_FIELDS = {LAND_AREA, WATER_AREA}
+
+    COORDINATE_PRECISION = 7  # 7:11 mm; 6:0.11 m (https://goo.gl/7qq5sR)
+    AREA_PRECISION = 6  # square meters to square kilometers
+
+    COORDINATE_MULTIPLIER = Decimal('1{}'.format('0' * COORDINATE_PRECISION))
+    AREA_MULTIPLIER = Decimal('1{}'.format('0' * AREA_PRECISION))
+
+    COORDINATE_QUANT = Decimal('1') / COORDINATE_MULTIPLIER
+    AREA_QUANT = Decimal('1') / AREA_MULTIPLIER
+
     geo_id = Column(types.Integer, ForeignKey('geo.id'))
     _geo = orm.relationship('Geo', back_populates='_data')
 
@@ -325,13 +338,13 @@ class GeoData(BaseGeoModel):
     total_pop = Column(types.Integer)
     urban_pop = Column(types.Integer)
 
-    # Enables distance calculations
-    latitude = Column(types.Float)
-    longitude = Column(types.Float)
+    # Stored as lat/lon * 10^7
+    _latitude = Column(types.Integer)
+    _longitude = Column(types.Integer)
 
-    # Enables lat/long calculation of combined geos (in sq kilometers)
-    land_area = Column(types.Float)
-    water_area = Column(types.Float)
+    # Stored as sq kilometers * 10^6
+    _land_area = Column(types.Integer)
+    _water_area = Column(types.Integer)
 
     # future: demographics, geography, climate, etc.
 
@@ -342,6 +355,97 @@ class GeoData(BaseGeoModel):
                       Index('ix_geo_data:total_pop',
                             # ix for index
                             'total_pop'),)
+
+    Record = namedtuple(
+        'GeoDataRecord',
+        'total_pop, urban_pop, latitude, longitude, land_area, water_area')
+
+    Key = namedtuple('GeoDataKey', (GEO,))
+
+    @classmethod
+    def create_key(cls, geo, **kwds):
+        '''Create Trackable key (geo 1-tupled) for a geo data'''
+        return cls.Key(geo)
+
+    def derive_key(self):
+        '''Derive Trackable key (geo 1-tupled) from a geo data'''
+        return self.__class__.Key(self.geo)
+
+    @classmethod
+    def transform_value(cls, field, value):
+
+        if field in cls.COORDINATE_FIELDS:
+            return cls.convert_coordinate(value)
+
+        if field in cls.AREA_FIELDS:
+            return cls.convert_area(value)
+
+        return value
+
+    @classmethod
+    def convert_coordinate(cls, coordinate):
+        return Decimal(coordinate).quantize(cls.COORDINATE_QUANT)
+
+    @classmethod
+    def convert_coordinates(cls, *coordinates):
+        return (cls.convert_coordinate(c) for c in coordinates)
+
+    @classmethod
+    def convert_area(cls, area_in_square_meters):
+        decimal_area_in_square_meters = Decimal(int(area_in_square_meters))
+        return decimal_area_in_square_meters / cls.AREA_MULTIPLIER
+
+    @classmethod
+    def convert_areas(cls, *areas):
+        return (cls.convert_area(a) for a in areas)
+
+    @property
+    def latitude(self):
+        return (Decimal(self._latitude).quantize(self.COORDINATE_QUANT) /
+                self.COORDINATE_MULTIPLIER)
+
+    @latitude.setter
+    def latitude(self, val):
+        self._latitude = int(Decimal(val).quantize(self.COORDINATE_QUANT) *
+                             self.COORDINATE_MULTIPLIER)
+
+    latitude = orm.synonym('_latitude', descriptor=latitude)
+
+    @property
+    def longitude(self):
+        return (Decimal(self._longitude).quantize(self.COORDINATE_QUANT) /
+                self.COORDINATE_MULTIPLIER)
+
+    @longitude.setter
+    def longitude(self, val):
+        self._longitude = int(Decimal(val).quantize(self.COORDINATE_QUANT) *
+                              self.COORDINATE_MULTIPLIER)
+
+    longitude = orm.synonym('_longitude', descriptor=longitude)
+
+    @property
+    def land_area(self):
+        return (Decimal(self._land_area).quantize(self.AREA_QUANT) /
+                self.AREA_MULTIPLIER)
+
+    @land_area.setter
+    def land_area(self, val):
+        self._land_area = int(Decimal(val).quantize(self.AREA_QUANT) *
+                              self.AREA_MULTIPLIER)
+
+    land_area = orm.synonym('_land_area', descriptor=land_area)
+
+    @property
+    def water_area(self):
+        return (Decimal(self._water_area).quantize(self.AREA_QUANT) /
+                self.AREA_MULTIPLIER)
+
+    @water_area.setter
+    def water_area(self, val):
+        self._water_area = int(Decimal(val).quantize(self.AREA_QUANT) *
+                               self.AREA_MULTIPLIER)
+
+    water_area = orm.synonym('_water_area', descriptor=water_area)
 
     @property
     def total_area(self):
@@ -365,22 +469,17 @@ class GeoData(BaseGeoModel):
 
     geo = orm.synonym('_geo', descriptor=geo)
 
-    Key = namedtuple('GeoDataKey', (GEO,))
-
-    def matches(self, **kwds):
+    def matches(self, inexact=0, **kwds):
         for field, value in kwds.items():
-            if getattr(self, field) != value:
-                return False
+            self_field_value = getattr(self, field)
+            try:
+                if abs(self_field_value - value) > inexact:
+                    return False
+
+            except TypeError:
+                if self_field_value != value:
+                    return False
         return True
-
-    @classmethod
-    def create_key(cls, geo, **kwds):
-        '''Create Trackable key (geo 1-tupled) for a geo data'''
-        return cls.Key(geo)
-
-    def derive_key(self):
-        '''Derive Trackable key (geo 1-tupled) from a geo data'''
-        return self.__class__.Key(self.geo)
 
     @classmethod
     def create_parent_data(cls, parent_geo, child_level=None):
@@ -416,7 +515,7 @@ class GeoData(BaseGeoModel):
 
         for field in cls.AREA_AVERAGED_FIELDS:
             data[field] = (sum((child.data.total_area * child.data[field]
-                                for child in children)) * 1.0 /
+                                for child in children)) /
                            sum((child.data.total_area for child in children)))
 
         return cls(parent_geo, **data)
@@ -537,11 +636,21 @@ class Geo(BaseGeoModel):
 
     PARENTS = 'parents'
     CHILDREN = 'children'
+    PATH_PARENT = 'path_parent'
     PATH_CHILDREN = 'path_children'
     ALIASES = 'aliases'
     ALIAS_TARGETS = 'alias_targets'
 
     RELATIONS = {PARENTS, CHILDREN, PATH_CHILDREN, ALIASES, ALIAS_TARGETS}
+
+    INVERSE_RELATIONS = {
+        PARENTS: CHILDREN,
+        CHILDREN: PARENTS,
+        PATH_PARENT: PATH_CHILDREN,
+        PATH_CHILDREN: PATH_PARENT,
+        ALIASES: ALIAS_TARGETS,
+        ALIAS_TARGETS: ALIASES
+    }
 
     DYNAMIC = 'dynamic'
     NOT_DYNAMIC = 'not_dynamic'
@@ -1130,6 +1239,12 @@ class Geo(BaseGeoModel):
                   .order_by(desc(GeoData.total_pop)).all())
 
         return rv
+
+    def data_matches(self, geos, inexact=0):
+
+        match_dict = {field: sum(getattr(geo.data, field) for geo in geos)
+                      for field in GeoData.SUMMED_FIELDS}
+        return self.data.matches(inexact=inexact, **match_dict)
 
     def jsonify_related_geos(self, relation, **json_kwargs):
         '''

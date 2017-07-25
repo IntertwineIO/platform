@@ -4,7 +4,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from collections import OrderedDict, namedtuple
+from collections import defaultdict, namedtuple
+from itertools import izip
 
 from sqlalchemy import desc
 from alchy import Manager
@@ -17,7 +18,7 @@ from data.geos.models import (BaseGeoDataModel,
                               LSAD, Geoclass,  # Keep - used in globals()
                               GHRP)
 from intertwine.trackable import Trackable
-from intertwine.trackable.exceptions import (KeyMissingFromRegistryAndDatabase,
+from intertwine.trackable.exceptions import (KeyMissingFromRegistry,
                                              KeyRegisteredAndNoModify)
 from intertwine.utils.structures import PeekableIterator
 from intertwine.geos.models import (
@@ -25,12 +26,18 @@ from intertwine.geos.models import (
     # Geo constants
     PARENTS, CHILDREN,  # PATH_CHILDREN, ALIASES, ALIAS_TARGETS,
     # GeoLevel constants
-    COUNTRY, SUBDIVISION1, SUBDIVISION2, SUBDIVISION3, PLACE,
+    COUNTRY, SUBDIVISION1, SUBDIVISION2, SUBDIVISION3, PLACE, SUBPLACE,
     CORE_AREA, COMBINED_AREA,
     # GeoID constants
     FIPS, ANSI, ISO_A2, ISO_A3, ISO_N3, CSA_2010, CBSA_2010)
 
 COUNTY_LSAD_AS_QUALIFIER = False
+
+GHRP_DATA_FIELDS = GeoData.Record(*GHRP.DATA_FIELDS)
+PREFIXED_GHRP_DATA_FIELDS = GeoData.Record(
+    *('_'.join((GHRP.__name__.lower(), f)) for f in GHRP_DATA_FIELDS))
+
+invalid_cousub_name = Cousub.invalid_name_pattern.search
 
 
 def derive_columns(classes, fields):
@@ -54,6 +61,7 @@ def derive_columns(classes, fields):
 
 
 def find_non_place_cousubs(geo=None, include_all=False):
+    '''Utility to find non-place cousubs'''
     geos = []
 
     prior_state = prior_county = None
@@ -115,39 +123,28 @@ def find_non_place_cousubs(geo=None, include_all=False):
     return geos
 
 
-def extract_data(record, prefix=None):
-    fields = OrderedDict((
-        ('total_pop', 'p0020001'),
-        ('urban_pop', 'p0020002'),
-        ('latitude', 'intptlat'),
-        ('longitude', 'intptlon'),
-        ('land_area', 'arealand'),
-        ('water_area', 'areawatr'),
-    ))
-    if prefix:
-        for k, v in fields.items():
-            fields[k] = '_'.join((prefix, v))
-
-    data = OrderedDict((k, getattr(record, v)) for k, v in fields.items())
-    for field in ('land_area', 'water_area'):
-        data[field] = (data[field] * 1.0) / 10**6
-
-    return data.values()
+def extract_data(record, field_names):
+    '''Extract geo data from record based on GeoData field namedtuple'''
+    return GeoData.Record(
+        *(GeoData.transform_value(data_field, getattr(record, record_field))
+          for data_field, record_field
+          in izip(field_names._fields, field_names)))
 
 
 def load_geos(geo_session, session):
-
+    '''Load geos for the US'''
     load_country_geos(geo_session, session)
     load_subdivision1_geos(geo_session, session)
     load_subdivision2_geos(geo_session, session)
     load_subdivision3_geos(geo_session, session)
-    # load_place_geos(geo_session, session)
+    load_place_geos(geo_session, session)
     # load_cbsa_geos(geo_session, session)
 
     return Trackable.catalog_updates()
 
 
 def load_country_geos(geo_session, session):
+    '''Load COUNTRY geos - US and USA alias'''
     us = Geo(name='United States', abbrev='U.S.')
     Geo(name='United States of America', abbrev='U.S.A.', alias_targets=[us])
     GeoData(geo=us,
@@ -194,15 +191,12 @@ def load_states(geo_session, session, sub1keys=None):
         state = r.state
         print('{usps} - {name}'.format(usps=state.stusps, name=state.name))
 
-        total_pop, urban_pop, latitude, longitude, land_area, water_area = (
-            extract_data(r))
+        data_record = extract_data(r, GHRP_DATA_FIELDS)
 
         geo = Geo(name=state.name, abbrev=state.stusps, path_parent=us,
                   parents=[us])
 
-        GeoData(geo=geo, total_pop=total_pop, urban_pop=urban_pop,
-                latitude=latitude, longitude=longitude,
-                land_area=land_area, water_area=water_area)
+        GeoData(geo=geo, **data_record._asdict())
 
         glvl = GeoLevel(geo=geo, level=SUBDIVISION1, designation=State.STATE)
 
@@ -237,7 +231,7 @@ def load_territories(geo_session, session, sub1keys=None):
     as_ = '60', '01802701', 55519,  48645, -14.2638166, -170.6620902, 198, 1307
     gu_ = '66', '01802705', 159358, 149918, 13.4383000,  144.7729285, 543, 935
     mp_ = '69', '01779809', 53883,  48997,  14.9367835,  145.6010210, 472, 4644
-    um_ = '74', '01878752', 0,      0,      0,           0,           0,   0
+    um_ = '74', '01878752', 300,    0,      0,           0,           41,   0
     vi_ = '78', '01802710', 106405, 100607, 18.3267485, -064.9712501, 348, 1550
     territory_data = {'AS': as_, 'GU': gu_, 'MP': mp_, 'UM': um_, 'VI': vi_}
     territory_keys = State.SMALL_TERRITORIES
@@ -326,10 +320,11 @@ def load_state_counties(geo_session, session, sub1keys=None):
                 state=state.abbrev, name=state.name))
             prior_stusps = stusps
 
-        print(u'\t{name}, {state} ({id})'.format(
-            name=r.ghrp_name, state=state.abbrev, id=r.ghrp_countyid))
+        print(u"\t{name}, {state} ({standard}, '{code}')"
+              .format(name=r.ghrp_name, state=state.abbrev, standard=ANSI,
+                      code=r.ghrp_countyns))
 
-        name, lsad, affix = LSAD.deaffix(r.ghrp_name, r.ghrp_lsadc)
+        name, lsad, affix, _, _ = LSAD.deaffix(r.ghrp_name, r.ghrp_lsadc)
 
         if COUNTY_LSAD_AS_QUALIFIER:
             qualifier = lsad if affix == LSAD.SUFFIX else None
@@ -340,12 +335,14 @@ def load_state_counties(geo_session, session, sub1keys=None):
 
         designation = lsad if lsad else County.COUNTY
 
-        total_pop, urban_pop, latitude, longitude, land_area, water_area = (
-            extract_data(r, prefix='ghrp'))
+        data_record = extract_data(r, PREFIXED_GHRP_DATA_FIELDS)
+
+        data_match_dict = data_record._asdict()
+        del data_match_dict['latitude']
+        del data_match_dict['longitude']
 
         # County matches state so add county geolevel; DC only
-        if state.data.matches(total_pop=total_pop, urban_pop=urban_pop,
-                              land_area=land_area, water_area=water_area):
+        if state.data.matches(inexact=1, **data_match_dict):
 
             county_glvl = GeoLevel(geo=state, level=SUBDIVISION2,
                                    designation=designation)
@@ -353,7 +350,8 @@ def load_state_counties(geo_session, session, sub1keys=None):
             GeoID(level=county_glvl, standard=FIPS, code=r.ghrp_countyid)
 
             ansi = r.ghrp_countyns
-            if ansi is not None and GeoID.tget((ANSI, ansi)) is None:
+            if (ansi is not None and
+                    GeoID.tget((ANSI, ansi), query_on_miss=False) is None):
                 GeoID(level=county_glvl, standard=ANSI, code=ansi)
 
             continue
@@ -361,10 +359,7 @@ def load_state_counties(geo_session, session, sub1keys=None):
         county = Geo(name=name, qualifier=qualifier,
                      path_parent=state, parents=[state, us])
 
-        GeoData(geo=county,
-                total_pop=total_pop, urban_pop=urban_pop,
-                latitude=latitude, longitude=longitude,
-                land_area=land_area, water_area=water_area)
+        GeoData(geo=county, **data_record._asdict())
 
         glvl = GeoLevel(geo=county, level=SUBDIVISION2,
                         designation=designation)
@@ -372,7 +367,8 @@ def load_state_counties(geo_session, session, sub1keys=None):
         GeoID(level=glvl, standard=FIPS, code=r.ghrp_countyid)
 
         ansi = r.ghrp_countyns
-        if ansi is not None and GeoID.tget((ANSI, ansi)) is None:
+        if (ansi is not None and
+                GeoID.tget((ANSI, ansi), query_on_miss=False) is None):
             GeoID(level=glvl, standard=ANSI, code=r.ghrp_countyns)
 
         if affix != LSAD.SUFFIX:
@@ -433,10 +429,10 @@ def load_territory_counties(geo_session, session, sub1keys=None):
                 state=territory.abbrev, name=territory.name))
             prior_stusps = stusps
 
-        print(u'\t{name}, {state} ({id})'.format(
-            name=full_name, state=territory.abbrev, id=fips))
+        print(u"\t{name}, {state} ({standard}, '{code}')"
+              .format(name=full_name, state=stusps, standard=ANSI, code=ansi))
 
-        name, lsad, affix = LSAD.deaffix(full_name, lsad_code)
+        name, lsad, affix, _, _ = LSAD.deaffix(full_name, lsad_code)
 
         if COUNTY_LSAD_AS_QUALIFIER:
             qualifier = lsad if affix == LSAD.SUFFIX else None
@@ -449,19 +445,23 @@ def load_territory_counties(geo_session, session, sub1keys=None):
 
         # Look for existing geo with same county ANSI code; Guam only
         try:
-            existing = GeoID[ANSI, ansi].level.geo
+            ansi_geoid = GeoID.tget((ANSI, ansi), query_on_miss=False)
+            # Raise AttributeError if ansi_geoid is None
+            existing = ansi_geoid.level.geo
             assert not existing.levels.get(SUBDIVISION2)
 
-            print(u'\t{name}, {state} ({id}) with same place ANSI exists'
-                  .format(name=full_name, state=stusps, id=ansi))
+        except AttributeError:
+            pass
+
+        else:
+            print(u"\t{name}, {state} ({standard}, '{code}')"
+                  " with same place ANSI exists".format(
+                    name=full_name, state=stusps, standard=ANSI, code=ansi))
 
             county_glvl = GeoLevel(geo=territory, level=SUBDIVISION2,
                                    designation=designation)
             GeoID(level=county_glvl, standard=FIPS, code=fips)
             continue
-
-        except KeyMissingFromRegistryAndDatabase:
-            pass
 
         county = Geo(name=name, qualifier=qualifier,
                      path_parent=territory, parents=[territory, us])
@@ -471,7 +471,8 @@ def load_territory_counties(geo_session, session, sub1keys=None):
 
         GeoID(level=glvl, standard=FIPS, code=fips)
 
-        if ansi is not None and GeoID.tget((ANSI, ansi)) is None:
+        # Per try above, GeoID.tget((ANSI, ansi)) is None...
+        if ansi is not None:
             GeoID(level=glvl, standard=ANSI, code=ansi)
 
         if affix != LSAD.SUFFIX:
@@ -527,16 +528,17 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None):
     state = None
     stusps = prior_stusps = None
     countyid = prior_countyid = None
-    county_matches = []
-    failed_renames = []
+
+    tracker = defaultdict(list)
 
     print('Loading county subdivisions and equivalents...')
     for r in (CountySubdivisionRecord(*record) for record in records):
 
         # Invalid cousub (e.g. 'County subdivisions not defined')
         if r.ghrp_cousubns == '00000000':
-            print(u'\t\tSkipping invalid cousub: {name} ({cousubid})'
-                  .format(name=r.ghrp_name, cousubid=r.ghrp_cousubid))
+            print(u"\t\tSkipping invalid cousub: {name} ({standard}, '{code}')"
+                  .format(name=r.ghrp_name, standard=ANSI,
+                          code=r.ghrp_cousubns))
             continue
 
         stusps = State.get_by('statefp', r.ghrp_statefp).stusps
@@ -549,70 +551,41 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None):
         countyid = r.ghrp_countyid
         if countyid != prior_countyid:
             county = GeoID[FIPS, r.ghrp_countyid].level.geo
-            print(u'\t{name}, {state} ({id})'.format(
-                name=county.name, state=state.abbrev, id=r.ghrp_countyid))
+            print(u"\t{name}, {state} ({standard}, '{code}')"
+                  .format(name=county.name, state=state.abbrev, standard=ANSI,
+                          code=r.ghrp_countyns))
             prior_countyid = countyid
 
-        name, lsad, _ = LSAD.deaffix(r.ghrp_name, r.ghrp_lsadc)
+        fips = r.ghrp_cousubid
+        ansi = r.ghrp_cousubns
+
+        name, lsad, _, _, _ = LSAD.deaffix(r.ghrp_name, r.ghrp_lsadc)
 
         designation = lsad if lsad else Cousub.COUNTY_SUBDIVISION
 
-        print(u'\t\t{name}, {state} ({id})'.format(
-            name=name, state=state.abbrev, id=r.ghrp_cousubid))
+        print(u"\t\t{name}, {state} ({standard}, '{code}')"
+              .format(name=name, state=state.abbrev, standard=ANSI, code=ansi))
 
-        # if name.lower() == 'st. albans':  # VT
-        #     import pdb; pdb.set_trace()
+        data_record = extract_data(r, PREFIXED_GHRP_DATA_FIELDS)
 
-        total_pop, urban_pop, latitude, longitude, land_area, water_area = (
-            extract_data(r, prefix='ghrp'))
+        data_match_dict = data_record._asdict()
+        del data_match_dict['latitude']
+        del data_match_dict['longitude']
 
-        for _ in range(1):  # Single loop for exception flow control
+        for exception_flow_control in range(1):
 
             ############################################################
             #
             # Happy path 1: Cousub matches county so add cousub geolevel
             #
-            if (county.is_known_by(name, full_name=False) and
-                county.data.matches(
-                    total_pop=total_pop, urban_pop=urban_pop,
-                    land_area=land_area, water_area=water_area)):
+            if county.data.matches(inexact=1, **data_match_dict):
 
                 cousub = county  # e.g. San Francisco and Carson City
 
-                cousub_glvl = GeoLevel(geo=cousub, level=SUBDIVISION3,
-                                       designation=designation)
-
-                GeoID(level=cousub_glvl, standard=FIPS, code=r.ghrp_cousubid)
-
-                ansi = r.ghrp_cousubns
-                if ansi is not None and GeoID.tget((ANSI, ansi)) is None:
-                    GeoID(level=cousub_glvl, standard=ANSI, code=ansi)
-
-                county_matches.append(cousub)
-
-                # e.g. Washington not in District of Columbia
-                if name == county.name or name not in county.name:
-                    continue  # Execution proceeds after single loop
-
-                # Try renaming county to remove lsad and add alias
-                try:
-                    county_name = county.name
-                    county_qualifier = county.qualifier
-                    # Key conflict raises KeyError
-                    county.name, county.qualifier = name, None
-                    # No conflict here since key was just vacated
-                    Geo(name=county_name, qualifier=county_qualifier,
-                        path_parent=state, alias_targets=[county])
-
-                except KeyError:
-                    geo_conflict_key = Geo.create_key(name=name,
-                                                      path_parent=state)
-                    geo_conflict = Geo[geo_conflict_key]
-
-                    # It's okay if conflict is itself (e.g. Carson City)
-                    # Otherwise, track the failed renaming
-                    if geo_conflict is not county:
-                        failed_renames.append(county)
+                place_glvl, created = add_level_and_rename(
+                    geo=county, level=SUBDIVISION3, designation=designation,
+                    fips=fips, ansi=ansi, name=name, state=state,
+                    county=county, match_level=SUBDIVISION2, tracker=tracker)
 
                 continue  # Execution proceeds after single loop
 
@@ -628,18 +601,15 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None):
                 pass  # Execution proceeds after else clause
 
             else:
-                GeoData(geo=cousub,
-                        total_pop=total_pop, urban_pop=urban_pop,
-                        latitude=latitude, longitude=longitude,
-                        land_area=land_area, water_area=water_area)
+                GeoData(geo=cousub, **data_record._asdict())
 
                 cousub_glvl = GeoLevel(geo=cousub, level=SUBDIVISION3,
                                        designation=designation)
 
-                GeoID(level=cousub_glvl, standard=FIPS, code=r.ghrp_cousubid)
+                GeoID(level=cousub_glvl, standard=FIPS, code=fips)
 
-                ansi = r.ghrp_cousubns
-                if ansi is not None and GeoID.tget((ANSI, ansi)) is None:
+                if (ansi is not None and
+                        GeoID.tget((ANSI, ansi), query_on_miss=False) is None):
                     GeoID(level=cousub_glvl, standard=ANSI, code=ansi)
 
                 continue  # Execution proceeds after single loop
@@ -675,10 +645,10 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None):
                 pass  # Execution proceeds after else clause
 
             else:
-                GeoID(level=cousub_glvl, standard=FIPS, code=r.ghrp_cousubid)
+                GeoID(level=cousub_glvl, standard=FIPS, code=fips)
 
-                ansi = r.ghrp_cousubns
-                if ansi is not None and GeoID.tget((ANSI, ansi)) is None:
+                if (ansi is not None and
+                        GeoID.tget((ANSI, ansi), query_on_miss=False) is None):
                     GeoID(level=cousub_glvl, standard=ANSI, code=ansi)
 
                 continue  # Execution proceeds after single loop
@@ -724,35 +694,33 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None):
                 state=state.abbrev,
                 cousubs=(cousub_conflict.human_id, cousub.human_id)))
 
-            GeoData(geo=cousub,
-                    total_pop=total_pop, urban_pop=urban_pop,
-                    latitude=latitude, longitude=longitude,
-                    land_area=land_area, water_area=water_area)
+            GeoData(geo=cousub, **data_record._asdict())
 
             cousub_glvl = GeoLevel(geo=cousub, level=SUBDIVISION3,
                                    designation=designation)
 
-            GeoID(level=cousub_glvl, standard=FIPS, code=r.ghrp_cousubid)
+            GeoID(level=cousub_glvl, standard=FIPS, code=fips)
 
-            ansi = r.ghrp_cousubns
-            if ansi is not None and GeoID.tget((ANSI, ansi)) is None:
+            if (ansi is not None and
+                    GeoID.tget((ANSI, ansi), query_on_miss=False) is None):
                 GeoID(level=cousub_glvl, standard=ANSI, code=ansi)
 
             continue  # Execution proceeds after single loop
 
         # After single loop: execution proceeds here
         if (stusps in State.STATES_WITH_MCDS_AS_GOVERNMENTAL_UNITS and
-                not Cousub.invalid_name_pattern.search(name)):
-            create_place_from_cousub(cousub, county, state, lsad, designation)
+                not invalid_cousub_name(name)):
+            create_place_from_cousub(
+                cousub, county, state, lsad, designation, ansi, tracker)
 
-    print('County matches:')
-    print(county_matches)
-    print('Failed renames:')
-    print(failed_renames)
+    for key, value in tracker.items():
+        print(' '.join(word.capitalize() for word in key.split('_')) + ':')
+        print(value)
+        print()
 
 
 def create_place_from_cousub(cousub, county=None, state=None, lsad=None,
-                             designation=None):
+                             designation=None, ansi=None, tracker=None):
     '''
     Create place from county subdivision (cousub)
 
@@ -773,135 +741,516 @@ def create_place_from_cousub(cousub, county=None, state=None, lsad=None,
                     relation=PARENTS, level=SUBDIVISION1)[0]
     lsad = lsad or cousub.levels[SUBDIVISION3].designation
     designation = designation or lsad
+    ansi = ansi or cousub.levels[SUBDIVISION3].ids[ANSI].code
 
     # if name.lower() == 'winnebago':  # MN
     #     import pdb; pdb.set_trace()
     # if name.lower() == 'union city':  # OH
     #     import pdb; pdb.set_trace()
 
-    # GeoIDs for the PLACE level must be added by load_place_geos
-    GeoLevel(geo=cousub, level=PLACE, designation=designation)
+    level = SUBPLACE if ansi in Cousub.NYC_ANSI_CODES else PLACE
 
+    # GeoIDs for the PLACE level must be added by load_place_geos
+    GeoLevel(geo=cousub, level=level, designation=designation)
+
+    # As county, cousub path parent already state, so don't create alias
     if cousub is county:
         return
 
-    for _ in range(1):  # Single loop for exception flow control
-
-        ################################################################
-        #
-        # Happy path: if no geo conflict, create a new place alias
-        #
-        try:
-            # Temporarily an alias until promoted to target below
-            place = Geo(name=name, path_parent=state,
-                        alias_targets=[cousub])
-
-            continue  # Execution proceeds after single loop
-
-        except KeyRegisteredAndNoModify:
-            pass
-
-        ################################################################
-        #
-        # Conflict with place or alias so create place (cousub alias)
-        # with lsad qualifier
-        #
-        place_conflict_key = Geo.create_key(name=name, path_parent=state,
-                                            alias_targets=[cousub])
-        place_conflict = Geo[place_conflict_key]
-        place_conflict_alias_targets = place_conflict.alias_targets
-
-        if place_conflict_alias_targets:
-            place_alias = place_conflict
-
-        else:
-            place_alias = resolve_cousub_place_conflict(place_conflict, cousub,
-                                                        state, lsad)
-
-        # Add cousub as target since place is yet to be promoted
-        place_alias.add_alias_target(cousub)
-
-        try:
-            # Temporarily an alias until promoted to target
-            place = Geo(name=name, qualifier=lsad, path_parent=state,
-                        alias_targets=[cousub])
-
-            print(u'\t\tPlaces with same name in {state}: {places}'
-                  .format(state=state.abbrev, places=(
-                    place_conflict.human_id, place.human_id)))
-
-            continue  # Execution proceeds after single loop
-
-        except KeyRegisteredAndNoModify:
-            pass
-
-        ############################################################
-        #
-        # Conflict with LSAD-qualified place or alias so change
-        # qualifiers to '{LSAD} in {county}'
-        #
-        lsad_place_conflict_key = Geo.create_key(name=name, qualifier=lsad,
-                                                 path_parent=state)
-        lsad_place_conflict = Geo[lsad_place_conflict_key]
-        lsad_place_conflict_alias_targets = (
-            lsad_place_conflict.alias_targets)
-
-        if lsad_place_conflict_alias_targets:
-            lsad_place_alias = lsad_place_conflict
-
-        else:
-            lsad_place_conflict.qualifier = ' in '.join((
-                lsad_place_conflict.levels[PLACE].designation,
-                lsad_place_conflict.get_related_geos(
-                    relation=PARENTS, level=SUBDIVISION2)[0].name))
-            # Add alias in conflict namespace to point to conflicts
-            lsad_place_alias = Geo(name=name, qualifier=lsad,
-                                   path_parent=state,
-                                   alias_targets=[lsad_place_conflict])
-
-        # Add cousub as target since place is yet to be promoted
-        lsad_place_alias.add_alias_target(cousub)
-        # Temporarily an alias until promoted to target
-        place = Geo(name=name, qualifier=' in '.join((lsad, county.name)),
-                    path_parent=state, alias_targets=[cousub])
-
-        print(u'\t\tPlaces with same name/lsad in {state}: {places}'
-              .format(state=state.abbrev, places=(
-                    lsad_place_conflict.human_id, place.human_id)))
-
-        continue  # Execution proceeds after single loop
+    place, created = manifest_geo(
+        level=level, name=name, path_parent=state, state=state, county=county,
+        cousub=cousub, alias_targets=[cousub], lsad=lsad, tracker=None)
 
     # After single loop: execution proceeds here
     place.promote_to_alias_target()
 
 
-def resolve_cousub_place_conflict(place_conflict, cousub, state, lsad):
-    '''
-    Resolve cousub place conflict and return alias to it
+def load_place_geos(geo_session, session, sub1keys=None):
 
-    Place conflict is not an alias, so resolve the conflict by giving it
-    a qualifier. Also, create and return an alias in the conflict
-    namespace targeting the resolved place conflict.
+    PlaceRecord = namedtuple('PlaceRecord',
+                             'ghrp_name, ghrp_lsadc, '
+                             'ghrp_statefp, ghrp_countycc, '
+                             'ghrp_countyid, ghrp_countyns, '
+                             'ghrp_cousubid, ghrp_cousubns, '
+                             'ghrp_placeid, ghrp_placens, '
+                             'ghrp_p0020001, ghrp_p0020002, '
+                             'place_intptlat, place_intptlong, '
+                             'ghrp_arealand, ghrp_areawatr')
+
+    columns = derive_columns(classes=(Place, GHRP),
+                             fields=PlaceRecord._fields)
+
+    base_query = (
+        geo_session.query(GHRP)
+                   .outerjoin(GHRP.place)
+                   .filter(GHRP.sumlev == '070', GHRP.geocomp == '00',
+                           # GHRP.countyfp.in_(['017'])  # Middlesex County
+                           ))
+
+    if sub1keys:
+        statefps = {State.get_by('stusps', k).statefp for k in sub1keys}
+        # U.S. places by county equivalent
+        base_query = base_query.filter(GHRP.statefp.in_(statefps))
+
+    records = (
+        base_query.order_by(GHRP.statefp, GHRP.placeid,
+                            GHRP.countyid, GHRP.cousubid)
+                  .values(*columns))
+
+    records = PeekableIterator(records)
+
+    us = Geo['us']
+    state = None
+    stusps = prior_stusps = None  # State FIPS codes
+    countyid = prior_countyid = None  # County FIPS codes
+    cousubid = prior_cousubid = None  # Cousub FIPS codes
+    placeid = prior_placeid = None  # Place FIPS codes
+
+    counties = set()
+    cousubs = set()
+    total_pop = urban_pop = 0
+    land_area = water_area = 0
+    prior_placeid = placeid
+
+    tracker = defaultdict(list)
+
+    print('Loading places...')
+    for r in (PlaceRecord(*record) for record in records):
+
+        stusps = State.get_by('statefp', r.ghrp_statefp).stusps
+        if stusps != prior_stusps:
+            state = us[stusps]
+            print(u'{state} - {name}'.format(
+                state=state.abbrev, name=state.name))
+            prior_stusps = stusps
+
+        countyid = r.ghrp_countyid
+        if countyid != prior_countyid:
+            county = GeoID[ANSI, r.ghrp_countyns].level.geo
+            assert county
+            prior_countyid = countyid
+
+        cousubid = r.ghrp_cousubid
+        cousubns = r.ghrp_cousubns
+
+        if cousubid != prior_cousubid:
+            # Exclusively water areas of states fall into this category
+            if cousubns == '00000000':
+                print(u'\t\tSkipping place with undefined cousub: '
+                      "{name} ({standard}, '{code}')"
+                      .format(name=r.ghrp_name, standard=ANSI, code=cousubns))
+                continue
+
+            cousub = GeoID[ANSI, r.ghrp_cousubns].level.geo
+            assert cousub
+            prior_cousubid = cousubid
+
+        name, lsad, affix, extra_prefixes, extra_suffixes = deaffix_place(
+            r.ghrp_name, r.ghrp_lsadc, r.ghrp_placens)
+
+        # Skip "balance" places? Milford: perhaps; Indianapolis: no
+        if LSAD.SUFFIX_BALANCE in extra_suffixes:
+            balance_record = (r.ghrp_name, name, lsad, affix, extra_prefixes,
+                              extra_suffixes)
+            tracker['place_balances'].append(balance_record)
+            if lsad == 'city':
+                tracker['skipped_city_balances'].append(balance_record)
+                continue
+
+        designation = lsad if lsad else Place.PLACE
+
+        placens = r.ghrp_placens
+
+        # Place remainder or missing place (already created from cousub)
+        if placens == '99999999':
+            place_created_from_cousub = cousub.levels.get(PLACE) is not None
+
+            if (stusps in State.STATES_WITH_MCDS_AS_GOVERNMENTAL_UNITS and
+                    not place_created_from_cousub):
+                tracker['cousub_missing_places'].append(cousub)
+
+            is_remainder = LSAD.PREFIX_REMAINDER_OF in extra_prefixes
+            if not is_remainder:
+                tracker['missing_places'].append(cousub)
+
+            print(u'\t{name}, {state} ({standard}, {placens}) is '
+                  "{skipped_place} cousub {cousub} ({standard}, '{cousubns}')"
+                  .format(name=r.ghrp_name, state=state.abbrev, standard=ANSI,
+                          placens=placens, cousub=cousub.name,
+                          cousubns=r.ghrp_cousubns,
+                          skipped_place=(
+                            'a remainder of' if is_remainder else
+                            'missing, but was already created from'
+                            if place_created_from_cousub else
+                            'missing. Place NOT created from')))
+            continue
+
+        placeid = r.ghrp_placeid
+
+        # If it's a new place, reset variables
+        if placeid != prior_placeid:
+            counties = set()
+            cousubs = set()
+            total_pop = urban_pop = 0
+            land_area = water_area = 0
+            prior_placeid = placeid
+
+        counties.add(county)
+        cousubs.add(cousub)
+        total_pop += r.ghrp_p0020001
+        urban_pop += r.ghrp_p0020002
+        land_area += GeoData.convert_area(r.ghrp_arealand)
+        water_area += GeoData.convert_area(r.ghrp_areawatr)
+
+        if (records.has_next() and
+                PlaceRecord(*records.peek()).ghrp_placeid == placeid):
+            continue
+
+        # We're on the last record for the current place
+        print("\t{name}, {state} ({standard}, '{code}')"
+              .format(name=name, state=stusps, standard=ANSI, code=placens))
+
+        latitude, longitude = GeoData.convert_coordinates(
+            r.place_intptlat, r.place_intptlong)
+
+        data_record = GeoData.Record(
+            total_pop, urban_pop, latitude, longitude, land_area, water_area)
+
+        # If any cousub is a PLACE, set level to SUBPLACE
+        level = SUBPLACE if max(bool(cousub.levels.get(PLACE))
+                                for cousub in cousubs) else PLACE
+
+        parents = list(cousubs | counties | {state, us})
+        children = ([cs for cs in cousubs if cs.levels.get(SUBPLACE)]
+                    if level == PLACE else [])
+
+        # if placens == '02395220':  # New York
+        #     import ipdb; ipdb.set_trace()
+
+        place, created = manifest_geo(
+            level=level, name=name, path_parent=state, state=state,
+            county=county, cousub=cousub, counties=counties, cousubs=cousubs,
+            data_record=data_record, parents=parents, children=children,
+            lsad=lsad, designation=designation, fips=placeid, ansi=placens,
+            tracker=tracker)
+
+        # If consolidated county or independent city, add to list
+        if r.ghrp_countycc in {'H6', 'C7'}:
+            tracker['consolidated'].append((county, cousub, place, created))
+
+    for key, value in tracker.items():
+        print(' '.join(word.capitalize() for word in key.split('_')) + ':')
+        print(value)
+        print()
+
+
+def manifest_geo(level, name, path_parent, state, county,
+                 cousub=None, counties=None, cousubs=None, alias_targets=None,
+                 data_record=None, parents=None, children=None,
+                 lsad=None, designation=None, fips=None, ansi=None,
+                 tracker=None):
+
+    if level in {COUNTRY, SUBDIVISION1, SUBDIVISION2}:
+        raise ValueError('Unsupported level: {}'.format(level))
+
+    if alias_targets and (data_record or parents or children or
+                          designation or fips or ansi):
+        raise ValueError('Arguments inconsistent with alias')
+
+    counties = counties if counties is not None else {county}
+    cousubs = cousubs if cousubs is not None else {cousub} if cousub else set()
+    alias_targets = alias_targets if alias_targets is not None else []
+    parents = parents if parents is not None else []
+    children = children if children is not None else []
+
+    geo_created = False
+
+    for exception_flow_control in range(1):
+
+        ############################################################
+        #
+        # Happy path 1: Geo with matching GeoID
+        #
+        try:
+            ansi_geoid = GeoID.tget((ANSI, ansi), query_on_miss=False)
+            if not ansi_geoid:
+                raise KeyMissingFromRegistry
+
+        except KeyMissingFromRegistry:
+            pass
+
+        else:
+            ansi_glvl = ansi_geoid.level
+            geo = ansi_glvl.geo
+            print(u'\t\tFound geo with matching GeoID')
+
+            geo_level, level_created = GeoLevel.redesignate_or_create(
+                geo=geo, level=level, designation=designation,
+                ids={FIPS: fips, ANSI: ansi},
+                _query_on_miss=False, _nested_transaction=False)
+
+            if name == geo.name:
+                continue  # Execution proceeds after single loop
+
+            # This might be rare enough to not fail...
+            Geo(name=name, path_parent=path_parent, alias_targets=[geo],
+                parents=parents, children=children)
+
+            continue  # Execution proceeds after single loop
+
+        ############################################################
+        #
+        # Check if data matches are possible
+        #
+        try:
+            # Raise AttributeError on alias as data record is None
+            data_match_dict = data_record._asdict()
+            del data_match_dict['latitude']
+            del data_match_dict['longitude']
+
+        except AttributeError:
+            pass
+
+        else:
+            ############################################################
+            #
+            # Happy path 2: Geo matches county so add geolevel
+            #
+            if (len(counties) == 1 and
+                    county.data.matches(inexact=1, **data_match_dict)):
+                print(u'\t\tFound geo with data matching county')
+
+                geo = county  # e.g. San Francisco, DC, and Carson City
+
+                geo_level, level_created = add_level_and_rename(
+                    geo=county, level=level, designation=designation,
+                    fips=fips, ansi=ansi, name=name,
+                    state=state, county=county, match_level=SUBDIVISION2,
+                    tracker=tracker)
+
+                continue  # Execution proceeds after single loop
+
+            ############################################################
+            #
+            # Happy path 3: Geo matches cousub so add geolevel
+            #
+            # Handle cousubs that are places and cousubs that aren't
+            if (level != SUBDIVISION3 and len(cousubs) == 1 and
+                    cousub.data.matches(inexact=1, **data_match_dict)):
+                print(u'\t\tFound geo with data matching cousub')
+
+                if cousub.path_parent is county:
+                    create_place_from_cousub(cousub)
+                    cousub = cousub.alias_targets[0]
+
+                geo = cousub  # e.g. Framingham, MA
+
+                geo_level, level_created = add_level_and_rename(
+                    geo=cousub, level=level, designation=designation,
+                    fips=fips, ansi=ansi, name=name,
+                    state=state, county=county, match_level=SUBDIVISION3,
+                    tracker=tracker)
+
+                continue  # Execution proceeds after single loop
+
+        ############################################################
+        #
+        # Happy path 4: Create geo, if no conflict
+        #
+        try:
+            geo = Geo(name=name, path_parent=path_parent,
+                      alias_targets=alias_targets, parents=parents,
+                      children=children)
+            geo_created = True
+
+        except KeyRegisteredAndNoModify:
+            pass  # Execution proceeds after else clause
+
+        else:
+            if alias_targets:
+                continue  # Execution proceeds after single loop
+            GeoData(geo=geo, **data_record._asdict())
+            geo_level = GeoLevel(geo=geo, level=level, designation=designation)
+            GeoID(level=geo_level, standard=FIPS, code=fips)
+            GeoID(level=geo_level, standard=ANSI, code=ansi)
+            continue  # Execution proceeds after single loop
+
+        ############################################################
+        #
+        # Conflict with geo or geo alias
+        #
+        # Create geo with temporary path until conflict resolved
+        geo = Geo(name=name, path_parent=None, alias_targets=alias_targets,
+                  parents=parents, children=children)
+        geo_created = True
+        target_geo = alias_targets[0] if alias_targets else geo
+
+        if not alias_targets:
+            GeoData(geo=geo, **data_record._asdict())
+            geo_level = GeoLevel(geo=geo, level=level, designation=designation)
+            GeoID(level=geo_level, standard=FIPS, code=fips)
+            GeoID(level=geo_level, standard=ANSI, code=ansi)
+
+        geo_conflict_key = Geo.create_key(name=name, path_parent=path_parent)
+        geo_conflict = Geo[geo_conflict_key]
+        geo_conflict_alias_targets = geo_conflict.alias_targets
+
+        if geo_conflict_alias_targets:
+            geo_conflict.add_alias_target(target_geo)
+
+        else:
+            resolve_geo_conflict(geo_conflict, target_geo, lsad, state)
+
+        ############################################################
+        #
+        # Name conflict so qualify by LSAD
+        #
+        try:
+            geo.qualifier, geo.path_parent = lsad, path_parent
+            print(u'\t\tGeos with same name in {state}: {geos}'
+                  .format(state=state.abbrev, geos=(
+                    geo_conflict.human_id, geo.human_id)))
+            continue  # Execution proceeds after single loop
+
+        except KeyError:
+            pass
+
+        ############################################################
+        #
+        # Conflict w/ LSAD-qualified geo so also qualify by county
+        #
+        lsad_geo_conflict_key = Geo.create_key(name=name, qualifier=lsad,
+                                               path_parent=path_parent)
+        lsad_geo_conflict = Geo[lsad_geo_conflict_key]
+        lsad_geo_conflict_alias_targets = lsad_geo_conflict.alias_targets
+
+        if lsad_geo_conflict_alias_targets:
+            lsad_geo_alias = lsad_geo_conflict
+
+        else:
+            lsad_geo_conflict.qualifier = ' in '.join((
+                get_primary_designation(lsad_geo_conflict, state),
+                lsad_geo_conflict.get_related_geos(
+                    relation=PARENTS, level=SUBDIVISION2)[0].name))
+            # Add alias in conflict namespace to point to conflicts
+            lsad_geo_alias = Geo(name=name, qualifier=lsad,
+                                 path_parent=path_parent,
+                                 alias_targets=[lsad_geo_conflict])
+
+        lsad_geo_alias.add_alias_target(target_geo)
+
+        geo.qualifier, geo.path_parent = (
+            ' in '.join((lsad, county.name)), path_parent)
+
+        print(u'\t\tGeos with same name/lsad in {state}: {geos}'
+              .format(state=state.abbrev, geos=(
+                    lsad_geo_conflict.human_id, geo.human_id)))
+
+    return geo, geo_created
+
+
+def add_level_and_rename(geo, level, designation, fips, ansi, name,
+                         state, county, match_level, tracker=None):
+    # e.g. San Francisco, DC, and Carson City
+
+    place_glvl, created = GeoLevel.redesignate_or_create(
+        geo=geo, level=level, designation=designation,
+        ids={FIPS: fips, ANSI: ansi},
+        _query_on_miss=False, _nested_transaction=False)
+
+    if tracker:
+        tracker['_'.join((match_level, 'matches'))].append(geo)
+
+    if name == geo.name:
+        return place_glvl, created
+
+    # Create alias (rather than rename) if any apply:
+    # - adding cousub with unfriendly name, e.g. "1, Charlotte", NC
+    # - existing geo is cousub with friendly name
+    # - state is DC
+    if ((level == SUBDIVISION3 and invalid_cousub_name(name)) or
+        (match_level == SUBDIVISION3 and not invalid_cousub_name(geo.name)) or
+            state.abbrev == 'DC'):  # Create alias for DC instead of renaming
+        Geo(name=name, path_parent=county if level == SUBDIVISION3 else state,
+            alias_targets=[geo])
+        return place_glvl, created
+
+    # Keep name only up to comma, e.g. 'Lynchburg, Moore County' in TN
+    raw_name = name
+    if ', ' in name:
+        name = name.split(', ')[0]
+
+    # Try to rename geo and add alias in vacated namespace if not cousub
+    try:
+        geo_name = geo.name
+        geo_qualifier = geo.qualifier
+        # Key conflict raises KeyError
+        geo.name, geo.qualifier = name, None
+        # Create alias for old name, but not for invalid cousub name
+        if match_level == SUBDIVISION3:
+            old_geo_alias = None
+        else:
+            old_geo_alias = Geo(name=geo_name, qualifier=geo_qualifier,
+                                path_parent=state, alias_targets=[geo])
+            # Create alias for each child using old path
+            for child_geo in geo.children.all():
+                Geo(name=child_geo.name, qualifier=child_geo.qualifier,
+                    abbrev=child_geo.abbrev, path_parent=old_geo_alias,
+                    alias_targets=[child_geo])
+
+        if tracker:
+            tracker['_'.join((match_level, 'renames'))].append(
+                (geo, old_geo_alias, raw_name))
+
+    # Track failed renames
+    except KeyError:
+        if not tracker:
+            return place_glvl, created
+
+        geo_conflict_key = Geo.create_key(name=name,
+                                          path_parent=state)
+        geo_conflict = Geo[geo_conflict_key]
+
+        # It's okay if conflict is itself (e.g. Carson City)
+        # Otherwise, track the failed renaming
+        if geo_conflict is not geo:
+            tracker['_'.join((match_level, 'failed_renames'))].append(
+                (geo, raw_name))
+
+    return place_glvl, created
+
+
+def resolve_geo_conflict(geo_conflict, geo, lsad, state):
+    '''
+    Resolve geo conflict
+
+    The geo conflict is not an alias, so resolve it by giving it an
+    LSAD qualifier. If the qualified conflict also has a conflict,
+    qualify it further with county. Create alias(es) for all namespace
+    conflicts. If the geo conflict was already LSAD-qualified, create
+    an LSAD-qualified geo alias, forcing the geo to be further qualified
+    by county.
 
     I/O:
-    place_conflict: existing place geo that conflicts with new place geo
-    cousub: cousub geo whose place geo encountered the conflict
-    state: state geo in which cousub resides
-    lsad: LSAD for the cousub
+    geo_conflict: existing geo that conflicts with new geo
+    geo: new geo with temporary path until conflict resolved
+    lsad: LSAD for the new geo
+    state: state geo in which geo resides
     '''
-    place_conflict_qualifier = place_conflict.levels[PLACE].designation
+    geo_conflict_qualifier = get_primary_designation(geo_conflict, state)
+
     try:
-        # If place conflict is already qualified by LSAD, raise
-        if place_conflict.qualifier == place_conflict_qualifier:
+        # If conflict already qualified by LSAD, qualify by county too
+        if geo_conflict.qualifier == geo_conflict_qualifier:
             raise ValueError
         # Raise KeyError if qualified conflict itself conflicts
-        place_conflict.qualifier = place_conflict_qualifier
+        geo_conflict.qualifier = geo_conflict_qualifier
 
     except (ValueError, KeyError):
         ################################################################
         #
-        # LSAD-qualified place conflict (QPC) itself conflicts with an
-        # existing place or alias. Resolve by qualifying by county too.
+        # LSAD-qualified geo conflict (QPC) itself conflicts with an
+        # existing geo or alias. Resolve by qualifying by county too.
         #
         # Example: Winnebago, MN
         # Winnebago in Faribault County (WFC) conflicts with Winnebago
@@ -916,37 +1265,49 @@ def resolve_cousub_place_conflict(place_conflict, cousub, state, lsad):
         #     Geo[u'us/mn/winnebago_city_in_faribault_county']
         #     Geo[u'us/mn/winnebago_city_township_in_faribault_county']
         #
-        qualified_place_conflict_key = Geo.create_key(
-            name=place_conflict.name, path_parent=state,
-            qualifier=place_conflict_qualifier)
-        qpc = Geo[qualified_place_conflict_key]
-        qpc_alias_targets = qpc.alias_targets
+        qualified_geo_conflict_key = Geo.create_key(
+            name=geo_conflict.name, qualifier=geo_conflict_qualifier,
+            path_parent=state)
+        qgc = Geo[qualified_geo_conflict_key]
+        qgc_alias_targets = qgc.alias_targets
 
-        if qpc_alias_targets:
-            qualified_place_alias = qpc
+        if qgc_alias_targets:
+            qualified_geo_alias = qgc
+
+            # If a dedicated alias, promote it to clear the conflict
+            if (geo_conflict in qgc_alias_targets and
+                    len(qgc_alias_targets) == 1):
+                qgc.promote_to_alias_target()
+                assert len(geo_conflict.alias_targets) == 1
+                geo_conflict.add_alias_target(geo)
+                return
 
         else:
-            qpc.qualifier = ' in '.join((
-                qpc.levels[PLACE].designation,
-                qpc.get_related_geos(
+            qgc.qualifier = ' in '.join((
+                get_primary_designation(qgc, state),
+                qgc.get_related_geos(
                     relation=PARENTS, level=SUBDIVISION2)[0].name))
             # Add alias in conflict namespace to point to conflicts
-            qualified_place_alias = Geo(
-                name=place_conflict.name, path_parent=state,
-                qualifier=place_conflict_qualifier,
-                alias_targets=[qpc])
+            qualified_geo_alias = Geo(
+                name=geo_conflict.name, qualifier=geo_conflict_qualifier,
+                path_parent=state, alias_targets=[qgc])
 
-        if qpc is place_conflict:
+        if qgc is geo_conflict:
             ############################################################
             #
-            # Place conflict was already LSAD-qualified, so the conflict
-            # was qualified by county. So force place to be qualified by
-            # county too by creating an LSAD-qualified alias to cousub.
+            # Geo conflict was already LSAD-qualified and was further
+            # qualified by county. So create an LSAD-qualified alias.
             #
             # Example: Union City, OH
             # There are 28 Union, OHs, of which 27 are townships and 1
             # is a city in Miami County. In addition, a Union City
             # township in Montgomery County conflicts with Union city.
+            #
+            # Name        LSAD      County             Human ID
+            # ----------------------------------------------------------
+            # Union       township  [27 Counties]      union_township_in_x
+            # Union       city      Miami County       union_city
+            # Union City  township  Montgomery County  union_city
             #
             # Resolution:
             # Geo[u'us/oh/union'] alias targeting 28 geos, including:
@@ -958,249 +1319,99 @@ def resolve_cousub_place_conflict(place_conflict, cousub, state, lsad):
             #     Geo[u'us/oh/union_city_township_in_montgomery_county']
             #
             try:
-                lsad_place_alias = Geo(name=cousub.name, qualifier=lsad,
-                                       path_parent=state,
-                                       alias_targets=[cousub])
+                lsad_geo_alias = Geo(name=geo.name, qualifier=lsad,
+                                     path_parent=state, alias_targets=[geo])
             except KeyRegisteredAndNoModify:
-                lsad_place_alias_key = Geo.create_key(
-                    name=cousub.name, qualifier=lsad, path_parent=state)
-                lsad_place_alias = Geo[lsad_place_alias_key]
-                assert lsad_place_alias.alias_targets
-                lsad_place_alias.add_alias_target(cousub)
+                lsad_geo_alias_key = Geo.create_key(
+                    name=geo.name, qualifier=lsad, path_parent=state)
+                lsad_geo_alias = Geo[lsad_geo_alias_key]
+                assert lsad_geo_alias.alias_targets
+                lsad_geo_alias.add_alias_target(geo)
 
         else:
-            # Add place conflict as target
-            qualified_place_alias.add_alias_target(place_conflict)
+            qualified_geo_alias.add_alias_target(geo_conflict)
 
-            place_conflict.qualifier = ' in '.join((
-                place_conflict.levels[PLACE].designation,
-                place_conflict.get_related_geos(relation=PARENTS,
-                                                level=SUBDIVISION2)[0].name))
+            geo_conflict.qualifier = ' in '.join((
+                get_primary_designation(geo_conflict, state),
+                geo_conflict.get_related_geos(relation=PARENTS,
+                                              level=SUBDIVISION2)[0].name))
 
-        print(u'\t\tPlace conflict itself conflicts when '
-              'qualified by lsad in {state}: {places}'
-              .format(state=state.abbrev, places=(
-               qpc.human_id, place_conflict.human_id)))
+        print(u'\t\tGeo conflict itself conflicts when '
+              'qualified by lsad in {state}: {geos}'
+              .format(state=state.abbrev, geos=(
+               qgc.human_id, geo_conflict.human_id)))
 
-    finally:
+    try:
+        # Add alias in conflict namespace just vacated
+        Geo(name=geo.name, path_parent=state,
+            alias_targets=[geo_conflict, geo])
+
+    except KeyRegisteredAndNoModify:
+        # Conflict already qualified, so alias in conflict namespace
+        geo_alias_key = Geo.create_key(name=geo.name, path_parent=state)
+        geo_alias = Geo[geo_alias_key]
+        geo_alias.add_alias_target(geo_conflict)
+        geo_alias.add_alias_target(geo)
+
+
+def get_primary_designation(geo, state):
+    # prioritized_levels = GeoLevel.UP.keys()
+
+    if state.abbrev in State.STATES_WITH_MCDS_AS_GOVERNMENTAL_UNITS:
+        # Not worth removing cousub duplicate
+        # prioritized_levels = chain((SUBDIVISION3,), prioritized_levels)
+        prioritized_levels = (SUBDIVISION3, SUBPLACE, PLACE, SUBDIVISION2)
+
+    else:
+        prioritized_levels = (SUBPLACE, PLACE, SUBDIVISION2, SUBDIVISION3)
+
+    for level in prioritized_levels:
         try:
-            # Add alias in conflict namespace to point to conflicts
-            place_alias = Geo(name=cousub.name, path_parent=state,
-                              alias_targets=[place_conflict])
-
-        except KeyRegisteredAndNoModify:
-            place_alias_key = Geo.create_key(name=cousub.name,
-                                             path_parent=state)
-            place_alias = Geo[place_alias_key]
-            place_alias.add_alias_target(place_conflict)
-
-    return place_alias
+            return geo.levels[level].designation
+        except KeyError:
+            pass
 
 
-def load_place_geos(geo_session, session):
+def deaffix_place(full_name, lsad_code, placens):
+    if lsad_code != '00' or placens == '99999999':
+        return LSAD.deaffix(full_name, lsad_code)
 
-    PlaceRecord = namedtuple('PlaceRecord',
-                             'place_name, lsad_description, '
-                             'ghrp_statefp, ghrp_countyid, ghrp_countycc, '
-                             'ghrp_placeid, ghrp_placens, '
-                             'ghrp_p0020001, ghrp_p0020002, '
-                             'place_intptlat, place_intptlong, '
-                             'ghrp_arealand, ghrp_areawatr')
+    B = LSAD.SUFFIX_BALANCE
+    P = LSAD.SUFFIX_PART
+    SUFFIX = LSAD.SUFFIX
 
-    columns = derive_columns(classes=(Place, LSAD, GHRP),
-                             fields=PlaceRecord._fields)
+    CITY = 'city'
+    CB = 'consolidated government (balance)'
+    # MB = 'metropolitan government (balance)'
+    # UB = 'unified government (balance)'
 
-    # U.S. places by county equivalent
-    records = (geo_session.query(GHRP)
-                          .join(GHRP.place)
-                          .join(Place.lsad)
-                          .filter(GHRP.sumlev == '155',
-                                  GHRP.geocomp == '00',
-                                  # GHRP.statefp.in_(['48', '11'])
-                                  )
-                          .order_by(GHRP.placeid,
-                                    desc(GHRP.p0020001))
-                          .values(*columns))
+    PLACE_PATCH_MAP = {
+        #                                                extra affixes
+        # placens    name                lsad    affix    pre     suf     state
+        '02378282': ('Milford',          CITY,  SUFFIX,  set(),  {B}),    # CT
+        '02407405': ('Athens',            CB,   SUFFIX,  set(), {B, P}),  # GA
+        '02405078': ('Augusta',           CB,   SUFFIX,  set(), {B, P}),  # GA
+        '02395424': ('Indianapolis',      CB,   SUFFIX,  set(), {B, P}),  # IN
+        '01967434': ('Louisville',        CB,   SUFFIX,  set(), {B, P}),  # KY
+        '02409650': ('Anaconda',          CB,   SUFFIX,  set(),   {P}),   # MT
+        '02409652': ('Butte',             CB,   SUFFIX,  set(), {B, P}),  # MT
+        '00863219': ('Carson City',       CB,   SUFFIX,  set(),  set()),  # NV
+        '02405085': ('Hartsville',        CB,   SUFFIX,  set(),   {P}),   # TN
+        '02405092': ('Nashville',         CB,   SUFFIX,  set(), {B, P}),  # TN
+    }
 
-    records = PeekableIterator(records)
-    statefp = prior_statefp = None  # State FIPS codes
-    placeid = prior_placeid = None  # Place FIPS codes
-    state = None
-    counties = []
-    total_pop = urban_pop = 0
-    land_area = water_area = 0
-    conflicts = {}
+    return PLACE_PATCH_MAP[placens]
+
+
+def temp_load_places():
     consolidated = {}
-    print('Loading places in...')
-    for r in (PlaceRecord(*record) for record in records):
-
-        statefp = r.ghrp_statefp
-        # If it's a new state, update variables
-        if statefp != prior_statefp:
-            state = GeoID[(FIPS, statefp)].level.geo
-            print('\t' + state.name)
-            prior_statefp = statefp
-
-        placeid = r.ghrp_placeid
-
-        # If it's a new place, reset variables
-        if placeid != prior_placeid:
-            counties = []
-            total_pop = urban_pop = 0
-            land_area = water_area = 0
-            prior_placeid = placeid
-
-        county = GeoID[(FIPS, r.ghrp_countyid)].level.geo
-
-        if county is not None:
-            counties.append(county)
-        total_pop += r.ghrp_p0020001
-        urban_pop += r.ghrp_p0020002
-        land_area += (r.ghrp_arealand * 1.0) / 10**6
-        water_area += (r.ghrp_areawatr * 1.0) / 10**6
-
-        # We're on the last record for the current place, so create geo
-        if (not records.has_next() or
-                PlaceRecord(*records.peek()).ghrp_placeid != placeid):
-
-            desig = r.lsad_description
-            desig = desig.split(' (actual text)')[0]
-            desig = desig.split(' (prefix)')[0]
-            desig = desig.split(' (suffix)')[0]
-            place_name = r.place_name
-            if desig != '':
-                place_name = place_name.split(desig)[0].strip()
-            qualifier = None
-
-            print('\t\t' + place_name + '(' + placeid + ')')
-
-            # check for existing place with same key
-            key = Geo.create_key(name=place_name, path_parent=state)
-            existing = Geo.tget(key)
-            if existing is not None:
-                if existing.alias_target is None:
-                    # if existing conflict is a place, rename it, make
-                    # an alias to it, and keep track of its population
-                    if (existing.levels.get(PLACE, None) is not None):
-                        existing_desig = existing.levels[PLACE].designation
-                        existing.qualifier = (existing_desig + ' in ' +
-                                              existing.parents[0].name)
-                        alias = Geo(name=place_name,
-                                    path_parent=state,
-                                    alias_target=existing)
-                        conflicts[key] = existing.data.total_pop
-                    # if existing conflict is a parent county, just add
-                    # a geo level for the place to the county
-                    elif (existing.levels.get(SUBDIVISION2, None) is not None):
-                        if existing not in counties:
-                            raise NameError('place key conflicts with '
-                                            'subdivision2 key, yet place is '
-                                            'not in subdivision2')
-                        glvl = GeoLevel(geo=existing,
-                                        level=PLACE,
-                                        designation=desig)
-                        GeoID(level=glvl, standard=FIPS, code=placeid)
-                        placens = r.ghrp_placens
-                        if GeoID.tget((ANSI, placens)) is None:
-                            GeoID(
-                                level=glvl, standard=ANSI, code=placens)
-
-                        continue
-                    else:
-                        raise NameError('key conflict with geo that is '
-                                        'neither a place nor subdivision2')
-
-                assert len(counties) > 0
-                qualifier = desig + ' in ' + counties[0].name
-
-            g = Geo(name=place_name,
-                    qualifier=qualifier,
-                    path_parent=state,
-                    parents=counties + [state])
-            GeoData(geo=g,
-                    total_pop=total_pop,
-                    urban_pop=urban_pop,
-                    latitude=r.place_intptlat,
-                    longitude=r.place_intptlong,
-                    land_area=land_area,
-                    water_area=water_area)
-            glvl = GeoLevel(geo=g, level=PLACE, designation=desig)
-            GeoID(level=glvl, standard=FIPS, code=placeid)
-            placens = r.ghrp_placens
-            if GeoID.tget((ANSI, placens)) is None:
-                GeoID(level=glvl, standard=ANSI, code=placens)
-
-            # Update alias to point at the geo with the largest pop
-            # TODO: convert alias_target to alias_targets and order by
-            # population, descending
-            if (existing is not None and total_pop > conflicts[key]):
-                alias.alias_target = g
-                conflicts[key] = total_pop
-
-            # If consolidated county or independent city, add to list
-            if r.ghrp_countycc == 'H6' or r.ghrp_countycc == 'C7':
-                places = consolidated.get(county, None)
-                if places is None:
-                    consolidated[county] = [g]
-                else:
-                    consolidated[county].append(g)
-
-    # TODO: Handle unincorporated county remainder special case
-    # records = geo_session.query(GHRP).filter(GHRP.sumlev == '070',
-    #                                          GHRP.placefp == '99999').all()
-    # Need to sum remainders across county subdivisions within a county
-
-    # Add missing consolidated counties
-    dc_county = GeoID[(FIPS, '11001')].level.geo
-    consolidated[dc_county] = dc_county.children.all()
-    # Yakutat City and Borough contains Yakutat CDP
-    # yak_cab = GeoID[(FIPS, '02282')].level.geo
-    # consolidated[yak_cab] = yak_cab.children.all()
+    # Fix missing tilde in Española, NM. Note: ñ appears correctly elsewhere:
+    # Peñasco, NM; Cañones, NM; La Cañada Flintridge, CA; etc.
+    esp = Geo[u'us/nm/espanola']
+    esp.name = u'Espa\xf1ola'  # Geo[u'us/nm/espa\xf1ola']
 
     for county, places in consolidated.items():
 
-        if len(places) > 1:
-
-            # If a place is a county balance, correct the name and
-            # designation, alias the county, and promote it
-            # Fixes 6 of 10 consolidated places with lsad_code == '00':
-            #     Athens-Clarke County, GA
-            #     Augusta-Richmond County, GA
-            #     Indianapolis, IN
-            #     Louisville/Jefferson County, KY
-            #     Butte-Silver Bow, MT
-            #     Nashville-Davidson, TN
-            balance = None
-            for place in places:
-                if place.name.find('(balance)') > -1:
-                    balance = place
-                    break
-            if balance is not None:
-                # Obtain capitalized portion of the name
-                bal_words = balance.name.split()
-                end = len(bal_words)
-                for i, word in enumerate(bal_words):
-                    first_letter = ord(word[0])
-                    if first_letter < ord('A') or first_letter > ord('Z'):
-                        end = i
-                        break
-
-                base_name = ' '.join(bal_words[:end])
-                place_name = bal_words[0].split('-')[0]
-                place_name = place_name.split('/')[0]
-
-                balance.name = base_name + ' (balance)'
-                balance.levels[PLACE].designation = (
-                                        'consolidated government (balance)')
-                # balance geos only related to immediate parents
-                balance.parents.remove(balance.path_parent)
-                GeoLevel(geo=county, level=PLACE, designation='city')
-                alias = Geo(name=base_name, alias_target=county)
-                if place_name != base_name:
-                    Geo(name=place_name, alias_target=county)
-                alias.promote_to_alias_target()
-
-            continue
         place = places[0]
         county_parents = [p for p in place.parents
                           if p.levels.get(SUBDIVISION2, None) is not None]
@@ -1215,7 +1426,7 @@ def load_place_geos(geo_session, session):
             continue
 
         # Consolidate geos for each 1:1 consolidated county/place
-        GeoData.unregister(place.data)
+        GeoData.deregister(place.data)
         place.data = None
 
         # Fix 3 of 10 consolidated places with lsad_code == '00':
@@ -1243,7 +1454,7 @@ def load_place_geos(geo_session, session):
     us = Geo['us']
     dc = us['dc']
     w = GeoID[(FIPS, '1150000')].level.geo  # Washington, DC (place)
-    GeoData.unregister(w.data)
+    GeoData.deregister(w.data)
     w.data = None
     w.levels[SUBDIVISION2].geo = dc
     w.levels[PLACE].geo = dc
@@ -1273,11 +1484,6 @@ def load_place_geos(geo_session, session):
     mfb.name = 'Milford (balance)'
     GeoLevel(geo=mfb, level=PLACE, designation='city balance')
     mfb.parents = [mf]  # balance geos only related to immediate parents
-
-    # Fix missing tilde in Española, NM. Note: ñ appears correctly elsewhere:
-    # Peñasco, NM; Cañones, NM; La Cañada Flintridge, CA; etc.
-    esp = Geo[u'us/nm/espanola']
-    esp.name = u'Espa\xf1ola'  # Geo[u'us/nm/espa\xf1ola']
 
 
 def load_cbsa_geos(geo_session, session):
@@ -1389,8 +1595,8 @@ def load_cbsa_geos(geo_session, session):
                 CBSARecord(*records.peek()).cbsa_cbsa_code != cbsa_code):
 
             cbsa_name = r.cbsa_cbsa_name
-            print(u'\t\tCBSA: {name} ({code})'.format(name=cbsa_name,
-                                                      code=cbsa_code))
+            print(u"\t\tCBSA: {name} ({cbsa_2010}, '{code}')"
+                  .format(name=cbsa_name, cbsa_2010=CBSA_2010, code=cbsa_code))
 
             cbsa = Geo(name=cbsa_name + ' Area',
                        uses_the=True,
@@ -1486,8 +1692,9 @@ def load_cbsa_geos(geo_session, session):
                         CBSARecord(*records.peek()).cbsa_csa_code != csa_code):
 
                     csa_name = r.cbsa_csa_name
-                    print(u'\t\tCSA: {name} ({code})'.format(name=csa_name,
-                                                             code=csa_code))
+                    print(u"\t\tCSA: {name} ({csa_2010}, '{code}')"
+                          .format(name=csa_name, csa_2010=CSA_2010,
+                                  code=csa_code))
 
                     csa = Geo(name='Greater ' + csa_name + ' Area',
                               uses_the=True,
