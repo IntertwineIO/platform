@@ -584,8 +584,9 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None):
 
                 place_glvl, created = add_level_and_rename(
                     geo=county, level=SUBDIVISION3, designation=designation,
-                    fips=fips, ansi=ansi, name=name, state=state,
-                    county=county, match_level=SUBDIVISION2, tracker=tracker)
+                    fips=fips, ansi=ansi, name=name, lsad=lsad,
+                    path_parent=county, match_level=SUBDIVISION2, state=state,
+                    county=county, cousub=cousub, tracker=tracker)
 
                 continue  # Execution proceeds after single loop
 
@@ -760,8 +761,8 @@ def create_place_from_cousub(cousub, county=None, state=None, lsad=None,
         return
 
     place, created = manifest_geo(
-        level=level, name=name, path_parent=state, state=state, county=county,
-        cousub=cousub, alias_targets=[cousub], lsad=lsad, tracker=None)
+        name=name, lsad=lsad, path_parent=state, state=state, county=county,
+        cousub=cousub, alias_targets=[cousub], tracker=None)
 
     # After single loop: execution proceeds here
     place.promote_to_alias_target()
@@ -927,12 +928,14 @@ def load_place_geos(geo_session, session, sub1keys=None):
 
         # if placens == '02395220':  # New York
         #     import ipdb; ipdb.set_trace()
+        # if placens == '02394197':  # Bloomington, IL (alias conflict)
+        #     import ipdb; ipdb.set_trace()
 
         place, created = manifest_geo(
-            level=level, name=name, path_parent=state, state=state,
+            name=name, lsad=lsad, path_parent=state, state=state,
             county=county, cousub=cousub, counties=counties, cousubs=cousubs,
             data_record=data_record, parents=parents, children=children,
-            lsad=lsad, designation=designation, fips=placeid, ansi=placens,
+            level=level, designation=designation, fips=placeid, ansi=placens,
             tracker=tracker)
 
         # If consolidated county or independent city, add to list
@@ -953,10 +956,10 @@ def load_place_geos(geo_session, session, sub1keys=None):
     return tracker
 
 
-def manifest_geo(level, name, path_parent, state, county,
+def manifest_geo(name, lsad, path_parent, state, county,
                  cousub=None, counties=None, cousubs=None, alias_targets=None,
                  data_record=None, parents=None, children=None,
-                 lsad=None, designation=None, fips=None, ansi=None,
+                 level=None, designation=None, fips=None, ansi=None,
                  tracker=None):
 
     if level in {COUNTRY, SUBDIVISION1, SUBDIVISION2}:
@@ -998,12 +1001,13 @@ def manifest_geo(level, name, path_parent, state, county,
                 ids={FIPS: fips, ANSI: ansi},
                 _query_on_miss=False, _nested_transaction=False)
 
-            if name == geo.name:
+            if geo.is_known_by(name):
                 continue  # Execution proceeds after single loop
 
-            # This might be rare enough to not fail...
-            Geo(name=name, path_parent=path_parent, alias_targets=[geo],
-                parents=parents, children=children)
+            # Create alias & resolve any conflicts (e.g Bloomington, IL)
+            manifest_geo(name=name, lsad=lsad, path_parent=path_parent,
+                         state=state, county=county, cousub=cousub,
+                         alias_targets=[geo], tracker=None)
 
             continue  # Execution proceeds after single loop
 
@@ -1033,9 +1037,9 @@ def manifest_geo(level, name, path_parent, state, county,
 
                 geo_level, level_created = add_level_and_rename(
                     geo=county, level=level, designation=designation,
-                    fips=fips, ansi=ansi, name=name,
-                    state=state, county=county, match_level=SUBDIVISION2,
-                    tracker=tracker)
+                    fips=fips, ansi=ansi, name=name, lsad=lsad,
+                    path_parent=path_parent, match_level=SUBDIVISION2,
+                    state=state, county=county, cousub=cousub, tracker=tracker)
 
                 continue  # Execution proceeds after single loop
 
@@ -1056,9 +1060,9 @@ def manifest_geo(level, name, path_parent, state, county,
 
                 geo_level, level_created = add_level_and_rename(
                     geo=cousub, level=level, designation=designation,
-                    fips=fips, ansi=ansi, name=name,
-                    state=state, county=county, match_level=SUBDIVISION3,
-                    tracker=tracker)
+                    fips=fips, ansi=ansi, name=name, lsad=lsad,
+                    path_parent=path_parent, match_level=SUBDIVISION3,
+                    state=state, county=county, cousub=cousub, tracker=tracker)
 
                 continue  # Execution proceeds after single loop
 
@@ -1108,7 +1112,15 @@ def manifest_geo(level, name, path_parent, state, county,
             geo_conflict.add_alias_target(target_geo)
 
         else:
-            resolve_geo_conflict(geo_conflict, target_geo, lsad, state)
+            resolve_geo_conflict(geo_conflict, geo, lsad, state)
+
+        ############################################################
+        #
+        # Geo is alias, so put it in conflict namespace
+        #
+        if geo.alias_targets:
+            geo.path_parent = path_parent
+            continue  # Execution proceeds after single loop
 
         ############################################################
         #
@@ -1158,8 +1170,9 @@ def manifest_geo(level, name, path_parent, state, county,
     return geo, geo_created
 
 
-def add_level_and_rename(geo, level, designation, fips, ansi, name,
-                         state, county, match_level, tracker=None):
+def add_level_and_rename(geo, level, designation, fips, ansi, name, lsad,
+                         path_parent, match_level, state, county, cousub,
+                         tracker=None):
     # e.g. San Francisco, DC, and Carson City
 
     place_glvl, created = GeoLevel.redesignate_or_create(
@@ -1167,10 +1180,10 @@ def add_level_and_rename(geo, level, designation, fips, ansi, name,
         ids={FIPS: fips, ANSI: ansi},
         _query_on_miss=False, _nested_transaction=False)
 
-    if tracker:
+    if tracker is not None:
         tracker['_'.join((match_level, 'matches'))].append(geo)
 
-    if name == geo.name:
+    if geo.is_known_by(name):
         return place_glvl, created
 
     # Create alias (rather than rename) if any apply:
@@ -1179,9 +1192,13 @@ def add_level_and_rename(geo, level, designation, fips, ansi, name,
     # - state is DC
     if ((level == SUBDIVISION3 and invalid_cousub_name(name)) or
         (match_level == SUBDIVISION3 and not invalid_cousub_name(geo.name)) or
-            state.abbrev == 'DC'):  # Create alias for DC instead of renaming
-        Geo(name=name, path_parent=county if level == SUBDIVISION3 else state,
-            alias_targets=[geo])
+            path_parent is Geo['us/dc']):  # Alias DC instead of renaming
+        # Geo(name=name, path_parent=path_parent, alias_targets=[geo])
+        # Bloomington, IL alias conflict
+        manifest_geo(
+                name=name, lsad=lsad, path_parent=path_parent, state=state,
+                county=county, cousub=cousub, alias_targets=[geo],
+                tracker=None)
         return place_glvl, created
 
     # Keep name only up to comma, e.g. 'Lynchburg, Moore County' in TN
@@ -1200,14 +1217,14 @@ def add_level_and_rename(geo, level, designation, fips, ansi, name,
             old_geo_alias = None
         else:
             old_geo_alias = Geo(name=geo_name, qualifier=geo_qualifier,
-                                path_parent=state, alias_targets=[geo])
+                                path_parent=path_parent, alias_targets=[geo])
             # Create alias for each child using old path
             for child_geo in geo.children.all():
                 Geo(name=child_geo.name, qualifier=child_geo.qualifier,
                     abbrev=child_geo.abbrev, path_parent=old_geo_alias,
                     alias_targets=[child_geo])
 
-        if tracker:
+        if tracker is not None:
             tracker['_'.join((match_level, 'renames'))].append(
                 (geo, old_geo_alias, raw_name))
 
@@ -1216,8 +1233,7 @@ def add_level_and_rename(geo, level, designation, fips, ansi, name,
         if not tracker:
             return place_glvl, created
 
-        geo_conflict_key = Geo.create_key(name=name,
-                                          path_parent=state)
+        geo_conflict_key = Geo.create_key(name=name, path_parent=path_parent)
         geo_conflict = Geo[geo_conflict_key]
 
         # It's okay if conflict is itself (e.g. Carson City)
@@ -1246,6 +1262,7 @@ def resolve_geo_conflict(geo_conflict, geo, lsad, state):
     lsad: LSAD for the new geo
     state: state geo in which geo resides
     '''
+    target_geo = geo.alias_targets[0] if geo.alias_targets else geo
     geo_conflict_qualifier = get_primary_designation(geo_conflict, state)
 
     try:
@@ -1288,7 +1305,7 @@ def resolve_geo_conflict(geo_conflict, geo, lsad, state):
                     len(qgc_alias_targets) == 1):
                 qgc.promote_to_alias_target()
                 assert len(geo_conflict.alias_targets) == 1
-                geo_conflict.add_alias_target(geo)
+                geo_conflict.add_alias_target(target_geo)
                 return
 
         else:
@@ -1335,7 +1352,7 @@ def resolve_geo_conflict(geo_conflict, geo, lsad, state):
                     name=geo.name, qualifier=lsad, path_parent=state)
                 lsad_geo_alias = Geo[lsad_geo_alias_key]
                 assert lsad_geo_alias.alias_targets
-                lsad_geo_alias.add_alias_target(geo)
+                lsad_geo_alias.add_alias_target(target_geo)
 
         else:
             qualified_geo_alias.add_alias_target(geo_conflict)
@@ -1350,6 +1367,11 @@ def resolve_geo_conflict(geo_conflict, geo, lsad, state):
               .format(state=state.abbrev, geos=(
                qgc.human_id, geo_conflict.human_id)))
 
+    if geo.alias_targets:
+        # Geo is an alias, so make it an alias of the geo conflict too
+        geo.add_alias_target(geo_conflict)
+        return
+
     try:
         # Add alias in conflict namespace just vacated
         Geo(name=geo.name, path_parent=state,
@@ -1360,7 +1382,7 @@ def resolve_geo_conflict(geo_conflict, geo, lsad, state):
         geo_alias_key = Geo.create_key(name=geo.name, path_parent=state)
         geo_alias = Geo[geo_alias_key]
         geo_alias.add_alias_target(geo_conflict)
-        geo_alias.add_alias_target(geo)
+        geo_alias.add_alias_target(target_geo)
 
 
 def get_primary_designation(geo, state):
