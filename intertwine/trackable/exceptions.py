@@ -27,8 +27,8 @@ class KeyConflictError(TrackableException, KeyError):
 
 
 class KeyInconsistencyError(TrackableException, KeyError):
-    '''Derived key inconsistent with registered key.
-    Derived: {derived_key!r} Registered: {registered_key!r}
+    '''Derived key inconsistent with registry key.
+    Derived: {derived_key!r} Registry: {registry_key!r}
     Registry repaired: {registry_repaired}'''
 
 

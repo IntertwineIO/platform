@@ -117,15 +117,19 @@ def _repr_(self):
 
 
 def register(self, key=None):
-    '''Register itself by deriving key from the instance'''
-    key = key or self.derive_key()
-    self.__class__[key] = self  # Invoke Trackable.__setitem__()
+    '''Register itself by deriving key if not passed'''
+    self.__class__._register_(self, key)
 
 
 def deregister(self, key=None):
-    '''Deregister itself by deriving key from the instance'''
-    key = key or self.derive_key()
-    del self.__class__[key]  # Invoke Trackable.__delitem__()
+    '''Deregister itself by deriving key if not passed'''
+    self.__class__._deregister_(self, key)
+
+
+def destroy(self):
+    '''Destroy itself via deregister and delete'''
+    self.deregister()
+    self.session().delete(self)
 
 
 def register_update(self, key, _prefix='_', _suffix=''):
@@ -152,7 +156,7 @@ def register_update(self, key, _prefix='_', _suffix=''):
     if key == derived_key:
         return False
     self.register(key)  # Raise KeyConflictError if already registered
-    self.deregister()
+    self.deregister(derived_key)
     updated = self._update_(_prefix=_prefix, _suffix=_suffix, **key._asdict())
     self._validate_(key)
     return updated
@@ -190,10 +194,12 @@ def _update_(self, _prefix='_', _suffix='', **fields):
         setattr(self, affixed_field, value)
         updated = True
 
+    if updated:
+        self.__class__._updates.add(self)
     return updated
 
 
-def _validate_(self, registered_key):
+def _validate_(self, registry_key):
     '''
     Validate (key)
 
@@ -202,16 +208,16 @@ def _validate_(self, registered_key):
     before raising KeyInconsistencyError.
     '''
     derived_key = self.derive_key()
-    if derived_key != registered_key:
+    if derived_key != registry_key:
         try:
             self.register(derived_key)
             registry_repaired = True
         except KeyConflictError:
             registry_repaired = False
         finally:
-            self.deregister(registered_key)
+            self.deregister(registry_key)
             raise KeyInconsistencyError(derived_key=derived_key,
-                                        registered_key=registered_key,
+                                        registry_key=registry_key,
                                         registry_repaired=registry_repaired)
 
 
@@ -246,8 +252,8 @@ class Trackable(ModelMeta):
     Keys are namedtuples of the fields required for uniqueness. While a
     primary key id will work, it is better to use 'natural' key fields
     that have some intrinsic meaning. When a key consists of a single
-    field, the key is a one-tuple, though the field will also work as
-    long as it is not itself a tuple.
+    field, the key is a one-tuple, though the unpacked field will also
+    work as a key as long as it is not itself a tuple.
 
     Any instance updates that result from the creation or modification
     of an instance using the class constructor can also be tracked. New
@@ -273,6 +279,7 @@ class Trackable(ModelMeta):
         attr['trepr'] = trepr
         attr['register'] = register
         attr['deregister'] = deregister
+        attr['destroy'] = destroy
         attr['register_update'] = register_update
         attr['_update_'] = _update_
         attr['_validate_'] = _validate_
@@ -463,18 +470,34 @@ class Trackable(ModelMeta):
         return instance
 
     def __setitem__(cls, key, inst):
+        derived_key = inst.derive_key()
+        if derived_key != key:
+            raise KeyInconsistencyError(derived_key=derived_key,
+                                        registry_key=key,
+                                        registry_repaired=True)
+        cls._register_(inst, key)
+
+    def __delitem__(cls, key):
+        inst = cls._instances[key]
+        cls._deregister_(inst, key)
+
+    def __iter__(cls):
+        for inst in cls._instances.values():
+            yield inst
+
+    def _register_(cls, inst, key=None):
+        '''Register instance, deriving key if not provided'''
+        key = key or inst.derive_key()
         existing = cls.tget(key)
         if existing is not None and existing is not inst:
             raise KeyConflictError(key=key)
         cls._instances[key] = inst
 
-    def __delitem__(cls, key):
+    def _deregister_(cls, inst, key=None):
+        '''Deregister instance, deriving key if not provided'''
+        key = key or inst.derive_key()
         del cls._instances[key]  # Throw exception if key not found
-        cls._updates.discard(key)  # Fail silently if key not found
-
-    def __iter__(cls):
-        for inst in cls._instances.values():
-            yield inst
+        cls._updates.discard(inst)  # Fail silently if inst not found
 
     @classmethod
     def register_existing(meta, session, *args):
