@@ -21,6 +21,11 @@ else:
     from itertools import izip
 
 
+def add_leading_zeros(number, width):
+    number_string = str(number)
+    return '0' * (width - len(number_string)) + number_string
+
+
 def camelCaseTo_snake_case(string):
     '''Converts CamelCase to snake_case'''
     patterns = [
