@@ -399,6 +399,19 @@ class GeoData(BaseGeoModel):
     def convert_areas(cls, *areas):
         return (cls.convert_area(a) for a in areas)
 
+    @classmethod
+    def combine_coordinates(cls, *weighted_coordinate_tuples):
+        total_latitude = total_longitude = total_weight = 0
+
+        for latitude, longitude, weight in weighted_coordinate_tuples:
+            total_latitude += latitude * weight
+            total_longitude += longitude * weight
+            total_weight += weight
+
+        total_latitude /= total_weight
+        total_longitude /= total_weight
+        return cls.convert_coordinates(total_latitude, total_longitude)
+
     @property
     def latitude(self):
         return (Decimal(self._latitude).quantize(self.COORDINATE_QUANT) /
