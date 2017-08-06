@@ -1451,7 +1451,7 @@ def deaffix_place(full_name, lsad_code, placens):
     return PLACE_PATCH_MAP[placens]
 
 
-def load_cbsa_geos(geo_session, session):
+def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
     CBSARecord = namedtuple('CBSARecord',
                             'cbsa_cbsa_code, cbsa_cbsa_name, cbsa_cbsa_type, '
                             'cbsa_csa_code, cbsa_csa_name, '
@@ -1461,22 +1461,25 @@ def load_cbsa_geos(geo_session, session):
     columns = derive_columns((CBSA, GHRP), CBSARecord._fields)
 
     # U.S. places by county equivalent with CBSA/CSA data
-    records = (geo_session.query(GHRP)
-                          .join(GHRP.county)
-                          .join(County.cbsa)
-                          .filter(
-                              GHRP.sumlev == '155',
-                              GHRP.geocomp == '00',
-                              # GHRP.statefp.in_(['33', '44', '9', '11']),
-                              # GHRP.statefp == '48',  # Texas
-                              # CBSA.cbsa_code == '12420',  # Greater Austin
-                              )
-                          .order_by(
-                              CBSA.csa_code,
-                              CBSA.cbsa_code,
-                              # CBSA.metro_division_code,
-                              desc(GHRP.p0020001))
-                          .values(*columns))
+    base_query = (
+        # State-County-Cousub
+        geo_session.query(GHRP)
+                   .join(GHRP.county)
+                   .join(County.cbsa)
+                   .filter(GHRP.sumlev == '155', GHRP.geocomp == '00'))
+
+    if sub1keys:
+        statefps = {State.get_by('stusps', k).statefp for k in sub1keys}
+        base_query = base_query.filter(GHRP.statefp.in_(statefps))
+
+    # '12420'  # Greater Austin
+    if cbsa_keys:
+        cbsa_keys = cbsa_keys if isinstance(cbsa_keys, set) else set(cbsa_keys)
+        base_query = base_query.filter(CBSA.cbsa_code.in_(cbsa_keys))
+
+    records = (
+        base_query.order_by(CBSA.csa_code, CBSA.cbsa_code, desc(GHRP.p0020001))
+                  .values(*columns))
 
     records = PeekableIterator(records)
 
@@ -1517,7 +1520,7 @@ def load_cbsa_geos(geo_session, session):
                 prior_csa_code = csa_code
 
         statefp = r.ghrp_statefp
-        state = GeoID[(FIPS, statefp)].level.geo
+        state = GeoID[FIPS, statefp].level.geo
         if state.levels.get(SUBDIVISION1, None) is None:
             raise ValueError('State {!r} missing geo level'.format(state))
         if state.alias_target is not None:
