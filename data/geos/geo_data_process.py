@@ -509,22 +509,19 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
     columns = derive_columns((GHRP,), CousubRecord._fields)
 
     base_query = (
-        # State-County-Cousub
+        # State-County-Cousub (including independent cities)
         geo_session.query(GHRP)  # .outerjoin(GHRP.cousub)
                    .filter(GHRP.sumlev == '060', GHRP.geocomp == '00'))
 
-    # U.S. county subdivisions including independent cities
     if sub1keys:
         statefps = {State.get_by('stusps', k).statefp for k in sub1keys}
         base_query = base_query.filter(GHRP.statefp.in_(statefps))
 
-    # U.S. county subdivisions including independent cities
     if sub2keys:
         countyfps = {add_leading_zeros(cfp, 3) for cfp in sub2keys}
         base_query = base_query.filter(GHRP.countyfp.in_(countyfps))
 
     records = (
-        # base_query.order_by(GHRP.statefp, GHRP.countyid, GHRP.cousubid)
         base_query.order_by(GHRP.statefp, GHRP.cousubns)
                   .values(*columns))
 
