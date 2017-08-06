@@ -10,7 +10,7 @@ from sqlalchemy import Column, ForeignKey, Index, Table, desc, orm, types
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from intertwine import IntertwineModel
-from intertwine.exceptions import AttributeConflict, CircularReference
+from intertwine.exceptions import (AttributeConflict, CircularReference)
 from intertwine.utils.mixins import JsonProperty
 from intertwine.utils.tools import (define_constants_at_module_scope,
                                     find_any_words)
@@ -284,17 +284,20 @@ class GeoLevel(BaseGeoModel):
         Also create a geoid for each standard/code in ids if it doesn't
         already exist.
         '''
-        place_glvl, created = GeoLevel.update_or_create(
+        if not geo:
+            raise ValueError('Missing geo: {}'.format(geo))
+
+        geo_level, created = GeoLevel.update_or_create(
             geo=geo, level=level, designation=designation,
             _query_on_miss=_query_on_miss,
             _nested_transaction=_nested_transaction)
 
         for standard, code in ids.items():
-            GeoID.get_or_create(level=place_glvl, standard=standard, code=code,
+            GeoID.get_or_create(level=geo_level, standard=standard, code=code,
                                 _query_on_miss=_query_on_miss,
                                 _nested_transaction=_nested_transaction)
 
-        return place_glvl, created
+        return geo_level, created
 
     def __init__(self, geo, level, designation=None):
         '''Initialize a new geo level'''
@@ -848,36 +851,52 @@ class Geo(BaseGeoModel):
 
     aliases = orm.synonym('_aliases', descriptor=aliases)
 
-    def add_alias_target(self, val):
-        if val is self:
-            raise CircularReference(attr='alias_target', inst=self, value=val)
+    def add_alias_targets(self, *targets):
+        for target in targets:
+            self.add_alias_target(target)
+
+    def add_alias_target(self, target):
+        if target is self:
+            raise CircularReference(attr='alias_target', inst=self,
+                                    value=target)
 
         alias_targets = self.alias_targets
-        if val in alias_targets:  # nothing to do
+        if target in alias_targets:  # nothing to do
             return
 
         aliases = self.aliases.all()
+        # if aliases:
+        #     raise AliasOfAliasError(instance=self, aliases=aliases,
+        #                             targets=[target])
+
+        # target_of_targets = target.alias_targets
+        # if target_of_targets:
+        #     raise AliasOfAliasError(instance=target, aliases=[self],
+        #                             targets=target_of_targets)
+
+        # This is dangerous... TODO: just raise instead
         if aliases:
-            if val in aliases:  # val is an alias of self
-                val.promote_to_alias_target()
+            if target in aliases:  # target is an alias of self
+                target.promote_to_alias_target()
             else:
                 for alias in aliases:
-                    alias.add_alias_target(val)  # recurse on each alias
-                self.add_alias_target(val)  # recurse on self w/o any aliases
+                    alias.remove_alias_target(self)
+                    alias.add_alias_target(target)  # recurse on each alias
+                self.add_alias_target(target)  # recurse on self w/ no aliases
             return
-        # all aliases of self have been redirected to val
+        # all aliases of self have been redirected to target
         assert not aliases
-        # val cannot be an alias as self would then be an alias of an alias
-        assert not val.alias_targets
+        # target cannot be an alias as self would then be an alias of an alias
+        assert not target.alias_targets
 
         # if self is becoming an alias, transfer references
         if not alias_targets:
-            self.transfer_references(val)
+            self.transfer_references(target)
 
-        self._alias_targets.append(val)
+        self._alias_targets.append(target)
 
-    def remove_alias_target(self, val):
-        self._alias_targets.remove(val)
+    def remove_alias_target(self, target):
+        self._alias_targets.remove(target)
 
     def promote_to_alias_target(self):
         '''
