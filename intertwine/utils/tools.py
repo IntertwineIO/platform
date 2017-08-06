@@ -79,6 +79,11 @@ def isiterator(iterable):
     return hasattr(iterable, '__iter__') and not hasattr(iterable, '__len__')
 
 
+def iterator(*elements):
+    for element in elements:
+        yield element
+
+
 def nth_key(iterable, n):
     '''Return the nth key from an iterable'''
     return next(islice(iterable, n, None))
