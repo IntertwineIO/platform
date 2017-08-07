@@ -36,24 +36,34 @@ PREFIXED_GHRP_DATA_FIELDS = GeoData.Record(
 invalid_cousub_name = Cousub.invalid_name_pattern.search
 
 
-def derive_columns(classes, fields):
+def define_record(name, *fields):
     '''
-    Derive columns from classes and fields
+    Obtain namedtuple class and SQLAlchemy columns given name and fields
 
-    Returns a list of sqlalchemy columns derived from a list of classes
-    and a list of fields, often from a named tuple used to store
-    queried records. Column names may contain underscores, but class
-    names may not. The fields must be in this format:
+    I/O:
+    name: the name to be given to the namedtuple class for the record
+    fields: a sequence of field strings or a single string containing
+    multiple comma-delimited fields (similar to namedtuple)
 
-        <lowercase class name>_<column name>
+    Each field string must be in this form: <ClassName>.<column_name>
+    Each namedtuple field takes this form: <classname>_<column_name>
 
-    Example: 'county_aland_sqmi' becomes column County.aland_sqmi
+    Example: 'County.aland_sqmi' is mapped to 'county_aland_sqmi'
     '''
-    classmap = {cls.__name__.lower(): cls.__name__ for cls in classes}
-    columns = [getattr(globals()[classmap[f.split('_')[0]]],  # class
-                       '_'.join(f.split('_')[1:]))  # attribute
-               for f in fields]
-    return columns
+    if len(fields) == 1 and ',' in fields[0]:
+        fields = fields[0].split(',')
+
+    class_column_name_pairs = [field.strip().split('.') for field in fields]
+
+    columns = [getattr(globals()[class_name], column_name)
+               for class_name, column_name in class_column_name_pairs]
+
+    tuple_fields = ('_'.join((class_name.lower(), column_name))
+                    for class_name, column_name in class_column_name_pairs)
+
+    namedtuple_class = namedtuple(name, tuple_fields)
+
+    return namedtuple_class, columns
 
 
 def find_non_place_cousubs(geo=None, include_all=False):
@@ -279,13 +289,11 @@ def load_subdivision2_geos(geo_session, session, sub1keys=None):
 
 def load_state_counties(geo_session, session, sub1keys=None):
     '''Load county geos in states, DC, and Puerto Rico'''
-    CountyRecord = namedtuple(
+    CountyRecord, columns = define_record(
         'CountyRecord',
-        'ghrp_name, ghrp_lsadc, ghrp_statefp, '
-        'ghrp_countyid, ghrp_countyns, ghrp_p0020001, ghrp_p0020002, '
-        'ghrp_intptlat, ghrp_intptlon, ghrp_arealand, ghrp_areawatr')
-
-    columns = derive_columns((GHRP,), CountyRecord._fields)
+        'GHRP.name, GHRP.lsadc, GHRP.statefp, '
+        'GHRP.countyid, GHRP.countyns, GHRP.p0020001, GHRP.p0020002, '
+        'GHRP.intptlat, GHRP.intptlon, GHRP.arealand, GHRP.areawatr')
 
     # U.S. counties including independent cities
     base_query = (
@@ -496,17 +504,14 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
     session: sqlalchemy session for Intertwine database
     sub1keys=None: sequence of state abbrevs to scope the data load
     '''
-    CousubRecord = namedtuple('CousubRecord',
-                              'ghrp_name, ghrp_lsadc, ghrp_statefp, '
-                              'ghrp_countyid, ghrp_countyns, '
-                              'ghrp_cousubid, ghrp_cousubns, '
-                              'ghrp_p0020001, ghrp_p0020002, '
-                              'ghrp_intptlat, ghrp_intptlon, '
-                              # 'cousub_intptlat, place_intptlong, '
-                              'ghrp_arealand, ghrp_areawatr')
-
-    # columns = derive_columns((GHRP, Cousub), CousubRecord._fields)
-    columns = derive_columns((GHRP,), CousubRecord._fields)
+    CousubRecord, columns = define_record(
+        'CousubRecord', 'GHRP.name, GHRP.lsadc, GHRP.statefp, '
+        'GHRP.countyid, GHRP.countyns, '
+        'GHRP.cousubid, GHRP.cousubns, '
+        'GHRP.p0020001, GHRP.p0020002, '
+        'GHRP.intptlat, GHRP.intptlon, '
+        # 'Cousub.intptlat, Cousub.intptlong, '
+        'GHRP.arealand, GHRP.areawatr')
 
     base_query = (
         # State-County-Cousub (including independent cities)
@@ -688,17 +693,16 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
 
 def load_place_geos(geo_session, session, sub1keys=None):
 
-    PlaceRecord = namedtuple('PlaceRecord',
-                             'ghrp_name, ghrp_lsadc, '
-                             'ghrp_statefp, ghrp_countycc, '
-                             'ghrp_countyid, ghrp_countyns, '
-                             'ghrp_cousubid, ghrp_cousubns, '
-                             'ghrp_placeid, ghrp_placens, '
-                             'ghrp_p0020001, ghrp_p0020002, '
-                             'place_intptlat, place_intptlong, '
-                             'ghrp_arealand, ghrp_areawatr')
-
-    columns = derive_columns((GHRP, Place), PlaceRecord._fields)
+    PlaceRecord, columns = define_record(
+        'PlaceRecord',
+        'GHRP.name, GHRP.lsadc, '
+        'GHRP.statefp, GHRP.countycc, '
+        'GHRP.countyid, GHRP.countyns, '
+        'GHRP.cousubid, GHRP.cousubns, '
+        'GHRP.placeid, GHRP.placens, '
+        'GHRP.p0020001, GHRP.p0020002, '
+        'Place.intptlat, Place.intptlong, '
+        'GHRP.arealand, GHRP.areawatr')
 
     base_query = (
         geo_session.query(GHRP)
@@ -1452,13 +1456,13 @@ def deaffix_place(full_name, lsad_code, placens):
 
 
 def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
-    CBSARecord = namedtuple('CBSARecord',
-                            'cbsa_cbsa_code, cbsa_cbsa_name, cbsa_cbsa_type, '
-                            'cbsa_csa_code, cbsa_csa_name, '
-                            'ghrp_statefp, ghrp_countyid, ghrp_placeid, '
-                            'ghrp_p0020001, ghrp_p0020002')
 
-    columns = derive_columns((CBSA, GHRP), CBSARecord._fields)
+    CBSARecord, columns = define_record(
+        'CBSARecord',
+        'CBSA.cbsa_code, CBSA.cbsa_name, CBSA.cbsa_type, '
+        'CBSA.csa_code, CBSA.csa_name, '
+        'GHRP.statefp, GHRP.countyid, GHRP.placeid, '
+        'GHRP.p0020001, GHRP.p0020002')
 
     # U.S. places by county equivalent with CBSA/CSA data
     base_query = (
@@ -1472,7 +1476,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
         statefps = {State.get_by('stusps', k).statefp for k in sub1keys}
         base_query = base_query.filter(GHRP.statefp.in_(statefps))
 
-    # '12420'  # Greater Austin
+    # Greater Austin: '12420'
     if cbsa_keys:
         cbsa_keys = cbsa_keys if isinstance(cbsa_keys, set) else set(cbsa_keys)
         base_query = base_query.filter(CBSA.cbsa_code.in_(cbsa_keys))
