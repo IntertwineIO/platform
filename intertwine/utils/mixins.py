@@ -6,7 +6,6 @@ from __future__ import (absolute_import, division, print_function,
 import sys
 from collections import OrderedDict
 from datetime import datetime
-from decimal import Decimal
 from itertools import chain
 from math import floor
 from mock.mock import NonCallableMagicMock
@@ -201,11 +200,11 @@ class Jsonable(object):
 
     @classmethod
     def ensure_json_safe(cls, value):
-        if isinstance(value, Decimal):
-            return str(value)
+        if isinstance(value, JSON_NUMBER_TYPES) or value is None:
+            return value
         if isinstance(value, datetime):
             return value.isoformat()
-        raise TypeError
+        return unicode(value)
 
     @classmethod
     def form_path(cls, base, *fields):
@@ -341,42 +340,32 @@ class Jsonable(object):
                 self_json[field] = None
                 continue
 
-            for exception_flow_control in range(1):
-                try:
-                    if isinstance(value, (str, unicode)):
-                        raise TypeError
-                    # Raise TypeError if not iterable
-                    value_iterator = iter(value)
+            try:
+                if isinstance(value, (str, unicode)):
+                    raise TypeError
+                # Raise TypeError if not iterable
+                value_iterator = iter(value)
 
-                except TypeError:
-                    pass  # Execution proceeds after else clause
+            except TypeError:
+                self_json[field] = default(value)
 
-                else:
-                    items = []
-                    self_json[field] = items
-                    for i, item in enumerate(value_iterator):
-                        if hasattr(item, 'jsonify'):
-                            item_key = item.trepr(tight=tight, raw=raw)
-                            items.append(item_key)
-                            if field_depth > 0 and item_key not in _json:
-                                item.jsonify(hide_all=field_hide_all,
-                                             depth=field_depth,
-                                             _path=field_path,
-                                             **json_kwargs)
-                        else:
-                            items.append(item)
+            else:
+                items = []
+                self_json[field] = items
+                for i, item in enumerate(value_iterator):
+                    if hasattr(item, 'jsonify'):
+                        item_key = item.trepr(tight=tight, raw=raw)
+                        items.append(item_key)
+                        if field_depth > 0 and item_key not in _json:
+                            item.jsonify(hide_all=field_hide_all,
+                                         depth=field_depth,
+                                         _path=field_path,
+                                         **json_kwargs)
+                    else:
+                        items.append(item)
 
-                        if i + 1 == limit:
-                            break
-                    continue  # Execution proceeds after single loop
-
-                try:
-                    self_json[field] = default(value)
-
-                except TypeError:
-                    self_json[field] = value
-
-                continue  # Execution proceeds after single loop
+                    if i + 1 == limit:
+                        break
 
         return self_json if nest else _json
 
