@@ -79,19 +79,19 @@ SOFTWARE.
 # also update in setup.py
 __version__ = "1.1.5"
 
-# Python3 compatibilities
-if sys.version_info.major == 3:
+# Python version compatibilities
+if sys.version_info < (3,):
+    bytes = str
+
+    def b(x):
+        return x
+
+else:
     unicode = str
     unichr = chr
 
     def b(x):
         return x.encode("utf-8")
-
-else:
-    bytes = str
-
-    def b(x):
-        return x
 
 
 class InvalidUrl(Exception):

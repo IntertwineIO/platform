@@ -16,12 +16,13 @@ from .exceptions import (
     KeyMissingFromRegistry, KeyMissingFromRegistryAndDatabase,
     KeyRegisteredAndNoModify)
 
-if sys.version_info.major == 2:
+# Python version compatibilities
+if sys.version_info < (3,):
     lzip = zip  # legacy zip returning list of tuples
     from itertools import izip as zip
-    u_literal = 'u'
+    U_LITERAL = 'u'
 else:
-    u_literal = ''
+    U_LITERAL = ''
 
 
 def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
@@ -69,7 +70,7 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
         return repr(self)
     elif isinstance(self, basestring):
         # repr adds u''s and extra escapes for printing unicode
-        return repr(self) if raw else u"{u}'{s}'".format(u=u_literal, s=self)
+        return repr(self) if raw else u"{u}'{s}'".format(u=U_LITERAL, s=self)
 
     osqb, op, cp, csqb = '[', '(', ')', ']'
     cls = self.__class__.__name__

@@ -6,8 +6,8 @@ import sys
 from intertwine.problems.models import ProblemConnection as PC
 from intertwine.problems.models import AggregateProblemConnectionRating as APCR
 
-
-u_literal = 'u' if sys.version_info.major == 2 else ''
+# Python version compatibilities
+U_LITERAL = 'u' if sys.version_info < (3,) else ''
 
 
 @pytest.mark.unit
@@ -82,16 +82,16 @@ def test_add_rated_problem_connection(session, client, connection_category,
     assert rated_connection['aggregation'] == APCR.STRICT
     assert rated_connection['community'] == (
         "Community[({problem},{u}'{org}',{geo})]".format(
-            problem=problem1.trepr(), u=u_literal, org=org, geo=geo.trepr()))
+            problem=problem1.trepr(), u=U_LITERAL, org=org, geo=geo.trepr()))
 
-    problem_a_trepr = ("Problem[{u}'{human_id}']".format(u=u_literal,
+    problem_a_trepr = ("Problem[{u}'{human_id}']".format(u=U_LITERAL,
                        human_id=Problem.create_key(problem_a_name).human_id))
-    problem_b_trepr = ("Problem[{u}'{human_id}']".format(u=u_literal,
+    problem_b_trepr = ("Problem[{u}'{human_id}']".format(u=U_LITERAL,
                        human_id=Problem.create_key(problem_b_name).human_id))
 
     assert rated_connection['connection'] == (
         "ProblemConnection[({u}'{axis}',{problem_a},{problem_b})]".format(
-            u=u_literal, axis=axis,
+            u=U_LITERAL, axis=axis,
             problem_a=problem_a_trepr, problem_b=problem_b_trepr))
 
     assert rated_connection['connection_category'] == connection_category

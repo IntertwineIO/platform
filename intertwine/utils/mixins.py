@@ -23,7 +23,11 @@ from ..utils.tools import isiterator, stringify
 from .structures import InsertableOrderedDict
 from .tools import camelCaseTo_snake_case, kwargify
 
-if sys.version.startswith('3'):
+# Python version compatibilities
+if sys.version_info < (3,):
+    JSON_NUMBER_TYPES = (bool, float, int, long)  # noqa: ignore=F821
+else:
+    JSON_NUMBER_TYPES = (bool, float, int)
     unicode = str
 
 

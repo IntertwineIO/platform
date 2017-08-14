@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
+import sys
 from collections import OrderedDict, namedtuple
 from decimal import Decimal
 from functools import reduce
@@ -14,6 +15,11 @@ from intertwine.exceptions import (AttributeConflict, CircularReference)
 from intertwine.utils.mixins import JsonProperty
 from intertwine.utils.tools import (define_constants_at_module_scope,
                                     find_any_words)
+
+# Python version compatibilities
+if sys.version_info < (3,):
+    lzip = zip  # legacy zip returning list of tuples
+    from itertools import izip as zip
 
 # BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
 BaseGeoModel = IntertwineModel

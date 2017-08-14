@@ -7,7 +7,8 @@ import sys
 from collections import Counter, OrderedDict, namedtuple
 from operator import eq, attrgetter, itemgetter
 
-if sys.version_info.major == 2:
+# Python version compatibilities
+if sys.version_info < (3,):
     lmap = map  # legacy map returning list
     from itertools import imap as map
 
