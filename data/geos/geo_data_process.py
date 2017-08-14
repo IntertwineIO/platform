@@ -5,7 +5,6 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from collections import defaultdict, namedtuple
-from itertools import izip
 
 from sqlalchemy import desc
 from alchy import Manager
@@ -26,6 +25,7 @@ from intertwine.geos.models import (
     COUNTRY, SUBDIVISION1, SUBDIVISION2, SUBDIVISION3, PLACE, SUBPLACE,
     CORE_AREA, COMBINED_AREA,
     FIPS, ANSI, ISO_A2, ISO_A3, ISO_N3, CSA_2010, CBSA_2010)
+from intertwine.geos.utils import Area, GeoLocation
 
 COUNTY_LSAD_AS_QUALIFIER = False
 
@@ -129,14 +129,6 @@ def find_non_place_cousubs(geo=None, include_all=False):
     return geos
 
 
-def extract_data(record, field_names):
-    '''Extract geo data from record based on GeoData field namedtuple'''
-    return GeoData.Record(
-        *(GeoData.transform_value(data_field, getattr(record, record_field))
-          for data_field, record_field
-          in izip(field_names._fields, field_names)))
-
-
 def load_geos(geo_session, session):
     '''Load geos for the US'''
     load_country_geos(geo_session, session)
@@ -197,7 +189,7 @@ def load_states(geo_session, session, sub1keys=None):
         state = r.state
         print('{usps} - {name}'.format(usps=state.stusps, name=state.name))
 
-        data_record = extract_data(r, GHRP_DATA_FIELDS)
+        data_record = GeoData.extract_data(r, GHRP_DATA_FIELDS)
 
         geo = Geo(name=state.name, abbrev=state.stusps, path_parent=us,
                   parents=[us])
@@ -339,7 +331,7 @@ def load_state_counties(geo_session, session, sub1keys=None):
 
         designation = lsad if lsad else County.COUNTY
 
-        data_record = extract_data(r, PREFIXED_GHRP_DATA_FIELDS)
+        data_record = GeoData.extract_data(r, PREFIXED_GHRP_DATA_FIELDS)
 
         data_match_dict = data_record._asdict()
         del data_match_dict['latitude']
@@ -544,6 +536,7 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
     total_pop = urban_pop = 0
     total_area = land_area = water_area = 0
     latitude = longitude = None
+    geo_location = None
 
     tracker = defaultdict(list)
 
@@ -586,29 +579,30 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
             total_pop = urban_pop = 0
             total_area = land_area = water_area = 0
             latitude = longitude = None
+            geo_location = None
             prior_cousubns = cousubns
 
         record_number += 1
         counties.add(county)
         fips_county_map[cousubid] = county
 
-        new_latitude, new_longitude = GeoData.convert_coordinates(
-            r.ghrp_intptlat, r.ghrp_intptlon)
-        new_land_area, new_water_area = GeoData.convert_areas(
-            r.ghrp_arealand, r.ghrp_areawatr)
+        new_land_area = Area(r.ghrp_arealand)
+        new_water_area = Area(r.ghrp_areawatr)
         new_total_area = new_land_area + new_water_area
 
-        if latitude is None and longitude is None:
-            latitude, longitude = new_latitude, new_longitude
+        new_geo_location = GeoLocation(r.ghrp_intptlat, r.ghrp_intptlon)
+
+        if geo_location is None:
+            geo_location = new_geo_location
         else:
-            latitude, longitude = GeoData.combine_coordinates(
-                (latitude, longitude, total_area),
-                (new_latitude, new_longitude, new_total_area))
+            geo_location = GeoLocation.combine_coordinates(
+                (geo_location, total_area),
+                (new_geo_location, new_total_area))
 
         total_pop += r.ghrp_p0020001
         urban_pop += r.ghrp_p0020002
-        land_area += GeoData.convert_area(r.ghrp_arealand)
-        water_area += GeoData.convert_area(r.ghrp_areawatr)
+        land_area += new_land_area
+        water_area += new_water_area
         total_area = land_area + water_area
 
         if (records.has_next() and
@@ -618,6 +612,8 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
         # We're on the last record for the current cousub place
         print("\t{name}, {state} ({standard}, '{code}')"
               .format(name=name, state=stusps, standard=ANSI, code=cousubns))
+
+        latitude, longitude = geo_location.coordinates
 
         data_record = GeoData.Record(
             total_pop, urban_pop, latitude, longitude, land_area, water_area)
@@ -823,8 +819,8 @@ def load_place_geos(geo_session, session, sub1keys=None):
         cousubs.add(cousub)
         total_pop += r.ghrp_p0020001
         urban_pop += r.ghrp_p0020002
-        land_area += GeoData.convert_area(r.ghrp_arealand)
-        water_area += GeoData.convert_area(r.ghrp_areawatr)
+        land_area += Area(r.ghrp_arealand)
+        water_area += Area(r.ghrp_areawatr)
 
         if (records.has_next() and
                 PlaceRecord(*records.peek()).ghrp_placeid == placeid):
@@ -834,8 +830,8 @@ def load_place_geos(geo_session, session, sub1keys=None):
         print("\t{name}, {state} ({standard}, '{code}')"
               .format(name=name, state=stusps, standard=ANSI, code=placens))
 
-        latitude, longitude = GeoData.convert_coordinates(
-            r.place_intptlat, r.place_intptlong)
+        geo_location = GeoLocation(r.place_intptlat, r.place_intptlong)
+        latitude, longitude = geo_location.coordinates
 
         data_record = GeoData.Record(
             total_pop, urban_pop, latitude, longitude, land_area, water_area)

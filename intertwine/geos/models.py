@@ -12,6 +12,7 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from intertwine import IntertwineModel
 from intertwine.exceptions import (AttributeConflict, CircularReference)
+from intertwine.geos.utils import Area, Coordinate, GeoLocation
 from intertwine.utils.mixins import JsonProperty
 from intertwine.utils.tools import (define_constants_at_module_scope,
                                     find_any_words)
@@ -331,15 +332,6 @@ class GeoData(BaseGeoModel):
     COORDINATE_FIELDS = {LATITUDE, LONGITUDE}
     AREA_FIELDS = {LAND_AREA, WATER_AREA}
 
-    COORDINATE_PRECISION = 7  # 7:11 mm; 6:0.11 m (https://goo.gl/7qq5sR)
-    AREA_PRECISION = 6  # square meters to square kilometers
-
-    COORDINATE_MULTIPLIER = Decimal('1{}'.format('0' * COORDINATE_PRECISION))
-    AREA_MULTIPLIER = Decimal('1{}'.format('0' * AREA_PRECISION))
-
-    COORDINATE_QUANT = Decimal('1') / COORDINATE_MULTIPLIER
-    AREA_QUANT = Decimal('1') / AREA_MULTIPLIER
-
     geo_id = Column(types.Integer, ForeignKey('geo.id'))
     _geo = orm.relationship('Geo', back_populates='_data')
 
@@ -381,25 +373,6 @@ class GeoData(BaseGeoModel):
         return self.__class__.Key(self.geo)
 
     @classmethod
-    def transform_value(cls, field, value):
-
-        if field in cls.COORDINATE_FIELDS:
-            return cls.convert_coordinate(value)
-
-        if field in cls.AREA_FIELDS:
-            return cls.convert_area(value)
-
-        return value
-
-    @classmethod
-    def convert_coordinate(cls, coordinate):
-        return Decimal(coordinate).quantize(cls.COORDINATE_QUANT)
-
-    @classmethod
-    def convert_coordinates(cls, *coordinates):
-        return (cls.convert_coordinate(c) for c in coordinates)
-
-    @classmethod
     def convert_area(cls, area_in_square_meters):
         decimal_area_in_square_meters = Decimal(int(area_in_square_meters))
         return decimal_area_in_square_meters / cls.AREA_MULTIPLIER
@@ -408,64 +381,54 @@ class GeoData(BaseGeoModel):
     def convert_areas(cls, *areas):
         return (cls.convert_area(a) for a in areas)
 
-    @classmethod
-    def combine_coordinates(cls, *weighted_coordinate_tuples):
-        total_latitude = total_longitude = total_weight = 0
-
-        for latitude, longitude, weight in weighted_coordinate_tuples:
-            total_latitude += latitude * weight
-            total_longitude += longitude * weight
-            total_weight += weight
-
-        total_latitude /= total_weight
-        total_longitude /= total_weight
-        return cls.convert_coordinates(total_latitude, total_longitude)
-
     @property
     def latitude(self):
-        return (Decimal(self._latitude).quantize(self.COORDINATE_QUANT) /
-                self.COORDINATE_MULTIPLIER)
+        return Coordinate(self._latitude, requantize=True)
 
     @latitude.setter
-    def latitude(self, val):
-        self._latitude = int(Decimal(val).quantize(self.COORDINATE_QUANT) *
-                             self.COORDINATE_MULTIPLIER)
+    def latitude(self, value):
+        self._latitude = Coordinate.cast(value).dequantize()
 
     latitude = orm.synonym('_latitude', descriptor=latitude)
 
     @property
     def longitude(self):
-        return (Decimal(self._longitude).quantize(self.COORDINATE_QUANT) /
-                self.COORDINATE_MULTIPLIER)
+        return Coordinate(self._longitude, requantize=True)
 
     @longitude.setter
-    def longitude(self, val):
-        self._longitude = int(Decimal(val).quantize(self.COORDINATE_QUANT) *
-                              self.COORDINATE_MULTIPLIER)
+    def longitude(self, value):
+        self._longitude = Coordinate.cast(value).dequantize()
 
     longitude = orm.synonym('_longitude', descriptor=longitude)
 
     @property
+    def location(self):
+        return GeoLocation(self.latitude, self.longitude)
+
+    @location.setter
+    def location(self, value):
+        try:
+            self.latitude, self.longitude = value.latitude, value.longitude
+        except AttributeError:
+            self.latitude, self.longitude = value
+
+    @property
     def land_area(self):
-        return (Decimal(self._land_area).quantize(self.AREA_QUANT) /
-                self.AREA_MULTIPLIER)
+        return Area(self._land_area, requantize=True)
 
     @land_area.setter
-    def land_area(self, val):
-        self._land_area = int(Decimal(val).quantize(self.AREA_QUANT) *
-                              self.AREA_MULTIPLIER)
+    def land_area(self, value):
+        self._land_area = Area.cast(value).dequantize()
 
     land_area = orm.synonym('_land_area', descriptor=land_area)
 
     @property
     def water_area(self):
-        return (Decimal(self._water_area).quantize(self.AREA_QUANT) /
-                self.AREA_MULTIPLIER)
+        return Area(self._water_area, requantize=True)
 
     @water_area.setter
-    def water_area(self, val):
-        self._water_area = int(Decimal(val).quantize(self.AREA_QUANT) *
-                               self.AREA_MULTIPLIER)
+    def water_area(self, value):
+        self._water_area = Area.cast(value).dequantize()
 
     water_area = orm.synonym('_water_area', descriptor=water_area)
 
@@ -490,6 +453,19 @@ class GeoData(BaseGeoModel):
         self.register_update(key)
 
     geo = orm.synonym('_geo', descriptor=geo)
+
+    @classmethod
+    def extract_data(cls, record, field_names):
+        '''Extract geo data from record based on GeoData field namedtuple'''
+        return cls.Record(
+            *(cls.transform_value(data_field, getattr(record, record_field))
+              for data_field, record_field
+              in zip(field_names._fields, field_names)))
+
+    @classmethod
+    def transform_value(cls, field, value):
+        return (Coordinate(value) if field in cls.COORDINATE_FIELDS else
+                Area(value) if field in cls.AREA_FIELDS else value)
 
     def matches(self, inexact=0, **kwds):
         for field, value in kwds.items():
@@ -535,10 +511,12 @@ class GeoData(BaseGeoModel):
         data = {field: sum((child.data[field] for child in children))
                 for field in cls.SUMMED_FIELDS}
 
-        for field in cls.AREA_AVERAGED_FIELDS:
-            data[field] = (sum((child.data.total_area * child.data[field]
-                                for child in children)) /
-                           sum((child.data.total_area for child in children)))
+        geo_location = GeoLocation.combine_coordinates(
+            *[(GeoLocation(child.data.latitude, child.data.longitude),
+                child.data.total_area)
+                for child in children])
+
+        data['latitude'], data['longitude'] = geo_location.coordinates
 
         return cls(parent_geo, **data)
 
