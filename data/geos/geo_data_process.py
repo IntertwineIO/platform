@@ -535,8 +535,7 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
     fips_county_map = {}
     total_pop = urban_pop = 0
     total_area = land_area = water_area = 0
-    latitude = longitude = None
-    geo_location = None
+    coordinate_tuple = latitude = longitude = None
 
     tracker = defaultdict(list)
 
@@ -578,26 +577,24 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
             fips_county_map.clear()
             total_pop = urban_pop = 0
             total_area = land_area = water_area = 0
-            latitude = longitude = None
-            geo_location = None
+            coordinate_tuple = latitude = longitude = None
             prior_cousubns = cousubns
 
         record_number += 1
         counties.add(county)
         fips_county_map[cousubid] = county
 
+        new_geo_location = GeoLocation(r.ghrp_intptlat, r.ghrp_intptlon)
         new_land_area = Area(r.ghrp_arealand)
         new_water_area = Area(r.ghrp_areawatr)
         new_total_area = new_land_area + new_water_area
 
-        new_geo_location = GeoLocation(r.ghrp_intptlat, r.ghrp_intptlon)
-
-        if geo_location is None:
-            geo_location = new_geo_location
+        if coordinate_tuple is None:
+            coordinate_tuple = new_geo_location.values
         else:
-            geo_location = GeoLocation.combine_coordinates(
-                (geo_location, total_area),
-                (new_geo_location, new_total_area))
+            coordinate_tuple = GeoLocation.combine_coordinates(
+                (coordinate_tuple, total_area),
+                (new_geo_location.values, new_total_area))
 
         total_pop += r.ghrp_p0020001
         urban_pop += r.ghrp_p0020002

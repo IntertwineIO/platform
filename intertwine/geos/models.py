@@ -511,10 +511,10 @@ class GeoData(BaseGeoModel):
         data = {field: sum((child.data[field] for child in children))
                 for field in cls.SUMMED_FIELDS}
 
-        geo_location = GeoLocation.combine_coordinates(
-            *[(GeoLocation(child.data.latitude, child.data.longitude),
+        geo_location = GeoLocation.combine_locations(
+            *((GeoLocation(child.data.latitude, child.data.longitude),
                 child.data.total_area)
-                for child in children])
+                for child in children))
 
         data['latitude'], data['longitude'] = geo_location.coordinates
 
