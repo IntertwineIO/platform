@@ -217,7 +217,7 @@ def test_form_aggregate_geo(session):
     geo_location_b = GeoLocation(child_b_dict['latitude'],
                                  child_b_dict['longitude'])
 
-    geo_location = GeoLocation.combine_coordinates(
+    geo_location = GeoLocation.combine_locations(
         (geo_location_a, child_a_area),
         (geo_location_b, child_b_area))
 
