@@ -412,6 +412,8 @@ class GeoData(BaseGeoModel):
         except AttributeError:
             self.latitude, self.longitude = value
 
+    jsonified_location = JsonProperty(name='location', show=False)
+
     @property
     def land_area(self):
         return Area(self._land_area, requantize=True)
