@@ -109,6 +109,9 @@ class GeoLocation(object):
     def __str__(self):
         return '(latitude={}, longitude={})'.format(*self.coordinates)
 
+    def jsonify(self, **json_kwargs):
+        return tuple(str(coordinate) for coordinate in self.values)
+
     # Container Methods
 
     def __getitem__(self, key):
