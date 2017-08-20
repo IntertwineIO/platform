@@ -20,16 +20,10 @@ class Area(QuantizedDecimal):
 
     DEFAULT_PRECISION = 6  # square meters to square kilometers
 
-    def __repr__(self):
-        return "Area('{}')".format(self.value)
-
 
 class Coordinate(QuantizedDecimal):
 
     DEFAULT_PRECISION = 7  # 7: 11 mm; 6: 0.11 m (https://goo.gl/7qq5sR)
-
-    def __repr__(self):
-        return "Coordinate('{}')".format(self.value)
 
 
 class GeoLocation(object):

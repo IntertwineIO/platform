@@ -92,9 +92,11 @@ class QuantizedDecimal(object):
                       else number)
 
     def __repr__(self):
-        return "{cls}('{number}', {precision})".format(
+        precision = self.precision
+        return "{cls}('{number}'{precision_clause})".format(
             cls=self.__class__.__name__, number=self.value,
-            precision=self.precision)
+            precision_clause=(', ' + str(precision)
+                              if precision != self.DEFAULT_PRECISION else ''))
 
     def __str__(self):
         return str(self.value)
