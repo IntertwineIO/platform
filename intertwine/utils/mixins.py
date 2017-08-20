@@ -327,13 +327,16 @@ class Jsonable(object):
             if hasattr(value, 'jsonify'):
                 # TODO: Replace trepr with URI
                 item = value
+                if nest:
+                    self_json[field] = item.jsonify(
+                        hide_all=field_hide_all, depth=field_depth,
+                        _path=field_path, **json_kwargs)
+                    continue
                 item_key = item.trepr(tight=tight, raw=raw)
                 self_json[field] = item_key
                 if field_depth > 0 and item_key not in _json:
-                    item.jsonify(hide_all=field_hide_all,
-                                 depth=field_depth,
-                                 _path=field_path,
-                                 **json_kwargs)
+                    item.jsonify(hide_all=field_hide_all, depth=field_depth,
+                                 _path=field_path, **json_kwargs)
                 continue
 
             if isinstance(value, NonCallableMagicMock):
