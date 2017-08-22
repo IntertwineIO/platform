@@ -27,7 +27,28 @@ class Coordinate(QuantizedDecimal):
 
 
 class GeoLocation(object):
+    '''
+    GeoLocation
 
+    A utility class for working with coordinates (latitude & longitude).
+
+    GeoLocation utilizes the Coordinates namedtuple as a light-weight
+    representation of latitude and longitude pairs. This is used to wrap
+    the latitude/longitude returned from coordinates(), values(),
+    dequantize(), and requantize().
+
+    Latitude/longitude may be accessed via self-named attributes, self-
+    named index keys, or 0/1. All comparison operators are supported.
+    Inequalities use normal tuple comparison logic, so latitude is first
+    compared and longitude is the tie-breaker.
+
+    Latitude/longitude may be combined in a weighted fashion with either
+    of two methods:
+    - combine_locations() uses GeoLocations as a convenience, but note
+      that successive calls will accumulate rounding errors.
+    - combine_coordinates() uses Coordinates namedtuples of Decimals,
+      so it is safe to use in successive calls.
+    '''
     LATITUDE = 'latitude'
     LONGITUDE = 'longitude'
     COORDINATES = (LATITUDE, LONGITUDE)
@@ -36,38 +57,66 @@ class GeoLocation(object):
 
     @property
     def latitude(self):
+        '''Return latitude, a Coordinate'''
         return self._latitude
 
     @latitude.setter
     def latitude(self, value):
+        '''Cast value to Coordinate and set as latitude'''
         self._latitude = Coordinate.cast(value)
 
     @property
     def longitude(self):
+        '''Return longitude, a Coordinate'''
         return self._longitude
 
     @longitude.setter
     def longitude(self, value):
+        '''Cast value to Coordinate and set as longitude'''
         self._longitude = Coordinate.cast(value)
 
     @property
     def coordinates(self):
+        '''Return Coordinates namedtuple of latitude/longitude'''
         return self.Coordinates(self.latitude, self.longitude)
 
     @coordinates.setter
     def coordinates(self, values):
+        '''Set latitude/longitude given an iterable of numbers'''
         self.latitude, self.longitude = values  # Invoke setters
 
     @property
     def values(self):
+        '''Return Coordinates namedtuple of latitude/longitude values'''
         return self.Coordinates(self.latitude.value, self.longitude.value)
 
     def dequantize(self):
+        '''Return Coordinates namedtuple of dequantized latitude/longitude'''
         return self.Coordinates(
             self.latitude.dequantize(), self.longitude.dequantize())
 
     @classmethod
+    def requantize(cls, latitude, longitude):
+        '''Return Coordinates namedtuple of requantized latitude/longitude'''
+        return cls.Coordinates(
+            Coordinate.requantize(latitude), Coordinate.requantize(longitude))
+
+    @classmethod
     def combine_locations(cls, *weighted_locations):
+        '''
+        Combine locations and associated weights
+
+        GeoLocations are accepted and returned as a convenience. Note
+        that successive calls will accumulate rounding errors. Use
+        combine_coordinates instead in such use cases.
+
+        I/O:
+        weighted_locations:
+            Pairs of GeoLocations and weights, where weights are
+            corresponding areas that can be cast to Decimals
+
+        return: combined GeoLocation
+        '''
         weighted_coordinates = (
             (geo_location.values, weight)
             for geo_location, weight in weighted_locations)
@@ -76,6 +125,20 @@ class GeoLocation(object):
 
     @classmethod
     def combine_coordinates(cls, *weighted_coordinates):
+        '''
+        Combine (Decimal) coordinates and associated weights
+
+        Tuples of Decimals are accepted and returned, so successive
+        calls will NOT accumulate rounding errors.
+
+        I/O:
+        weighted_coordinates:
+            Pairs of coordinates and weights, where coordinates are
+            Decimal tuples representing latitude/longitude and weights
+            are corresponding areas that can be cast to Decimals
+
+        return: Coordinates namedtuple of combined latitude/longitude
+        '''
         total_latitude = total_longitude = total_weight = 0
 
         for coordinate_values, weight in weighted_coordinates:
@@ -91,17 +154,22 @@ class GeoLocation(object):
 
     @classmethod
     def cast(cls, value):
-        return value if isinstance(value, cls) else cls(value)
+        '''Cast to GeoLocation, if not already one (i.e. if an iterable)'''
+        return value if isinstance(value, cls) else cls(*value)
 
-    def __init__(self, latitude, longitude):
-        self.latitude = latitude  # Invoke setter
-        self.longitude = longitude  # Invoke setter
+    def __init__(self, latitude, longitude, requantize=False):
+        # Invoke setters upon assignment
+        if not requantize:
+            self.latitude, self.longitude = latitude, longitude
+            return
+        self.latitude, self.longitude = self.requantize(latitude, longitude)
 
     def __repr__(self):
-        return 'GeoLocation({}, {})'.format(*self.coordinates)
+        return "{cls}('{latitude}', '{longitude}')".format(
+            cls=self.__class__.__name__, **self.coordinates._asdict())
 
     def __str__(self):
-        return '(latitude={}, longitude={})'.format(*self.coordinates)
+        return str(self.coordinates)
 
     def jsonify(self, **json_kwargs):
         return tuple(str(coordinate) for coordinate in self.values)
