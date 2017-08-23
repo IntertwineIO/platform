@@ -142,7 +142,9 @@ class GeoLocation(object):
         total_latitude = total_longitude = total_weight = 0
 
         for coordinate_values, weight in weighted_coordinates:
-            latitude, longitude = coordinate_values
+            raw_latitude, raw_longitude = coordinate_values
+            latitude = QuantizedDecimal.cast_to_decimal(raw_latitude)
+            longitude = QuantizedDecimal.cast_to_decimal(raw_longitude)
             weight = QuantizedDecimal.cast_to_decimal(weight)
             total_latitude += latitude * weight
             total_longitude += longitude * weight

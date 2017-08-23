@@ -191,7 +191,7 @@ def test_form_aggregate_geo(session):
                     'urban_pop': 240,
                     'latitude': 44.0,
                     'longitude': -73.0,
-                    'land_area': 456,
+                    'land_area': 645,
                     'water_area': 21}
 
     child_b_geo = Geo(name='Child Test Geo B')
