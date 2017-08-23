@@ -51,13 +51,13 @@ def test_quantized_decimal_core_interactions(session, number, precision):
     assert QuantizedDecimal.requantize(dequantized, precision) == qd
     assert QuantizedDecimal(dequantized, precision, requantize=True) == qd
 
-    assert QuantizedDecimal.cast_to_decimal(number, precision) == dec_value
+    assert QuantizedDecimal.quantize(number, precision) == dec_value
     assert QuantizedDecimal.cast(number, precision) == qd
     assert QuantizedDecimal.cast(qd, precision) is qd
 
     prec1 = prec + 1
     quant1 = 1 / (Decimal(10) ** Decimal(prec1))
-    dec_value1 = QuantizedDecimal.cast_to_decimal(qd, precision=prec1)
+    dec_value1 = QuantizedDecimal.quantize(qd, precision=prec1)
     assert dec_value1 == dec_value.quantize(quant1)
 
 

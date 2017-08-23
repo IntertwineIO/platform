@@ -49,7 +49,7 @@ class QuantizedDecimal(object):
     @value.setter
     def value(self, number):
         '''Set the Decimal value quantized with the default precision'''
-        self._value = self.cast_to_decimal(number, self.precision)
+        self._value = self.quantize(number, self.precision)
 
     @property
     def precision(self):
@@ -61,7 +61,7 @@ class QuantizedDecimal(object):
         '''Set the precision and use it to quantize the Decimal value'''
         precision = self._get_precision(number)
         try:
-            self._value = self.cast_to_decimal(self.value, precision)
+            self._value = self.quantize(self.value, precision)
         except AttributeError:
             pass  # During __init__ self.value has not yet been defined
         self._precision = precision
@@ -75,15 +75,23 @@ class QuantizedDecimal(object):
         '''Move decimal point left by precision and return Decimal'''
         precision = cls._get_precision(precision)
         raw_decimal = Decimal(integer) / cls._get_multiplier(precision)
-        return cls.cast_to_decimal(raw_decimal, precision)
+        return cls.quantize(raw_decimal, precision)
 
     @classmethod
-    def cast_to_decimal(cls, number, precision=None):
+    def quantize(cls, number, precision=None):
         '''Cast to Decimal and quantize with precision (or default)'''
-        raw_decimal = (number.value if isinstance(number, QuantizedDecimal)
-                       else Decimal(number))
+        raw_decimal = cls.cast_to_decimal(number)
         precision = cls._get_precision(precision)
         return raw_decimal.quantize(cls._get_quant(precision))
+
+    @classmethod
+    def cast_to_decimal(cls, number):
+        '''Cast to Decimal'''
+        if isinstance(number, QuantizedDecimal):
+            return number.value
+        if isinstance(number, Decimal):
+            return number
+        return Decimal(number)
 
     @classmethod
     def _get_multiplier(cls, precision):
