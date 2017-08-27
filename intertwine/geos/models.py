@@ -1307,6 +1307,11 @@ class Geo(BaseGeoModel):
             if len(geos) == 0:
                 rv.pop(lvl)
 
+            if len(geos) == limit:
+                total = base_q.filter(GeoLevel.level == lvl).count()
+                if total > limit:
+                    self.append_pagination(rv[lvl], limit, total)
+
         return rv
 
     def jsonify_geo(self, geo, depth, **json_kwargs):

@@ -6,7 +6,7 @@ from __future__ import (absolute_import, division, print_function,
 import sys
 from collections import OrderedDict
 from datetime import datetime
-from itertools import chain
+from itertools import chain, islice
 from math import floor
 from mock.mock import NonCallableMagicMock
 from operator import attrgetter, itemgetter
@@ -81,6 +81,7 @@ class Jsonable(object):
 
     ROOT_KEY = 'root_key'
     PATH_DELIMITER = '.'
+    JSONIFY = 'jsonify'
 
     @classmethod
     def fields(cls):
@@ -355,8 +356,12 @@ class Jsonable(object):
             else:
                 items = []
                 self_json[field] = items
-                for i, item in enumerate(value_iterator):
-                    if hasattr(item, 'jsonify'):
+                if limit > 0:
+                    value_iterator = islice(value_iterator, limit)
+
+                count = 0
+                for count, item in enumerate(value_iterator, start=1):
+                    if hasattr(item, self.JSONIFY):
                         item_key = item.trepr(tight=tight, raw=raw)
                         items.append(item_key)
                         if field_depth > 0 and item_key not in _json:
@@ -367,18 +372,35 @@ class Jsonable(object):
                     else:
                         items.append(item)
 
-                    if i + 1 == limit:
-                        break
+                if count and count == limit:
+                    try:
+                        total = len(value)
+                    except TypeError:
+                        total = value.count()
+
+                    if limit < total:
+                        self.append_pagination(items, limit, total)
 
         return self_json if nest else _json
+
+    @classmethod
+    def append_pagination(cls, items, page_size, num_items, start=1):
+        page = start // page_size + 1
+        full_pages, remainder = divmod(num_items, page_size)
+        num_pages = full_pages + bool(remainder)
+        end = start + len(items) - 1
+        items.append('(page {page} of {num_pages}; '
+                     'items {start}-{end} of {num_items})'
+                     .format(page=page, num_pages=num_pages,
+                             start=start, end=end, num_items=num_items))
 
     def __str__(self):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        jsonified = self.jsonify(depth=1, limit=-1)
+        jsonified = self.jsonify(depth=1, limit=10)
         del jsonified[self.ROOT_KEY]
-        return stringify(jsonified, limit=10)
+        return stringify(jsonified, limit=-1)
 
 
 class KeyedUp(object):
