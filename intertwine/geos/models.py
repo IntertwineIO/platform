@@ -372,15 +372,6 @@ class GeoData(BaseGeoModel):
         '''Derive Trackable key (geo 1-tupled) from a geo data'''
         return self.__class__.Key(self.geo)
 
-    @classmethod
-    def convert_area(cls, area_in_square_meters):
-        decimal_area_in_square_meters = Decimal(int(area_in_square_meters))
-        return decimal_area_in_square_meters / cls.AREA_MULTIPLIER
-
-    @classmethod
-    def convert_areas(cls, *areas):
-        return (cls.convert_area(a) for a in areas)
-
     @property
     def latitude(self):
         return Coordinate(self._latitude, requantize=True)
