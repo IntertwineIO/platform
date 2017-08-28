@@ -384,15 +384,15 @@ class Jsonable(object):
         return self_json if nest else _json
 
     @classmethod
-    def append_pagination(cls, items, page_size, num_items, start=1):
+    def append_pagination(cls, items, page_size, total_items, start=1):
         page = start // page_size + 1
-        full_pages, remainder = divmod(num_items, page_size)
-        num_pages = full_pages + bool(remainder)
+        full_pages, remainder = divmod(total_items, page_size)
+        total_pages = full_pages + bool(remainder)
         end = start + len(items) - 1
-        items.append('(page {page} of {num_pages}; '
-                     'items {start}-{end} of {num_items})'
-                     .format(page=page, num_pages=num_pages,
-                             start=start, end=end, num_items=num_items))
+        items.append('({start}-{end} of {total_items}; '
+                     'page {page} of {total_pages})'
+                     .format(start=start, end=end, total_items=total_items,
+                             page=page, total_pages=total_pages))
 
     def __str__(self):
         return unicode(self).encode('utf-8')
