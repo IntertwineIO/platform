@@ -610,7 +610,7 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
         print("\t{name}, {state} ({standard}, '{code}')"
               .format(name=name, state=stusps, standard=ANSI, code=cousubns))
 
-        latitude, longitude = geo_location.coordinates
+        latitude, longitude = GeoLocation(*coordinate_tuple)
 
         data_record = GeoData.Record(
             total_pop, urban_pop, latitude, longitude, land_area, water_area)
@@ -629,7 +629,6 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
 
         is_friendly_name = not invalid_cousub_name(name)
         if record_number > 1 and not is_friendly_name:
-            import ipdb; ipdb.set_trace()
             tracker['unfriendly_multiples'].append(
                 (cousubns, name, record_number))
 
@@ -1015,8 +1014,7 @@ def manifest_geo(name, lsad, path_parent, state, county,
 
             # If cousub spans counties, replace calculated coordinates
             if len(counties) > 1:
-                geo.data.latitude = data_record.latitude
-                geo.data.longitude = data_record.longitude
+                geo.data.location = data_record.latitude, data_record.longitude
 
             geo_level, level_created = add_level_and_rename(
                 geo=cousub, level=level, designation=designation,
