@@ -181,24 +181,29 @@ def kwargify(arg_names=None, arg_values=None, kwargs=None,
     return kwargs
 
 
-def stringify(thing, limit=10, _lvl=0):
+def stringify(thing, limit=-1, _lvl=0):
     '''
     Stringify
 
-    Converts things into nicely formatted unicode strings for printing.
-    The input, 'thing', may be a 'literal' (e.g. integer, boolean,
-    string, etc.), a custom object, a list/tuple, or a dictionary.
-    Custom objects are included using their own unicode methods, but are
-    appropriately indented. Lists, tuples and dictionaries recursively
-    stringify their items.
+    Convert things into nicely formatted unicode strings for printing.
+    Custom objects are stringified with their own str/unicode methods
+    with appropriate indentation. Lists, tuples, and dictionaries
+    recursively stringify their items.
 
     Dictionary keys with empty values are excluded. Values that
     are a single line are included on the same line as the key. Multi-
     line values are listed below the key and indented further.
 
-    An optional 'limit' parameter caps the number of list/tuple items to
-    include. If capped, the cap and total number of items is noted. If
-    the limit is negative, no cap is applied.
+    I/O:
+
+    thing:  Object to be converted to a string. May be a 'literal' (e.g.
+        integer, boolean, string, etc.), a list/tuple, or a dictionary,
+        a custom object.
+
+    limit=-1:  Cap iterables to this number and indicate when doing so.
+        A negative limit (the default) means no cap is applied.
+
+    _lvl=0:  Private parameter to determine indentation during recursion
     '''
     limit = float('inf') if limit < 0 else limit
     ind = _lvl * 4 * ' '
