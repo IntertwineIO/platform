@@ -458,7 +458,8 @@ class GeoData(BaseGeoModel):
     @classmethod
     def transform_value(cls, field, value):
         return (Coordinate(value) if field in cls.COORDINATE_FIELDS else
-                Area(value) if field in cls.AREA_FIELDS else value)
+                Area(value, requantize=True) if field in cls.AREA_FIELDS else
+                value)
 
     def matches(self, inexact=0, **kwds):
         for field, value in kwds.items():

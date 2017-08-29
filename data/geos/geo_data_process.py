@@ -495,6 +495,7 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
     geo_session: sqlalchemy session for geo database of US census data
     session: sqlalchemy session for Intertwine database
     sub1keys=None: sequence of state abbrevs to scope the data load
+    sub2keys=None: sequence of county fips ids to scope the data load
     '''
     CousubRecord, columns = define_record(
         'CousubRecord', 'GHRP.name, GHRP.lsadc, GHRP.statefp, '
@@ -585,8 +586,8 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
         fips_county_map[cousubid] = county
 
         new_geo_location = GeoLocation(r.ghrp_intptlat, r.ghrp_intptlon)
-        new_land_area = Area(r.ghrp_arealand)
-        new_water_area = Area(r.ghrp_areawatr)
+        new_land_area = Area(r.ghrp_arealand, requantize=True)
+        new_water_area = Area(r.ghrp_areawatr, requantize=True)
         new_total_area = new_land_area + new_water_area
 
         if coordinate_tuple is None:
@@ -699,9 +700,7 @@ def load_place_geos(geo_session, session, sub1keys=None):
     base_query = (
         geo_session.query(GHRP)
                    .outerjoin(GHRP.place)
-                   .filter(GHRP.sumlev == '070', GHRP.geocomp == '00',
-                           # GHRP.countyfp.in_(['017'])  # Middlesex County
-                           ))
+                   .filter(GHRP.sumlev == '070', GHRP.geocomp == '00'))
 
     if sub1keys:
         statefps = {State.get_by('stusps', k).statefp for k in sub1keys}
@@ -815,8 +814,8 @@ def load_place_geos(geo_session, session, sub1keys=None):
         cousubs.add(cousub)
         total_pop += r.ghrp_p0020001
         urban_pop += r.ghrp_p0020002
-        land_area += Area(r.ghrp_arealand)
-        water_area += Area(r.ghrp_areawatr)
+        land_area += Area(r.ghrp_arealand, requantize=True)
+        water_area += Area(r.ghrp_areawatr, requantize=True)
 
         if (records.has_next() and
                 PlaceRecord(*records.peek()).ghrp_placeid == placeid):
