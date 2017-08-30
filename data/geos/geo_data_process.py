@@ -831,9 +831,17 @@ def load_place_geos(geo_session, session, sub1keys=None):
         data_record = GeoData.Record(
             total_pop, urban_pop, latitude, longitude, land_area, water_area)
 
-        # If any cousub is a PLACE, set level to SUBPLACE
-        level = SUBPLACE if max(bool(cousub.levels.get(PLACE))
-                                for cousub in cousubs) else PLACE
+        data_match_dict = data_record._asdict()
+        del data_match_dict['latitude']
+        del data_match_dict['longitude']
+
+        if len(cousubs) == 1 and cousub.data.matches(inexact=1,
+                                                     **data_match_dict):
+            level = PLACE
+        else:
+            # If any cousub is a PLACE, set level to SUBPLACE
+            level = SUBPLACE if max(bool(cousub.levels.get(PLACE))
+                                    for cousub in cousubs) else PLACE
 
         parents = list(cousubs | counties | {state, us})
         children = ([cs for cs in cousubs if cs.levels.get(SUBPLACE)]
@@ -842,6 +850,7 @@ def load_place_geos(geo_session, session, sub1keys=None):
         # if placens == '02395220':  # New York
         # if placens == '02394197':  # Bloomington, IL (alias conflict)
         # if placens == '00485605':  # Lake Quivira, KS (ANSI data discrepancy)
+        # if placens == '02378022':  # Framingham, MA (town, not CDP)
         #     import ipdb; ipdb.set_trace()
 
         place, created = manifest_geo(
@@ -965,7 +974,7 @@ def manifest_geo(name, lsad, path_parent, state, county,
         #
         try:
             # Raise TypeError on alias as data_match_dict is None
-            if not (len(counties) == 1 and
+            if (len(counties) != 1 or not
                     county.data.matches(inexact=1, **data_match_dict)):
                 raise ValueError
 
@@ -991,8 +1000,8 @@ def manifest_geo(name, lsad, path_parent, state, county,
         #
         try:
             # Raise TypeError on alias as data_match_dict is None
-            if not (level != SUBDIVISION3 and len(cousubs) == 1 and
-                    cousub.data.matches(inexact=1, **data_match_dict)):
+            if (level == SUBDIVISION3 or len(cousubs) != 1 or
+                    not cousub.data.matches(inexact=1, **data_match_dict)):
                 raise ValueError
 
         except (TypeError, ValueError):
@@ -1001,24 +1010,29 @@ def manifest_geo(name, lsad, path_parent, state, county,
         else:
             print(u'{}Found geo with data matching cousub'.format(indent))
 
-            # Handle cousubs that are places and cousubs that aren't
+            # Create place from matching cousub if one doesn't exist yet
             if cousub.path_parent is county:
-                cousub_alias = cousub
+                cousub_alias = cousub  # Becomes alias via create place
                 cousub, _ = create_place_from_cousub(cousub)
                 if tracker is not None:
                     tracker['cousubs_promoted_to_places'].append(
                         (cousub_alias, cousub))
 
-            geo = cousub  # e.g. Framingham, MA
+            geo = cousub
 
             # If cousub spans counties, replace calculated coordinates
             if len(counties) > 1:
                 geo.data.location = data_record.latitude, data_record.longitude
 
+            # Do not replace non-CDP designation with CDP, e.g. Framingham, MA
+            if (designation == Place.CDP and geo.levels.get(level) and
+                    geo.levels[level].designation != Place.CDP):
+                designation = geo.levels[level].designation
+
             geo_level, level_created = add_level_and_rename(
-                geo=cousub, level=level, designation=designation,
+                geo=geo, level=level, designation=designation,
                 geoids=geoids, name=name, lsad=lsad,
-                path_parent=cousub.path_parent, match_level=SUBDIVISION3,
+                path_parent=geo.path_parent, match_level=SUBDIVISION3,
                 state=state, county=county, cousub=cousub, tracker=tracker)
 
             continue  # Execution proceeds after single loop
@@ -1163,8 +1177,7 @@ def add_level_and_rename(geo, level, designation, geoids, name, lsad,
     geo_conflict_key = Geo.create_key(name=name, path_parent=path_parent)
     geo_conflict = Geo.tget(geo_conflict_key)
     if geo_conflict is geo:
-        import ipdb; ipdb.set_trace()
-        # Can this even happen?
+        # Never seen this happen, but just in case
         return geo_level, created
 
     # Create alias (rather than rename) if any apply:
