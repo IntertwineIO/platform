@@ -4,7 +4,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from collections import defaultdict, namedtuple
+from collections import Counter, defaultdict, namedtuple
 
 from sqlalchemy import desc
 from alchy import Manager
@@ -506,8 +506,8 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
         # 'Cousub.intptlat, Cousub.intptlong, '
         'GHRP.arealand, GHRP.areawatr')
 
+    # State-County-Cousub (including independent cities)
     base_query = (
-        # State-County-Cousub (including independent cities)
         geo_session.query(GHRP)  # .outerjoin(GHRP.cousub)
                    .filter(GHRP.sumlev == '060', GHRP.geocomp == '00'))
 
@@ -684,7 +684,7 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
     return tracker
 
 
-def load_place_geos(geo_session, session, sub1keys=None):
+def load_place_geos(geo_session, session, sub1keys=None, placeids=None):
 
     PlaceRecord, columns = define_record(
         'PlaceRecord',
@@ -697,6 +697,7 @@ def load_place_geos(geo_session, session, sub1keys=None):
         'Place.intptlat, Place.intptlong, '
         'GHRP.arealand, GHRP.areawatr')
 
+    # U.S. places by county equivalent
     base_query = (
         geo_session.query(GHRP)
                    .outerjoin(GHRP.place)
@@ -704,8 +705,11 @@ def load_place_geos(geo_session, session, sub1keys=None):
 
     if sub1keys:
         statefps = {State.get_by('stusps', k).statefp for k in sub1keys}
-        # U.S. places by county equivalent
         base_query = base_query.filter(GHRP.statefp.in_(statefps))
+
+    if placeids:
+        placeids = set(placeids) if not isinstance(placeids, set) else placeids
+        base_query = base_query.filter(GHRP.placeid.in_(placeids))
 
     records = (
         base_query.order_by(GHRP.statefp, GHRP.placeid,
@@ -738,13 +742,6 @@ def load_place_geos(geo_session, session, sub1keys=None):
         name, lsad, affix, extra_prefixes, extra_suffixes = deaffix_place(
             r.ghrp_name, r.ghrp_lsadc, placens)
         designation = lsad if lsad else Place.PLACE
-
-        # Skip "balance" places? Milford: perhaps; Indianapolis: no
-        if LSAD.SUFFIX_BALANCE in extra_suffixes and lsad == 'city':
-            tracker['skipped_city_balances'].append(
-                (r.ghrp_name, name, lsad, affix, extra_prefixes,
-                 extra_suffixes))
-            continue
 
         stusps = State.get_by('statefp', r.ghrp_statefp).stusps
         if stusps != prior_stusps:
@@ -1435,24 +1432,24 @@ def deaffix_place(full_name, lsad_code, placens):
     P = LSAD.SUFFIX_PART
     SUFFIX = LSAD.SUFFIX
 
-    CITY = 'city'
-    CB = 'consolidated government (balance)'
-    # MB = 'metropolitan government (balance)'
-    # UB = 'unified government (balance)'
+    CB = 'city (balance)'
+    CGB = 'consolidated government (balance)'
+    # MGB = 'metropolitan government (balance)'
+    # UGB = 'unified government (balance)'
 
     PLACE_PATCH_MAP = {
         #                                                extra affixes
-        # placens    name                lsad    affix    pre     suf     state
-        '02378282': ('Milford',          CITY,  SUFFIX,  set(),  {B}),    # CT
-        '02407405': ('Athens',            CB,   SUFFIX,  set(), {B, P}),  # GA
-        '02405078': ('Augusta',           CB,   SUFFIX,  set(), {B, P}),  # GA
-        '02395424': ('Indianapolis',      CB,   SUFFIX,  set(), {B, P}),  # IN
-        '01967434': ('Louisville',        CB,   SUFFIX,  set(), {B, P}),  # KY
-        '02409650': ('Anaconda',          CB,   SUFFIX,  set(),   {P}),   # MT
-        '02409652': ('Butte',             CB,   SUFFIX,  set(), {B, P}),  # MT
-        '00863219': ('Carson City',       CB,   SUFFIX,  set(),  set()),  # NV
-        '02405085': ('Hartsville',        CB,   SUFFIX,  set(),   {P}),   # TN
-        '02405092': ('Nashville',         CB,   SUFFIX,  set(), {B, P}),  # TN
+        # placens    name               lsad     affix    pre     suf    state
+        '02378282': ('Milford',          CB,    SUFFIX,  set(),  {B}),    # CT
+        '02407405': ('Athens',           CGB,   SUFFIX,  set(), {B, P}),  # GA
+        '02405078': ('Augusta',          CGB,   SUFFIX,  set(), {B, P}),  # GA
+        '02395424': ('Indianapolis',     CGB,   SUFFIX,  set(), {B, P}),  # IN
+        '01967434': ('Louisville',       CGB,   SUFFIX,  set(), {B, P}),  # KY
+        '02409650': ('Anaconda',         CGB,   SUFFIX,  set(),   {P}),   # MT
+        '02409652': ('Butte',            CGB,   SUFFIX,  set(), {B, P}),  # MT
+        '00863219': ('Carson City',      CGB,   SUFFIX,  set(),  set()),  # NV
+        '02405085': ('Hartsville',       CGB,   SUFFIX,  set(),   {P}),   # TN
+        '02405092': ('Nashville',        CGB,   SUFFIX,  set(), {B, P}),  # TN
     }
 
     return PLACE_PATCH_MAP[placens]
@@ -1493,6 +1490,18 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
     us = Geo['us']
     cbsa_code = prior_cbsa_code = ''
     csa_code = prior_csa_code = ''
+
+    cbsa_states = Counter()  # state pop within CBSA, indexed by state geo
+    cbsa_counties = Counter()  # county pop within CBSA, indexed by county geo
+    cbsa_places = Counter()  # place pop within CBSA, indexed by place geo
+    csa_states = Counter()  # state pop within CSA, indexed by state geo
+    csa_counties = Counter()  # county pop within CSA, indexed by county geo
+    csa_places = Counter()  # place pop within CSA, indexed by place geo
+
+    cbsa_county_children = set()
+    csa_county_children = set()
+    csa_cbsa_main_places = {}  # main places indexed by CBSA geo
+
     cbsas_with_unnamed_main_places = {}
     cbsas_without_main_places = {}
     cbsa_aliases = {}
@@ -1506,9 +1515,10 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
         cbsa_code = r.cbsa_cbsa_code
         if cbsa_code != prior_cbsa_code:
             cbsa = None
-            cbsa_states = {}  # CBSA state pop, indexed by state geo
-            cbsa_counties = {}  # CBSA county pop, indexed by county geo
-            cbsa_places = {}  # CBSA place pop, indexed by place geo
+            cbsa_states.clear()
+            cbsa_counties.clear()
+            cbsa_places.clear()
+            cbsa_county_children.clear()
             cbsa_place_1 = cbsa_place_2 = None
             # cbsa_non_cdp_1 = cbsa_non_cdp_2 = None
             cbsa_main_place = None
@@ -1518,50 +1528,47 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
             csa_code = r.cbsa_csa_code
             if csa_code != prior_csa_code:
                 csa = None
-                csa_states = {}  # CSA state pop, indexed by state geo
-                csa_counties = {}  # CSA county pop, indexed by county geo
-                csa_places = {}  # CSA place pop, indexed by place geo
-                csa_cbsa_main_places = {}  # main places indexed by CBSA geo
+                csa_states.clear()
+                csa_counties.clear()
+                csa_places.clear()
+                csa_county_children.clear()
+                csa_cbsa_main_places.clear()
                 csa_cbsa_1 = csa_cbsa_2 = None
                 csa_main_cbsa = None
                 prior_csa_code = csa_code
 
         statefp = r.ghrp_statefp
         state = GeoID[FIPS, statefp].level.geo
-        if state.levels.get(SUBDIVISION1, None) is None:
+        if not state.levels.get(SUBDIVISION1):
             raise ValueError('State {!r} missing geo level'.format(state))
-        if state.alias_target is not None:
+        if state.alias_targets:
             raise ValueError('State {!r} is an alias'.format(state))
-        # Assemble pop of state within CBSA
-        if cbsa_states.get(state, None) is None:
-            cbsa_states[state] = 0
         cbsa_states[state] += r.ghrp_p0020001
 
         countyid = r.ghrp_countyid
         county = GeoID[(FIPS, countyid)].level.geo
-        if county.levels.get(SUBDIVISION2, None) is None:
+        if not county.levels.get(SUBDIVISION2):
             raise ValueError('County {!r} missing geo level'.format(county))
-        if county.alias_target is not None:
+        if county.alias_targets:
             raise ValueError('County {!r} is an alias'.format(county))
         # Store pop of county (CBSAs consist of whole counties)
-        if cbsa_counties.get(county, None) is None:
+        if not cbsa_counties.get(county):
             cbsa_counties[county] = county.data.total_pop
+            cbsa_county_children |= set(county.children.all())
 
         placeid = r.ghrp_placeid
         place = GeoID[(FIPS, placeid)].level.geo
-        if place.levels.get(PLACE, None) is None:
+        if not (place.levels.get(PLACE) or place.levels.get(SUBPLACE)):
             raise ValueError('Place {!r} missing geo level'.format(place))
-        if place.alias_target is not None:
+        if place.alias_targets:
             raise ValueError('Place {!r} is an alias'.format(place))
         # Assemble pop of place within CBSA
-        if cbsa_places.get(place, None) is None:
-            cbsa_places[place] = 0
         cbsa_places[place] += r.ghrp_p0020001
 
         # Add consolidated counties with children as places
         # (those without children are already added)
-        if (county.levels.get(PLACE, None) is not None and
-                cbsa_places.get(county, None) is None):
+        if ((county.levels.get(PLACE) or county.levels.get(SUBPLACE)) and
+                not cbsa_places.get(county)):
             cbsa_places[county] = county.data.total_pop
 
         # We're on the last record for the current CBSA, so create geo
@@ -1576,7 +1583,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
                        uses_the=True,
                        path_parent=us,
                        parents=cbsa_states.keys(),
-                       children=cbsa_counties.keys() + cbsa_places.keys(),
+                       children=set(cbsa_counties) | cbsa_county_children,
                        child_data_level=SUBDIVISION2)  # Sum from counties
 
             cbsa_glvl = GeoLevel(geo=cbsa,
@@ -1638,17 +1645,14 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
 
                 # States can be in multiple CBSAs in a CSA
                 for state in cbsa_states:
-                    if csa_states.get(state, None) is None:
-                        csa_states[state] = 0
                     csa_states[state] += cbsa_states[state]
 
                 # Counties are always wholly contained by CBSAs
                 csa_counties.update(cbsa_counties)
+                csa_county_children |= set(cbsa_county_children)
 
                 # Places can be in multiple CBSAs in a CSA
                 for place in cbsa_places:
-                    if csa_places.get(place, None) is None:
-                        csa_places[place] = 0
                     csa_places[place] += cbsa_places[place]
 
                 csa_cbsa_main_places[cbsa] = cbsa_main_place
@@ -1674,9 +1678,9 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
                               uses_the=True,
                               path_parent=us,
                               parents=csa_states.keys(),
-                              children=(csa_cbsa_main_places.keys() +
-                                        csa_counties.keys() +
-                                        csa_places.keys()),
+                              children=(set(csa_cbsa_main_places) |
+                                        set(csa_counties) |
+                                        csa_county_children),
                               child_data_level=CORE_AREA)  # Sum from cbsas
 
                     csa_glvl = GeoLevel(geo=csa,
@@ -1701,7 +1705,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
                                 abbrev=('Greater ' + csa_mp_abbrev
                                         if csa_mp_abbrev else None),
                                 path_parent=csa_state,
-                                alias_target=csa,
+                                alias_targets=[csa],
                                 uses_the=False))
 
                         greater_csa_area_alias = (
@@ -1709,7 +1713,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
                                 abbrev=('Greater ' + csa_mp_abbrev + ' Area'
                                         if csa_mp_abbrev else None),
                                 path_parent=csa_state,
-                                alias_target=csa,
+                                alias_targets=[csa],
                                 uses_the=True))
 
                         if csa_state is csa_main_place.path_parent:
@@ -1749,7 +1753,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
                                 abbrev=(cbsa_mp_abbrev + ' Area'
                                         if cbsa_mp_abbrev else None),
                                 path_parent=alias_state,
-                                alias_target=cbsa_target,
+                                alias_targets=[cbsa_target],
                                 uses_the=True))
 
                         if alias_state is cbsa_main_place.path_parent:
@@ -1760,7 +1764,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
                                 abbrev=(cbsa_mp_abbrev + ' Area'
                                         if cbsa_mp_abbrev else None),
                                 path_parent=alias_state,
-                                alias_target=cbsa_target,
+                                alias_targets=[cbsa_target],
                                 uses_the=True))
 
                         greater_cbsa_alias = (
@@ -1768,7 +1772,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
                                 abbrev=('Greater ' + cbsa_mp_abbrev
                                         if cbsa_mp_abbrev else None),
                                 path_parent=alias_state,
-                                alias_target=cbsa_target,
+                                alias_targets=[cbsa_target],
                                 uses_the=False))
 
                         greater_cbsa_area_alias = (
@@ -1776,7 +1780,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
                                 abbrev=('Greater ' + cbsa_mp_abbrev + ' Area'
                                         if cbsa_mp_abbrev else None),
                                 path_parent=alias_state,
-                                alias_target=cbsa_target,
+                                alias_targets=[cbsa_target],
                                 uses_the=True))
 
                         if alias_state is cbsa_main_place.path_parent:
@@ -1789,7 +1793,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
     dc_area = Geo(name=dc_dc_area.name,
                   abbrev=dc_dc_area.abbrev,
                   path_parent=us,
-                  alias_target=dc_dc_area.alias_target,
+                  alias_targets=dc_dc_area.alias_targets,
                   uses_the=True)
     dc_area.promote_to_alias_target()
 
@@ -1798,13 +1802,13 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
     greater_dc = Geo(name=dc_greater_dc.name,
                      abbrev=dc_greater_dc.abbrev,
                      path_parent=us,
-                     alias_target=dc_greater_dc.alias_target,
+                     alias_targets=dc_greater_dc.alias_targets,
                      uses_the=False)
     dc_greater_dc_area = Geo['us/dc/greater_dc_area']
     greater_dc_area = Geo(name=dc_greater_dc_area.name,
                           abbrev=dc_greater_dc_area.abbrev,
                           path_parent=us,
-                          alias_target=dc_greater_dc_area.alias_target,
+                          alias_targets=dc_greater_dc_area.alias_targets,
                           uses_the=False)
     greater_dc.promote_to_alias_target()
 
