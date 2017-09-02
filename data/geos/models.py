@@ -28,19 +28,27 @@ class State(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
     SMALL_TERRITORIES = {'AS', 'GU', 'MP', 'UM', 'VI'}
 
     STATES_WITH_MCDS = {
-        'AR', 'CT', 'IA', 'IL', 'IN', 'KS', 'LA', 'MA', 'MD', 'ME', 'MI', 'MN',
-        'MO', 'MS', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NY', 'OH', 'PA', 'RI', 'SD',
-        'TN', 'VA', 'VT', 'WI', 'WV', 'PR', 'AS', 'GU', 'MP', 'VI'}
+        # Additional beyond STATES_WITH_MCDS_AS_GOVERNMENTAL_UNITS:
+        # 'AR', 'IA', 'LA', 'MD', 'MS', 'NC', 'TN', 'VA', 'WV', 'PR',
+        # 'AS', 'GU', 'MP', 'VI'}
+        'AR', 'CT', 'IA', 'IL', 'IN', 'KS', 'LA', 'MA', 'MD', 'ME',
+        'MI', 'MN', 'MO', 'MS', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NY',
+        'OH', 'PA', 'RI', 'SD', 'TN', 'VA', 'VT', 'WI', 'WV', 'PR',
+        'AS', 'GU', 'MP', 'VI'}
 
     STATES_WITH_MCDS_AS_GOVERNMENTAL_UNITS = {
-        'CT', 'IL', 'IN', 'KS', 'ME', 'MA', 'MI', 'MN', 'MO', 'NE', 'NH', 'NJ',
-        'NY', 'ND', 'OH', 'PA', 'RI', 'SD', 'VT', 'WI'}
+        # Additional beyond STATES_WHERE_MCDS_SERVE_AS_PLACES:
+        # 'IL', 'IN', 'KS', 'MO', 'ND', 'NE', 'OH', 'SD'
+        'CT', 'IL', 'IN', 'KS', 'ME', 'MA', 'MI', 'MN', 'MO', 'NE',
+        'NH', 'NJ', 'NY', 'ND', 'OH', 'PA', 'RI', 'SD', 'VT', 'WI'}
 
     STATES_WHERE_MCDS_SERVE_AS_PLACES = {
-        'CT', 'ME', 'MA', 'MI', 'MN', 'NH', 'NJ', 'NY', 'PA', 'RI', 'VT', 'WI'}
+        'CT', 'ME', 'MA', 'MI', 'MN', 'NH', 'NJ', 'NY', 'PA', 'RI',
+        'VT', 'WI'}
 
     STATES_WITH_NON_PLACE_COUSUBS = {
-        'AR', 'IL', 'KS', 'LA', 'MD', 'MN', 'MS', 'NC', 'NE', 'TN', 'VA', 'WV'}
+        'AR', 'IL', 'KS', 'LA', 'MD', 'MN', 'MS', 'NC', 'NE', 'TN',
+        'VA', 'WV'}
 
 
 class CBSA(AutoTablenameMixin, BaseGeoDataModel):
