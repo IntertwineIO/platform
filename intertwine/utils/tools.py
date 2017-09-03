@@ -8,7 +8,7 @@ import re
 import sys
 from functools import partial
 from inspect import getargspec, getargvalues, stack
-from itertools import chain
+from itertools import chain, islice
 from mock import create_autospec
 from numbers import Real
 
@@ -19,6 +19,11 @@ if sys.version.startswith('3'):
     unicode = str
 else:
     from itertools import izip
+
+
+def add_leading_zeros(number, width):
+    number_string = str(number)
+    return '0' * (width - len(number_string)) + number_string
 
 
 def camelCaseTo_snake_case(string):
@@ -38,10 +43,69 @@ def camelCaseTo_snake_case(string):
     return string
 
 
+def define_constants_at_module_scope(module_name, module_class,
+                                     constant_values):
+    '''
+    Define constants at module scope
+
+    Enforce naming convention in which constant names match the values,
+    but are in ALL_CAPS with _'s instead of spaces.
+    '''
+    module = sys.modules[module_name]
+
+    for constant_value in constant_values:
+        constant_name = constant_value.upper().replace(' ', '_')
+        setattr(module, constant_name, getattr(module_class, constant_name))
+
+
+def find_all_words(text, words):
+    '''Find all exact search words (a set) in text'''
+    search_words = words if isinstance(words, set) else set(words)
+    text_words = set(text.split())
+    return text_words & search_words
+
+
+def find_any_words(text, words):
+    '''True iff any exact search words (a set) found in text'''
+    search_words = words if isinstance(words, set) else set(words)
+    for text_word in text.split():
+        if text_word in search_words:
+            return True
+    return False
+
+
+def isiterator(iterable):
+    '''Determine if an iterable (or any object) is an iterator'''
+    return hasattr(iterable, '__iter__') and not hasattr(iterable, '__len__')
+
+
+def iterator(*elements):
+    for element in elements:
+        yield element
+
+
+def nth_key(iterable, n):
+    '''Return the nth key from an iterable'''
+    return next(islice(iterable, n, None))
+
+
+def nth_value(iterable, n):
+    '''Return the nth value from an iterable'''
+    key = nth_key(iterable, n)
+    return iterable[key]
+
+
+def nth_item(iterable, n):
+    '''Return the nth item from an iterable'''
+    key = nth_key(iterable, n)
+    return (key, iterable[key])
+
+
 def kwargify(arg_names=None, arg_values=None, kwargs=None,
              parg_names=None, parg_values=None, pargs=None,
              exclude=None, selfish=False):
-    '''Kwargify
+    '''
+    Kwargify
 
     Consolidate positional args, *args, and **kwargs into a new dict.
 
@@ -117,23 +181,29 @@ def kwargify(arg_names=None, arg_values=None, kwargs=None,
     return kwargs
 
 
-def stringify(thing, limit=10, _lvl=0):
-    '''Stringify
+def stringify(thing, limit=-1, _lvl=0):
+    '''
+    Stringify
 
-    Converts things into nicely formatted unicode strings for printing.
-    The input, 'thing', may be a 'literal' (e.g. integer, boolean,
-    string, etc.), a custom object, a list/tuple, or a dictionary.
-    Custom objects are included using their own unicode methods, but are
-    appropriately indented. Lists, tuples and dictionaries recursively
-    stringify their items.
+    Convert things into nicely formatted unicode strings for printing.
+    Custom objects are stringified with their own str/unicode methods
+    with appropriate indentation. Lists, tuples, and dictionaries
+    recursively stringify their items.
 
     Dictionary keys with empty values are excluded. Values that
     are a single line are included on the same line as the key. Multi-
     line values are listed below the key and indented further.
 
-    An optional 'limit' parameter caps the number of list/tuple items to
-    include. If capped, the cap and total number of items is noted. If
-    the limit is negative, no cap is applied.
+    I/O:
+
+    thing:  Object to be converted to a string. May be a 'literal' (e.g.
+        integer, boolean, string, etc.), a list/tuple, or a dictionary,
+        a custom object.
+
+    limit=-1:  Cap iterables to this number and indicate when doing so.
+        A negative limit (the default) means no cap is applied.
+
+    _lvl=0:  Private parameter to determine indentation during recursion
     '''
     limit = float('inf') if limit < 0 else limit
     ind = _lvl * 4 * ' '
@@ -186,7 +256,8 @@ def stringify(thing, limit=10, _lvl=0):
 
 
 def vardygrify(cls, **kwds):
-    u'''Vardygrify
+    u'''
+    Vardygrify
 
     From Wikipedia (https://en.wikipedia.org/wiki/Vard%C3%B8ger):
 

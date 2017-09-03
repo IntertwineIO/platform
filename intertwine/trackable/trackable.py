@@ -5,15 +5,24 @@ from __future__ import (absolute_import, division, print_function,
 
 import inspect
 import sys
+from itertools import islice
 
 from alchy.model import ModelMeta
 from past.builtins import basestring
-from sqlalchemy.exc import InvalidRequestError
+from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
-from .exceptions import (InvalidRegistryKey, KeyMissingFromRegistryAndDatabase,
-                         KeyRegisteredAndNoModify)
+from .exceptions import (
+    InvalidRegistryKey, KeyConflictError, KeyInconsistencyError,
+    KeyMissingFromRegistry, KeyMissingFromRegistryAndDatabase,
+    KeyRegisteredAndNoModify)
 
-u_literal = 'u' if sys.version_info.major == 2 else ''
+# Python version compatibilities
+if sys.version_info < (3,):
+    lzip = zip  # legacy zip returning list of tuples
+    from itertools import izip as zip
+    U_LITERAL = 'u'
+else:
+    U_LITERAL = ''
 
 
 def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
@@ -61,7 +70,7 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
         return repr(self)
     elif isinstance(self, basestring):
         # repr adds u''s and extra escapes for printing unicode
-        return repr(self) if raw else u"{u}'{s}'".format(u=u_literal, s=self)
+        return repr(self) if raw else u"{u}'{s}'".format(u=U_LITERAL, s=self)
 
     osqb, op, cp, csqb = '[', '(', ')', ']'
     cls = self.__class__.__name__
@@ -108,6 +117,111 @@ def _repr_(self):
     return '\n' + trepr(self)
 
 
+def register(self, key=None):
+    '''Register itself by deriving key if not passed'''
+    self.__class__._register_(self, key)
+
+
+def deregister(self, key=None):
+    '''Deregister itself by deriving key if not passed'''
+    self.__class__._deregister_(self, key)
+
+
+def destroy(self):
+    '''Destroy itself via deregister and delete'''
+    self.deregister()
+    self.session().delete(self)
+
+
+def register_update(self, key, _prefix='_', _suffix=''):
+    '''Register update
+
+    Register update should be used from within a model's setter property
+    when updating a field that is a component of the registry key.
+
+    Register the instance with the new key, derive new field values from
+    the key, and update field values without invoking setter properties
+    (to avoid infinite recursion).
+
+    Also validate that the newly registered key matches the self-derived
+    key. If not, attempt to correct the registry to use the derived key
+    before raising KeyInconsistencyError.
+
+    I/O:
+    key: new registry key, a namedtuple
+    _prefix='_': string prepended to field to identify affixed fields
+    _suffix='': string appended to field to identify affixed fields
+    return: True iff any fields have been updated with new values
+    '''
+    derived_key = self.derive_key()
+    if key == derived_key:
+        return False
+    self.register(key)  # Raise KeyConflictError if already registered
+    self.deregister(derived_key)
+    updated = self._update_(_prefix=_prefix, _suffix=_suffix, **key._asdict())
+    self._validate_(key)
+    return updated
+
+
+def _update_(self, _prefix='_', _suffix='', **fields):
+    '''
+    Update (fields)
+
+    Private method to update fields without invoking setter properties.
+    An "affix" (prefix/suffix) convention is applied to find underlying
+    fields. An affixed field update is attempted first and fails over to
+    the field as given.
+
+    I/O:
+    _prefix='_': string prepended to field to identify affixed fields
+    _suffix='': string postpended to field to identify affixed fields
+    **fields: unaffixed fields to be updated
+    return: True iff any fields have been updated with new values
+    '''
+    updated = False
+    for field, value in fields.items():
+        affixed_field = '{prefix}{field}{suffix}'.format(
+            prefix=_prefix, field=field, suffix=_suffix)
+        try:
+            old_value = getattr(self, affixed_field)
+
+        except AttributeError:
+            old_value = getattr(self, field)
+            affixed_field = field
+
+        if value == old_value:
+            continue
+
+        setattr(self, affixed_field, value)
+        updated = True
+
+    if updated:
+        self.__class__._updates.add(self)
+    return updated
+
+
+def _validate_(self, registry_key):
+    '''
+    Validate (key)
+
+    Validate that the given registered key matches the self-derived key.
+    If not, attempt to correct the registry to use the derived key
+    before raising KeyInconsistencyError.
+    '''
+    derived_key = self.derive_key()
+    if derived_key != registry_key:
+        try:
+            self.register(derived_key)
+            registry_repaired = True
+        except KeyConflictError:
+            registry_repaired = False
+        finally:
+            self.deregister(registry_key)
+            raise KeyInconsistencyError(derived_key=derived_key,
+                                        registry_key=registry_key,
+                                        registry_repaired=registry_repaired)
+
+
 class Trackable(ModelMeta):
     '''
     Trackable
@@ -139,8 +253,8 @@ class Trackable(ModelMeta):
     Keys are namedtuples of the fields required for uniqueness. While a
     primary key id will work, it is better to use 'natural' key fields
     that have some intrinsic meaning. When a key consists of a single
-    field, the key is a one-tuple, though the field will also work as
-    long as it is not itself a tuple.
+    field, the key is a one-tuple, though the unpacked field will also
+    work as a key as long as it is not itself a tuple.
 
     Any instance updates that result from the creation or modification
     of an instance using the class constructor can also be tracked. New
@@ -164,18 +278,19 @@ class Trackable(ModelMeta):
         custom_repr = attr.get('__repr__', None)
         attr['__repr__'] = _repr_ if custom_repr is None else custom_repr
         attr['trepr'] = trepr
+        attr['register'] = register
+        attr['deregister'] = deregister
+        attr['destroy'] = destroy
+        attr['register_update'] = register_update
+        attr['_update_'] = _update_
+        attr['_validate_'] = _validate_
         new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
         if new_cls.__name__ != 'Base':
             meta._classes[name] = new_cls
         return new_cls
 
     def __call__(cls, *args, **kwds):
-        # Convert args to kwds for create_key() and modify() so
-        # parameter order need not match __init__()
-        all_kwds = kwds.copy()
-        arg_names = inspect.getargspec(cls.__init__)[0][1:len(args) + 1]
-        for arg_name, arg in zip(arg_names, args):
-            all_kwds[arg_name] = arg
+        all_kwds = cls.merge_args(*args, **kwds)
         key = cls.create_key(**all_kwds)
         if key is None or key == '':
             raise InvalidRegistryKey(key=key, classname=cls.__name__)
@@ -194,11 +309,104 @@ class Trackable(ModelMeta):
             del inst._modified
         return inst
 
-    def __getitem__(cls, key):
-        instance = cls.tget(key)
-        if instance is None:
-            raise KeyMissingFromRegistryAndDatabase(key=key)
-        return instance
+    def _create_(cls, *args, **kwds):
+        inst = cls(*args, **kwds)
+        session = cls.session()
+        session.add(inst)
+        session.flush()
+        return inst
+
+    def get_or_create(cls, _query_on_miss=True, _nested_transaction=True,
+                      *args, **kwds):
+        '''
+        Get or create
+
+        Given args/kwds as defined by the model's __init__, return the
+        existing object if one exists, otherwise create it. The return
+        value is a tuple of the object and a boolean indicating whether
+        the object was created.
+
+        The existence check first looks in Trackable's registry and upon
+        a miss looks in the database. The create fails over to looking
+        for an existing object to address race conditions.
+        '''
+        all_kwds = cls.merge_args(*args, **kwds)
+        key = cls.create_key(**all_kwds)
+
+        try:
+            inst = cls.tget(key, query_on_miss=_query_on_miss)
+            if not inst:
+                raise KeyMissingFromRegistry
+            return inst, False
+
+        except KeyMissingFromRegistry:
+            session = cls.session()
+            try:
+                if _nested_transaction:
+                    # pysqlite DBAPI driver bugs render SERIALIZABLE isolation,
+                    # transactional DDL, and SAVEPOINT non-functional. In order
+                    # to use these features, workarounds must be taken. (TODO)
+                    # stackoverflow: https://goo.gl/aGibhe
+                    with session.begin_nested():
+                        inst = cls._create_(*args, **kwds)
+                else:
+                    inst = cls._create_(*args, **kwds)
+                return inst, True
+
+            except IntegrityError:
+                session.rollback()
+
+            # Remove once __call__() is refactored to no longer get
+            except KeyRegisteredAndNoModify:
+                pass
+
+            inst = cls[key]
+            return inst, False
+
+    def update_or_create(cls, _query_on_miss=True, _nested_transaction=True,
+                         _prefix='_', _suffix='', *args, **kwds):
+        '''
+        Update or create
+
+        Given args/kwds as defined by the model's __init__, look for an
+        existing object based on the unique key fields. If found, the
+        object is updated based on the remaining fields. If not found,
+        an new object is created. The return value is a tuple of the
+        object and a boolean indicating whether the object was created.
+
+        The existence check first looks in Trackable's registry and upon
+        a miss looks in the database. The create fails over to looking
+        for an existing object to address race conditions.
+        '''
+        all_kwds = cls.merge_args(*args, **kwds)
+        inst, created = cls.get_or_create(
+            _query_on_miss=_query_on_miss,
+            _nested_transaction=_nested_transaction, **all_kwds)
+
+        if created:
+            return inst, True
+
+        inst._update_(_prefix=_prefix, _suffix=_suffix, **all_kwds)
+        return inst, False
+
+    def merge_args(cls, *args, **kwds):
+        '''
+        Convert args to kwds for create_key(), modify(), etc. so
+        parameter order need not match __init__()
+        '''
+        if not args:
+            return kwds
+
+        init_args = inspect.getargspec(cls.__init__)[0]
+        arg_names_gen = islice(init_args, 1, len(args) + 1)
+
+        for arg_name, arg_value in zip(arg_names_gen, args):
+            if arg_name in kwds:
+                raise TypeError('Keyword arg {kwd_name} conflicts with '
+                                'positional arg'.format(kwd_name=arg_name))
+            kwds[arg_name] = arg_value
+
+        return kwds
 
     def tget(cls, key, default=None, query_on_miss=True):
         '''
@@ -253,27 +461,44 @@ class Trackable(ModelMeta):
         if instance is None:
             return default
 
-        cls[key] = instance
+        cls._instances[key] = instance
         return instance
 
-    def __setitem__(cls, key, value):
-        cls._instances[key] = value
+    def __getitem__(cls, key):
+        instance = cls.tget(key)
+        if instance is None:
+            raise KeyMissingFromRegistryAndDatabase(key=key)
+        return instance
+
+    def __setitem__(cls, key, inst):
+        derived_key = inst.derive_key()
+        if derived_key != key:
+            raise KeyInconsistencyError(derived_key=derived_key,
+                                        registry_key=key,
+                                        registry_repaired=True)
+        cls._register_(inst, key)
+
+    def __delitem__(cls, key):
+        inst = cls._instances[key]
+        cls._deregister_(inst, key)
 
     def __iter__(cls):
         for inst in cls._instances.values():
             yield inst
 
-    def register(cls, inst):
-        key = inst.derive_key()
-        existing = cls[key]
+    def _register_(cls, inst, key=None):
+        '''Register instance, deriving key if not provided'''
+        key = key or inst.derive_key()
+        existing = cls.tget(key)
         if existing is not None and existing is not inst:
-            raise ValueError('{} is already registered.'.format(key))
-        cls[key] = inst
+            raise KeyConflictError(key=key)
+        cls._instances[key] = inst
 
-    def unregister(cls, inst):
-        key = inst.derive_key()
-        cls._instances.pop(key)  # Throw exception if key not found
-        cls._updates.discard(key)  # Fail silently if key not found
+    def _deregister_(cls, inst, key=None):
+        '''Deregister instance, deriving key if not provided'''
+        key = key or inst.derive_key()
+        del cls._instances[key]  # Throw exception if key not found
+        cls._updates.discard(inst)  # Fail silently if inst not found
 
     @classmethod
     def register_existing(meta, session, *args):

@@ -36,7 +36,7 @@ def test_trackable_tget(session):
     session.add(problem)
     session.commit()
 
-    Trackable.clear_all()  # This unregisters the key
+    Trackable.clear_all()  # This deregisters the key
 
     tget_problem = Problem.tget(problem_key, default=nada, query_on_miss=False)
     assert tget_problem == nada
@@ -48,7 +48,7 @@ def test_trackable_tget(session):
     tget_problem = Problem.tget(problem_key, default=nada, query_on_miss=False)
     assert tget_problem is problem
 
-    Trackable.clear_all()  # This unregisters the key
+    Trackable.clear_all()  # This deregisters the key
 
     # Unpacked 1-tuples can also be used to get from the database
     tget_problem = Problem.tget(problem_key.human_id, query_on_miss=True)
@@ -85,13 +85,13 @@ def test_trackable_indexability(session):
 
     session.add(problem)
     session.commit()
-    Trackable.clear_all()  # This unregisters the key
+    Trackable.clear_all()  # This deregisters the key
 
     # This registers the key since it is found in the database
     indexed_problem = Problem[problem_key]
     assert indexed_problem is problem
 
-    Trackable.clear_all()  # This unregisters the key
+    Trackable.clear_all()  # This deregisters the key
 
     # Unpacked 1-tuples can also be used to index from the database
     indexed_problem = Problem[problem_key.human_id]

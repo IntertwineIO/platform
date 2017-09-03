@@ -63,7 +63,7 @@ def test_geo_data_model(session):
     from intertwine.geos.models import Geo, GeoData
 
     total_pop, urban_pop = 1000, 800
-    latitude, longitude = 30, -97
+    latitude, longitude = 30.0, -97.0
     land_area, water_area = 4321, 1234
 
     geo = Geo(name='Test Geo')
@@ -80,8 +80,8 @@ def test_geo_data_model(session):
 
     assert geo.data.total_pop == total_pop
     assert geo.data.urban_pop == urban_pop
-    assert geo.data.latitude == latitude
-    assert geo.data.longitude == longitude
+    assert geo.data.latitude.value == latitude
+    assert geo.data.longitude.value == longitude
     assert geo.data.land_area == land_area
     assert geo.data.water_area == water_area
 
@@ -136,7 +136,10 @@ def test_geo_id_model(session):
     '''Tests simple geo id model interaction'''
     from intertwine.geos.models import Geo, GeoLevel, GeoID
 
-    standard = 'Test Standard'
+    TEST_STANDARD = 'Test Standard'
+
+    GeoID.STANDARDS.add(TEST_STANDARD)
+    standard = TEST_STANDARD
     code = '12345'
 
     geo = Geo(name='Test Geo Place')
@@ -169,13 +172,14 @@ def test_geo_id_model(session):
 def test_form_aggregate_geo(session):
     '''Tests geo creation that aggregates children data at a geo level'''
     from intertwine.geos.models import Geo, GeoData, GeoLevel
+    from intertwine.geos.utils import GeoLocation
 
     data_level = 'place'
 
     child_a_dict = {'total_pop': 100,
                     'urban_pop': 80,
-                    'latitude': 42,
-                    'longitude': -71,
+                    'latitude': 42.0,
+                    'longitude': -71.0,
                     'land_area': 321,
                     'water_area': 123}
 
@@ -185,9 +189,9 @@ def test_form_aggregate_geo(session):
 
     child_b_dict = {'total_pop': 300,
                     'urban_pop': 240,
-                    'latitude': 44,
-                    'longitude': -73,
-                    'land_area': 456,
+                    'latitude': 44.0,
+                    'longitude': -73.0,
+                    'land_area': 645,
                     'water_area': 21}
 
     child_b_geo = Geo(name='Child Test Geo B')
@@ -196,8 +200,8 @@ def test_form_aggregate_geo(session):
 
     child_c_dict = {'total_pop': 1000,
                     'urban_pop': 800,
-                    'latitude': 30,
-                    'longitude': -97,
+                    'latitude': 30.0,
+                    'longitude': -97.0,
                     'land_area': 4321,
                     'water_area': 1234}
 
@@ -205,20 +209,28 @@ def test_form_aggregate_geo(session):
     GeoData(geo=child_c_geo, **child_c_dict)
     GeoLevel(geo=child_c_geo, level='subdivision2', designation='county')
 
-    sum_fields = ('total_pop', 'urban_pop', 'land_area', 'water_area')
-    weighted_average_fields = ('latitude', 'longitude')
-    aggregate_dict = {f: child_a_dict[f] + child_b_dict[f] for f in sum_fields}
     child_a_area = child_a_dict['land_area'] + child_a_dict['water_area']
     child_b_area = child_b_dict['land_area'] + child_b_dict['water_area']
-    for field in weighted_average_fields:
-        aggregate_dict[field] = (
-            (child_a_dict[field] * child_a_area +
-                child_b_dict[field] * child_b_area) * 1.0 /
-            (child_a_area + child_b_area))
+
+    geo_location_a = GeoLocation(child_a_dict['latitude'],
+                                 child_a_dict['longitude'])
+    geo_location_b = GeoLocation(child_b_dict['latitude'],
+                                 child_b_dict['longitude'])
+
+    geo_location = GeoLocation.combine_locations(
+        (geo_location_a, child_a_area),
+        (geo_location_b, child_b_area))
+
+    sum_fields = ('total_pop', 'urban_pop', 'land_area', 'water_area')
+
+    aggregate_dict = {f: child_a_dict[f] + child_b_dict[f] for f in sum_fields}
+
+    aggregate_dict['latitude'], aggregate_dict['longitude'] = (
+        geo_location.coordinates)
 
     parent_geo = Geo(name='Parent Test Geo',
                      children=[child_a_geo, child_b_geo, child_c_geo],
-                     data_level=data_level)  # aggregate places only
+                     child_data_level=data_level)  # aggregate places only
 
     session.add(parent_geo)
     session.add(child_a_geo)
@@ -278,10 +290,12 @@ def test_geo_aliases(session):
     child_geo.path_parent = geo
     child_geo.parents = [geo]
 
-    geo_alias_1 = Geo(name='Test Geo Alias 1', alias_target=geo,
+    geo_alias_1 = Geo(name='Test Geo Alias 1', alias_targets=[geo],
                       path_parent=geo)
-    geo_alias_2 = Geo(name='Test Geo Alias 2', alias_target=geo)
-    geo_alias_3 = Geo(name='Test Geo Alias 3', alias_target=geo)
+    geo_alias_2 = Geo(name='Test Geo Alias 2', alias_targets=[geo],
+                      path_parent=parent_geo)
+    geo_alias_3 = Geo(name='Test Geo Alias 3', alias_targets=[geo],
+                      path_parent=parent_geo)
 
     session.add(geo)
     session.commit()
@@ -297,9 +311,9 @@ def test_geo_aliases(session):
     assert geo_alias_2.path_parent is parent_geo
     assert geo_alias_3.path_parent is parent_geo
 
-    assert geo_alias_1.alias_target is geo
-    assert geo_alias_2.alias_target is geo
-    assert geo_alias_3.alias_target is geo
+    assert geo_alias_1.alias_targets[0] is geo
+    assert geo_alias_2.alias_targets[0] is geo
+    assert geo_alias_3.alias_targets[0] is geo
 
     aliases = geo.aliases.all()
     assert geo_alias_1 in aliases
@@ -315,10 +329,10 @@ def test_geo_aliases(session):
     assert geo_alias_3 in aliases
 
     geo_alias_1.promote_to_alias_target()
-    assert geo_alias_1.alias_target is None
-    assert geo_alias_2.alias_target is geo_alias_1
-    assert geo_alias_3.alias_target is geo_alias_1
-    assert geo.alias_target is geo_alias_1
+    assert not geo_alias_1.alias_targets
+    assert geo_alias_2.alias_targets[0] is geo_alias_1
+    assert geo_alias_3.alias_targets[0] is geo_alias_1
+    assert geo.alias_targets[0] is geo_alias_1
 
     assert geo_alias_1.data is gdata
     assert geo_alias_1.levels[level] is glvl

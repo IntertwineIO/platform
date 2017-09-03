@@ -14,7 +14,7 @@ from .models import Geo, GeoLevel
 def render():
     '''Generic page rendering for top level'''
     geos = Geo.query.filter(Geo.path_parent is None,
-                            Geo.alias_target is None).order_by(Geo.name).all()
+                            ~Geo.alias_targets.any()).order_by(Geo.name).all()
     # glvls = GeoLevel.query.filter(GeoLevel.level == 'country').all()
     # geos = [glvl.geo for glvl in glvls]
     if len(geos) == 1:
@@ -50,8 +50,9 @@ def render_geo(geo_human_id):
         # <geo_3>
         abort(404)
 
-    if geo.alias_target:
-        target = geo.alias_target.human_id
+    alias_targets = geo.alias_targets
+    if alias_targets:
+        target = alias_targets[0].human_id
         return redirect('/geos/{}'.format(target), code=302)
     # Austin, Texas, United States
     title = geo.display()
