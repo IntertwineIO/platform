@@ -153,9 +153,12 @@ def add_rated_problem_connection():
     session.add(connection)
     session.commit()
 
+    connection_category = connection.derive_category(problem)
     aggregation = payload.get('aggregation')
+
     aggregate_rating = vardygrify(
         cls=APCR, community=community, connection=connection,
-        aggregation=aggregation, rating=APCR.NO_RATING, weight=APCR.NO_WEIGHT)
+        connection_category=connection_category, aggregation=aggregation,
+        rating=APCR.NO_RATING, weight=APCR.NO_WEIGHT)
 
     return jsonify(aggregate_rating.jsonify())

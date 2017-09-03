@@ -5,23 +5,28 @@ from __future__ import (absolute_import, division, print_function,
 
 import sys
 from collections import OrderedDict
-from itertools import chain
+from datetime import datetime
+from itertools import chain, islice
 from math import floor
 from mock.mock import NonCallableMagicMock
 from operator import attrgetter, itemgetter
 
 from sqlalchemy import Column, Integer, orm
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm.collections import MappedCollection
 from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
 from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
-from ..utils.tools import stringify
+from ..utils.structures import MultiKeyMap
+from ..utils.tools import isiterator, stringify
 from .structures import InsertableOrderedDict
 from .tools import camelCaseTo_snake_case, kwargify
 
-if sys.version.startswith('3'):
+# Python version compatibilities
+if sys.version_info < (3,):
+    JSON_NUMBER_TYPES = (bool, float, int, long)  # noqa: ignore=F821
+else:
+    JSON_NUMBER_TYPES = (bool, float, int)
     unicode = str
 
 
@@ -67,7 +72,8 @@ class JsonProperty(object):
             merged_kwds.update(kwds)
             rv = func(*args, **merged_kwds)
         else:
-            rv = getattr(obj, self.name)
+            value = getattr(obj, self.name)
+            rv = list(value) if isiterator(value) else value
         return rv
 
 
@@ -75,6 +81,7 @@ class Jsonable(object):
 
     ROOT_KEY = 'root_key'
     PATH_DELIMITER = '.'
+    JSONIFY = 'jsonify'
 
     @classmethod
     def fields(cls):
@@ -193,13 +200,21 @@ class Jsonable(object):
         return fields
 
     @classmethod
+    def ensure_json_safe(cls, value):
+        if isinstance(value, JSON_NUMBER_TYPES) or value is None:
+            return value
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return unicode(value)
+
+    @classmethod
     def form_path(cls, base, *fields):
         path_components = list(fields)
         path_components.insert(0, base)
         return cls.PATH_DELIMITER.join(path_components)
 
     def jsonify(self, config=None, hide_all=False, hide=None, nest=False,
-                tight=True, raw=False, limit=10, depth=1,
+                tight=True, raw=False, limit=10, depth=1, default=None,
                 _path=None, _json=None):
         '''Jsonify
 
@@ -253,6 +268,10 @@ class Jsonable(object):
                 2: current object and 1st relation objects
                 3: current object and 1st+2nd relation objects
 
+        default=None:
+            Default function used to ensure value is json-safe. Defaults
+            to Jsonable.ensure_json_safe.
+
         _path=None:
             Path to current field from the base object:
                 .<base_field>.<related_object_field> (etc.)
@@ -264,6 +283,7 @@ class Jsonable(object):
         config = {} if config is None else config
         hide = set() if hide is None else hide
         hide = set(hide) if not isinstance(hide, set) else hide
+        default = default or self.ensure_json_safe
         _path = '' if _path is None else _path
         _json = OrderedDict() if _json is None else _json
         json_kwargs = kwargify(exclude=('hide_all', 'depth', '_path'))
@@ -305,46 +325,114 @@ class Jsonable(object):
 
             value = getattr(self, field)
 
-            if isinstance(value, orm.dynamic.AppenderQuery):
-                items = []
-                self_json[field] = items
-                for i, item in enumerate(value):
-                    item_key = item.trepr(tight=tight, raw=raw)
-                    items.append(item_key)
-                    if field_depth > 0 and item_key not in _json:
-                        item.jsonify(hide_all=field_hide_all,
-                                     depth=field_depth, _path=field_path,
-                                     **json_kwargs)
-                    if i + 1 == limit:
-                        break
-
-            elif hasattr(value, 'jsonify'):
+            if hasattr(value, 'jsonify'):
                 # TODO: Replace trepr with URI
                 item = value
+                if nest:
+                    self_json[field] = item.jsonify(
+                        hide_all=field_hide_all, depth=field_depth,
+                        _path=field_path, **json_kwargs)
+                    continue
                 item_key = item.trepr(tight=tight, raw=raw)
                 self_json[field] = item_key
                 if field_depth > 0 and item_key not in _json:
-                    item.jsonify(hide_all=field_hide_all,
-                                 depth=field_depth, _path=field_path,
-                                 **json_kwargs)
+                    item.jsonify(hide_all=field_hide_all, depth=field_depth,
+                                 _path=field_path, **json_kwargs)
+                continue
 
-            elif (not hasattr(value, '__dict__') or
-                    isinstance(value, MappedCollection)):
-                self_json[field] = value
-
-            elif isinstance(value, NonCallableMagicMock):
+            if isinstance(value, NonCallableMagicMock):
                 self_json[field] = None
+                continue
+
+            try:
+                if isinstance(value, (str, unicode)):
+                    raise TypeError
+                # Raise TypeError if not iterable
+                value_iterator = iter(value)
+
+            except TypeError:
+                self_json[field] = default(value)
 
             else:
-                raise NotImplementedError('{value} has no jsonify method'
-                                          .format(value=value))
+                items = []
+                self_json[field] = items
+                if limit > 0:
+                    value_iterator = islice(value_iterator, limit)
+
+                count = 0
+                for count, item in enumerate(value_iterator, start=1):
+                    if hasattr(item, self.JSONIFY):
+                        item_key = item.trepr(tight=tight, raw=raw)
+                        items.append(item_key)
+                        if field_depth > 0 and item_key not in _json:
+                            item.jsonify(hide_all=field_hide_all,
+                                         depth=field_depth,
+                                         _path=field_path,
+                                         **json_kwargs)
+                    else:
+                        items.append(item)
+
+                if count and count == limit:
+                    try:
+                        total = len(value)
+                    except TypeError:
+                        total = value.count()
+
+                    if limit < total:
+                        self.append_pagination(items, limit, total)
 
         return self_json if nest else _json
+
+    @classmethod
+    def append_pagination(cls, items, page_size, total_items, start=1):
+        page = start // page_size + 1
+        full_pages, remainder = divmod(total_items, page_size)
+        total_pages = full_pages + bool(remainder)
+        end = start + len(items) - 1
+        items.append('({start}-{end} of {total_items}; '
+                     'page {page} of {total_pages})'
+                     .format(start=start, end=end, total_items=total_items,
+                             page=page, total_pages=total_pages))
 
     def __str__(self):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        jsonified = self.jsonify(depth=1, limit=-1)
+        jsonified = self.jsonify(depth=1, limit=10)
         del jsonified[self.ROOT_KEY]
-        return stringify(jsonified, limit=10)
+        return stringify(jsonified, limit=-1)
+
+
+class KeyedUp(object):
+    '''KeyedUp mixin for caching with multiple distinct field keys'''
+
+    # Override with fields to be used by KeyedUp
+    KEYED_UP_FIELDS = NotImplemented
+    _keyed_up_map = None
+
+    @classmethod
+    def get_by(cls, field, key, default=None):
+        if cls._keyed_up_map is None:
+            cls._create_keyed_up_map()
+        return cls._keyed_up_map.get_by(field, key, default)
+
+    @classmethod
+    def get_map_by(cls, field):
+        if cls._keyed_up_map is None:
+            cls._create_keyed_up_map()
+        return cls._keyed_up_map.get_map_by(field)
+
+    @classmethod
+    def _create_keyed_up_map(cls):
+        cls._keyed_up_map = MultiKeyMap(fields=cls.KEYED_UP_FIELDS,
+                                        things=cls._all_the_keyed_up_things())
+
+    @classmethod
+    def _all_the_keyed_up_things(cls):
+        return cls.query.all()
+
+    def __init__(self, *args, **kwds):
+        if self.KEYED_UP_FIELDS is NotImplemented:
+            raise NotImplementedError(
+                'KEYED_UP_FIELDS must be defined for KeyedUp class')
+        super(KeyedUp, self).__init__(*args, **kwds)

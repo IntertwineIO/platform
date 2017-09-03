@@ -17,6 +17,11 @@ class IntertwineException(Exception):
         Exception.__init__(self, message)
 
 
+class AliasOfAliasError(IntertwineException):
+    '''Instance may not have both aliases and targets...
+    instance: {instance!r} aliases: {aliases!r} targets: {targets!r}'''
+
+
 class AttributeConflict(IntertwineException):
     '''{inst1!r}.{attr1!s} conflicts with {inst2!r}.{attr2!s}'''
 

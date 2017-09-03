@@ -11,7 +11,7 @@ urlnorm normalizes a URL by:
   * collapsing the path (./, ../, //, etc)
   * removing the last character in the hostname if it is '.'
   * unescaping any percent escape sequences (where possible)
-  * upercase percent escape (ie: %3f => %3F)
+  * uppercase percent escape (ie: %3f => %3F)
   * converts spaces to %20
   * converts ip encoded as an integer to dotted quad notation
 
@@ -79,19 +79,19 @@ SOFTWARE.
 # also update in setup.py
 __version__ = "1.1.5"
 
-# Python3 compatibilities
-if sys.version_info.major == 3:
-    unicode = str
-    xrange = range
-    unichr = chr
-
-    def b(x):
-        return x.encode("utf-8")
-else:
+# Python version compatibilities
+if sys.version_info < (3,):
     bytes = str
 
     def b(x):
         return x
+
+else:
+    unicode = str
+    unichr = chr
+
+    def b(x):
+        return x.encode("utf-8")
 
 
 class InvalidUrl(Exception):
