@@ -10,8 +10,6 @@ from .utils.mixins import AutoTableMixin, Jsonable
 class BaseIntertwineMeta(Trackable):
 
     def __init__(cls, name, bases, attr):
-        # import ipdb; ipdb.set_trace()
-
         super(BaseIntertwineMeta, cls).__init__(name, bases, attr)
         cls._class_init_()
 

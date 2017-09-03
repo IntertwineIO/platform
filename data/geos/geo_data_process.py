@@ -626,7 +626,6 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
         # if cousubns == '00468764':  # Sumner, IA in Bremer/Fayette Counties
         # if cousubns == '02390665':  # Washington DC
         # if cousubns == '00428803':  # Chicago, IL
-        #     import ipdb; ipdb.set_trace()
 
         is_friendly_name = not invalid_cousub_name(name)
         if record_number > 1 and not is_friendly_name:
@@ -848,7 +847,6 @@ def load_place_geos(geo_session, session, sub1keys=None, placeids=None):
         # if placens == '02394197':  # Bloomington, IL (alias conflict)
         # if placens == '00485605':  # Lake Quivira, KS (ANSI data discrepancy)
         # if placens == '02378022':  # Framingham, MA (town, not CDP)
-        #     import ipdb; ipdb.set_trace()
 
         place, created = manifest_geo(
             name=name, lsad=lsad, path_parent=state, state=state,
