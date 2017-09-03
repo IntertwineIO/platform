@@ -30,7 +30,6 @@ def check_package_licenses(**options):
                         file = sys.stderr
                         found_valid = True
                     elif 'unknown' in license.lower():
-                        if project_name ==
                         found_valid = False
                     else:
                         severity = '   '

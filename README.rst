@@ -109,7 +109,7 @@ Configuration
 
 License
 -------
-Copyright 2016, Intertwine.io - All rights reserved
+Copyright 2017, Intertwine.io - All rights reserved
 
 
 Contributions
