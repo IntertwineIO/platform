@@ -19,6 +19,10 @@ def test_licenses(**options):
     meta_files_to_check = ['PKG-INFO', 'METADATA']
 
     known_ignores = [
+
+        # Python standard packages
+        'speaklater',        # BSD - Python3.6 standard package
+
         # Pip packages added
         'pip',               # MIT
         'setuptools',        # PSF
@@ -30,7 +34,9 @@ def test_licenses(**options):
         'uWSGI',             # GPL2
 
         # Debug packages
+        'gnureadline',       # GPL 2    - TODO: Alternatives?
         'prompt-toolkit',    # BSD
+        'ptyprocess',        # ISC
 
         # Virtualenv packages added
         'wheel',             # MIT
@@ -74,8 +80,6 @@ def test_licenses(**options):
 
         # Unknown - where did they come from?
         'aniso8601',         # Nonstandard/permissive: https://goo.gl/0kTVx3
-        'gnureadline',       # GPL 2    - TODO: Alternatives?
-        'ptyprocess',        # ISC
 
         # Known licenses that do not register with this test
         'dominate',          # LGPL
