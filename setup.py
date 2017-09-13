@@ -40,6 +40,7 @@ def setup_project():
     package_requires = [
         'alchy>2.0.1',
         'docopt',
+        'enum34>=1.1.6',
         'flask',
         'flask-bootstrap',
         'flask-restful',
@@ -48,6 +49,8 @@ def setup_project():
         'flask-wtf',
         'future',
         'mock',
+        'pendulum>=1.2.5',
+        'SQLAlchemy>=1.1.14',
         'titlecase',
     ]
 
