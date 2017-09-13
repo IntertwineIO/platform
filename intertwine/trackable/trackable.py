@@ -121,12 +121,12 @@ def _repr_(self):
 
 
 def register(self, key=None):
-    '''Register itself by deriving key if not passed'''
+    '''Register self by deriving key if not passed'''
     self.__class__._register_(self, key)
 
 
 def deregister(self, key=None):
-    '''Deregister itself by deriving key if not passed'''
+    '''Deregister self with silent failure, deriving key if needed'''
     self.__class__._deregister_(self, key)
 
 
@@ -484,6 +484,7 @@ class Trackable(ModelMeta):
         cls._register_(inst, key)
 
     def __delitem__(cls, key):
+        # Raise KeyError if unregistered
         inst = cls._instances[key]
         cls._deregister_(inst, key)
 
@@ -500,10 +501,10 @@ class Trackable(ModelMeta):
         cls._instances[key] = inst
 
     def _deregister_(cls, inst, key=None):
-        '''Deregister instance, deriving key if not provided'''
+        '''Deregister instance with silent failure, deriving key if needed'''
         key = key or inst.derive_key()
-        del cls._instances[key]  # Throw exception if key not found
-        cls._updates.discard(inst)  # Fail silently if inst not found
+        cls._instances.pop(key, None)
+        cls._updates.discard(inst)
 
     @classmethod
     def register_existing(meta, session, *args):
