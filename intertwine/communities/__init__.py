@@ -26,6 +26,6 @@ from . import views
 
 @blueprint.record_once
 def on_load(state):
-    # Sets up database tables
+    # Set up database tables
     community_db.config.update(state.app.config)
     community_db.create_all()

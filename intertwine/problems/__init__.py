@@ -25,6 +25,6 @@ from . import views
 
 @blueprint.record_once
 def on_load(state):
-    # Sets up problem database tables
+    # Set up database tables
     problem_db.config.update(state.app.config)
     problem_db.create_all()

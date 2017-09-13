@@ -25,6 +25,6 @@ from . import views  # noqa
 
 @blueprint.record_once
 def on_load(state):
-    # Sets up database tables
+    # Set up database tables
     geo_db.config.update(state.app.config)
     geo_db.create_all()
