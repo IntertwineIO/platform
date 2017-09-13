@@ -66,9 +66,12 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
     else:
         sp, ind1, ind2 = ' ', (' ' * 4 * _lvl), (' ' * 4 * (_lvl + 1))
 
-    if self is None:
+    try:
+        key = self.derive_key()
+    except AttributeError:
         return repr(self)
-    elif isinstance(self, basestring):
+
+    if isinstance(self, basestring):
         # repr adds u''s and extra escapes for printing unicode
         return repr(self) if raw else u"{u}'{s}'".format(u=U_LITERAL, s=self)
 
@@ -77,7 +80,6 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
     if not outclassed and _lvl == 0:
         cls = osqb = csqb = ''
 
-    key = self.derive_key()
     # Unpack 1-tuple key unless the value is itself a tuple
     if len(key) == 1 and not isinstance(key[0], tuple):
         op = cp = ''
@@ -87,7 +89,8 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
             raise ValueError
         key_name = (u'{cls_name}.{key_cls_name}'
                     .format(cls_name=self.__class__.__name__,
-                            key_cls_name=key.__class__.__name__))
+                            key_cls_name=Trackable.KEY_NAMEDTUPLE_NAME))
+        #                     key_cls_name=key.__class__.__name__))
         treprs = [u'{f}={trepr}'.format(
                   f=f, trepr=trepr(getattr(key, f),
                                    named, tight, raw, outclassed, _lvl + 1))
@@ -262,6 +265,8 @@ class Trackable(ModelMeta):
     be tracked using the '_modified' field on the instance, which is the
     set of modified instances of the same type.
     '''
+
+    KEY_NAMEDTUPLE_NAME = 'Key'
 
     # Keep track of all classes that are Trackable
     _classes = {}
