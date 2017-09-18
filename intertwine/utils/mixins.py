@@ -22,7 +22,7 @@ from sqlalchemy.sql import func
 from ..utils.structures import MultiKeyMap
 from ..utils.tools import isiterator, stringify
 from .structures import InsertableOrderedDict
-from .tools import camelCaseTo_snake_case, kwargify
+from .tools import camelCaseTo_snake_case
 
 # Python version compatibilities
 if sys.version_info < (3,):
@@ -319,7 +319,9 @@ class Jsonable(object):
         default = default or self.ensure_json_safe
         _path = '' if _path is None else _path
         _json = OrderedDict() if _json is None else _json
-        json_kwargs = kwargify(exclude=('hide_all', 'depth', '_path'))
+        json_kwargs = dict(
+            config=config, hide=hide, nest=nest, tight=tight, raw=raw,
+            limit=limit, default=default, _json=_json)
 
         # TODO: Check if item already exists and needs to be enhanced?
         self_json = OrderedDict()
