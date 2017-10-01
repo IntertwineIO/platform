@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block styles %}
+{{ super() }}
+<link href="{{ url_for('content.static', filename='css/normalize.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('content.static', filename='css/general.css') }}"
+      rel="stylesheet" type="text/css">
+<link href="{{ url_for('content.static', filename='css/content_list.css') }}"
+      rel="stylesheet" type="text/css">
+{% endblock %}
+
+{% block content %}
+<div class="nav-spacer"></div>
+<header>
+    <h1>
+        <span class="title">{{ page_title }}</span>
+    </h1>
+</header>
+
+<section id="content-list-section">
+    <div class="indent">
+        {% for content in content_list %}
+            {% set pub_dt = content.published_timestamp %}
+            {% set pub_dt_info = pub_dt.datetime_info %}
+            <div class="content-item">
+                <div class="content-title"><p><a href={{ content.human_id }}> {{ content.title }} </a></p></div>
+                <div class="content-authors"><p> {{ content.author_names }} </p></div>
+                <p>{% if content.publication %}<span class="content-publication"> {{ content.publication }} </span>|{% endif %}<span class="content-publisher"> {{ content.publisher }} </span>|<span class="content-published-timestamp"> {% if pub_dt_info.month %}{{ pub_dt.strftime('%B') }}{% if pub_dt_info.day %} {{ pub_dt.day }}{% endif %}, {% endif %}{{ pub_dt_info.year }}{% if pub_dt_info.hour %} {{ pub_dt.strftime('%I') }}{% if pub_dt_info.minute %}{{ pub_dt.strftime(':%M') }}{% endif %} {{ pub_dt.strftime('%p') }}{% endif %}</span></p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

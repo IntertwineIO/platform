@@ -87,6 +87,7 @@ def test_licenses(**options):
         'mock',              # BSD
         'pbr',               # Apache 2.0
         'stevedore',         # Apache 2.0
+        'tzlocal',           # MIT
         'websocket-client',  # LGPL
 
         # Company owned licenses

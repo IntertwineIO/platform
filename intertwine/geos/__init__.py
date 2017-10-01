@@ -1,5 +1,7 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 from flask import Blueprint
 from alchy import Manager
@@ -23,6 +25,6 @@ from . import views  # noqa
 
 @blueprint.record_once
 def on_load(state):
-    # Sets up database tables
+    # Set up database tables
     geo_db.config.update(state.app.config)
     geo_db.create_all()

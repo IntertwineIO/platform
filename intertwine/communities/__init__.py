@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 from flask import Blueprint
 from alchy import Manager
@@ -25,6 +26,6 @@ from . import views
 
 @blueprint.record_once
 def on_load(state):
-    # Sets up database tables
+    # Set up database tables
     community_db.config.update(state.app.config)
     community_db.create_all()

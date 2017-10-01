@@ -66,9 +66,12 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
     else:
         sp, ind1, ind2 = ' ', (' ' * 4 * _lvl), (' ' * 4 * (_lvl + 1))
 
-    if self is None:
+    try:
+        key = self.derive_key()
+    except AttributeError:
         return repr(self)
-    elif isinstance(self, basestring):
+
+    if isinstance(self, basestring):
         # repr adds u''s and extra escapes for printing unicode
         return repr(self) if raw else u"{u}'{s}'".format(u=U_LITERAL, s=self)
 
@@ -77,7 +80,6 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
     if not outclassed and _lvl == 0:
         cls = osqb = csqb = ''
 
-    key = self.derive_key()
     # Unpack 1-tuple key unless the value is itself a tuple
     if len(key) == 1 and not isinstance(key[0], tuple):
         op = cp = ''
@@ -87,7 +89,8 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
             raise ValueError
         key_name = (u'{cls_name}.{key_cls_name}'
                     .format(cls_name=self.__class__.__name__,
-                            key_cls_name=key.__class__.__name__))
+                            key_cls_name=Trackable.KEY_NAMEDTUPLE_NAME))
+        #                     key_cls_name=key.__class__.__name__))
         treprs = [u'{f}={trepr}'.format(
                   f=f, trepr=trepr(getattr(key, f),
                                    named, tight, raw, outclassed, _lvl + 1))
@@ -118,12 +121,12 @@ def _repr_(self):
 
 
 def register(self, key=None):
-    '''Register itself by deriving key if not passed'''
+    '''Register self by deriving key if not passed'''
     self.__class__._register_(self, key)
 
 
 def deregister(self, key=None):
-    '''Deregister itself by deriving key if not passed'''
+    '''Deregister self with silent failure, deriving key if needed'''
     self.__class__._deregister_(self, key)
 
 
@@ -262,6 +265,8 @@ class Trackable(ModelMeta):
     be tracked using the '_modified' field on the instance, which is the
     set of modified instances of the same type.
     '''
+
+    KEY_NAMEDTUPLE_NAME = 'Key'
 
     # Keep track of all classes that are Trackable
     _classes = {}
@@ -479,6 +484,7 @@ class Trackable(ModelMeta):
         cls._register_(inst, key)
 
     def __delitem__(cls, key):
+        # Raise KeyError if unregistered
         inst = cls._instances[key]
         cls._deregister_(inst, key)
 
@@ -495,10 +501,10 @@ class Trackable(ModelMeta):
         cls._instances[key] = inst
 
     def _deregister_(cls, inst, key=None):
-        '''Deregister instance, deriving key if not provided'''
+        '''Deregister instance with silent failure, deriving key if needed'''
         key = key or inst.derive_key()
-        del cls._instances[key]  # Throw exception if key not found
-        cls._updates.discard(inst)  # Fail silently if inst not found
+        cls._instances.pop(key, None)
+        cls._updates.discard(inst)
 
     @classmethod
     def register_existing(meta, session, *args):

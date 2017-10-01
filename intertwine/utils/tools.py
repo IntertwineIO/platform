@@ -3,22 +3,22 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import inspect
 import numbers
 import re
 import sys
 from functools import partial
-from inspect import getargspec, getargvalues, stack
 from itertools import chain, islice
 from mock import create_autospec
 from numbers import Real
 
 from past.builtins import basestring
 
-if sys.version.startswith('3'):
-    izip = zip
-    unicode = str
+if sys.version_info < (3,):
+    lzip = zip  # legacy zip returning list of tuples
+    from itertools import izip as zip
 else:
-    from itertools import izip
+    unicode = str
 
 
 def add_leading_zeros(number, width):
@@ -56,6 +56,37 @@ def define_constants_at_module_scope(module_name, module_class,
     for constant_value in constant_values:
         constant_name = constant_value.upper().replace(' ', '_')
         setattr(module, constant_name, getattr(module_class, constant_name))
+
+
+def _derive_defaults_py3(func):
+    '''
+    Derive Defaults (Python 3.x)
+
+    Return generator of (arg, default) tuples for the given function
+    https://stackoverflow.com/questions/12627118/get-a-function-arguments-default-value
+
+    Never use directly; use derive_defaults instead.
+    '''
+    signature = inspect.signature(func)
+    return ((k, v.default) for k, v in signature.parameters.items()
+            if v.default is not inspect.Parameter.empty)
+
+
+def _derive_defaults_py2(func):
+    '''
+    Derive Defaults (Python 2.6+)
+
+    Return generator of (arg, default) tuples for the given function
+    https://stackoverflow.com/questions/12627118/get-a-function-arguments-default-value
+
+    Never use directly; use derive_defaults instead.
+    '''
+    args, varargs, keywords, defaults = inspect.getargspec(func)
+    return zip(args[-len(defaults):], defaults)
+
+
+derive_defaults = (_derive_defaults_py2 if sys.version_info < (3,)
+                   else _derive_defaults_py3)
 
 
 def find_all_words(text, words):
@@ -101,84 +132,71 @@ def nth_item(iterable, n):
     return (key, iterable[key])
 
 
-def kwargify(arg_names=None, arg_values=None, kwargs=None,
-             parg_names=None, parg_values=None, pargs=None,
-             exclude=None, selfish=False):
+def kwargify(parg_tuples=None, arg_tuples=(), kwargs=None,
+             exclude=set(), selfish=False):
     '''
     Kwargify
 
     Consolidate positional args, *args, and **kwargs into a new dict.
+    Only use for testing/logging due to reliance on stack.
+    https://stackoverflow.com/questions/9938980/inspect-currentframe-may-not-work-under-some-implementations
 
     I/O:
-    arg_names=None:
-        Sequence of names for arg_values; the only 'required' field, and
-        only if the calling function's parameters includes *args
 
-    arg_values=None:
-        Sequence of arg values, keyed by arg_names; defaults to current
-        value of the calling function's (*)args
+    parg_tuples=None: iterable of name/value tuples for positional args;
+        defaults to current value of calling function's positional args
 
-    kwargs=None:
-        Dictionary of keyword arguments; defaults to the current value
-        of the calling function's (**)kwargs
+    arg_tuples=(): iterable of name/value tuples for args
 
-    parg_names=None:
-        Sequence of positional arg names; defaults to the calling
-        function's positional arg names
+    kwargs=None: dictionary of keyword arguments; defaults to current
+        value of calling function's kwargs
 
-    parg_values=None:
-        Sequence of positional arg values, keyed by parg_names; defaults
-        to current value of calling function's positional arg values
+    exclude=None: sequence of keys to be excluded
 
-    pargs=None:
-        Dictionary of positional keyword arguments; an alternative to
-        parg_names/parg_values, but all will be loaded if unique keys
+    selfish=False: by default, 'self' is added to exclusions
 
-    exclude=None:
-        Sequence of keys to be excluded from the return dict
-
-    selfish=False:
-        By default, 'self' is added to exclusions
-
-    return:
-        New consolidated dict of positional args, (*)args & (**)kwargs
+    return: generator of consolidated pargs, args, and kwargs
     '''
-    parg_names_, args_name, kwargs_name, frame_locals = (
-        getargvalues(stack()[1][0]))
+    derived = not parg_tuples or not kwargs
+    if derived:
+        prior_frame = inspect.stack()[1][0]
+        try:
+            parg_names, args_name, kwargs_name, frame_locals = (
+                inspect.getargvalues(prior_frame))
+        finally:
+            # https://docs.python.org/2.7/library/inspect.html#the-interpreter-stack
+            del prior_frame
 
-    arg_names = () if arg_names is None else arg_names
-    arg_values = (frame_locals.get(args_name, ())
-                  if arg_values is None else arg_values)
-    kwargs = frame_locals.get(kwargs_name, {}) if kwargs is None else kwargs
-    kwargs = kwargs.copy() if kwargs else {}
-    parg_names = parg_names_ if parg_names is None else parg_names
-    parg_values = (tuple((frame_locals[parg_name] for parg_name in parg_names))
-                   if parg_values is None else parg_values)
-    exclude = () if exclude is None else exclude
+    if parg_tuples:
+        parg_names, parg_values = zip(*parg_tuples)
+    else:
+        parg_tuples = ((parg_name, frame_locals[parg_name])
+                       for parg_name in parg_names)
 
-    if pargs:
-        kwargs.update(pargs)
+    kwargs = kwargs or frame_locals.get(kwargs_name, {})
 
-    for param, keys, values in (('parg_values', parg_names, parg_values),
-                                ('arg_values', arg_names, arg_values)):
-        diff = len(values) - len(keys)
-        if diff > 0:
-            raise KeyError('Missing keys for these {param}: {values}'
-                           .format(param=param, values=values[-diff:]))
+    if arg_tuples:
+        arg_names, arg_values = zip(*arg_tuples)
+        parg_set, arg_set, kwarg_set = (
+            map(set, (parg_names, arg_names, kwargs)))
+        # Check for duplicate arg names
+        if parg_set & arg_set:
+            raise KeyError('parg/arg dupes: {}'.format(parg_set & arg_set))
+        if kwarg_set & arg_set:
+            raise KeyError('kwarg/arg dupes: {}'.format(kwarg_set & arg_set))
 
-    for key, value in chain(izip(parg_names, parg_values),
-                            izip(arg_names, arg_values)):
-        if key in kwargs:
-            raise KeyError('Duplicate key: {}'.format(key))
-        kwargs[key] = value
+    if not derived:
+        if not arg_tuples:
+            parg_set, kwarg_set = set(parg_names), set(kwargs)
+        if kwarg_set & parg_set:
+            raise KeyError('kwarg/parg dupes: {}'.format(kwarg_set & parg_set))
 
-    exclusions = chain(exclude, ('self',)) if not selfish else exclude
+    all_args = chain(parg_tuples, arg_tuples, kwargs.items())
 
-    for key in exclusions:
-        if key in kwargs:
-            del kwargs[key]
+    exclusions = exclude if selfish else exclude | {'self', 'cls'}
 
-    return kwargs
+    return ((name, value) for name, value in all_args
+            if name not in exclusions)
 
 
 def stringify(thing, limit=-1, _lvl=0):
@@ -196,14 +214,14 @@ def stringify(thing, limit=-1, _lvl=0):
 
     I/O:
 
-    thing:  Object to be converted to a string. May be a 'literal' (e.g.
+    thing: Object to be converted to a string. May be a 'literal' (e.g.
         integer, boolean, string, etc.), a list/tuple, or a dictionary,
         a custom object.
 
-    limit=-1:  Cap iterables to this number and indicate when doing so.
+    limit=-1: Cap iterables to this number and indicate when doing so.
         A negative limit (the default) means no cap is applied.
 
-    _lvl=0:  Private parameter to determine indentation during recursion
+    _lvl=0: Private parameter to determine indentation during recursion
     '''
     limit = float('inf') if limit < 0 else limit
     ind = _lvl * 4 * ' '
@@ -290,7 +308,8 @@ def vardygrify(cls, **kwds):
         attribute = getattr(cls, attr_name)
 
         try:
-            argspec = getargspec(attribute)  # works if attribute is a function
+            # works if attribute is a function
+            argspec = inspect.getargspec(attribute)
             args = argspec.args
             if (len(args) > 0 and args[0] == 'self' and
                     attr_name not in INCLUDED_BUILTINS):

@@ -11,16 +11,18 @@ from math import floor
 from mock.mock import NonCallableMagicMock
 from operator import attrgetter, itemgetter
 
-from sqlalchemy import Column, Integer, orm
+import pendulum
+from sqlalchemy import Column, orm, types
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
 from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
+from sqlalchemy.sql import func
 
 from ..utils.structures import MultiKeyMap
 from ..utils.tools import isiterator, stringify
 from .structures import InsertableOrderedDict
-from .tools import camelCaseTo_snake_case, kwargify
+from .tools import camelCaseTo_snake_case
 
 # Python version compatibilities
 if sys.version_info < (3,):
@@ -32,7 +34,7 @@ else:
 
 class AutoIdMixin(object):
     '''Automatically creates a primary id key'''
-    id = Column(Integer, primary_key=True)
+    id = Column(types.Integer, primary_key=True)
 
 
 class AutoTablenameMixin(object):
@@ -44,6 +46,35 @@ class AutoTablenameMixin(object):
 
 class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
     '''Standardizes automatic tables'''
+
+
+class AutoTimestampMixin(object):
+    '''Automatically save timestamps on create and update'''
+    tz = pendulum.timezone('UTC')
+
+    _created_timestamp = Column(types.DateTime(), server_default=func.now())
+    _updated_timestamp = Column(types.DateTime(), onupdate=func.now())
+
+    @property
+    def _get_created_timestamp(self):
+        created = self._created_timestamp
+        return self.tz.convert(created) if created else None
+
+    @declared_attr
+    def created_timestamp(cls):  # @NoSelf
+        return orm.synonym('_created_timestamp',
+                           descriptor=cls._get_created_timestamp)
+
+    @property
+    def _get_updated_timestamp(self):
+        updated = self._updated_timestamp
+        return (self.tz.convert(updated) if updated
+                else self.created_timestamp)
+
+    @declared_attr
+    def updated_timestamp(cls):  # @NoSelf
+        return orm.synonym('_updated_timestamp',
+                           descriptor=cls._get_updated_timestamp)
 
 
 class JsonProperty(object):
@@ -170,7 +201,9 @@ class Jsonable(object):
         # Replace column/relationship properties with their synonyms
         for sp in sa_properties[SP]:
             syn_name = sp.name
-            new_name = sp.descriptor.fget.__name__
+            # Require synonym field names to be public versions
+            new_name = syn_name.strip('_')
+            # new_name = sp.descriptor.fget.__name__
             fields.insert(syn_name, new_name, sp)
             del fields[syn_name]
 
@@ -286,7 +319,9 @@ class Jsonable(object):
         default = default or self.ensure_json_safe
         _path = '' if _path is None else _path
         _json = OrderedDict() if _json is None else _json
-        json_kwargs = kwargify(exclude=('hide_all', 'depth', '_path'))
+        json_kwargs = dict(
+            config=config, hide=hide, nest=nest, tight=tight, raw=raw,
+            limit=limit, default=default, _json=_json)
 
         # TODO: Check if item already exists and needs to be enhanced?
         self_json = OrderedDict()

@@ -1,0 +1,37 @@
+#content-list-section {
+    margin-top: 1em;
+    color: #1A1A1A;
+    vertical-align: top;
+    text-align: left;
+
+}
+
+.indent {
+    font-size: 1em;
+    width: 90%;
+    margin: 0 auto;
+}
+
+.content-item {
+    padding: 1em 0 1em 0;
+}
+
+.content-title {
+    font-size: 1em;
+}
+
+.content-authors {
+    font-size: 1em;
+}
+
+.content-publication {
+    font-size: 1em;
+}
+
+.content-publisher {
+    font-size: 1em;
+}
+
+.content-published-timestamp {
+    font-size: 1em;
+}

@@ -23,7 +23,7 @@ IntertwineModel = make_declarative_base(Base=BaseIntertwineModel,
 intertwine_db = Manager(Model=IntertwineModel)
 extend_declarative_base(IntertwineModel, session=intertwine_db.session)
 
-from . import auth, communities, geos, main, problems, signup  # noqa
+from . import auth, communities, content, geos, main, problems, signup  # noqa
 
 
 def create_app(name=None, config=None):
@@ -56,7 +56,7 @@ def create_app(name=None, config=None):
     #     __name__: ('static/sass', 'static/css', 'static/css')
     # })
 
-    # We are using bootstrap for now
+    # TODO: replace with Bootstrap 4
     Bootstrap(app)
 
     # Register all of the blueprints
@@ -66,6 +66,7 @@ def create_app(name=None, config=None):
     app.register_blueprint(problems.blueprint, url_prefix='/problems')
     app.register_blueprint(geos.blueprint, url_prefix='/geos')
     app.register_blueprint(communities.blueprint, url_prefix='/communities')
+    app.register_blueprint(content.blueprint, url_prefix='/content')
 
     # app.url_map.strict_slashes = False
     # app.register_blueprint(demo.blueprint, url_prefix='/demo')
