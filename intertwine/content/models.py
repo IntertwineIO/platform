@@ -54,19 +54,19 @@ class Content(AutoTimestampMixin, BaseContentModel):
 
     @classmethod
     def create_key(cls, title, author_names, publication, published_timestamp,
-                   **kwds):
+                   granularity_published, **kwds):
         '''Create Content key'''
-        sorted_author_names = cls.normalize_author_names(author_names)
-        granularity = kwds.get('granularity_published')
-        flex_dt = FlexTime.cast(published_timestamp, granularity)
-        dt_utc = flex_dt.intimezone(UTC)
-        return cls.Key(title, sorted_author_names, publication, dt_utc)
+        lowered_title = title.lower()
+        normalized_authors = cls.normalize_author_names(author_names)
+        flex_dt = FlexTime.cast(published_timestamp, granularity_published)
+        dt_utc = flex_dt.astimezone(UTC)
+        return cls.Key(lowered_title, normalized_authors, publication, dt_utc)
 
     def derive_key(self):
         '''Derive Content key from instance'''
         return self.__class__.Key(
-            self.title, self.author_names, self.publication,
-            self.published_timestamp.intimezone(UTC))
+            self.title.lower(), self.author_names, self.publication,
+            self.published_timestamp.astimezone(UTC))
 
     @property
     def title(self):
@@ -138,7 +138,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
     @property
     def published_timestamp(self):
         flex_dt = FlexTime.instance(self._published_timestamp)
-        localized = flex_dt.intimezone(self.tzinfo_published)
+        localized = flex_dt.astimezone(self.tzinfo_published)
         return FlexTime.instance(localized, self.granularity_published)
 
     @published_timestamp.setter
@@ -163,8 +163,9 @@ class Content(AutoTimestampMixin, BaseContentModel):
     tzinfo_published = orm.synonym('_tzinfo_published',
                                    descriptor=tzinfo_published)
 
-    def get_published_timestamp_info(self):
-        '''Get namedtuple of publication date info'''
+    @property
+    def published_timestamp_info(self):
+        '''Get publication datetime info namedtuple'''
         return self.published_timestamp.datetime_info
 
     def set_published_timestamp_info(self, dt, granularity=None, geo=None):
@@ -196,7 +197,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
 
         # During __init__()
         if self._published_timestamp is None:
-            self._published_timestamp = flex_dt.intimezone(UTC)
+            self._published_timestamp = flex_dt.astimezone(UTC)
         else:  # Not during __init__()
             key = self.__class__.create_key(
                 self.title, self.author_names, self.publication, flex_dt)
