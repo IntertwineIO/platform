@@ -22,30 +22,6 @@ DatetimeInfo = namedtuple(
 # TODO: obtain timezone based on geo
 
 
-def astimezone(self, tz):
-    '''Astimezone converts FlexTime datetime to the given time zone'''
-    deflexed = self.deflex()
-    try:
-        localized = deflexed.astimezone(FlexTime.get_timezone_name(tz))
-    except:
-        localized = deflexed.astimezone(FlexTime.get_timezone(tz))
-
-    granularity = self.granularity
-    dt_info = FlexTime.create_datetime_info(localized)
-    FlexTime.add_flex_members(localized, granularity, dt_info)
-    return localized
-
-
-def deflex(self):
-    '''Deflex instance by creating copy without FlexTime features'''
-    try:
-        return DatetimeClass.instance(self)  # Pendulum
-    except AttributeError:
-        dt_info = FlexTime.create_datetime_info(
-            self, default=True, tz_instance=True)
-        return DatetimeClass(**dt_info._asdict())
-
-
 class FlexTime(DatetimeClass):
     '''
     FlexTime
@@ -73,8 +49,8 @@ class FlexTime(DatetimeClass):
             validate there are no gaps, and return it.
 
         I/O:
-        dt: either a datetime instance or a DatetimeInfo namedtuple
-        granularity=None: either a granularity or the integer value
+        dt: a datetime instance or a DatetimeInfo namedtuple
+        granularity=None: a granularity or its integer value
         return: granularity enum instance per above
         '''
         if granularity is not None:
@@ -96,7 +72,7 @@ class FlexTime(DatetimeClass):
             check_sum = sum(has_value_tuple[:gval])
             if check_sum < gval:
                 raise ValueError(
-                    'One or more gaps in datetime info tuple: {}'.format(dt))
+                    'Gap in datetime info tuple: {}'.format(dt))
             return cls.Granularity(gval)
 
     @classmethod
@@ -126,8 +102,8 @@ class FlexTime(DatetimeClass):
         Create datetime info
 
         I/O:
-        dt: either a datetime instance or a DatetimeInfo namedtuple
-        granularity=None: either a granularity or the integer value
+        dt: a datetime instance or a DatetimeInfo namedtuple
+        granularity=None: a granularity or its integer value
         default=False: when True, defaults units beyond granularity;
             when False, nullify units beyond granularity
         return: datetime info namedtuple
@@ -145,7 +121,7 @@ class FlexTime(DatetimeClass):
 
     @classmethod
     def cast(cls, dt, granularity=None):
-        '''Cast datetime to FlexTime datetime, given an optional granularity'''
+        '''Cast datetime or DatetimeInfo to FlexTime if not already one'''
         try:
             dt.granularity, dt.datetime_info
         except AttributeError:
@@ -153,13 +129,13 @@ class FlexTime(DatetimeClass):
         return dt
 
     @classmethod
-    def instance(cls, dt, granularity=None, *args, **kwds):
+    def instance(cls, dt, granularity=None):
         '''
         Instance
 
         I/O:
-        dt: either a datetime instance or a DatetimeInfo namedtuple
-        granularity=None: either a granularity or the integer value
+        dt: a datetime instance or a DatetimeInfo namedtuple
+        granularity=None: a granularity or the integer value
         return: new datetime instance with granularity and datetime info
         '''
         # Short-circuit if dt is a DatetimeInfo namedtuple
@@ -172,17 +148,30 @@ class FlexTime(DatetimeClass):
         params = cls.create_datetime_info(dt, granularity)
         return cls(**params._asdict())
 
-    @classmethod
-    def add_flex_members(cls, inst, granularity, dt_info):
-        '''Add flex members to instance given granularity and dt_info'''
-        inst.granularity = granularity
-        inst.datetime_info = dt_info
-        inst.astimezone = MethodType(astimezone, inst)
-        inst.deflex = MethodType(deflex, inst)
+    def deflex(self):
+        '''Deflex instance by creating copy without FlexTime features'''
+        try:
+            return DatetimeClass.instance(self)  # Pendulum
+        except AttributeError:
+            dt_info = self.create_datetime_info(
+                self, default=True, tz_instance=True)
+            return DatetimeClass(**dt_info._asdict())
+
+    def astimezone(self, tz):
+        '''Astimezone converts FlexTime datetime to the given time zone'''
+        try:
+            localized = super(FlexTime, self).astimezone(
+                self.get_timezone_name(tz))
+        except:
+            localized = super(FlexTime, self).astimezone(
+                self.get_timezone(tz))
+
+        granularity = self.granularity
+        return self.instance(localized, granularity)
 
     def __new__(cls, year=None, month=None, day=None,
                 hour=None, minute=None, second=None, microsecond=None,
-                tzinfo=None, *args, **kwds):
+                tzinfo=None, **kwds):
         tzinfo = cls.get_timezone_name(tzinfo)
         dt_info = DatetimeInfo(
             year, month, day, hour, minute, second, microsecond, tzinfo)
@@ -190,6 +179,20 @@ class FlexTime(DatetimeClass):
         params = cls.create_datetime_info(
             dt_info, granularity, default=True)._asdict()
         params.update(kwds)
-        inst = DatetimeClass(*args, **params)
-        cls.add_flex_members(inst, granularity, dt_info)
+        inst = super(FlexTime, cls).__new__(cls, **params)
+        inst.granularity = granularity
+        inst.datetime_info = dt_info
         return inst
+
+    def __init__(self, year=None, month=None, day=None,
+                 hour=None, minute=None, second=None, microsecond=None,
+                 tzinfo=None, **kwds):
+        params = self.create_datetime_info(
+            self.datetime_info, self.granularity, default=True)._asdict()
+        params.update(kwds)
+        super(FlexTime, self).__init__(**params)
+
+    def __repr__(self):
+        return '{cls}{args}'.format(
+            cls=self.__class__.__name__,
+            args=tuple(self.create_datetime_info(self, default=True)))
