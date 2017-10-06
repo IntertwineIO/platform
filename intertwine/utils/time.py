@@ -6,7 +6,6 @@ from __future__ import (absolute_import, division, print_function,
 from collections import namedtuple
 from enum import Enum
 from itertools import chain
-from types import MethodType
 
 from pendulum import Pendulum as DatetimeClass
 from pendulum import timezone
