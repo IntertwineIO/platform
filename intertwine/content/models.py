@@ -37,7 +37,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
     # problems
     # orgs
     # geos
-    # post_locations
+    # communities
     # ratings
     # comments
 
@@ -54,12 +54,11 @@ class Content(AutoTimestampMixin, BaseContentModel):
 
     @classmethod
     def create_key(cls, title, author_names, publication, published_timestamp,
-                   granularity_published, **kwds):
+                   **kwds):
         '''Create Content key'''
         lowered_title = title.lower()
         normalized_authors = cls.normalize_author_names(author_names)
-        flex_dt = FlexTime.cast(published_timestamp, granularity_published)
-        dt_utc = flex_dt.astimezone(UTC)
+        dt_utc = published_timestamp.astimezone(UTC)
         return cls.Key(lowered_title, normalized_authors, publication, dt_utc)
 
     def derive_key(self):
@@ -70,7 +69,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
 
     @property
     def title(self):
-        return self._title
+        return self._title.capitalize() if self._title else self._title
 
     @title.setter
     def title(self, val):
@@ -78,11 +77,12 @@ class Content(AutoTimestampMixin, BaseContentModel):
             raise ValueError('Cannot be set to None')
         # During __init__()
         if self._title is None:
-            self._title = val
+            self._title = val.lower()
             return
         # Not during __init__()
         key = self.__class__.create_key(
-            val, self.author_names, self.publication, self.year_published)
+            val, self.author_names, self.publication,
+            self.published_timestamp.astimezone(UTC))
         self.register_update(key)
 
     title = orm.synonym('_title', descriptor=title)
@@ -103,7 +103,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
         # Not during __init__()
         key = self.__class__.create_key(
             self.title, normalized_val, self.publication,
-            self.year_published)
+            self.published_timestamp.astimezone(UTC))
         self.register_update(key)
 
     author_names = orm.synonym('_author_names', descriptor=author_names)
@@ -130,7 +130,8 @@ class Content(AutoTimestampMixin, BaseContentModel):
             return
         # Not during __init__()
         key = self.__class__.create_key(
-            self.title, self.author_names, val, self.year_published)
+            self.title, self.author_names, val,
+            self.published_timestamp.astimezone(UTC))
         self.register_update(key)
 
     publication = orm.synonym('_publication', descriptor=publication)
