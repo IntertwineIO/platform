@@ -228,55 +228,48 @@ def stringify(thing, limit=-1, _lvl=0):
     len_thing = -1
     strings = []
 
-    for single_loop_to_enable_exception_flow_control in range(1):
-        # If a namedtuple, stringify it whole
-        try:
-            thing._asdict()  # Raise AttributeError if not namedtuple
-            strings.append(u'{ind}{namedtuple}'.format(
-                ind=ind, namedtuple=thing))
-            continue  # Execution proceeds after single loop
-        except AttributeError:
-            pass
+    # If a namedtuple, stringify it whole
+    if hasattr(thing, '_asdict'):
+        strings.append(u'{ind}{namedtuple}'.format(
+            ind=ind, namedtuple=thing))
 
-        # If a list/tuple, stringify and add each item
-        if isinstance(thing, (list, tuple)):
-            len_thing = len(thing)  # Used for limit message later
-            for i, t in enumerate(thing):
-                if i == limit:
-                    break
-                strings.append(stringify(t, limit, _lvl))
+    # If a list/tuple, stringify and add each item
+    elif isinstance(thing, (list, tuple)):
+        len_thing = len(thing)  # Used for limit message later
+        for i, t in enumerate(thing):
+            if i == limit:
+                break
+            strings.append(stringify(t, limit, _lvl))
 
-        # If a dict, add each key and stringify + further indent each value
-        elif isinstance(thing, dict):
-            for k, v in thing.items():
-                v_str = stringify(v, limit, _lvl + 1)
-                # If key has an empty value, don't include it
-                if len(v_str.strip()) == 0:
-                    continue
-                # If there's one value, put the key and value on one line
-                elif len(v_str.split('\n')) == 1:
-                    strings.append(u'{ind}{key}: {value}'.format(
-                        ind=ind, key=k, value=v_str.strip()))
-                # There are multiple values, so list them below the key
-                else:
-                    strings.append(u'{ind}{key}:\n{value}'.format(
-                        ind=ind, key=k, value=v_str))
+    # If a dict, add each key and stringify + further indent each value
+    elif isinstance(thing, dict):
+        for k, v in thing.items():
+            v_str = stringify(v, limit, _lvl + 1)
+            # If key has an empty value, don't include it
+            if len(v_str.strip()) == 0:
+                continue
+            # If there's one value, put the key and value on one line
+            elif len(v_str.split('\n')) == 1:
+                strings.append(u'{ind}{key}: {value}'.format(
+                    ind=ind, key=k, value=v_str.strip()))
+            # There are multiple values, so list them below the key
+            else:
+                strings.append(u'{ind}{key}:\n{value}'.format(
+                    ind=ind, key=k, value=v_str))
 
-        # If a custom object, use its __unicode__ method, but indent it
-        elif hasattr(thing, '__dict__'):
-            strings.append(u'{ind}{object}'.format(
-                ind=ind, object=('\n' + ind).join(unicode(thing).split('\n'))))
+    # If a custom object, use its __unicode__ method, but indent it
+    elif hasattr(thing, '__dict__'):
+        strings.append(u'{ind}{object}'.format(
+            ind=ind, object=('\n' + ind).join(unicode(thing).split('\n'))))
 
-        # If a number, use commas for readability
-        elif isinstance(thing, numbers.Number) and not isinstance(thing, bool):
-            strings.append(u'{ind}{number:,}'.format(ind=ind, number=thing))
+    # If a number, use commas for readability
+    elif isinstance(thing, numbers.Number) and not isinstance(thing, bool):
+        strings.append(u'{ind}{number:,}'.format(ind=ind, number=thing))
 
-        # It is a non-numeric 'primitive' (e.g. boolean, string, etc.)
-        else:
-            strings.append(u'{ind}{primitive}'.format(
-                ind=ind, primitive=thing))
-
-    # After single loop: execution proceeds here
+    # It is a non-numeric 'primitive' (e.g. boolean, string, etc.)
+    else:
+        strings.append(u'{ind}{primitive}'.format(
+            ind=ind, primitive=thing))
 
     if len_thing > limit:
         strings.append('{ind}({limit} of {total})'.format(

@@ -380,12 +380,9 @@ class Jsonable(object):
                 self_json[field] = None
                 continue
 
-            try:
-                value._asdict()  # Raise AttributeError if not namedtuple
+            if hasattr(value, '_asdict'):  # namedtuple
                 self_json[field] = value  # json.dumps supports namedtuples
                 continue
-            except AttributeError:
-                pass
 
             try:
                 if isinstance(value, basestring):
