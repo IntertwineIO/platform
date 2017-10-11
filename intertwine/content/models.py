@@ -167,7 +167,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
     @property
     def published_timestamp_info(self):
         '''Get publication datetime info namedtuple'''
-        return self.published_timestamp.datetime_info
+        return self.published_timestamp.info
 
     def set_published_timestamp_info(self, dt, granularity=None, geo=None):
         '''
@@ -179,7 +179,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
         Content may be published with varying levels of granularity,
         ranging from year to microseconds. This is supported by the
         FlexTime factory class which endows datetime instances with
-        granularity and datetime_info members.
+        granularity and info members.
 
         I/O:
         dt: FlexTime or regular datetime instance or DatetimeInfo tuple
@@ -190,7 +190,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
         # TODO: if geo and dt is naive, set timezone based on geo
 
         flex_dt = FlexTime.cast(dt, granularity)
-        granularity, datetime_info = flex_dt.granularity, flex_dt.datetime_info
+        granularity, info = flex_dt.granularity, flex_dt.info
 
         now = pendulum.utcnow()
         if flex_dt > now:
@@ -205,7 +205,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
             self.register_update(key)
 
         self._granularity_published = granularity.value
-        self._tzinfo_published = datetime_info.tzinfo
+        self._tzinfo_published = info.tzinfo
 
     def __init__(self, title, author_names, publication, published_timestamp,
                  granularity_published=None, geo=None, publisher=None,
