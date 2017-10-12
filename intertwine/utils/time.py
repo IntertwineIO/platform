@@ -31,7 +31,9 @@ class FlexTime(DatetimeClass):
     granularity by substituting default values. Each instance keeps
     track of its granularity and datetime info tuple.
     '''
-    Granularity = Enum('Granularity', DatetimeInfo._fields[:-1])
+    TZINFO_TAG = 'tzinfo'
+    TZINFO_IDX = DatetimeInfo._fields.index(TZINFO_TAG)
+    Granularity = Enum('Granularity', DatetimeInfo._fields[:TZINFO_IDX])
     MAX_GRANULARITY = tuple(Granularity)[-1]
     DEFAULTS = DatetimeInfo(None, 1, 1, 0, 0, 0, 0, UTC)
     NULLS = DatetimeInfo(*(None for _ in range(len(DatetimeInfo._fields))))
@@ -51,7 +53,7 @@ class FlexTime(DatetimeClass):
         granularity are either null or defaults.
 
         I/O:
-        dt: a flextime, datetime, dtinfo namedtuple or tuple(dtinfo)
+        dt: a flextime, datetime, dtinfo namedtuple or plain tuple
         granularity=None: a granularity or its integer value
         extend=False: if True, granularity is extended per above
         return: granularity enum instance
@@ -95,7 +97,7 @@ class FlexTime(DatetimeClass):
 
     def derive_info(self, granularity=None, truncate=False, default=False,
                     tz_instance=False):
-        '''Derive dtinfo from FlexTime instance'''
+        '''Derive dtinfo from flextime instance'''
         return self.form_info(self, granularity=granularity, truncate=truncate,
                               default=default, tz_instance=tz_instance)
 
@@ -106,7 +108,7 @@ class FlexTime(DatetimeClass):
         Form datetime info
 
         I/O:
-        dt: a flextime, datetime, dtinfo namedtuple or tuple(dtinfo)
+        dt: a flextime, datetime, dtinfo namedtuple or plain tuple
         granularity=None: a granularity or its integer value; if not
             provided, it is determined from the dt parameter
         truncate=False: if True, replace all units past granularity with
@@ -132,10 +134,10 @@ class FlexTime(DatetimeClass):
 
     @classmethod
     def extract_field(cls, dt, idx=None, field=None):
-        '''Extract field from dt instance or tuple given field or idx'''
+        '''Extract field from datetime or tuple given field or idx'''
         field = field or DatetimeInfo._fields[idx]
         try:
-            return getattr(dt, field)
+            return getattr(dt, field)  # raise if plain tuple
         except AttributeError:
             return dt[idx]
 
@@ -145,7 +147,7 @@ class FlexTime(DatetimeClass):
         try:
             tzinfo = dt.tzinfo
         except AttributeError:
-            tzinfo = dt[-1]
+            tzinfo = dt[cls.TZINFO_IDX]
         return cls.tzinfo_cast(tzinfo, tz_instance)
 
     @classmethod
@@ -172,36 +174,43 @@ class FlexTime(DatetimeClass):
         except AttributeError:
             if tzinfo is None:
                 return cls.DEFAULTS.tzinfo
-            return str(tzinfo)  # pytz or DatetimeInfo
+            return str(tzinfo)  # pytz or tzinfo string
 
     def deflex(self, truncate=False):
-        '''Deflex instance by creating copy without FlexTime features'''
+        '''Deflex instance by creating copy with parent DatetimeClass'''
         try:
-            return DatetimeClass.instance(self)  # Pendulum
+            return DatetimeClass.instance(self)  # raise if no instance method
         except AttributeError:
             dt_info = self.form_info(self, truncate=truncate, tz_instance=True)
             return DatetimeClass(**dt_info._asdict())
 
     def astimezone(self, tz):
-        '''Astimezone converts FlexTime datetime to the given time zone'''
-        rezoned = super(FlexTime, self).astimezone(self.get_tzinfo_name(tz))
-        rezoned.granularity = self.granularity
-        rezoned.info = self.form_info(rezoned, granularity=self.granularity,
-                                      truncate=False, default=False)
-        return rezoned
+        '''Astimezone converts flextime instance to the given time zone'''
+        super_astimezone = super(FlexTime, self).astimezone
+        try:
+            # raise TypeError if DatetimeClass requires tzinfo (e.g. datetime)
+            dt = super_astimezone(self.get_tzinfo_name(tz))
+        except TypeError:  # ...argument 1 must be datetime.tzinfo, not unicode
+            dt = super_astimezone(self.get_tzinfo_instance(tz))
+
+        dt.granularity = self.granularity
+        dt.info = self.form_info(dt, granularity=self.granularity,
+                                 truncate=False, default=False)
+        return dt
 
     def copy(self):
+        '''Copy flextime instance'''
         try:
-            copied = super(FlexTime, self).copy()
-            copied.granularity = self.granularity
-            copied.info = self.info
+            dt = super(FlexTime, self).copy()  # raise if no DatetimeClass.copy
+            dt.granularity = self.granularity
+            dt.info = self.info
         except AttributeError:
-            copied = self.instance(self, self.granularity, truncate=False)
-        return copied
+            dt = self.instance(self, self.granularity, truncate=False)
+        return dt
 
     @classmethod
     def cast(cls, dt, granularity=None):
-        '''Cast datetime or dtinfo to FlexTime at given granularity'''
+        '''Cast datetime or dtinfo to flextime at given granularity'''
         if (isinstance(dt, FlexTime) and (
                 not granularity or
                 dt.granularity == cls.Granularity(granularity))):
@@ -214,7 +223,7 @@ class FlexTime(DatetimeClass):
         Instance
 
         I/O:
-        dt: a flextime, datetime, dtinfo namedtuple or tuple(dtinfo)
+        dt: a flextime, datetime, dtinfo namedtuple or plain tuple
         granularity=None: a granularity or the integer value
         truncate=False: if True, values past granularity are removed
         return: new datetime instance with granularity and datetime info
