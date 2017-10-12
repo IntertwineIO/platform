@@ -138,6 +138,6 @@ def test_flex_time_zone_changes(
     flex_dt_utc = flex_dt.astimezone(UTC)
     custom_dt_utc = dt_custom.astimezone(UTC)
 
-    assert flex_dt_utc == FlexTime.instance(custom_dt_utc)
+    assert flex_dt_utc == FlexTime.instance(custom_dt_utc, granularity=gval)
 
     assert flex_dt == flex_dt_utc.astimezone(dt_info.tzinfo)

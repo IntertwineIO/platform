@@ -254,7 +254,19 @@ class FlexTime(DatetimeClass):
         super(FlexTime, self).__init__(**super_kwds)
 
     def __repr__(self):
-        return ('{cls}.instance(DatetimeInfo{tuple}, '
-                'granularity={granularity})').format(
-            cls=self.__class__.__name__, tuple=tuple(self.info),
-            granularity=self.granularity.value)
+        return ('{cls}.instance({info}, granularity={granularity})'
+                .format(cls=self.__class__.__name__, info=self.info,
+                        granularity=self.granularity.value))
+
+    # Comparison Operators
+
+    def __eq__(self, other):
+        try:
+            return (self.granularity == other.granularity and
+                    self.info == other.info and
+                    super(FlexTime, self).__eq__(other))
+        except AttributeError:
+            return super(FlexTime, self).__eq__(other)
+
+    def __ne__(self, other):
+        return not (self == other)
