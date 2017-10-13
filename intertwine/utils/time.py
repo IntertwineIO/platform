@@ -102,11 +102,11 @@ class FlexTime(DatetimeClass):
 
         # After single loop: execution proceeds here
         if extend:
-            for i in range(gmax - 1, gval - 2, -1):
+            for i in range(gmax - 1, gval - 1, -1):
                 value = cls.extract_field(dt, idx=i)
                 if value is not None and value != cls.DEFAULTS[i]:
+                    gval = i + 1
                     break
-            gval = i + 1
 
         return cls.Granularity(gval)
 
