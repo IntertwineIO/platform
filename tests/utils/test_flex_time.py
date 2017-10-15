@@ -18,6 +18,7 @@ non_dst_datetime_tuples = [
 
 dst_datetime_tuples = [
     (2018, 3, 11, 2, 30, 0, 111111, 'US/Central', 0),
+    (2018, 3, 11, 2, 30, 0, 111111, 'US/Central', 1),
     (2009, 11, 1, 1, 30, 0, 111111, 'US/Pacific', 0),
     (2009, 11, 1, 1, 30, 0, 111111, 'US/Pacific', 1)]
 
@@ -63,7 +64,7 @@ def test_flex_time_instantiation(
     flex_dt_via_args = FlexTime(tzinfo=dt_info.tzinfo, *dt_info[:gval])
     assert flex_dt == flex_dt_via_args
     assert flex_dt == custom_dt
-    assert flex_dt == native_dt
+    assert flex_dt == native_dt  # True only if not in DST
 
     for dt in (dt_info, dt_tuple, native_dt, custom_dt, flex_dt, flex_dt.info):
 
@@ -78,7 +79,7 @@ def test_flex_time_instantiation(
         flex_dt_via_instance = FlexTime.instance(dt, granularity=granularity)
         assert flex_dt_via_instance == flex_dt
         assert flex_dt_via_instance is not flex_dt
-        assert flex_dt_via_instance.info == dt_info
+        assert flex_dt_via_instance.info == dt_info  # True only if not in DST
 
 
 @pytest.mark.unit

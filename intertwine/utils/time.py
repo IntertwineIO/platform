@@ -3,8 +3,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import datetime
 from collections import namedtuple
+from datetime import datetime
 from enum import Enum
 from itertools import chain, islice
 
@@ -123,7 +123,7 @@ class FlexTime(DatetimeClass):
     def form_info(cls, dt, granularity=None, truncate=False, default=False,
                   tz_instance=False):
         '''
-        Form datetime info
+        Form (datetime) info
 
         I/O:
         dt: a flextime, datetime, dtinfo namedtuple or plain tuple
@@ -136,7 +136,7 @@ class FlexTime(DatetimeClass):
             if False, nullify units beyond granularity
         tz_instance=False: if True, cast to tzinfo instance; if False,
             cast to timezone name
-        return: DatetimeInfo instance (namedtuple)
+        return: DatetimeInfo namedtuple
         '''
         granularity = cls.determine_granularity(dt, granularity,
                                                 extend=not truncate)
@@ -205,30 +205,30 @@ class FlexTime(DatetimeClass):
     def deflex(self, truncate=False):
         '''Deflex instance by creating copy with parent DatetimeClass'''
         try:
-            return DatetimeClass.instance(self)  # raise if no instance method
+            return super(FlexTime, self).instance(self)  # raise if no instance
         except AttributeError:
             dt_info = self.form_info(self, truncate=truncate, tz_instance=True)
             return DatetimeClass(**dt_info._asdict())
 
-    def astimezone(self, tz):
+    def astimezone(self, tz, **kwds):
         '''Astimezone converts flextime instance to the given time zone'''
         super_astimezone = super(FlexTime, self).astimezone
         try:
             # raise TypeError if DatetimeClass requires tzinfo (e.g. datetime)
-            # dt = super_astimezone(self.tzinfo_name_cast(tz))
-            dt = super_astimezone(tz)
+            dt = super_astimezone(tz, **kwds)
         except TypeError:  # ...argument 1 must be datetime.tzinfo, not unicode
-            dt = super_astimezone(self.tzinfo_instance_cast(tz))
+            dt = super_astimezone(self.tzinfo_instance_cast(tz), **kwds)
 
         dt.granularity = self.granularity
         dt.info = self.form_info(dt, granularity=self.granularity,
                                  truncate=False, default=False)
         return dt
 
-    def copy(self):
+    def copy(self, **kwds):
         '''Copy flextime instance'''
         try:
-            dt = super(FlexTime, self).copy()  # raise if no DatetimeClass.copy
+            # raise if super has no copy()
+            dt = super(FlexTime, self).copy(**kwds)
             dt.granularity = self.granularity
             dt.info = self.info
         except AttributeError:
@@ -245,7 +245,7 @@ class FlexTime(DatetimeClass):
         return cls.instance(dt, granularity, truncate=True)
 
     @classmethod
-    def instance(cls, dt, granularity=None, truncate=False, *args, **kwds):
+    def instance(cls, dt, granularity=None, truncate=False, **kwds):
         '''
         Instance
 
@@ -257,23 +257,21 @@ class FlexTime(DatetimeClass):
         '''
         granularity = cls.determine_granularity(dt, granularity)
 
-        if isinstance(dt, datetime.datetime):
-            inst = super(FlexTime, cls).instance(dt, *args, **kwds)
-        else:
-            super_kwds = cls.form_info(
-                dt, granularity, truncate=truncate, default=False,
-                tz_instance=True)._asdict()
-            inst = cls(**super_kwds)
+        try:
+            inst = super(FlexTime, cls).instance(dt, **kwds)  # pendulum
+        except AttributeError:  # no super.instance or dt is plain tuple
+            dt_info = cls.form_info(dt, granularity, truncate=truncate,
+                                    default=False, tz_instance=True)
+            return cls(**dt_info._asdict())
 
-        if not hasattr(inst, 'granularity') or granularity != inst.granularity:
-            inst.granularity = granularity
-            inst.info = cls.form_info(
-                inst, granularity, truncate=truncate, default=False)
+        inst.granularity = granularity
+        inst.info = cls.form_info(
+            inst, granularity, truncate=truncate, default=False)
         return inst
 
     def __new__(cls, year=None, month=None, day=None,
                 hour=None, minute=None, second=None, microsecond=None,
-                tzinfo=None, fold=None, *args, **kwds):
+                tzinfo=None, fold=None, **kwds):
         fold = cls.DEFAULTS.fold if fold is None else fold
         dt_info = DatetimeInfo(
             year, month, day, hour, minute, second, microsecond, tzinfo, fold)
@@ -281,18 +279,18 @@ class FlexTime(DatetimeClass):
         super_kwds = cls.form_info(dt_info, granularity, default=True,
                                    tz_instance=True)._asdict()
         super_kwds.update(kwds)
-        inst = super(FlexTime, cls).__new__(cls, *args, **super_kwds)
+        inst = super(FlexTime, cls).__new__(cls, **super_kwds)
         inst.granularity = granularity
         inst.info = dt_info
         return inst
 
     def __init__(self, year=None, month=None, day=None,
                  hour=None, minute=None, second=None, microsecond=None,
-                 tzinfo=None, fold=None, *args, **kwds):
+                 tzinfo=None, fold=None, **kwds):
         super_kwds = self.form_info(self.info, self.granularity, default=True,
                                     tz_instance=True)._asdict()
         super_kwds.update(kwds)
-        super(FlexTime, self).__init__(*args, **super_kwds)
+        super(FlexTime, self).__init__(**super_kwds)
         self.info = self.form_info(self, self.granularity)
 
     def __repr__(self):
