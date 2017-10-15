@@ -46,13 +46,15 @@ def test_flex_time_instantiation(
         tz_instance=True)
 
     dt_native_kwargs = dt_info_native._asdict()
-    dt_native_args = dt_info_native
     if sys.version_info < (3, 6):
         del dt_native_kwargs[FlexTime.FOLD_TAG]
-        dt_native_args = dt_info_native[:FlexTime.FOLD_IDX]
-
     native_dt = datetime(**dt_native_kwargs)
-    native_dt_via_args = datetime(*dt_native_args)
+
+    dt_native_args = dt_info_native[:FlexTime.FOLD_IDX]
+    if sys.version_info < (3, 6):
+        native_dt_via_args = datetime(*dt_native_args)
+    else:
+        native_dt_via_args = datetime(fold=fold, *dt_native_args)
     assert native_dt == native_dt_via_args
 
     custom_dt = DatetimeClass(**dt_info_with_defaults._asdict())
