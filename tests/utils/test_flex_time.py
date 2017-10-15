@@ -4,29 +4,35 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import pytest
+import sys
 from datetime import datetime
 
 from pendulum import Pendulum as DatetimeClass
 
 from intertwine.utils.time import DatetimeInfo, FlexTime, UTC
 
-datetime_tuples = [
-    (2017, 8, 9, 0, 1, 23, 456789, UTC),
-    (1990, 7, 8, 5, 6, 34, 129078, 'US/Central'),
-    (1969, 2, 5, 8, 1, 47,  36925, 'US/Pacific')]
+non_dst_datetime_tuples = [
+    (2017, 8, 9, 0, 1, 23, 456789, UTC, 0),
+    (1990, 7, 8, 5, 6, 34, 129078, 'US/Central', 0),
+    (1969, 2, 5, 8, 1, 47,  36925, 'US/Pacific', 0)]
+
+dst_datetime_tuples = [
+    (2018, 3, 11, 2, 30, 0, 111111, 'US/Central', 0),
+    (2009, 11, 1, 1, 30, 0, 111111, 'US/Pacific', 0),
+    (2009, 11, 1, 1, 30, 0, 111111, 'US/Pacific', 1)]
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize('granularity', reversed(FlexTime.Granularity))
 @pytest.mark.parametrize(
     ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond',
-        'tzinfo'), datetime_tuples)
-@pytest.mark.parametrize('granularity', reversed(FlexTime.Granularity))
+        'tzinfo', 'fold'), non_dst_datetime_tuples)
 def test_flex_time_instantiation(
         session, year, month, day, hour, minute, second, microsecond, tzinfo,
-        granularity):
+        granularity, fold):
     '''Test core interactions for FlexTime class'''
     full_dt_info = DatetimeInfo(
-        year, month, day, hour, minute, second, microsecond, tzinfo)
+        year, month, day, hour, minute, second, microsecond, tzinfo, fold)
     gval = granularity.value
 
     dt_info = FlexTime.form_info(
@@ -34,12 +40,18 @@ def test_flex_time_instantiation(
     dt_tuple = tuple(dt_info)
     dt_info_with_defaults = FlexTime.form_info(
         full_dt_info, granularity=gval, truncate=True, default=True)
-    dt_info_with_defaults_and_tz_instance = FlexTime.form_info(
+    dt_info_native = FlexTime.form_info(
         full_dt_info, granularity=gval, truncate=True, default=True,
         tz_instance=True)
 
-    native_dt = datetime(**dt_info_with_defaults_and_tz_instance._asdict())
-    native_dt_via_args = datetime(*dt_info_with_defaults_and_tz_instance)
+    dt_native_kwargs = dt_info_native._asdict()
+    dt_native_args = dt_info_native
+    if sys.version_info < (3, 6):
+        del dt_native_kwargs[FlexTime.FOLD_TAG]
+        dt_native_args = dt_info_native[:FlexTime.FOLD_IDX]
+
+    native_dt = datetime(**dt_native_kwargs)
+    native_dt_via_args = datetime(*dt_native_args)
     assert native_dt == native_dt_via_args
 
     custom_dt = DatetimeClass(**dt_info_with_defaults._asdict())
@@ -50,10 +62,10 @@ def test_flex_time_instantiation(
     flex_dt = FlexTime(**dt_info._asdict())
     flex_dt_via_args = FlexTime(tzinfo=dt_info.tzinfo, *dt_info[:gval])
     assert flex_dt == flex_dt_via_args
-    assert flex_dt == native_dt
     assert flex_dt == custom_dt
+    assert flex_dt == native_dt
 
-    for dt in (dt_info, dt_tuple, native_dt, custom_dt, flex_dt):
+    for dt in (dt_info, dt_tuple, native_dt, custom_dt, flex_dt, flex_dt.info):
 
         dt_info_null_backfill = FlexTime.form_info(
             dt, granularity=granularity, truncate=True, default=False)
@@ -63,34 +75,38 @@ def test_flex_time_instantiation(
             dt, granularity=granularity, truncate=True, default=True)
         assert dt_info_default_backfill == dt_info_with_defaults
 
-        flex_dt_via_instance = FlexTime.instance(dt, granularity=granularity,
-                                                 truncate=True)
+        flex_dt_via_instance = FlexTime.instance(dt, granularity=granularity)
         assert flex_dt_via_instance == flex_dt
         assert flex_dt_via_instance is not flex_dt
+        assert flex_dt_via_instance.info == dt_info
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize('granularity', reversed(FlexTime.Granularity))
 @pytest.mark.parametrize(
     ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond',
-        'tzinfo'), datetime_tuples)
-@pytest.mark.parametrize('granularity', reversed(FlexTime.Granularity))
+        'tzinfo', 'fold'), non_dst_datetime_tuples)
 def test_core_flex_time_interactions(
         session, year, month, day, hour, minute, second, microsecond, tzinfo,
-        granularity):
+        granularity, fold):
     '''Test core interactions for FlexTime class'''
     full_dt_info = DatetimeInfo(
-        year, month, day, hour, minute, second, microsecond, tzinfo)
+        year, month, day, hour, minute, second, microsecond, tzinfo, fold)
     gval = granularity.value
 
     dt_info = FlexTime.form_info(
         full_dt_info, granularity=gval, truncate=True, default=False)
     dt_info_with_defaults = FlexTime.form_info(
         full_dt_info, granularity=gval, truncate=True, default=True)
-    dt_info_with_defaults_and_tz_instance = FlexTime.form_info(
+    dt_info_native = FlexTime.form_info(
         full_dt_info, granularity=gval, truncate=True, default=True,
         tz_instance=True)
 
-    native_dt = datetime(**dt_info_with_defaults_and_tz_instance._asdict())
+    dt_native_kwargs = dt_info_native._asdict()
+    if sys.version_info < (3, 6):
+        del dt_native_kwargs[FlexTime.FOLD_TAG]
+
+    native_dt = datetime(**dt_native_kwargs)
     custom_dt = DatetimeClass(**dt_info_with_defaults._asdict())
     flex_dt = FlexTime(*dt_info)
 
@@ -114,16 +130,16 @@ def test_core_flex_time_interactions(
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize('granularity', reversed(FlexTime.Granularity))
 @pytest.mark.parametrize(
     ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond',
-        'tzinfo'), datetime_tuples)
-@pytest.mark.parametrize('granularity', reversed(FlexTime.Granularity))
+        'tzinfo', 'fold'), dst_datetime_tuples)
 def test_flex_time_zone_changes(
         session, year, month, day, hour, minute, second, microsecond, tzinfo,
-        granularity):
+        granularity, fold):
     '''Test core interactions for FlexTime class'''
     full_dt_info = DatetimeInfo(
-        year, month, day, hour, minute, second, microsecond, tzinfo)
+        year, month, day, hour, minute, second, microsecond, tzinfo, fold)
     gval = granularity.value
 
     dt_info = FlexTime.form_info(
@@ -131,12 +147,12 @@ def test_flex_time_zone_changes(
     flex_dt = FlexTime(*dt_info)
     dt_info_with_defaults = FlexTime.form_info(
         full_dt_info, granularity=gval, truncate=True, default=True)
-    dt_custom = DatetimeClass(**dt_info_with_defaults._asdict())
+    custom_dt = DatetimeClass(**dt_info_with_defaults._asdict())
 
-    assert flex_dt == dt_custom
+    assert flex_dt == custom_dt
 
     flex_dt_utc = flex_dt.astimezone(UTC)
-    custom_dt_utc = dt_custom.astimezone(UTC)
+    custom_dt_utc = custom_dt.astimezone(UTC)
 
     assert flex_dt_utc == FlexTime.instance(custom_dt_utc, granularity=gval)
 
