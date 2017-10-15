@@ -37,7 +37,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
     # problems
     # orgs
     # geos
-    # post_locations
+    # communities
     # ratings
     # comments
 
@@ -56,21 +56,20 @@ class Content(AutoTimestampMixin, BaseContentModel):
     def create_key(cls, title, author_names, publication, published_timestamp,
                    **kwds):
         '''Create Content key'''
-        sorted_author_names = cls.normalize_author_names(author_names)
-        granularity = kwds.get('granularity_published')
-        flex_dt = FlexTime.cast(published_timestamp, granularity)
-        dt_utc = flex_dt.intimezone(UTC)
-        return cls.Key(title, sorted_author_names, publication, dt_utc)
+        lowered_title = title.lower()
+        normalized_authors = cls.normalize_author_names(author_names)
+        dt_utc = published_timestamp.astimezone(UTC)
+        return cls.Key(lowered_title, normalized_authors, publication, dt_utc)
 
     def derive_key(self):
         '''Derive Content key from instance'''
         return self.__class__.Key(
-            self.title, self.author_names, self.publication,
-            self.published_timestamp.intimezone(UTC))
+            self.title.lower(), self.author_names, self.publication,
+            self.published_timestamp.astimezone(UTC))
 
     @property
     def title(self):
-        return self._title
+        return self._title.capitalize() if self._title else self._title
 
     @title.setter
     def title(self, val):
@@ -78,11 +77,12 @@ class Content(AutoTimestampMixin, BaseContentModel):
             raise ValueError('Cannot be set to None')
         # During __init__()
         if self._title is None:
-            self._title = val
+            self._title = val.lower()
             return
         # Not during __init__()
         key = self.__class__.create_key(
-            val, self.author_names, self.publication, self.year_published)
+            val, self.author_names, self.publication,
+            self.published_timestamp.astimezone(UTC))
         self.register_update(key)
 
     title = orm.synonym('_title', descriptor=title)
@@ -103,7 +103,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
         # Not during __init__()
         key = self.__class__.create_key(
             self.title, normalized_val, self.publication,
-            self.year_published)
+            self.published_timestamp.astimezone(UTC))
         self.register_update(key)
 
     author_names = orm.synonym('_author_names', descriptor=author_names)
@@ -130,7 +130,8 @@ class Content(AutoTimestampMixin, BaseContentModel):
             return
         # Not during __init__()
         key = self.__class__.create_key(
-            self.title, self.author_names, val, self.year_published)
+            self.title, self.author_names, val,
+            self.published_timestamp.astimezone(UTC))
         self.register_update(key)
 
     publication = orm.synonym('_publication', descriptor=publication)
@@ -138,7 +139,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
     @property
     def published_timestamp(self):
         flex_dt = FlexTime.instance(self._published_timestamp)
-        localized = flex_dt.intimezone(self.tzinfo_published)
+        localized = flex_dt.astimezone(self.tzinfo_published)
         return FlexTime.instance(localized, self.granularity_published)
 
     @published_timestamp.setter
@@ -163,9 +164,10 @@ class Content(AutoTimestampMixin, BaseContentModel):
     tzinfo_published = orm.synonym('_tzinfo_published',
                                    descriptor=tzinfo_published)
 
-    def get_published_timestamp_info(self):
-        '''Get namedtuple of publication date info'''
-        return self.published_timestamp.datetime_info
+    @property
+    def published_timestamp_info(self):
+        '''Get publication datetime info namedtuple'''
+        return self.published_timestamp.info
 
     def set_published_timestamp_info(self, dt, granularity=None, geo=None):
         '''
@@ -177,7 +179,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
         Content may be published with varying levels of granularity,
         ranging from year to microseconds. This is supported by the
         FlexTime factory class which endows datetime instances with
-        granularity and datetime_info members.
+        granularity and info members.
 
         I/O:
         dt: FlexTime or regular datetime instance or DatetimeInfo tuple
@@ -188,7 +190,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
         # TODO: if geo and dt is naive, set timezone based on geo
 
         flex_dt = FlexTime.cast(dt, granularity)
-        granularity, datetime_info = flex_dt.granularity, flex_dt.datetime_info
+        granularity, info = flex_dt.granularity, flex_dt.info
 
         now = pendulum.utcnow()
         if flex_dt > now:
@@ -196,14 +198,14 @@ class Content(AutoTimestampMixin, BaseContentModel):
 
         # During __init__()
         if self._published_timestamp is None:
-            self._published_timestamp = flex_dt.intimezone(UTC)
+            self._published_timestamp = flex_dt.astimezone(UTC)
         else:  # Not during __init__()
             key = self.__class__.create_key(
                 self.title, self.author_names, self.publication, flex_dt)
             self.register_update(key)
 
         self._granularity_published = granularity.value
-        self._tzinfo_published = datetime_info.tzinfo
+        self._tzinfo_published = info.tzinfo
 
     def __init__(self, title, author_names, publication, published_timestamp,
                  granularity_published=None, geo=None, publisher=None,

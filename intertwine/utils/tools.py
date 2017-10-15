@@ -228,8 +228,13 @@ def stringify(thing, limit=-1, _lvl=0):
     len_thing = -1
     strings = []
 
+    # If a namedtuple, stringify it whole
+    if hasattr(thing, '_asdict'):
+        strings.append(u'{ind}{namedtuple}'.format(
+            ind=ind, namedtuple=thing))
+
     # If a list/tuple, stringify and add each item
-    if isinstance(thing, (list, tuple)):
+    elif isinstance(thing, (list, tuple)):
         len_thing = len(thing)  # Used for limit message later
         for i, t in enumerate(thing):
             if i == limit:
@@ -245,30 +250,30 @@ def stringify(thing, limit=-1, _lvl=0):
                 continue
             # If there's one value, put the key and value on one line
             elif len(v_str.split('\n')) == 1:
-                strings.append(u'{ind}{key}: {value}'
-                               .format(ind=ind, key=k, value=v_str.strip()))
+                strings.append(u'{ind}{key}: {value}'.format(
+                    ind=ind, key=k, value=v_str.strip()))
             # There are multiple values, so list them below the key
             else:
-                strings.append(u'{ind}{key}:\n{value}'
-                               .format(ind=ind, key=k, value=v_str))
+                strings.append(u'{ind}{key}:\n{value}'.format(
+                    ind=ind, key=k, value=v_str))
 
     # If a custom object, use its __unicode__ method, but indent it
     elif hasattr(thing, '__dict__'):
-        strings.append(u'{ind}{thing}'.format(
-                       ind=ind, thing=''.join(('\n', ind))
-                                        .join(unicode(thing).split('\n'))))
+        strings.append(u'{ind}{object}'.format(
+            ind=ind, object=('\n' + ind).join(unicode(thing).split('\n'))))
 
     # If a number, use commas for readability
     elif isinstance(thing, numbers.Number) and not isinstance(thing, bool):
-        strings.append(u'{ind}{thing:,}'.format(ind=ind, thing=thing))
+        strings.append(u'{ind}{number:,}'.format(ind=ind, number=thing))
 
     # It is a non-numeric 'primitive' (e.g. boolean, string, etc.)
     else:
-        strings.append(u'{ind}{thing}'.format(ind=ind, thing=thing))
+        strings.append(u'{ind}{primitive}'.format(
+            ind=ind, primitive=thing))
 
     if len_thing > limit:
-        strings.append('{ind}({limit} of {total})'
-                       .format(ind=ind, limit=limit, total=len_thing))
+        strings.append('{ind}({limit} of {total})'.format(
+            ind=ind, limit=limit, total=len_thing))
 
     return '\n'.join(strings)
 

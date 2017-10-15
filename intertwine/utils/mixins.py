@@ -10,6 +10,7 @@ from itertools import chain, islice
 from math import floor
 from mock.mock import NonCallableMagicMock
 from operator import attrgetter, itemgetter
+from past.builtins import basestring
 
 import pendulum
 from sqlalchemy import Column, orm, types
@@ -379,11 +380,14 @@ class Jsonable(object):
                 self_json[field] = None
                 continue
 
+            if hasattr(value, '_asdict'):  # namedtuple
+                self_json[field] = value  # json.dumps supports namedtuples
+                continue
+
             try:
-                if isinstance(value, (str, unicode)):
+                if isinstance(value, basestring):
                     raise TypeError
-                # Raise TypeError if not iterable
-                value_iterator = iter(value)
+                value_iterator = iter(value)  # Raise TypeError if not iterable
 
             except TypeError:
                 self_json[field] = default(value)

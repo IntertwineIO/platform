@@ -23,11 +23,10 @@
     <div class="indent">
         {% for content in content_list %}
             {% set pub_dt = content.published_timestamp %}
-            {% set pub_dt_info = pub_dt.datetime_info %}
             <div class="content-item">
                 <div class="content-title"><p><a href={{ content.human_id }}> {{ content.title }} </a></p></div>
                 <div class="content-authors"><p> {{ content.author_names }} </p></div>
-                <p>{% if content.publication %}<span class="content-publication"> {{ content.publication }} </span>|{% endif %}<span class="content-publisher"> {{ content.publisher }} </span>|<span class="content-published-timestamp"> {% if pub_dt_info.month %}{{ pub_dt.strftime('%B') }}{% if pub_dt_info.day %} {{ pub_dt.day }}{% endif %}, {% endif %}{{ pub_dt_info.year }}{% if pub_dt_info.hour %} {{ pub_dt.strftime('%I') }}{% if pub_dt_info.minute %}{{ pub_dt.strftime(':%M') }}{% endif %} {{ pub_dt.strftime('%p') }}{% endif %}</span></p>
+                <p>{% if content.publication %}<span class="content-publication"> {{ content.publication }} </span>|{% endif %}<span class="content-publisher"> {{ content.publisher }} </span>|<span class="content-published-timestamp"> {% if pub_dt.info.month %}{{ pub_dt.strftime('%B') }}{% if pub_dt.info.day %} {{ pub_dt.day }}{% endif %}, {% endif %}{{ pub_dt.info.year }}{% if pub_dt.info.hour %} {{ pub_dt.strftime('%I') }}{% if pub_dt.info.minute %}{{ pub_dt.strftime(':%M') }}{% endif %} {{ pub_dt.strftime('%p') }}{% endif %}</span></p>
             </div>
         {% endfor %}
     </div>
