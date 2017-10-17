@@ -4,6 +4,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import sys
 from collections import namedtuple
+from past.builtins import basestring
 
 from intertwine.utils.quantized import QuantizedDecimal
 
@@ -12,8 +13,6 @@ if sys.version_info < (3,):
     INT_TYPES = (int, long)  # noqa: ignore=F821
 else:
     INT_TYPES = (int,)
-    long = int
-    unicode = str
 
 
 class Area(QuantizedDecimal):
@@ -180,13 +179,13 @@ class GeoLocation(object):
 
     def __getitem__(self, key):
         field = self.COORDINATES[key] if isinstance(key, INT_TYPES) else key
-        if isinstance(field, (str, unicode)) and field[0] == '_':
+        if isinstance(field, basestring) and field[0] == '_':
             raise AttributeError('Attempting to access private member')
         return getattr(self, field)
 
     def __setitem__(self, key, value):
         field = self.COORDINATES[key] if isinstance(key, INT_TYPES) else key
-        if isinstance(field, (str, unicode)) and field[0] == '_':
+        if isinstance(field, basestring) and field[0] == '_':
             raise AttributeError('Attempting to access private member')
         setattr(self, field, value)
 
