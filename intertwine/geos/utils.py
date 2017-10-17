@@ -167,7 +167,7 @@ class GeoLocation(object):
         self.latitude, self.longitude = self.requantize(latitude, longitude)
 
     def __repr__(self):
-        return "{cls}('{latitude}', '{longitude}')".format(
+        return "{cls}(latitude='{latitude}', longitude='{longitude}')".format(
             cls=self.__class__.__name__, **self.coordinates._asdict())
 
     def __str__(self):
