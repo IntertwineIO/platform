@@ -256,17 +256,10 @@ class FlexTime(DatetimeClass):
         '''
         granularity = cls.determine_granularity(dt, granularity)
 
-        try:
-            inst = super(FlexTime, cls).instance(dt, **kwds)  # pendulum
-        except AttributeError:  # no super.instance or dt is plain tuple
-            dt_info = cls.form_info(dt, granularity, truncate=truncate,
-                                    default=False, tz_instance=True)
-            return cls(**dt_info._asdict())
-
-        inst.granularity = granularity
-        inst.info = cls.form_info(
-            inst, granularity, truncate=truncate, default=False)
-        return inst
+        # Do NOT call super().instance since it fails to handle fold
+        dt_info = cls.form_info(dt, granularity, truncate=truncate,
+                                default=False, tz_instance=True)
+        return cls(**dt_info._asdict())
 
     def __new__(cls, year=None, month=None, day=None,
                 hour=None, minute=None, second=None, microsecond=None,

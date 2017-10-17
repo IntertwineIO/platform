@@ -57,18 +57,18 @@ def test_flex_time_instantiation(
         native_dt_via_args = datetime(fold=fold, *dt_native_args)
     assert native_dt == native_dt_via_args
 
-    custom_dt = DatetimeClass(**dt_info_with_defaults._asdict())
-    custom_dt_via_args = DatetimeClass(*dt_info_with_defaults)
-    assert custom_dt == custom_dt_via_args
-    assert native_dt == custom_dt
+    base_dt = DatetimeClass(**dt_info_with_defaults._asdict())
+    base_dt_via_args = DatetimeClass(*dt_info_with_defaults)
+    assert base_dt == base_dt_via_args
+    assert native_dt == base_dt
 
     flex_dt = FlexTime(**dt_info._asdict())
     flex_dt_via_args = FlexTime(tzinfo=dt_info.tzinfo, *dt_info[:gval])
     assert flex_dt == flex_dt_via_args
-    assert flex_dt == custom_dt
+    assert flex_dt == base_dt
     assert flex_dt == native_dt  # True only if not in DST
 
-    for dt in (dt_info, dt_tuple, native_dt, custom_dt, flex_dt, flex_dt.info):
+    for dt in (dt_info, dt_tuple, native_dt, base_dt, flex_dt, flex_dt.info):
 
         dt_info_null_backfill = FlexTime.form_info(
             dt, granularity=granularity, truncate=True, default=False)
@@ -110,11 +110,11 @@ def test_core_flex_time_interactions(
         del dt_native_kwargs[FlexTime.FOLD_TAG]
 
     native_dt = datetime(**dt_native_kwargs)
-    custom_dt = DatetimeClass(**dt_info_with_defaults._asdict())
+    base_dt = DatetimeClass(**dt_info_with_defaults._asdict())
     flex_dt = FlexTime(*dt_info)
 
     assert flex_dt.info == dt_info
-    assert flex_dt.deflex() == custom_dt
+    assert flex_dt.deflex() == base_dt
 
     flex_dt_via_copy = flex_dt.copy()
     assert flex_dt_via_copy is not flex_dt
@@ -124,9 +124,9 @@ def test_core_flex_time_interactions(
     assert flex_dt_via_cast_native == flex_dt
     assert flex_dt_via_cast_native is not flex_dt
 
-    flex_dt_via_cast_custom = FlexTime.cast(custom_dt, granularity=granularity)
-    assert flex_dt_via_cast_custom == flex_dt
-    assert flex_dt_via_cast_custom is not flex_dt
+    flex_dt_via_cast_base = FlexTime.cast(base_dt, granularity=granularity)
+    assert flex_dt_via_cast_base == flex_dt
+    assert flex_dt_via_cast_base is not flex_dt
 
     flex_dt_via_cast_flex = FlexTime.cast(flex_dt, granularity=granularity)
     assert flex_dt_via_cast_flex is flex_dt
@@ -148,15 +148,22 @@ def test_flex_time_zone_changes(
     dt_info = FlexTime.form_info(
         full_dt_info, granularity=gval, truncate=True, default=False)
     flex_dt = FlexTime(*dt_info)
+
     dt_info_with_defaults = FlexTime.form_info(
         full_dt_info, granularity=gval, truncate=True, default=True)
-    custom_dt = DatetimeClass(**dt_info_with_defaults._asdict())
+    base_dt = DatetimeClass(**dt_info_with_defaults._asdict())
 
-    assert flex_dt == custom_dt
+    assert flex_dt == base_dt
 
     flex_dt_utc = flex_dt.astimezone(UTC)
-    custom_dt_utc = custom_dt.astimezone(UTC)
+    base_dt_utc = base_dt.astimezone(UTC)
+    assert flex_dt_utc == base_dt_utc
 
-    assert flex_dt_utc == FlexTime.instance(custom_dt_utc, granularity=gval)
+    # Pendulum.instance does not handle fold properly
+    # assert flex_dt_utc == FlexTime.instance(base_dt_utc, granularity=gval)
 
-    assert flex_dt == flex_dt_utc.astimezone(dt_info.tzinfo)
+    flex_dt_there_and_back_again = flex_dt_utc.astimezone(dt_info.tzinfo)
+    base_dt_there_and_back_again = base_dt_utc.astimezone(dt_info.tzinfo)
+    assert flex_dt_there_and_back_again == base_dt_there_and_back_again
+
+    assert flex_dt_there_and_back_again == flex_dt
