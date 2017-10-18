@@ -25,7 +25,7 @@ from intertwine.geos.models import (
     COUNTRY, SUBDIVISION1, SUBDIVISION2, SUBDIVISION3, PLACE, SUBPLACE,
     CORE_AREA, COMBINED_AREA,
     FIPS, ANSI, ISO_A2, ISO_A3, ISO_N3, CSA_2010, CBSA_2010)
-from intertwine.geos.utils import Area, GeoLocation
+from intertwine.utils.space import Area, GeoLocation
 
 COUNTY_LSAD_AS_QUALIFIER = False
 

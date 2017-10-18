@@ -4,6 +4,10 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import sys
 from collections import namedtuple
+from past.builtins import basestring
+
+import pendulum
+from timezonefinder import TimezoneFinder
 
 from intertwine.utils.quantized import QuantizedDecimal
 
@@ -12,8 +16,6 @@ if sys.version_info < (3,):
     INT_TYPES = (int, long)  # noqa: ignore=F821
 else:
     INT_TYPES = (int,)
-    long = int
-    unicode = str
 
 
 class Area(QuantizedDecimal):
@@ -54,6 +56,21 @@ class GeoLocation(object):
     COORDINATES = (LATITUDE, LONGITUDE)
 
     Coordinates = namedtuple('Coordinates', COORDINATES)
+
+    @property
+    def timezone(self):
+        return pendulum.timezone(self.timezone_name)
+
+    @property
+    def timezone_name(self):
+        tz_finder = TimezoneFinder()
+        tz_name = tz_finder.timezone_at(lng=self.longitude, lat=self.latitude)
+        if tz_name is None:
+            tz_name = tz_finder.closest_timezone_at(lng=self.longitude,
+                                                    lat=self.latitude)
+        if tz_name is None:
+            raise ValueError('No timezone exists for this geo location')
+        return tz_name
 
     @property
     def latitude(self):
@@ -167,7 +184,7 @@ class GeoLocation(object):
         self.latitude, self.longitude = self.requantize(latitude, longitude)
 
     def __repr__(self):
-        return "{cls}('{latitude}', '{longitude}')".format(
+        return "{cls}(latitude='{latitude}', longitude='{longitude}')".format(
             cls=self.__class__.__name__, **self.coordinates._asdict())
 
     def __str__(self):
@@ -180,13 +197,13 @@ class GeoLocation(object):
 
     def __getitem__(self, key):
         field = self.COORDINATES[key] if isinstance(key, INT_TYPES) else key
-        if isinstance(field, (str, unicode)) and field[0] == '_':
+        if isinstance(field, basestring) and field[0] == '_':
             raise AttributeError('Attempting to access private member')
         return getattr(self, field)
 
     def __setitem__(self, key, value):
         field = self.COORDINATES[key] if isinstance(key, INT_TYPES) else key
-        if isinstance(field, (str, unicode)) and field[0] == '_':
+        if isinstance(field, basestring) and field[0] == '_':
             raise AttributeError('Attempting to access private member')
         setattr(self, field, value)
 

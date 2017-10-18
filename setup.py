@@ -51,6 +51,7 @@ def setup_project():
         'mock',
         'pendulum>=1.2.5',
         'SQLAlchemy>=1.1.14',
+        'timezonefinder',
         'titlecase',
     ]
 

@@ -172,7 +172,7 @@ def test_geo_id_model(session):
 def test_form_aggregate_geo(session):
     '''Tests geo creation that aggregates children data at a geo level'''
     from intertwine.geos.models import Geo, GeoData, GeoLevel
-    from intertwine.geos.utils import GeoLocation
+    from intertwine.utils.space import GeoLocation
 
     data_level = 'place'
 

@@ -6,7 +6,7 @@ import pytest
 import sys
 from decimal import Decimal
 
-from intertwine.geos.utils import Area, Coordinate, GeoLocation
+from intertwine.utils.space import Area, Coordinate, GeoLocation
 
 # Python version compatibilities
 if sys.version_info >= (3,):
