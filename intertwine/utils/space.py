@@ -6,6 +6,9 @@ import sys
 from collections import namedtuple
 from past.builtins import basestring
 
+import pendulum
+from timezonefinder import TimezoneFinder
+
 from intertwine.utils.quantized import QuantizedDecimal
 
 # Python version compatibilities
@@ -53,6 +56,21 @@ class GeoLocation(object):
     COORDINATES = (LATITUDE, LONGITUDE)
 
     Coordinates = namedtuple('Coordinates', COORDINATES)
+
+    @property
+    def timezone(self):
+        return pendulum.timezone(self.timezone_name)
+
+    @property
+    def timezone_name(self):
+        tz_finder = TimezoneFinder()
+        tz_name = tz_finder.timezone_at(lng=self.longitude, lat=self.latitude)
+        if tz_name is None:
+            tz_name = tz_finder.closest_timezone_at(lng=self.longitude,
+                                                    lat=self.latitude)
+        if tz_name is None:
+            raise ValueError('No timezone exists for this geo location')
+        return tz_name
 
     @property
     def latitude(self):
