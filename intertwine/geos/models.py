@@ -6,7 +6,7 @@ import sys
 from collections import OrderedDict, namedtuple
 from functools import reduce
 
-from sqlalchemy import Column, ForeignKey, Index, Table, desc, orm, types
+from sqlalchemy import Column, ForeignKey, Index, Table, desc, or_, orm, types
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from intertwine import IntertwineModel
@@ -654,8 +654,8 @@ class Geo(BaseGeoModel):
     KEYWORDS_FOR_USES_THE = {'states', 'islands', 'republic', 'district'}
 
     uses_the = Column(types.Boolean)  # e.g. 'The United States'
-    _name = Column('name', types.String(60))
-    _abbrev = Column('abbrev', types.String(20))
+    _name = Column('name', types.String(60), index=True)
+    _abbrev = Column('abbrev', types.String(20), index=True)
     _qualifier = Column('qualifier', types.String(60))
     _human_id = Column(HUMAN_ID, types.String(200), index=True, unique=True)
 
@@ -1216,6 +1216,62 @@ class Geo(BaseGeoModel):
         '''Return new list of geos sorted by population, descending'''
         return sorted(geos, reverse=True,
                       key=lambda g: g.data.total_pop if g.data else -1)
+
+    @staticmethod
+    def infer_path_component_names(geo_text):
+        '''Infer path component names from geo text'''
+        return (c.strip() for c in reversed(geo_text.split(',')) if c.strip())
+
+    @classmethod
+    def find_matches(cls, match_string, exact=False):
+        '''Return matches given a qualified geo match string'''
+        matches = []
+        path_components = list(cls.infer_path_component_names(match_string))
+        len_path = len(path_components)
+
+        for i, component in enumerate(path_components, start=1):
+            matches = cls.find_component_matches(
+                component,
+                exact=(i != len_path) or exact,
+                parent=None if i == 1 else matches[0])
+            if not matches:
+                break
+
+        if not matches and len_path > 1:
+            matches = cls.find_component_matches(
+                ', '.join((path_components[-1], path_components[-2])),
+                exact=exact)
+
+        cls.remove_redundant_aliases(matches)
+        return matches
+
+    @classmethod
+    def find_component_matches(cls, match_string, exact=False, parent=None):
+        '''Find matches given an unqualified geo match string'''
+        alias_targets = parent.alias_targets if parent else None
+        parent = alias_targets[0] if alias_targets else parent
+        base_query = parent.path_children if parent else cls.query
+        if exact:
+            return (base_query.outerjoin(cls.data)
+                              .filter(or_(cls.name == match_string.title(),
+                                          cls.abbrev == match_string.upper()))
+                              .order_by(desc(GeoData.total_pop)).all())
+        return (base_query.outerjoin(cls.data)
+                          .filter(or_(cls.name.contains(match_string),
+                                      cls.abbrev.contains(match_string)))
+                          .order_by(desc(GeoData.total_pop)).all())
+
+    @staticmethod
+    def remove_redundant_aliases(matches):
+        '''Remove redundant aliases given results with aliases at end'''
+        match_set = set(matches)
+        for geo in reversed(matches):
+            alias_targets = geo.alias_targets
+            if not alias_targets:
+                break
+            redundent = [at in match_set for at in alias_targets]
+            if sum(redundent) == len(alias_targets):
+                del matches[-1]
 
     @staticmethod
     def get_largest_geo(*geos):

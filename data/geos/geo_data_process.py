@@ -136,7 +136,8 @@ def load_geos(geo_session, session):
     load_subdivision2_geos(geo_session, session)
     load_subdivision3_geos(geo_session, session)
     load_place_geos(geo_session, session)
-    # load_cbsa_geos(geo_session, session)
+    load_cbsa_geos(geo_session, session)
+    load_manual_fixes(geo_session, session)
 
     return Trackable.catalog_updates()
 
@@ -858,12 +859,6 @@ def load_place_geos(geo_session, session, sub1keys=None, placeids=None):
         # If consolidated county or independent city, add to list
         if r.ghrp_countycc in {'H6', 'C7'}:
             tracker['consolidated'].append((county, cousub, place, created))
-
-    # Fix ñ in Española, NM. Note: ñ appears correctly elsewhere:
-    # Peñasco, NM; Cañones, NM; La Cañada Flintridge, CA; etc.
-    esp = Geo.tget(u'us/nm/espanola')
-    if esp:
-        esp.name = u'Espa\xf1ola'  # Geo[u'us/nm/espa\xf1ola']
 
     for key, value in tracker.items():
         print(' '.join(word.capitalize() for word in key.split('_')) + ':')
@@ -1848,6 +1843,21 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
                 p2_pop=p2_pop) +
             (' of {p2_total:,}'.format(
                 p2_total=p2_total) if p2_pop != p2_total else ''))
+
+
+def load_manual_fixes(geo_session, session):
+    '''Load manual fixes'''
+    # TODO: Add verbose state aliases, prevent us/washington DC alias,
+    # and create new us/dc/washington
+    wdc = Geo.tget(u'us/washington')
+    wdc.path_parent = Geo['us/dc']
+
+    # Fix ñ in Española, NM. Note: ñ appears correctly elsewhere:
+    # Peñasco, NM; Cañones, NM; La Cañada Flintridge, CA; etc.
+    esp = Geo.tget(u'us/nm/espanola')
+    if esp:
+        esp.name = u'Espa\xf1ola'  # Geo[u'us/nm/espa\xf1ola']
+
 
 if __name__ == '__main__':
     # Session for geo.db, which contains the geo source data
