@@ -11,6 +11,7 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from intertwine import IntertwineModel
 from intertwine.exceptions import (AttributeConflict, CircularReference)
+from intertwine.utils.enums import MatchType
 from intertwine.utils.mixins import JsonProperty
 from intertwine.utils.space import Area, Coordinate, GeoLocation
 from intertwine.utils.tools import (define_constants_at_module_scope,
@@ -1223,52 +1224,97 @@ class Geo(BaseGeoModel):
         return (c.strip() for c in reversed(geo_text.split(',')) if c.strip())
 
     @classmethod
-    def find_matches(cls, match_string, exact=False):
+    def find_matches(cls, match_string, match_type=MatchType.BEST):
         '''Return matches given a qualified geo match string'''
-        matches = []
         path_components = list(cls.infer_path_component_names(match_string))
-        len_path = len(path_components)
+        if not path_components:
+            return []
+        component_match_type = match_type
+        prior_parent = parent = None
 
         for i, component in enumerate(path_components, start=1):
             matches = cls.find_component_matches(
-                component,
-                exact=(i != len_path) or exact,
-                parent=None if i == 1 else matches[0])
+                component, match_type=component_match_type, parent=parent,
+                elevate_exact_matches=len(component) > 1)
             if not matches:
                 break
+            prior_parent, parent = parent, matches[0]
 
-        if not matches and len_path > 1:
+        if not matches and len(path_components) > 1:
             matches = cls.find_component_matches(
                 ', '.join((path_components[-1], path_components[-2])),
-                exact=exact)
+                match_type=match_type, parent=prior_parent)
 
         cls.remove_redundant_aliases(matches)
         return matches
 
     @classmethod
-    def find_component_matches(cls, match_string, exact=False, parent=None):
-        '''Find matches given an unqualified geo match string'''
+    def find_component_matches(cls, match_string, match_type=MatchType.BEST,
+                               parent=None, elevate_exact_matches=True):
+        '''Find component matches given an unqualified geo match string'''
         alias_targets = parent.alias_targets if parent else None
         parent = alias_targets[0] if alias_targets else parent
         base_query = parent.path_children if parent else cls.query
-        if exact:
-            return (base_query.outerjoin(cls.data)
-                              .filter(or_(cls.name == match_string.title(),
-                                          cls.abbrev == match_string.upper()))
-                              .order_by(desc(GeoData.total_pop)).all())
-        return (base_query.outerjoin(cls.data)
-                          .filter(or_(cls.name.contains(match_string),
-                                      cls.abbrev.contains(match_string)))
-                          .order_by(desc(GeoData.total_pop)).all())
+
+        if match_type is MatchType.BEST:
+            if len(match_string) < 3 and parent is None:
+                filter_clause = cls.abbrev.like('{}%'.format(match_string))
+            else:
+                filter_clause = or_(
+                    cls.name.like('{}%'.format(match_string)),
+                    cls.name.like('% {}%'.format(match_string)),
+                    cls.abbrev.like('{}%'.format(match_string)))
+        elif match_type is MatchType.EXACT:
+            filter_clause = or_(cls.name.like(match_string),
+                                cls.abbrev.like(match_string))
+        elif match_type is MatchType.CONTAINS:
+            filter_clause = or_(cls.name.contains(match_string),
+                                cls.abbrev.contains(match_string))
+        elif match_type in {MatchType.STARTS_WITH, MatchType.ENDS_WITH}:
+            wildcard_string = ('{}%'.format(match_string)
+                               if match_type is MatchType.STARTS_WITH
+                               else '%{}'.format(match_string))
+            filter_clause = or_(cls.name.like(wildcard_string),
+                                cls.abbrev.like(wildcard_string))
+        else:
+            raise ValueError('Unsupported match type: {!r}'.format(match_type))
+
+        matches = (base_query.outerjoin(cls.data)
+                             .filter(filter_clause)
+                             .order_by(desc(GeoData.total_pop)).all())
+
+        if elevate_exact_matches:
+            cls.elevate_exact_matches(matches, match_string)
+        return matches
+
+    @staticmethod
+    def elevate_exact_matches(matches, match_string):
+        '''Elevate exact matches ignoring case given list of matches'''
+        match_string = match_string.lower()
+        exact_matches = (g for g in matches
+                         if g.name.lower() == match_string or
+                         (g.abbrev and g.abbrev.lower() == match_string))
+        len_matches_before = len(matches)
+        matches[:0] = exact_matches
+        len_matches_after = len(matches)
+        len_exact_matches = len_matches_after - len_matches_before
+        if not len_exact_matches:
+            return
+        for i, g in enumerate(reversed(matches), start=1):
+            if i > len_matches_before:
+                break
+            if (g.name.lower() == match_string or
+                    (g.abbrev and g.abbrev.lower() == match_string)):
+                del matches[len_matches_after - i]
 
     @staticmethod
     def remove_redundant_aliases(matches):
-        '''Remove redundant aliases given results with aliases at end'''
+        '''Remove redundant aliases given list of matches'''
         match_set = set(matches)
         for geo in reversed(matches):
             alias_targets = geo.alias_targets
             if not alias_targets:
-                break
+                continue
             redundent = [at in match_set for at in alias_targets]
             if sum(redundent) == len(alias_targets):
                 del matches[-1]
