@@ -1852,6 +1852,12 @@ def load_manual_fixes(geo_session, session):
     wdc = Geo.tget('us/washington')
     wdc.path_parent = Geo['us/dc']
 
+    la = Geo.tget('us/ca/los_angeles')
+    la.abbrev = 'L.A.'
+
+    la = Geo.tget('us/ny/new_york')
+    la.abbrev = 'N.Y.'
+
     # Fix ñ in Española, NM. Note: ñ appears correctly elsewhere:
     # Peñasco, NM; Cañones, NM; La Cañada Flintridge, CA; etc.
     esp = Geo.tget('us/nm/espanola')
