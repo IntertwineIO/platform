@@ -12,7 +12,7 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 from intertwine import IntertwineModel
 from intertwine.exceptions import (AttributeConflict, CircularReference)
 from intertwine.utils.enums import MatchType
-from intertwine.utils.mixins import JsonProperty
+from intertwine.utils.jsonable import JsonProperty
 from intertwine.utils.space import Area, Coordinate, GeoLocation
 from intertwine.utils.tools import (define_constants_at_module_scope,
                                     find_any_words)
