@@ -20,10 +20,9 @@ from .exceptions import (
 if sys.version_info < (3,):
     lzip = zip  # legacy zip returning list of tuples
     from itertools import izip as zip
-    lstr = str  # legacy str returning bytes
-    str = unicode
     U_LITERAL = 'u'
 else:
+    unicode = str
     U_LITERAL = ''
 
 
