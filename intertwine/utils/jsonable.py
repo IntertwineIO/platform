@@ -64,11 +64,11 @@ class JsonProperty(object):
 
 class Jsonable(object):
 
-    ROOT_KEY = 'root_key'
-    PATH_DELIMITER = '.'
     JSONIFY = 'jsonify'
-    PROPERTY_EXCLUSIONS = {'descriptor_dict', 'object_session'}
-    PRIVATE_DESIGNATION = '_'
+    JSON_ROOT_KEY = 'root_key'
+    JSON_PATH_DELIMITER = '.'
+    JSON_PRIVATE_DESIGNATION = '_'
+    JSON_PROPERTY_EXCLUSIONS = {'descriptor_dict', 'object_session'}
 
     @classmethod
     def fields(cls):
@@ -80,7 +80,8 @@ class Jsonable(object):
 
     @classmethod
     def _derive_fields(cls):
-        '''Derives fields and their SQLAlchemy and JSON properties
+        '''
+        Derive fields and their SQLAlchemy and JSON properties
 
         Nets out a model's SQLAlchemy column, relationship, and synonym
         properties and any JSON properties and returns an insertable
@@ -165,8 +166,8 @@ class Jsonable(object):
 
         # Add any (non-SQLAlchemy) Python properties alphabetically
         py_properties = [(k, v) for k, v in inspect.getmembers(cls)
-                         if k[0] != cls.PRIVATE_DESIGNATION and
-                         k not in cls.PROPERTY_EXCLUSIONS and
+                         if k[0] != cls.JSON_PRIVATE_DESIGNATION and
+                         k not in cls.JSON_PROPERTY_EXCLUSIONS and
                          isinstance(v, property)]
         py_properties.sort(key=itemgetter(0))
         for k, v in py_properties:
@@ -218,12 +219,13 @@ class Jsonable(object):
     def form_path(cls, base, *fields):
         path_components = list(fields)
         path_components.insert(0, base)
-        return cls.PATH_DELIMITER.join(path_components)
+        return cls.JSON_PATH_DELIMITER.join(path_components)
 
     def jsonify(self, config=None, hide_all=False, hide=None, nest=False,
                 tight=True, raw=False, limit=10, depth=1, default=None,
                 _path=None, _json=None):
-        '''Jsonify
+        '''
+        Jsonify
 
         Return a JSON-serializable dict representing the instance.
 
@@ -236,16 +238,17 @@ class Jsonable(object):
                      ignored (e.g. 0.5 -> 0 depth, but field is shown)
                 N>0: Show all fields in related objects by default
                 N<0: Hide all fields in related objects by default
-            Example:
-                {
-                    '.field_1': 0,
-                    '.field_2': 2,
-                    '.field_2.field_2a': 0,
-                    '.field_3': -1,
-                    '.field_3.field_3a': 1,
-                    '.field_3.field_3b': -1,
-                    '.field_3.field_3b.field_2bi': 1,
-                }
+
+            Usage:
+                geo = Geo['us/tx/austin']
+                config = {
+                    '.path_parent': 1,  # Include TX
+                    '.path_parent.children': 0,  # Hide TX's children
+                    '.path_parent.path_children': 0,  # Hide TX's path children
+                    '.path_parent.path_parent': -1,  # Include US, but hide all
+                    '.path_parent.path_parent.path_children': 0.5  # Show US
+                    }  # path children references, without the instances
+                geo.jsonify(config=config)
 
         hide_all=False:
             By default, all fields are included, but can be individually
@@ -302,7 +305,7 @@ class Jsonable(object):
         if not nest:
             self_key = self.trepr(tight=tight, raw=raw)
             if len(_json) == 0:
-                _json[self.ROOT_KEY] = self_key
+                _json[self.JSON_ROOT_KEY] = self_key
             _json[self_key] = self_json
 
         fields = self.fields()
@@ -334,7 +337,7 @@ class Jsonable(object):
 
             value = getattr(self, field)
 
-            if hasattr(value, 'jsonify'):
+            if hasattr(value, self.JSONIFY):
                 # TODO: Replace trepr with URI
                 item = value
                 if nest:
@@ -397,6 +400,7 @@ class Jsonable(object):
 
     @classmethod
     def append_pagination(cls, items, page_size, total_items, start=1):
+        '''Append pagination for collections'''
         page = start // page_size + 1
         full_pages, remainder = divmod(total_items, page_size)
         total_pages = full_pages + bool(remainder)
@@ -411,5 +415,5 @@ class Jsonable(object):
 
     def __unicode__(self):
         jsonified = self.jsonify(depth=1, limit=10)
-        del jsonified[self.ROOT_KEY]
+        del jsonified[self.JSON_ROOT_KEY]
         return stringify(jsonified, limit=-1)

@@ -20,6 +20,8 @@ from .exceptions import (
 if sys.version_info < (3,):
     lzip = zip  # legacy zip returning list of tuples
     from itertools import izip as zip
+    lstr = str  # legacy str returning bytes
+    str = unicode
     U_LITERAL = 'u'
 else:
     U_LITERAL = ''
@@ -177,7 +179,7 @@ def _update_(self, _prefix='_', _suffix='', **fields):
 
     I/O:
     _prefix='_': string prepended to field to identify affixed fields
-    _suffix='': string postpended to field to identify affixed fields
+    _suffix='': string appended to field to identify affixed fields
     **fields: unaffixed fields to be updated
     return: True iff any fields have been updated with new values
     '''
@@ -505,6 +507,15 @@ class Trackable(ModelMeta):
         key = key or inst.derive_key()
         cls._instances.pop(key, None)
         cls._updates.discard(inst)
+
+    def __repr__(cls):
+        return '.'.join((inspect.getmodule(cls).__name__, cls.__name__))
+
+    def __str__(cls):
+        return unicode(cls).encode('utf-8')
+
+    def __unicode__(cls):
+        return cls.__name__
 
     @classmethod
     def register_existing(meta, session, *args):

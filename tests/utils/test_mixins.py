@@ -35,7 +35,7 @@ def test_jsonify(session, problem_name, org_name, geo_name, num_followers):
 
     community_payload = community.jsonify()
 
-    root_key = community_payload[Community.ROOT_KEY]
+    root_key = community_payload[Community.JSON_ROOT_KEY]
     community_json = community_payload[root_key]
 
     problem_key = community_json['problem']
@@ -85,7 +85,7 @@ def test_jsonify_depth2(session, problem_name, org_name, geo_name,
 
     community_payload = community.jsonify(depth=2)
 
-    root_key = community_payload[Community.ROOT_KEY]
+    root_key = community_payload[Community.JSON_ROOT_KEY]
     community_json = community_payload[root_key]
 
     problem_key = community_json['problem']
