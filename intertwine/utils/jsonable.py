@@ -7,7 +7,7 @@ import inspect
 import sys
 from collections import OrderedDict
 from datetime import datetime
-from itertools import chain, islice
+from itertools import chain, imap, islice
 from math import floor
 from mock.mock import NonCallableMagicMock
 from operator import attrgetter, itemgetter
@@ -35,9 +35,9 @@ class JsonProperty(object):
 
     def __init__(self, name, method=None, kwargs=None, begin=None, end=None,
                  before=None, after=None, show=True, *args, **kwds):
-        if before and after:
-            raise ValueError('JsonProperty {name} cannot have both '
-                             "'before' and 'after' values".format(name=name))
+        if sum((begin, end, before, after)) > 1:
+            raise ValueError('JsonProperty {name} may only specify one of '
+                             "(begin, end, before, after)".format(name=name))
         self.name = name
         self.method = method
         self.kwargs = kwargs or {}
