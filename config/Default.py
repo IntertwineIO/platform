@@ -13,6 +13,7 @@ class DefaultConfig(object):
     LOGGER_NAME = 'intertwine'
     PREFERRED_URL_SCHEME = 'https'
     JSON_AS_ASCII = False
+    JSON_SORT_KEYS = False
     CSRF_ENABLED = True  # cross-site forgery protection
     HOST = '0.0.0.0'
 
@@ -26,7 +27,7 @@ class DevelopmentConfig(DefaultConfig):
     PERMANENT_SESSION_LIFETIME = 60 * 5  # 5 minutes: in seconds
     TRAP_HTTP_EXCEPTIONS = True  # regular traceback on http exceptions
     TRAP_BAD_REQUEST_ERRORS = True  # regular traceback on bad requests
-    JSON_SORT_KEYS = True
+    JSON_SORT_KEYS = False
     JSONIFY_PRETTYPRINT_REGULAR = True
 
 
@@ -37,7 +38,7 @@ class TestingConfig(DefaultConfig):
     PROPAGATE_EXCEPTIONS = True
     TRAP_HTTP_EXCEPTIONS = True  # regular traceback on http exceptions
     TRAP_BAD_REQUEST_ERRORS = True  # regular traceback on bad requests
-    JSON_SORT_KEYS = True
+    JSON_SORT_KEYS = False
     JSONIFY_PRETTYPRINT_REGULAR = True
 
 
@@ -45,6 +46,7 @@ class DeployableConfig(DefaultConfig):
     '''For use on deployed system'''
     SECRET_KEY = uuid4().bytes
     PERMANENT_SESSION_LIFETIME = 60 * 120  # 2 hours: in seconds
+    JSON_SORT_KEYS = False
 
 
 class ProductionConfig(DeployableConfig):
@@ -52,3 +54,4 @@ class ProductionConfig(DeployableConfig):
     SERVER_NAME = 'intertwine.io'
     SECRET_KEY = uuid4().bytes
     PERMANENT_SESSION_LIFETIME = 60 * 120  # 2 hours: in seconds
+    JSON_SORT_KEYS = False
