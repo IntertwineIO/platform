@@ -7,7 +7,7 @@ import inspect
 import sys
 from collections import OrderedDict
 from datetime import datetime
-from itertools import chain, imap, islice
+from itertools import chain, islice
 from math import floor
 from mock.mock import NonCallableMagicMock
 from operator import attrgetter, itemgetter
@@ -18,12 +18,14 @@ from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
 from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
-from .structures import InsertableOrderedDict
-from .tools import isiterator, stringify
+from .structures import InsertableOrderedDict, PeekableIterator
+from .tools import derive_defaults, isiterator, stringify
 
 # Python version compatibilities
 if sys.version_info < (3,):
     JSON_NUMBER_TYPES = (bool, float, int, long)  # noqa: ignore=F821
+    lmap = map  # legacy map returning list
+    from itertools import imap as map
 else:
     JSON_NUMBER_TYPES = (bool, float, int)
     unicode = str
@@ -34,8 +36,8 @@ class JsonProperty(object):
     _count = 0
 
     def __init__(self, name, method=None, kwargs=None, begin=None, end=None,
-                 before=None, after=None, show=True, *args, **kwds):
-        if sum((begin, end, before, after)) > 1:
+                 before=None, after=None, hide=False, *args, **kwds):
+        if sum(map(bool, (begin, end, before, after))) > 1:
             raise ValueError('JsonProperty {name} may only specify one of '
                              "(begin, end, before, after)".format(name=name))
         self.name = name
@@ -45,7 +47,7 @@ class JsonProperty(object):
         self.end = end
         self.before = before
         self.after = after
-        self.show = show
+        self.hide = hide
         self.index = self.__class__._count
         self.__class__._count += 1
         super(JsonProperty, self).__init__(*args, **kwds)
@@ -64,11 +66,12 @@ class JsonProperty(object):
 
 class Jsonable(object):
 
-    JSONIFY = 'jsonify'
-    JSON_ROOT_KEY = 'root_key'
+    JSONIFY = 'jsonify'  # Must match the method name
+    JSON_ROOT = 'root'
     JSON_PATH_DELIMITER = '.'
     JSON_PRIVATE_DESIGNATION = '_'
     JSON_PROPERTY_EXCLUSIONS = {'descriptor_dict', 'object_session'}
+    JSON_PAGINATION = 'pagination'
 
     @classmethod
     def fields(cls):
@@ -164,28 +167,38 @@ class Jsonable(object):
             fields.insert(syn_name, new_name, sp)
             del fields[syn_name]
 
-        # Add any (non-SQLAlchemy) Python properties alphabetically
-        py_properties = [(k, v) for k, v in inspect.getmembers(cls)
-                         if k[0] != cls.JSON_PRIVATE_DESIGNATION and
-                         k not in cls.JSON_PROPERTY_EXCLUSIONS and
-                         isinstance(v, property)]
+        # Gather non-SQLAlchemy public properties
+        property_generator = ((k, v) for k, v in inspect.getmembers(cls)
+                              if k[0] != cls.JSON_PRIVATE_DESIGNATION and
+                              k not in cls.JSON_PROPERTY_EXCLUSIONS and
+                              isinstance(v, (property, JsonProperty)))
+
+        py_properties = []
+        jsonify_properties = []
+        for k, v in property_generator:
+            if isinstance(v, JsonProperty):
+                jsonify_properties.append(v)
+            else:  # property
+                py_properties.append((k, v))
+
+        # Append regular Python properties ordered alphabetically
         py_properties.sort(key=itemgetter(0))
         for k, v in py_properties:
             fields[k] = v
 
-        # Add JsonifyProperties, replacing matches if methods defined
-        jsonify_properties = [m[1] for m in inspect.getmembers(cls)
-                              if isinstance(m[1], JsonProperty)]
+        # Insert JSON properties
         jsonify_properties.sort(key=attrgetter('index'))
         begin_count = end_count = 0
-        for jsonify_property in jsonify_properties:
-            begin, end = jsonify_property.begin, jsonify_property.end
-            before, after = jsonify_property.before, jsonify_property.after
-            jp_name = jsonify_property.name
-            method = jsonify_property.method
+        for jp in jsonify_properties:
+            jp_name = jp.name
+            begin, end, before, after = jp.begin, jp.end, jp.before, jp.after
+            method = jp.method
             # Override if method; otherwise just relocate original
-            prop = jsonify_property if method else fields[jp_name]
+            prop = jp if method else fields[jp_name]
             if jp_name in fields:
+                if sum(map(bool, (begin, end, before, after))) == 0:
+                    fields[jp_name] = prop  # Replace at same location
+                    continue
                 del fields[jp_name]  # Delete as it's reinserted below
             if begin:
                 # Insert after other 'begin' fields
@@ -203,6 +216,11 @@ class Jsonable(object):
                 # Insert before 'end' fields
                 fields.insert(len(fields) - end_count - 1, jp_name,
                               prop, after=True, by_index=True)
+        # Remove hidden last so they can serve as before/after anchors
+        for jp in jsonify_properties:
+            if jp.hide and jp.name in fields:
+                del fields[jp.name]
+
         return fields
 
     @classmethod
@@ -221,9 +239,120 @@ class Jsonable(object):
         path_components.insert(0, base)
         return cls.JSON_PATH_DELIMITER.join(path_components)
 
-    def jsonify(self, config=None, hide_all=False, hide=None, nest=False,
-                tight=True, raw=False, limit=10, depth=1, default=None,
-                _path=None, _json=None):
+    @classmethod
+    def jsonify_value(cls, value, json_kwarg_map=None, _json=None):
+        '''
+        Jsonify value
+
+        Convert any value or acyclic collection to a JSON-serializable
+        dict. The conversion utilizes the following rules:
+
+            1.  If the value has a jsonify method, invoke it if either:
+                a.  nest is True or
+                b.  value has no key or
+                c.  both depth > 0 and the key is new (not in _json)
+                Return the key if it exists and not nesting; otherwise
+                return the jsonified value.
+            2.  If the value is a NonCallableMagicMock, return None
+            3.  If the value is not iterable, the given default method
+                in the json_kwarg_map - or ensure_json_safe - is used.
+            4.  If iterable.items(), return an OrderedDict in which
+                jsonify_value is recursively called on each key/value.
+            5.  Else if an iterable without items(), return sequence in
+                which jsonify_value is recursively called on each item.
+                If the iterable is a namedtuple, the sequence is a
+                namedtuple and any limit is ignored. Otherwise, the
+                sequence is a list.
+
+        I/O:
+        value: The item to be jsonified.
+
+        json_kwarg_map=None: Dictionary of JSON kwargs keyed by class.
+            The 'object' class can store default values for all classes.
+            JSON kwargs may include any of the jsonify kwargs, though
+            root and _json are ignored as the former is predetermined
+            and the latter is passed separately.
+
+        _json=None: Private top-level JSON dict for recursion
+        '''
+        json_kwarg_map = {} if json_kwarg_map is None else json_kwarg_map
+
+        if _json is None:
+            _json = OrderedDict()
+            _json[cls.JSON_ROOT] = cls.jsonify_value(
+                value, json_kwarg_map, _json)
+            return _json
+
+        json_kwargs = (json_kwarg_map.get(value.__class__) or
+                       json_kwarg_map.get(object, {}))
+        json_kwargs[cls.JSON_ROOT] = False  # _json['root'] is already set
+
+        depth, limit, tight, raw, default, nest = cls._get_json_kwargs(
+            json_kwargs, 'depth', 'limit', 'tight', 'raw', 'default', 'nest')
+
+        if hasattr(value, cls.JSONIFY):
+            try:
+                # TODO: Replace trepr with URI
+                item_key = None if nest else value.trepr(tight=tight, raw=raw)
+            except AttributeError:
+                item_key = None
+
+            if not item_key or (depth > 0 and item_key not in _json):
+                jsonified = value.jsonify(_json=_json, **json_kwargs)
+
+            return item_key if item_key else jsonified
+
+        if isinstance(value, NonCallableMagicMock):
+            return None
+
+        try:
+            if isinstance(value, basestring):
+                raise TypeError
+            # TODO: apply limit() if a query and then count() for total
+            all_item_iterator = PeekableIterator(value)  # non-iterables raise
+
+        except TypeError:
+            default = default or cls.ensure_json_safe
+            return default(value)
+
+        else:  # value is iterable and not a string
+            item_iterator = (islice(all_item_iterator, limit) if limit > 0
+                             else all_item_iterator)
+
+            if hasattr(value, 'items'):  # dictionary
+                items = OrderedDict(
+                    (cls.jsonify_value(k, json_kwarg_map, _json),
+                     cls.jsonify_value(value[k], json_kwarg_map, _json))
+                    for k in item_iterator)
+
+            else:  # tuple/list
+                try:
+                    constructor = value._make  # namedtuple
+                    item_iterator = all_item_iterator  # all fields required
+                except AttributeError:
+                    constructor = list
+
+                items = constructor(
+                    cls.jsonify_value(item, json_kwarg_map, _json)
+                    for item in item_iterator)
+
+            if all_item_iterator.has_next():  # paginate
+                try:
+                    total = len(value)
+                except TypeError:
+                    total = value.count()
+                if limit < total:
+                    pagination = cls.paginate(len(items), limit, total)
+                    try:
+                        items.append(pagination)
+                    except AttributeError:
+                        items[cls.JSON_PAGINATION] = pagination
+
+            return items
+
+    def jsonify(self, config=None, depth=1, hide=None, hide_all=False,
+                limit=10, tight=True, raw=False, default=None, nest=False,
+                root=True, _path=None, _json=None):
         '''
         Jsonify
 
@@ -240,27 +369,33 @@ class Jsonable(object):
                 N<0: Hide all fields in related objects by default
 
             Usage:
-                geo = Geo['us/tx/austin']
-                config = {
-                    '.path_parent': 1,  # Include TX
+                >>> geo = Geo['us/tx/austin']
+                >>> config = {
+                    '.path_parent': 1,  # Show TX (path_parent of Austin)
                     '.path_parent.children': 0,  # Hide TX's children
                     '.path_parent.path_children': 0,  # Hide TX's path children
-                    '.path_parent.path_parent': -1,  # Include US, but hide all
-                    '.path_parent.path_parent.path_children': 0.5  # Show US
-                    }  # path children references, without the instances
-                geo.jsonify(config=config)
+                    '.path_parent.path_parent': -1,  # Show US, but hide fields
+                    '.path_parent.path_parent.path_children': 0.5  # Show US...
+                    }  # ...path children references, without the objects
+                >>> geo.jsonify(config=config)
+
+        depth=1:
+            Recursion depth:
+                1: current object only (references but no objects)
+                2: current object and 1st relation objects
+                3: current object and 1st+2nd relation objects
+
+        hide=None:
+            Set of field names to be excluded
 
         hide_all=False:
             By default, all fields are included, but can be individually
             excluded via config or hide; if true, all fields are
             excluded, but can be individually included via config
 
-        hide=None:
-            Set of field names to be excluded
-
-        nest=False:
-            By default all relationships are by reference with JSON
-            objects stored in the top-level dict
+        limit=10:
+            Cap number of list or dictionary items beneath main level;
+            a negative limit indicates no cap
 
         tight=True:
             Make all repr values tight (without whitespace)
@@ -268,26 +403,23 @@ class Jsonable(object):
         raw=False:
             If True, add an extra escape to unicode trepr (for printing)
 
-        limit=10:
-            Cap number of list or dictionary items beneath main level;
-            a negative limit indicates no cap
-
-        depth=1:
-            Recursion depth:
-                1: current object only (NO references as keys)
-                2: current object and 1st relation objects
-                3: current object and 1st+2nd relation objects
-
         default=None:
             Default function used to ensure value is json-safe. Defaults
             to Jsonable.ensure_json_safe.
 
+        nest=False:
+            By default all relationships are by reference with JSON
+            objects stored in the top-level dict
+
+        root=True:
+            Add root key to top-level dict
+
         _path=None:
-            Path to current field from the base object:
-                .<base_field>.<related_object_field> (etc.)
+            Private path to current field from the base object:
+                .<base_object_field>.<related_object_field> (etc.)
 
         _json=None:
-            Top-level JSON dict
+            Private top-level JSON dict for recursion
         '''
         assert depth > 0
         config = {} if config is None else config
@@ -297,15 +429,13 @@ class Jsonable(object):
         _path = '' if _path is None else _path
         _json = OrderedDict() if _json is None else _json
         json_kwargs = dict(
-            config=config, hide=hide, nest=nest, tight=tight, raw=raw,
-            limit=limit, default=default, _json=_json)
+            config=config, hide=hide, limit=limit, tight=tight, raw=raw,
+            default=default, nest=nest, root=False)
 
         # TODO: Check if item already exists and needs to be enhanced?
         self_json = OrderedDict()
         if not nest:
             self_key = self.trepr(tight=tight, raw=raw)
-            if len(_json) == 0:
-                _json[self.JSON_ROOT_KEY] = self_key
             _json[self_key] = self_json
 
         fields = self.fields()
@@ -328,92 +458,62 @@ class Jsonable(object):
                 continue
 
             if isinstance(prop, JsonProperty):
-                if prop.show:
+                if not prop.hide:
                     self_json[field] = prop(
                         obj=self, hide_all=field_hide_all,
                         depth=field_depth if field_path in config else depth,
-                        _path=field_path, **json_kwargs)
+                        _path=field_path, _json=_json, **json_kwargs)
                 continue
 
             value = getattr(self, field)
 
-            if hasattr(value, self.JSONIFY):
-                # TODO: Replace trepr with URI
-                item = value
-                if nest:
-                    self_json[field] = item.jsonify(
-                        hide_all=field_hide_all, depth=field_depth,
-                        _path=field_path, **json_kwargs)
-                    continue
-                item_key = item.trepr(tight=tight, raw=raw)
-                self_json[field] = item_key
-                if field_depth > 0 and item_key not in _json:
-                    item.jsonify(hide_all=field_hide_all, depth=field_depth,
-                                 _path=field_path, **json_kwargs)
-                continue
+            # Short circuit if we can just use the key
+            if not nest and hasattr(value, self.JSONIFY):
+                try:
+                    # TODO: Replace trepr with URI
+                    item_key = value.trepr(tight=tight, raw=raw)
+                except AttributeError:
+                    pass
+                else:
+                    if field_depth == 0 or item_key in _json:
+                        self_json[field] = item_key
+                        continue
 
-            if isinstance(value, NonCallableMagicMock):
-                self_json[field] = None
-                continue
+            json_field_kwargs = dict(
+                hide_all=field_hide_all, depth=field_depth, _path=field_path,
+                **json_kwargs)
+            json_kwarg_map = {object: json_field_kwargs}
 
-            if hasattr(value, '_asdict'):  # namedtuple
-                self_json[field] = value  # json.dumps supports namedtuples
-                continue
+            # jsonify_value returns jsonified item if nest
+            self_json[field] = self.jsonify_value(
+                value, json_kwarg_map, _json)
 
-            try:
-                if isinstance(value, basestring):
-                    raise TypeError
-                value_iterator = iter(value)  # Raise TypeError if not iterable
-
-            except TypeError:
-                self_json[field] = default(value)
-
-            else:
-                items = []
-                self_json[field] = items
-                if limit > 0:
-                    value_iterator = islice(value_iterator, limit)
-
-                count = 0
-                for count, item in enumerate(value_iterator, start=1):
-                    if hasattr(item, self.JSONIFY):
-                        item_key = item.trepr(tight=tight, raw=raw)
-                        items.append(item_key)
-                        if field_depth > 0 and item_key not in _json:
-                            item.jsonify(hide_all=field_hide_all,
-                                         depth=field_depth,
-                                         _path=field_path,
-                                         **json_kwargs)
-                    else:
-                        items.append(item)
-
-                if count and count == limit:
-                    try:
-                        total = len(value)
-                    except TypeError:
-                        total = value.count()
-
-                    if limit < total:
-                        self.append_pagination(items, limit, total)
+        if not nest and root and _json.get(self.JSON_ROOT) is None:
+            _json[self.JSON_ROOT] = self_key
 
         return self_json if nest else _json
 
+    JSON_KWARG_DEFAULTS = OrderedDict(derive_defaults(jsonify))
+
     @classmethod
-    def append_pagination(cls, items, page_size, total_items, start=1):
+    def _get_json_kwargs(cls, json_kwargs, *kwarg_names):
+        return (json_kwargs.get(kwarg, cls.JSON_KWARG_DEFAULTS[kwarg])
+                for kwarg in kwarg_names)
+
+    @classmethod
+    def paginate(cls, page_items, page_size, total_items, start=1):
         '''Append pagination for collections'''
-        page = start // page_size + 1
+        page = (start - 1) // page_size + 1
         full_pages, remainder = divmod(total_items, page_size)
         total_pages = full_pages + bool(remainder)
-        end = start + len(items) - 1
-        items.append('({start}-{end} of {total_items}; '
-                     'page {page} of {total_pages})'
-                     .format(start=start, end=end, total_items=total_items,
-                             page=page, total_pages=total_pages))
+        end = start + page_items - 1
+        return ('({start}-{end} of {items}; page {page} of {pages})'
+                .format(start=start, end=end, items=total_items,
+                        page=page, pages=total_pages))
 
     def __str__(self):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        jsonified = self.jsonify(depth=1, limit=10)
-        del jsonified[self.JSON_ROOT_KEY]
+        jsonified = self.jsonify(depth=1, limit=10, root=False)
         return stringify(jsonified, limit=-1)

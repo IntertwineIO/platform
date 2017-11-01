@@ -191,7 +191,7 @@ class GeoLocation(object):
         return str(self.coordinates)
 
     def jsonify(self, **json_kwargs):
-        return tuple(str(coordinate) for coordinate in self.values)
+        return self.Coordinates(str(self.latitude), str(self.longitude))
 
     # Container Methods
 

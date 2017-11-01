@@ -381,6 +381,7 @@ class GeoData(BaseGeoModel):
         self._latitude = Coordinate.cast(value).dequantize()
 
     latitude = orm.synonym('_latitude', descriptor=latitude)
+    jsonified_latitude = JsonProperty(name='latitude', hide=True)
 
     @property
     def longitude(self):
@@ -391,6 +392,7 @@ class GeoData(BaseGeoModel):
         self._longitude = Coordinate.cast(value).dequantize()
 
     longitude = orm.synonym('_longitude', descriptor=longitude)
+    jsonified_longitude = JsonProperty(name='longitude', hide=True)
 
     @property
     def location(self):
@@ -403,7 +405,7 @@ class GeoData(BaseGeoModel):
         except AttributeError:
             self.latitude, self.longitude = value
 
-    jsonified_location = JsonProperty(name='location', show=False)
+    jsonified_location = JsonProperty(name='location', after='geo')
 
     @property
     def land_area(self):
@@ -719,7 +721,7 @@ class Geo(BaseGeoModel):
                                       method='jsonify_related_geos',
                                       kwargs=dict(relation=CHILDREN))
 
-    jsonified_path_children = JsonProperty(name=PATH_CHILDREN, show=False)
+    jsonified_path_children = JsonProperty(name=PATH_CHILDREN, hide=True)
 
     PATH_DELIMITER = '/'
 
@@ -1019,20 +1021,20 @@ class Geo(BaseGeoModel):
     def level_up_keys(self):
         return (lvl for lvl in GeoLevel.UP if lvl in set(self.levels))
 
-    jsonified_level_up_keys = JsonProperty(name='level_up_keys', show=False)
+    jsonified_level_up_keys = JsonProperty(name='level_up_keys', hide=True)
 
     @property
     def top_level_key(self):
         return next(self.level_down_keys) if self.levels else None
 
-    jsonified_top_level_key = JsonProperty(name='top_level_key', show=False)
+    jsonified_top_level_key = JsonProperty(name='top_level_key', hide=True)
 
     @property
     def bottom_level_key(self):
         return next(self.level_up_keys) if self.levels else None
 
     jsonified_bottom_level_key = JsonProperty(name='bottom_level_key',
-                                              show=False)
+                                              hide=True)
 
     Key = namedtuple('GeoKey', (HUMAN_ID,))
 
@@ -1403,7 +1405,7 @@ class Geo(BaseGeoModel):
             if len(geos) == limit:
                 total = base_q.filter(GeoLevel.level == lvl).count()
                 if total > limit:
-                    self.append_pagination(rv[lvl], limit, total)
+                    rv[lvl].append(self.paginate(len(rv[lvl]), limit, total))
 
         return rv
 

@@ -97,16 +97,17 @@ def get_problem_connection(axis, problem_a_key, problem_b_key):
     problem_data = (problem_a_key.lower(), problem_b_key.lower())
     problems = []
     for problem_key in problem_data:
-        problem = Problem[problem_key]
-        if problem is None:
+        try:
+            problem = Problem[problem_key]
+        except KeyError:
             raise ResourceDoesNotExist(cls='Problem', key=problem_key)
         problems.append(problem)
 
     problem_a, problem_b = problems
     connection_key = ProblemConnection.Key(axis, problem_a, problem_b)
-    connection = ProblemConnection[connection_key]
-
-    if connection is None:
+    try:
+        connection = ProblemConnection[connection_key]
+    except KeyError:
         raise ResourceDoesNotExist(cls='ProblemConnection', key=connection_key)
 
     return jsonify(connection.jsonify())

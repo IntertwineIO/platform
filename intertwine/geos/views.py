@@ -9,6 +9,7 @@ from flask import abort, jsonify, redirect, render_template, request
 
 from . import blueprint
 from .models import Geo, GeoLevel
+from intertwine.utils.jsonable import Jsonable
 
 
 @blueprint.route('/', methods=['GET'])
@@ -74,18 +75,22 @@ def render_geo(geo_human_id):
 
 
 @blueprint.route('/', methods=['POST'])
-def find_geos():
+def match_geos():
     '''
     Find geos endpoint
 
     Usage:
     curl -H "Content-Type: application/json" -X POST -d '{
-        "match_string": "austin, tx"
+        "match_string": "austin, tx", "match_limit": -1
     }' 'http://localhost:5000/geos/'
     '''
     payload = request.get_json()
     match_string = payload.get('match_string')
+    match_limit = payload.get('match_limit')
+    geo_kwargs = dict(hide={Geo.PARENTS, Geo.CHILDREN, Geo.PATH_CHILDREN},
+                      limit=-1)
+    json_kwarg_map = {Geo: geo_kwargs}
+    if match_limit:
+        json_kwarg_map[object] = dict(limit=match_limit)
     geo_matches = Geo.find_matches(match_string)
-    hide = {Geo.PARENTS, Geo.CHILDREN, Geo.PATH_CHILDREN}
-
-    return jsonify([geo.jsonify(hide=hide) for geo in geo_matches])
+    return jsonify(Jsonable.jsonify_value(geo_matches, json_kwarg_map))

@@ -38,8 +38,8 @@
 
 {% block content %}
 
-{% set root_key = payload['root_key'] %}
-{% set community = payload[root_key] %}
+{% set root = payload['root'] %}
+{% set community = payload[root] %}
 {% set problem = payload[community['problem']] %}
 {% set org = community['org'] %}
 {% set geo = payload[community['geo']] %}
