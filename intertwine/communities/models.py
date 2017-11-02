@@ -10,16 +10,17 @@ from operator import attrgetter
 from past.builtins import basestring
 from sqlalchemy import Column, ForeignKey, Index, desc, orm, types
 
-from .. import IntertwineModel
-from ..geos.models import Geo
-from ..problems.exceptions import InvalidAggregation
-from ..problems.models import AggregateProblemConnectionRating as APCR
-from ..problems.models import ProblemConnection as PC
-from ..problems.models import ProblemConnectionRating as PCR
-from ..problems.models import Problem
-from ..utils.mixins import Jsonable, JsonProperty
-from ..utils.structures import PeekableIterator
-from ..utils.tools import vardygrify
+from intertwine import IntertwineModel
+from intertwine.geos.models import Geo
+from intertwine.problems.exceptions import InvalidAggregation
+from intertwine.problems.models import (
+    AggregateProblemConnectionRating as APCR,
+    ProblemConnection as PC,
+    ProblemConnectionRating as PCR,
+    Problem)
+from intertwine.utils.jsonable import Jsonable, JsonProperty
+from intertwine.utils.structures import PeekableIterator
+from intertwine.utils.tools import vardygrify
 
 BaseCommunityModel = IntertwineModel
 

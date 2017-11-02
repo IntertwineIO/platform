@@ -14,6 +14,7 @@ from sqlalchemy import (Column,
 from intertwine import IntertwineModel
 # from intertwine.third_party import urlnorm
 from intertwine.utils.mixins import AutoTimestampMixin
+from intertwine.utils.jsonable import JsonProperty
 from intertwine.utils.time import FlexTime, UTC
 
 BaseContentModel = IntertwineModel
@@ -140,7 +141,8 @@ class Content(AutoTimestampMixin, BaseContentModel):
     def published_timestamp(self):
         flex_dt = FlexTime.instance(self._published_timestamp)
         localized = flex_dt.astimezone(self.tzinfo_published)
-        return FlexTime.instance(localized, self.granularity_published)
+        return FlexTime.instance(localized, self.granularity_published,
+                                 truncate=True)
 
     @published_timestamp.setter
     def published_timestamp(self, val):
@@ -168,6 +170,9 @@ class Content(AutoTimestampMixin, BaseContentModel):
     def published_timestamp_info(self):
         '''Get publication datetime info namedtuple'''
         return self.published_timestamp.info
+
+    jsonified_published_timestamp_info = JsonProperty(
+        name='published_timestamp_info', after='tzinfo_published')
 
     def set_published_timestamp_info(self, dt, granularity=None, geo=None):
         '''

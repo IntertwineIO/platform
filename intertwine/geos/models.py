@@ -6,12 +6,13 @@ import sys
 from collections import OrderedDict, namedtuple
 from functools import reduce
 
-from sqlalchemy import Column, ForeignKey, Index, Table, desc, orm, types
+from sqlalchemy import Column, ForeignKey, Index, Table, desc, or_, orm, types
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from intertwine import IntertwineModel
 from intertwine.exceptions import (AttributeConflict, CircularReference)
-from intertwine.utils.mixins import JsonProperty
+from intertwine.utils.enums import MatchType
+from intertwine.utils.jsonable import JsonProperty
 from intertwine.utils.space import Area, Coordinate, GeoLocation
 from intertwine.utils.tools import (define_constants_at_module_scope,
                                     find_any_words)
@@ -380,6 +381,7 @@ class GeoData(BaseGeoModel):
         self._latitude = Coordinate.cast(value).dequantize()
 
     latitude = orm.synonym('_latitude', descriptor=latitude)
+    jsonified_latitude = JsonProperty(name='latitude', hide=True)
 
     @property
     def longitude(self):
@@ -390,6 +392,7 @@ class GeoData(BaseGeoModel):
         self._longitude = Coordinate.cast(value).dequantize()
 
     longitude = orm.synonym('_longitude', descriptor=longitude)
+    jsonified_longitude = JsonProperty(name='longitude', hide=True)
 
     @property
     def location(self):
@@ -402,7 +405,7 @@ class GeoData(BaseGeoModel):
         except AttributeError:
             self.latitude, self.longitude = value
 
-    jsonified_location = JsonProperty(name='location', show=False)
+    jsonified_location = JsonProperty(name='location', after='geo')
 
     @property
     def land_area(self):
@@ -654,8 +657,8 @@ class Geo(BaseGeoModel):
     KEYWORDS_FOR_USES_THE = {'states', 'islands', 'republic', 'district'}
 
     uses_the = Column(types.Boolean)  # e.g. 'The United States'
-    _name = Column('name', types.String(60))
-    _abbrev = Column('abbrev', types.String(20))
+    _name = Column('name', types.String(60), index=True)
+    _abbrev = Column('abbrev', types.String(20), index=True)
     _qualifier = Column('qualifier', types.String(60))
     _human_id = Column(HUMAN_ID, types.String(200), index=True, unique=True)
 
@@ -718,7 +721,7 @@ class Geo(BaseGeoModel):
                                       method='jsonify_related_geos',
                                       kwargs=dict(relation=CHILDREN))
 
-    jsonified_path_children = JsonProperty(name=PATH_CHILDREN, show=False)
+    jsonified_path_children = JsonProperty(name=PATH_CHILDREN, hide=True)
 
     PATH_DELIMITER = '/'
 
@@ -1018,20 +1021,20 @@ class Geo(BaseGeoModel):
     def level_up_keys(self):
         return (lvl for lvl in GeoLevel.UP if lvl in set(self.levels))
 
-    jsonified_level_up_keys = JsonProperty(name='level_up_keys', show=False)
+    jsonified_level_up_keys = JsonProperty(name='level_up_keys', hide=True)
 
     @property
     def top_level_key(self):
         return next(self.level_down_keys) if self.levels else None
 
-    jsonified_top_level_key = JsonProperty(name='top_level_key', show=False)
+    jsonified_top_level_key = JsonProperty(name='top_level_key', hide=True)
 
     @property
     def bottom_level_key(self):
         return next(self.level_up_keys) if self.levels else None
 
     jsonified_bottom_level_key = JsonProperty(name='bottom_level_key',
-                                              show=False)
+                                              hide=True)
 
     Key = namedtuple('GeoKey', (HUMAN_ID,))
 
@@ -1218,6 +1221,107 @@ class Geo(BaseGeoModel):
                       key=lambda g: g.data.total_pop if g.data else -1)
 
     @staticmethod
+    def infer_path_component_names(geo_text):
+        '''Infer path component names from geo text'''
+        return (c.strip() for c in reversed(geo_text.split(',')) if c.strip())
+
+    @classmethod
+    def find_matches(cls, match_string, match_type=MatchType.BEST):
+        '''Return matches given a qualified geo match string'''
+        path_components = list(cls.infer_path_component_names(match_string))
+        if not path_components:
+            return []
+        component_match_type = match_type
+        prior_parent = parent = None
+
+        for i, component in enumerate(path_components, start=1):
+            matches = cls.find_component_matches(
+                component, match_type=component_match_type, parent=parent,
+                elevate_exact_matches=len(component) > 1)
+            if not matches:
+                break
+            prior_parent, parent = parent, matches[0]
+
+        if not matches and len(path_components) > 1:
+            matches = cls.find_component_matches(
+                ', '.join((path_components[-1], path_components[-2])),
+                match_type=match_type, parent=prior_parent)
+
+        cls.remove_redundant_aliases(matches)
+        return matches
+
+    @classmethod
+    def find_component_matches(cls, match_string, match_type=MatchType.BEST,
+                               parent=None, elevate_exact_matches=True):
+        '''Find component matches given an unqualified geo match string'''
+        alias_targets = parent.alias_targets if parent else None
+        parent = alias_targets[0] if alias_targets else parent
+        base_query = parent.path_children if parent else cls.query
+
+        if match_type is MatchType.BEST:
+            if len(match_string) < 3 and parent is None:
+                filter_clause = cls.abbrev.like('{}%'.format(match_string))
+            else:
+                filter_clause = or_(
+                    cls.name.like('{}%'.format(match_string)),
+                    cls.name.like('% {}%'.format(match_string)),
+                    cls.abbrev.like('{}%'.format(match_string)))
+        elif match_type is MatchType.EXACT:
+            filter_clause = or_(cls.name.like(match_string),
+                                cls.abbrev.like(match_string))
+        elif match_type is MatchType.CONTAINS:
+            filter_clause = or_(cls.name.contains(match_string),
+                                cls.abbrev.contains(match_string))
+        elif match_type in {MatchType.STARTS_WITH, MatchType.ENDS_WITH}:
+            wildcard_string = ('{}%'.format(match_string)
+                               if match_type is MatchType.STARTS_WITH
+                               else '%{}'.format(match_string))
+            filter_clause = or_(cls.name.like(wildcard_string),
+                                cls.abbrev.like(wildcard_string))
+        else:
+            raise ValueError('Unsupported match type: {!r}'.format(match_type))
+
+        matches = (base_query.outerjoin(cls.data)
+                             .filter(filter_clause)
+                             .order_by(desc(GeoData.total_pop)).all())
+
+        if elevate_exact_matches:
+            cls.elevate_exact_matches(matches, match_string)
+        return matches
+
+    @staticmethod
+    def elevate_exact_matches(matches, match_string):
+        '''Elevate exact matches ignoring case given list of matches'''
+        match_string = match_string.lower()
+        exact_matches = (g for g in matches
+                         if g.name.lower() == match_string or
+                         (g.abbrev and g.abbrev.lower() == match_string))
+        len_matches_before = len(matches)
+        matches[:0] = exact_matches
+        len_matches_after = len(matches)
+        len_exact_matches = len_matches_after - len_matches_before
+        if not len_exact_matches:
+            return
+        for i, g in enumerate(reversed(matches), start=1):
+            if i > len_matches_before:
+                break
+            if (g.name.lower() == match_string or
+                    (g.abbrev and g.abbrev.lower() == match_string)):
+                del matches[len_matches_after - i]
+
+    @staticmethod
+    def remove_redundant_aliases(matches):
+        '''Remove redundant aliases given list of matches'''
+        match_set = set(matches)
+        for geo in reversed(matches):
+            alias_targets = geo.alias_targets
+            if not alias_targets:
+                continue
+            redundent = [at in match_set for at in alias_targets]
+            if sum(redundent) == len(alias_targets):
+                del matches[-1]
+
+    @staticmethod
     def get_largest_geo(*geos):
         '''Return largest of given geos based on population'''
         geo_pop_tuples = ((geo, geo.data.total_pop) for geo in geos)
@@ -1301,7 +1405,7 @@ class Geo(BaseGeoModel):
             if len(geos) == limit:
                 total = base_q.filter(GeoLevel.level == lvl).count()
                 if total > limit:
-                    self.append_pagination(rv[lvl], limit, total)
+                    rv[lvl].append(self.paginate(len(rv[lvl]), limit, total))
 
         return rv
 

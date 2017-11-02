@@ -136,7 +136,8 @@ def load_geos(geo_session, session):
     load_subdivision2_geos(geo_session, session)
     load_subdivision3_geos(geo_session, session)
     load_place_geos(geo_session, session)
-    # load_cbsa_geos(geo_session, session)
+    load_cbsa_geos(geo_session, session)
+    load_manual_fixes(geo_session, session)
 
     return Trackable.catalog_updates()
 
@@ -559,14 +560,14 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
         stusps = State.get_by('statefp', r.ghrp_statefp).stusps
         if stusps != prior_stusps:
             state = us[stusps]
-            print(u'{state} - {name}'.format(
+            print('{state} - {name}'.format(
                 state=state.abbrev, name=state.name))
             prior_stusps = stusps
 
         countyid = r.ghrp_countyid
         if countyid != prior_countyid:
             county = GeoID[FIPS, r.ghrp_countyid].level.geo
-            print(u"\t{name}, {state} ({standard}, '{code}')"
+            print("\t{name}, {state} ({standard}, '{code}')"
                   .format(name=county.name, state=state.abbrev, standard=ANSI,
                           code=r.ghrp_countyns))
             prior_countyid = countyid
@@ -745,7 +746,7 @@ def load_place_geos(geo_session, session, sub1keys=None, placeids=None):
         stusps = State.get_by('statefp', r.ghrp_statefp).stusps
         if stusps != prior_stusps:
             state = us[stusps]
-            print(u'{state} - {name}'.format(state=stusps, name=state.name))
+            print('{state} - {name}'.format(state=stusps, name=state.name))
             prior_stusps = stusps
 
         countyid = r.ghrp_countyid
@@ -760,7 +761,7 @@ def load_place_geos(geo_session, session, sub1keys=None, placeids=None):
         if cousubid != prior_cousubid:
             # Exclusively water areas of states fall into this category
             if cousubns == '00000000':
-                print(u'\t\tSkipping place with undefined cousub: '
+                print('\t\tSkipping place with undefined cousub: '
                       "{name} ({standard}, '{code}')"
                       .format(name=r.ghrp_name, standard=ANSI, code=cousubns))
                 continue
@@ -786,7 +787,7 @@ def load_place_geos(geo_session, session, sub1keys=None, placeids=None):
                     not place_created_from_cousub):
                 tracker['cousub_missing_places'].append(cousub)
 
-            print(u'\t{name}, {state} ({standard}, {placens}) is '
+            print('\t{name}, {state} ({standard}, {placens}) is '
                   "{skipped_place} cousub {cousub} ({standard}, '{cousubns}')"
                   .format(name=r.ghrp_name, state=state.abbrev, standard=ANSI,
                           placens=placens, cousub=cousub.name,
@@ -859,12 +860,6 @@ def load_place_geos(geo_session, session, sub1keys=None, placeids=None):
         if r.ghrp_countycc in {'H6', 'C7'}:
             tracker['consolidated'].append((county, cousub, place, created))
 
-    # Fix ñ in Española, NM. Note: ñ appears correctly elsewhere:
-    # Peñasco, NM; Cañones, NM; La Cañada Flintridge, CA; etc.
-    esp = Geo.tget(u'us/nm/espanola')
-    if esp:
-        esp.name = u'Espa\xf1ola'  # Geo[u'us/nm/espa\xf1ola']
-
     for key, value in tracker.items():
         print(' '.join(word.capitalize() for word in key.split('_')) + ':')
         print(value)
@@ -935,13 +930,13 @@ def manifest_geo(name, lsad, path_parent, state, county,
             # Happy path 1: Geo with matching ANSI code
             #
             if geo.data.matches(inexact=1, **data_match_dict):
-                print(u'{}Geo with matching ANSI code and data'.format(indent))
+                print('{}Geo with matching ANSI code and data'.format(indent))
                 # If cousub spans counties, replace calculated coordinates
                 if ansi_glvl.level == SUBDIVISION3 and len(counties) > 1:
                     geo.data.latitude = data_record.latitude
                     geo.data.longitude = data_record.longitude
             else:
-                print(u'{}Updating data mismatch on ANSI match'.format(indent))
+                print('{}Updating data mismatch on ANSI match'.format(indent))
                 if tracker is not None:
                     old_data_dict = geo.data.jsonify(
                         nest=True, hide={'id', 'geo', 'total_area'})
@@ -977,7 +972,7 @@ def manifest_geo(name, lsad, path_parent, state, county,
             pass  # Execution proceeds after else clause
 
         else:
-            print(u'{}Found geo with data matching county'.format(indent))
+            print('{}Found geo with data matching county'.format(indent))
 
             geo = county  # e.g. San Francisco, DC, and Carson City
 
@@ -1003,7 +998,7 @@ def manifest_geo(name, lsad, path_parent, state, county,
             pass  # Execution proceeds after else clause
 
         else:
-            print(u'{}Found geo with data matching cousub'.format(indent))
+            print('{}Found geo with data matching cousub'.format(indent))
 
             # Create place from matching cousub if one doesn't exist yet
             if cousub.path_parent is county:
@@ -1104,7 +1099,7 @@ def manifest_geo(name, lsad, path_parent, state, county,
         #
         try:
             geo.qualifier, geo.path_parent = lsad, path_parent
-            print(u'{indent}Geos with same name in {state}: {geos}'
+            print('{indent}Geos with same name in {state}: {geos}'
                   .format(indent=indent, state=state.abbrev,
                           geos=(geo_conflict.human_id, geo.human_id)))
             continue  # Execution proceeds after single loop
@@ -1139,7 +1134,7 @@ def manifest_geo(name, lsad, path_parent, state, county,
         geo.qualifier, geo.path_parent = (
             ' in '.join((lsad, county.name)), path_parent)
 
-        print(u'{indent}Geos with same name/lsad in {state}: {geos}'
+        print('{indent}Geos with same name/lsad in {state}: {geos}'
               .format(indent=indent, state=state.abbrev,
                       geos=(lsad_geo_conflict.human_id, geo.human_id)))
 
@@ -1262,12 +1257,12 @@ def resolve_geo_conflict(geo_conflict, geo, lsad, state):
         # it conflicts with 'Winnebago City', also in Faribault County.
         #
         # Resolution:
-        # Geo[u'us/mn/winnebago'] alias targeting:
-        #     Geo[u'us/mn/winnebago_city_in_faribault_county']
-        #     Geo[u'us/mn/winnebago_township']
-        # Geo[u'us/mn/winnebago_city'] alias targeting:
-        #     Geo[u'us/mn/winnebago_city_in_faribault_county']
-        #     Geo[u'us/mn/winnebago_city_township_in_faribault_county']
+        # Geo['us/mn/winnebago'] alias targeting:
+        #     Geo['us/mn/winnebago_city_in_faribault_county']
+        #     Geo['us/mn/winnebago_township']
+        # Geo['us/mn/winnebago_city'] alias targeting:
+        #     Geo['us/mn/winnebago_city_in_faribault_county']
+        #     Geo['us/mn/winnebago_city_township_in_faribault_county']
         #
         qualified_geo_conflict_key = Geo.create_key(
             name=geo_conflict.name, qualifier=geo_conflict_qualifier,
@@ -1314,13 +1309,13 @@ def resolve_geo_conflict(geo_conflict, geo, lsad, state):
             # Union City  township  Montgomery County  union_city
             #
             # Resolution:
-            # Geo[u'us/oh/union'] alias targeting 28 geos, including:
-            #     Geo[u'us/oh/union_city_in_miami_county']
-            # Geo[u'us/oh/union_city'] alias targeting:
-            #     Geo[u'us/oh/union_city_in_miami_county']
-            #     Geo[u'us/oh/union_city_township_in_montgomery_county']
-            # Geo[u'us/oh/union_city_township'] alias targeting:
-            #     Geo[u'us/oh/union_city_township_in_montgomery_county']
+            # Geo['us/oh/union'] alias targeting 28 geos, including:
+            #     Geo['us/oh/union_city_in_miami_county']
+            # Geo['us/oh/union_city'] alias targeting:
+            #     Geo['us/oh/union_city_in_miami_county']
+            #     Geo['us/oh/union_city_township_in_montgomery_county']
+            # Geo['us/oh/union_city_township'] alias targeting:
+            #     Geo['us/oh/union_city_township_in_montgomery_county']
             #
             try:
                 lsad_geo_alias = Geo(name=geo.name, qualifier=lsad,
@@ -1340,7 +1335,7 @@ def resolve_geo_conflict(geo_conflict, geo, lsad, state):
                 geo_conflict.get_related_geos(relation=PARENTS,
                                               level=SUBDIVISION2)[0].name))
 
-        print(u'\t\tGeo conflict itself conflicts when '
+        print('\t\tGeo conflict itself conflicts when '
               'qualified by lsad in {state}: {geos}'
               .format(state=state.abbrev, geos=(
                qgc.human_id, geo_conflict.human_id)))
@@ -1816,14 +1811,14 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
         sorted_places = sorted(cbsa_places.keys(),
                                key=lambda p: cbsa_places[p],
                                reverse=True)
-        print(u'\t{cbsa}:'.format(cbsa=cbsa.trepr()))
+        print('\t{cbsa}:'.format(cbsa=cbsa.trepr()))
         for i, place in enumerate(sorted_places):
             if i == 10:
                 print('\t\t(10 of {} places)'.format(len(sorted_places)))
                 break
             cbsa_pop = cbsa_places[place]
             pop_total = place.data.total_pop
-            print (u'\t\t{place}{main}: {cbsa_pop:,}'.format(
+            print ('\t\t{place}{main}: {cbsa_pop:,}'.format(
                     place=place.trepr(),
                     main='*' if place == cbsa_main_place else '',
                     cbsa_pop=cbsa_pop) +
@@ -1835,19 +1830,40 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
         p1_geo, p1_pop = p1_tuple
         p2_geo, p2_pop = p2_tuple
         p1_total, p2_total = p1_geo.data.total_pop, p2_geo.data.total_pop
-        print(u'\t{cbsa}:'.format(cbsa=cbsa.trepr()))
+        print('\t{cbsa}:'.format(cbsa=cbsa.trepr()))
         print(
-            u'\t\t{p1_geo}: {p1_pop:,}'.format(
+            '\t\t{p1_geo}: {p1_pop:,}'.format(
                 p1_geo=p1_geo.trepr(),
                 p1_pop=p1_pop) +
             (' of {p1_total:,}'.format(
                 p1_total=p1_total) if p1_pop != p1_total else ''))
         print(
-            u'\t\t{p2_geo}: {p2_pop:,} of {p2_total:,}'.format(
+            '\t\t{p2_geo}: {p2_pop:,} of {p2_total:,}'.format(
                 p2_geo=p2_geo.trepr(),
                 p2_pop=p2_pop) +
             (' of {p2_total:,}'.format(
                 p2_total=p2_total) if p2_pop != p2_total else ''))
+
+
+def load_manual_fixes(geo_session, session):
+    '''Load manual fixes'''
+    # TODO: Add verbose state aliases, prevent us/washington DC alias,
+    # and create new us/dc/washington
+    wdc = Geo.tget('us/washington')
+    wdc.path_parent = Geo['us/dc']
+
+    la = Geo.tget('us/ca/los_angeles')
+    la.abbrev = 'L.A.'
+
+    la = Geo.tget('us/ny/new_york')
+    la.abbrev = 'N.Y.'
+
+    # Fix ñ in Española, NM. Note: ñ appears correctly elsewhere:
+    # Peñasco, NM; Cañones, NM; La Cañada Flintridge, CA; etc.
+    esp = Geo.tget('us/nm/espanola')
+    if esp:
+        esp.name = 'Espa\xf1ola'  # Geo['us/nm/española']
+
 
 if __name__ == '__main__':
     # Session for geo.db, which contains the geo source data

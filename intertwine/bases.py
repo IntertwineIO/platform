@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 from alchy.model import ModelBase
 
-from .trackable import Trackable
-from .utils.mixins import AutoTableMixin, Jsonable
+from intertwine.trackable import Trackable
+from intertwine.utils.jsonable import Jsonable
+from intertwine.utils.mixins import AutoTableMixin
 
 
 class BaseIntertwineMeta(Trackable):

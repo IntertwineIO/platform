@@ -75,8 +75,8 @@ def test_add_rated_problem_connection(session, client, connection_category,
 
     response_data = response.get_data(as_text=True)
     response_payload = json.loads(response_data)
-    root_key = response_payload['root_key']
-    rated_connection = response_payload[root_key]
+    root = response_payload['root']
+    rated_connection = response_payload[root]
 
     assert rated_connection['adjacent_problem_name'] == problem2_name
     assert rated_connection['aggregation'] == APCR.STRICT

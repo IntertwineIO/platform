@@ -7,6 +7,8 @@ import sys
 from collections import Counter, OrderedDict, namedtuple
 from operator import eq, attrgetter, itemgetter
 
+from .tools import nth_key
+
 # Python version compatibilities
 if sys.version_info < (3,):
     lmap = map  # legacy map returning list
@@ -36,17 +38,21 @@ class InsertableOrderedDict(OrderedDict):
         '''Property for accessing inherited dict'''
         return super(InsertableOrderedDict, self)
 
-    def insert(self, insert_key, key, value, after=False):
+    def insert(self, reference, key, value, after=False, by_index=False):
         '''
         Insert a key/value pair
 
         I/O:
-        insert_key  Reference key used for insertion
-        key         Key to be inserted
-        value       Value to be inserted
-        after=False If True, inserts after reference key
-        return      None
+        reference: Key/index used to guide insertion based on by_index
+        key: Key to be inserted
+        value: Value to be inserted
+        after=False: If True, inserts after reference key
+        by_index=False: If True, use reference as index for insertion;
+            by default, use reference as key for insertion
+        return: None
         '''
+        insert_key = nth_key(self.keys(), reference) if by_index else reference
+
         if after:
             prior_key = insert_key
             next_key = self._get(insert_key).next

@@ -7,10 +7,10 @@ import flask
 from flask import abort, redirect, render_template
 
 from . import blueprint
-from ..geos.models import Geo
-from ..problems.models import Problem, ProblemConnection
-from ..utils.mixins import Jsonable
-from ..utils.tools import vardygrify
+from intertwine.geos.models import Geo
+from intertwine.problems.models import Problem, ProblemConnection
+from intertwine.utils.jsonable import Jsonable
+from intertwine.utils.tools import vardygrify
 from .models import Community
 
 
