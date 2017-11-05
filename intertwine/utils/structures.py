@@ -51,7 +51,7 @@ class InsertableOrderedDict(OrderedDict):
             by default, use reference as key for insertion
         return: None
         '''
-        insert_key = nth_key(self.keys(), reference) if by_index else reference
+        insert_key, after = self._derive_insertion(reference, after, by_index)
 
         if after:
             prior_key = insert_key
@@ -70,6 +70,27 @@ class InsertableOrderedDict(OrderedDict):
     def prepend(self, key, value):
         self._insert_between(key=key, value=value, next_key=self._beg,
                              prior_key=self.sentinel)
+
+    def _derive_insertion(self, reference, after, by_index):
+        valid = False
+        try:
+            insert_key = (nth_key(self.keys(), reference) if by_index
+                          else reference)
+            return insert_key, after
+
+        except ValueError:
+            if reference == -1 and after:
+                reference, after, valid = 0, False, True
+        except StopIteration:
+            if reference == len(self) and not after:
+                reference, after, valid = len(self) - 1, True, True
+
+        if not valid:
+            raise ValueError('Insert reference out of range: {rel} {idx}'
+                             .format(rel='after' if after else 'before',
+                                     idx=reference))
+        insert_key = nth_key(self.keys(), reference)
+        return insert_key, after
 
     def _insert_between(self, key, value, next_key, prior_key):
         if self.get(key, self.sentinel) is not self.sentinel:

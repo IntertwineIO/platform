@@ -14,20 +14,6 @@ from intertwine.utils.tools import vardygrify
 from .models import Community
 
 
-def configure_community_json():
-    config = {}
-    config['.aggregate_ratings'] = -2
-    for category in ProblemConnection.CATEGORY_MAP:
-        config[Jsonable.form_path('.problem', category)] = 0
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'rating')] = 1
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'adjacent_problem_name')] = 1
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'adjacent_community_url')] = 1
-    return config
-
-
 @blueprint.route('/', methods=['GET'])
 def render():
     '''Generic page rendering for top level'''
@@ -108,3 +94,17 @@ def render_community(problem_human_id, geo_human_id):
         title=community.name,
         payload=payload)
     return template
+
+
+def configure_community_json():
+    config = {}
+    config['.aggregate_ratings'] = -2
+    for category in ProblemConnection.CATEGORY_MAP:
+        config[Jsonable.form_path('.problem', category)] = 0
+        config[Jsonable.form_path('.aggregate_ratings', category,
+                                  'rating')] = 1
+        config[Jsonable.form_path('.aggregate_ratings', category,
+                                  'adjacent_problem_name')] = 1
+        config[Jsonable.form_path('.aggregate_ratings', category,
+                                  'adjacent_community_url')] = 1
+    return config

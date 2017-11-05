@@ -68,7 +68,7 @@ class Community(BaseCommunityModel):
             geo_clause=(' in {geo}'.format(
                 geo=self.geo.display(show_abbrev=False)) if self.geo else ''))
 
-    jsonified_name = JsonProperty(name='name', after='id')
+    jsonified_name = JsonProperty(name='name', begin=True)
 
     @property
     def uri(self):
@@ -295,13 +295,11 @@ class Community(BaseCommunityModel):
         followed by unrated connections sequenced alphabetically.
         '''
         _json = json_kwargs['_json']
-        tight = json_kwargs['tight']
-        raw = json_kwargs['raw']
         rated_connections = set()
         for aggregate_rating in aggregate_ratings:
             rated_connections.add(aggregate_rating.connection)
 
-            ar_key = aggregate_rating.trepr(tight=tight, raw=raw)
+            ar_key = aggregate_rating.json_key(**json_kwargs)
             if depth > 1 and ar_key not in _json:
                 aggregate_rating.jsonify(depth=depth - 1, **json_kwargs)
 
@@ -320,7 +318,7 @@ class Community(BaseCommunityModel):
                                               rating=APCR.NO_RATING,
                                               weight=APCR.NO_WEIGHT)
 
-                ar_key = aggregate_rating.trepr(tight=tight, raw=raw)
+                ar_key = aggregate_rating.json_key(**json_kwargs)
                 if depth > 1 and ar_key not in _json:
                     aggregate_rating.jsonify(depth=depth - 1, **json_kwargs)
 

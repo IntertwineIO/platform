@@ -7,6 +7,7 @@ from collections import OrderedDict, namedtuple
 from functools import reduce
 
 from sqlalchemy import Column, ForeignKey, Index, Table, desc, or_, orm, types
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from intertwine import IntertwineModel
@@ -210,8 +211,7 @@ class GeoLevel(BaseGeoModel):
 
     def jsonify_ids(self, nest, hide, **json_kwargs):
         geoids_json = OrderedDict()
-        hidden = set(hide)
-        hidden |= {'id', GeoID.LEVEL, GeoID.STANDARD}  # union update
+        hidden = set(hide) | self.ID_FIELDS | {GeoID.LEVEL, GeoID.STANDARD}
         for standard, geoid in self.ids.items():
             geoids_json[standard] = geoid.jsonify(nest=True, hide=hidden,
                                                   **json_kwargs)
@@ -981,8 +981,7 @@ class Geo(BaseGeoModel):
 
     def jsonify_data(self, nest, hide, **json_kwargs):
         data = self.data
-        hidden = set(hide)
-        hidden |= {'id', GeoData.GEO}  # union update
+        hidden = set(hide) | self.ID_FIELDS | {GeoData.GEO}
         return (data.jsonify(nest=True, hide=hidden, **json_kwargs)
                 if data else None)
 
@@ -1002,8 +1001,8 @@ class Geo(BaseGeoModel):
     def jsonify_levels(self, nest, hide, **json_kwargs):
         levels_json = OrderedDict()
         levels = self.levels
-        hidden = set(hide)  # copy to just affect levels
-        hidden |= {'id', GeoLevel.GEO, GeoLevel.LEVEL}  # union update
+        # copy to just affect levels
+        hidden = set(hide) | self.ID_FIELDS | {GeoLevel.GEO, GeoLevel.LEVEL}
         for lvl in GeoLevel.DOWN:
             if lvl in levels:
                 levels_json[lvl] = levels[lvl].jsonify(nest=True, hide=hidden,
@@ -1104,7 +1103,7 @@ class Geo(BaseGeoModel):
                 # The geo for the geolevel should always be self. If a geo
                 # key is provided, make sure it matches and remove it.
                 glvl_geo = new_glvl.get(GeoLevel.GEO, None)
-                if glvl_geo == self.trepr(tight=True, raw=False):
+                if glvl_geo == self.trepr(raw=False, tight=True):
                     new_glvl = glvl.copy()
                     new_glvl.pop(GeoLevel.GEO)
                 elif glvl_geo is not None:
@@ -1328,30 +1327,51 @@ class Geo(BaseGeoModel):
         largest = reduce(lambda x, y: x if x[1] > y[1] else y, geo_pop_tuples)
         return largest[0]
 
-    def get_related_geos(self, relation, level=None):
+    def get_related_geos(self, relation, level=None, include_aliases=False,
+                         order_by=None, outer_join_data=False):
         '''
         Get related geos (e.g. parents/children)
 
-        Given a relation, returns a list of related geos in descending
-        order by total population. Any geos missing data and/or levels
-        (e.g. aliases) are excluded.
+        Given a relation, returns a list of related geos at the given
+        level (if specified).
 
         I/O:
         relation: parents, children, path_children, etc.
         level=None: filter results by level, if provided
+        include_aliases=False: if True, include aliases
+        order_by=None: by default, order by total population, descending
+        outer_join_data=False: outer join Data if True or if including
+            aliases else inner join; only applicable if data is required
         '''
         if relation not in self.RELATIONS:
             raise ValueError('{rel} is not an allowed value for relation'
                              .format(rel=relation))
-        if level:
-            rv = (getattr(self, relation).join(Geo.data).join(Geo.levels)
-                  .filter(GeoLevel.level == level)
-                  .order_by(desc(GeoData.total_pop)).all())
-        else:
-            rv = (getattr(self, relation).join(Geo.data)
-                  .order_by(desc(GeoData.total_pop)).all())
 
-        return rv
+        query = getattr(self, relation)
+
+        outer_join_data_required = outer_join_data or include_aliases
+        # default order_by to total_pop descending, which requires data
+        if order_by is None:
+            query = (query.outerjoin(Geo.data) if outer_join_data_required else
+                     query.join(Geo.data))
+
+        if level:
+            query = (query.outerjoin(Geo.levels) if include_aliases else
+                     query.join(Geo.levels))
+            query = query.filter(GeoLevel.level == level)
+
+        if not include_aliases:
+            query = query.filter(~Geo.alias_targets.any())
+
+        order_by = desc(GeoData.total_pop) if order_by is None else order_by
+        query = query.order_by(order_by)
+
+        try:
+            return query.all()
+        except OperationalError:
+            query = (query.outerjoin(Geo.data) if outer_join_data_required else
+                     query.join(Geo.data))
+            return query.all()
 
     def data_matches(self, geos, inexact=0):
 
@@ -1371,9 +1391,8 @@ class Geo(BaseGeoModel):
         levels (e.g. aliases) are excluded.
 
         I/O:
-        tight=True: make all repr values tight (without whitespace)
-        raw=False: when True, add extra escapes (for printing)
-        limit=10: cap list items within each level; no cap if negative
+        relation: 'parents', 'children', 'path_children', etc.
+        json_kwargs: JSON keyword arguments per Jsonable.jsonify()
         '''
         limit = json_kwargs['limit']
 
@@ -1412,10 +1431,8 @@ class Geo(BaseGeoModel):
     def jsonify_geo(self, geo, depth, **json_kwargs):
         '''Jsonify geo'''
         _json = json_kwargs['_json']
-        tight = json_kwargs['tight']
-        raw = json_kwargs['raw']
 
-        geo_key = geo.trepr(tight=tight, raw=raw)
+        geo_key = geo.json_key(depth=depth, **json_kwargs)
         if depth > 1 and geo_key not in _json:
             geo.jsonify(depth=depth - 1, **json_kwargs)
 

@@ -7,6 +7,7 @@ import inspect
 import numbers
 import re
 import sys
+from collections import namedtuple
 from functools import partial
 from itertools import chain, islice
 from mock import create_autospec
@@ -81,7 +82,7 @@ def _derive_defaults_py2(func):
 
     Never use directly; use derive_defaults instead.
     '''
-    args, varargs, keywords, defaults = inspect.getargspec(func)
+    args, _, _, defaults, _, _, _ = gethalffullargspec(func)
     return zip(args[-len(defaults):], defaults)
 
 
@@ -103,6 +104,29 @@ def find_any_words(text, words):
         if text_word in search_words:
             return True
     return False
+
+
+if sys.version_info < (3,):
+    FullArgSpec = namedtuple('FullArgSpec', 'args, varargs, varkw, defaults, '
+                             'kwonlyargs, kwonlydefaults, annotations')
+
+
+def gethalffullargspec(func):
+    '''
+    gethalffullargspec
+
+    Call getfullargspec (py3) or getargspec (py2) and return the py3
+    FullArgSpec namedtuple in both cases - hence, it's 1/2 full...
+    FullArgSpec has a varkw term instead of ArgSpec's keywords term.
+    In py2, kwonlyargs, kwonlydefaults, and annotations are None.
+    '''
+    try:  # py3
+        return inspect.getfullargspec(func)
+
+    except AttributeError:  # py2
+        argspec = inspect.getargspec(func)
+        return FullArgSpec(
+            kwonlyargs=None, kwonlydefaults=None, annotations=None, *argspec)
 
 
 def isiterator(iterable):
@@ -314,8 +338,8 @@ def vardygrify(cls, **kwds):
 
         try:
             # works if attribute is a function
-            argspec = inspect.getargspec(attribute)
-            args = argspec.args
+            fullargspec = gethalffullargspec(attribute)
+            args = fullargspec.args
             if (len(args) > 0 and args[0] == 'self' and
                     attr_name not in INCLUDED_BUILTINS):
                 setattr(vardygr, attr_name, partial(attribute, vardygr))
