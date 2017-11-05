@@ -403,7 +403,11 @@ class Trackable(ModelMeta):
         if not args:
             return kwds
 
-        init_args = inspect.getargspec(cls.__init__)[0]
+        try:  # py3
+            init_args = inspect.getfullargspec(cls.__init__).args
+        except AttributeError:  # py2
+            init_args = inspect.getargspec(cls.__init__).args
+
         arg_names_gen = islice(init_args, 1, len(args) + 1)
 
         for arg_name, arg_value in zip(arg_names_gen, args):
