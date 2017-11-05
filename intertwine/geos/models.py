@@ -7,6 +7,7 @@ from collections import OrderedDict, namedtuple
 from functools import reduce
 
 from sqlalchemy import Column, ForeignKey, Index, Table, desc, or_, orm, types
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from intertwine import IntertwineModel
@@ -1328,30 +1329,51 @@ class Geo(BaseGeoModel):
         largest = reduce(lambda x, y: x if x[1] > y[1] else y, geo_pop_tuples)
         return largest[0]
 
-    def get_related_geos(self, relation, level=None):
+    def get_related_geos(self, relation, level=None, include_aliases=False,
+                         order_by=None, outer_join_data=False):
         '''
         Get related geos (e.g. parents/children)
 
-        Given a relation, returns a list of related geos in descending
-        order by total population. Any geos missing data and/or levels
-        (e.g. aliases) are excluded.
+        Given a relation, returns a list of related geos at the given
+        level (if specified).
 
         I/O:
         relation: parents, children, path_children, etc.
         level=None: filter results by level, if provided
+        include_aliases=False: if True, include aliases
+        order_by=None: by default, order by total population, descending
+        outer_join_data=False: outer join Data if True or if including
+            aliases else inner join; only applicable if data is required
         '''
         if relation not in self.RELATIONS:
             raise ValueError('{rel} is not an allowed value for relation'
                              .format(rel=relation))
-        if level:
-            rv = (getattr(self, relation).join(Geo.data).join(Geo.levels)
-                  .filter(GeoLevel.level == level)
-                  .order_by(desc(GeoData.total_pop)).all())
-        else:
-            rv = (getattr(self, relation).join(Geo.data)
-                  .order_by(desc(GeoData.total_pop)).all())
 
-        return rv
+        query = getattr(self, relation)
+
+        outer_join_data_required = outer_join_data or include_aliases
+        # default order_by to total_pop descending, which requires data
+        if order_by is None:
+            query = (query.outerjoin(Geo.data) if outer_join_data_required else
+                     query.join(Geo.data))
+
+        if level:
+            query = (query.outerjoin(Geo.levels) if include_aliases else
+                     query.join(Geo.levels))
+            query = query.filter(GeoLevel.level == level)
+
+        if not include_aliases:
+            query = query.filter(~Geo.alias_targets.any())
+
+        order_by = desc(GeoData.total_pop) if order_by is None else order_by
+        query = query.order_by(order_by)
+
+        try:
+            return query.all()
+        except OperationalError:
+            query = (query.outerjoin(Geo.data) if outer_join_data_required else
+                     query.join(Geo.data))
+            return query.all()
 
     def data_matches(self, geos, inexact=0):
 
