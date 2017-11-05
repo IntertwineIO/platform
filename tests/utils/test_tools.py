@@ -38,14 +38,10 @@ def test_vardygrify(session, problem_name, org_name, geo_name, num_followers):
     vardygr_community = vardygrify(Community, **community_kwds)
 
     # Hide ids, since they will differ
-    json_config = {
-        '.id': 0,
-        '.problem.id': 0,
-        '.geo.id': 0,
-    }
+    hide = Community.ID_FIELDS
 
-    real_community_payload = real_community.jsonify(config=json_config)
-    vardygr_community_payload = vardygr_community.jsonify(config=json_config)
+    real_community_payload = real_community.jsonify(hide=hide)
+    vardygr_community_payload = vardygr_community.jsonify(hide=hide)
     assert real_community_payload == vardygr_community_payload
 
     real_community_json = json.dumps(real_community_payload)

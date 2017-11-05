@@ -211,8 +211,7 @@ class GeoLevel(BaseGeoModel):
 
     def jsonify_ids(self, nest, hide, **json_kwargs):
         geoids_json = OrderedDict()
-        hidden = set(hide)
-        hidden |= {'id', GeoID.LEVEL, GeoID.STANDARD}  # union update
+        hidden = set(hide) | self.ID_FIELDS | {GeoID.LEVEL, GeoID.STANDARD}
         for standard, geoid in self.ids.items():
             geoids_json[standard] = geoid.jsonify(nest=True, hide=hidden,
                                                   **json_kwargs)
@@ -982,8 +981,7 @@ class Geo(BaseGeoModel):
 
     def jsonify_data(self, nest, hide, **json_kwargs):
         data = self.data
-        hidden = set(hide)
-        hidden |= {'id', GeoData.GEO}  # union update
+        hidden = set(hide) | self.ID_FIELDS | {GeoData.GEO}
         return (data.jsonify(nest=True, hide=hidden, **json_kwargs)
                 if data else None)
 
@@ -1003,8 +1001,8 @@ class Geo(BaseGeoModel):
     def jsonify_levels(self, nest, hide, **json_kwargs):
         levels_json = OrderedDict()
         levels = self.levels
-        hidden = set(hide)  # copy to just affect levels
-        hidden |= {'id', GeoLevel.GEO, GeoLevel.LEVEL}  # union update
+        # copy to just affect levels
+        hidden = set(hide) | self.ID_FIELDS | {GeoLevel.GEO, GeoLevel.LEVEL}
         for lvl in GeoLevel.DOWN:
             if lvl in levels:
                 levels_json[lvl] = levels[lvl].jsonify(nest=True, hide=hidden,
@@ -1105,7 +1103,7 @@ class Geo(BaseGeoModel):
                 # The geo for the geolevel should always be self. If a geo
                 # key is provided, make sure it matches and remove it.
                 glvl_geo = new_glvl.get(GeoLevel.GEO, None)
-                if glvl_geo == self.trepr(tight=True, raw=False):
+                if glvl_geo == self.trepr(raw=False, tight=True):
                     new_glvl = glvl.copy()
                     new_glvl.pop(GeoLevel.GEO)
                 elif glvl_geo is not None:
@@ -1393,9 +1391,8 @@ class Geo(BaseGeoModel):
         levels (e.g. aliases) are excluded.
 
         I/O:
-        tight=True: make all repr values tight (without whitespace)
-        raw=False: when True, add extra escapes (for printing)
-        limit=10: cap list items within each level; no cap if negative
+        relation: 'parents', 'children', 'path_children', etc.
+        json_kwargs: JSON keyword arguments per Jsonable.jsonify()
         '''
         limit = json_kwargs['limit']
 
@@ -1434,10 +1431,8 @@ class Geo(BaseGeoModel):
     def jsonify_geo(self, geo, depth, **json_kwargs):
         '''Jsonify geo'''
         _json = json_kwargs['_json']
-        tight = json_kwargs['tight']
-        raw = json_kwargs['raw']
 
-        geo_key = geo.trepr(tight=tight, raw=raw)
+        geo_key = geo.json_key(depth=depth, **json_kwargs)
         if depth > 1 and geo_key not in _json:
             geo.jsonify(depth=depth - 1, **json_kwargs)
 

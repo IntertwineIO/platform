@@ -16,4 +16,12 @@ class BaseIntertwineMeta(InitiationMetaMixin, Trackable):
 
 class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
                           ModelBase):
-    pass
+
+    def json_key(self, key_type=None, raw=False, tight=True, **kwds):
+        '''JSON key supports NATURAL_KEY (default), URI, and PRIMARY_KEY'''
+        if not key_type or key_type is self.JsonKeyType.NATURAL_KEY:
+            return self.trepr(raw=raw, tight=tight)
+        if key_type is self.JsonKeyType.URI:
+            return self.uri
+        return super(BaseIntertwineModel, self).json_key(
+            key_type=key_type, raw=raw, tight=tight, **kwds)

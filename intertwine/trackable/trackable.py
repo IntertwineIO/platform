@@ -26,7 +26,7 @@ else:
     U_LITERAL = ''
 
 
-def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
+def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
     '''
     Trackable Representation (trepr)
 
@@ -39,14 +39,12 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
     named=False:     By default, named tuples are treated as regular
                      tuples. Set to True to print named tuple info.
 
-    tight=False:     By default, newlines/indents are added when a line
-                     exceeds max_width. Excludes whitespace when True.
-
     raw=True:        By default, escaped values are escaped again to
                      display raw values when printed, just as repr does.
-                     Set to False for unicode characters to print as
-                     intended or if the unicode must be correct when not
-                     printed, such as when embedding in JSON.
+                     If False, unicode characters print as intended.
+
+    tight=False:     By default, newlines/indents are added when a line
+                     exceeds max_width. Excludes whitespace when True.
 
     outclassed=True: By default, the outer class and []'s are included
                      in the return value so it evals to the instance.
@@ -70,11 +68,10 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
     try:
         key = self.derive_key()
     except AttributeError:
-        return repr(self)
-
-    if isinstance(self, basestring):
+        if isinstance(self, basestring) and not raw:
+            return u"{u}'{s}'".format(u=U_LITERAL, s=self)
         # repr adds u''s and extra escapes for printing unicode
-        return repr(self) if raw else u"{u}'{s}'".format(u=U_LITERAL, s=self)
+        return repr(self)
 
     osqb, op, cp, csqb = '[', '(', ')', ']'
     cls = self.__class__.__name__
@@ -94,12 +91,12 @@ def trepr(self, named=False, tight=False, raw=True, outclassed=True, _lvl=0):
         #                     key_cls_name=key.__class__.__name__))
         treprs = [u'{f}={trepr}'.format(
                   f=f, trepr=trepr(getattr(key, f),
-                                   named, tight, raw, outclassed, _lvl + 1))
+                                   named, raw, tight, outclassed, _lvl + 1))
                   for f in key._fields]
 
     except (ValueError, AttributeError):
         key_name = ''
-        treprs = [trepr(v, named, tight, raw, outclassed, _lvl + 1)
+        treprs = [trepr(v, named, raw, tight, outclassed, _lvl + 1)
                   for v in key]
 
     all_1_line = (u'{cls}{osqb}{key_name}{op}{treprs}{cp}{csqb}'
@@ -281,8 +278,8 @@ class Trackable(ModelMeta):
         # Track any new or modified instances
         attr['_updates'] = set()
         # Provide default __repr__()
-        custom_repr = attr.get('__repr__', None)
-        attr['__repr__'] = _repr_ if custom_repr is None else custom_repr
+        custom_repr = attr.get('__repr__')
+        attr['__repr__'] = custom_repr or _repr_
         attr['trepr'] = trepr
         attr['register'] = register
         attr['deregister'] = deregister
