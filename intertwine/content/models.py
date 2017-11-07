@@ -141,8 +141,8 @@ class Content(AutoTimestampMixin, BaseContentModel):
     def published_timestamp(self):
         flex_dt = FlexTime.instance(self._published_timestamp)
         localized = flex_dt.astimezone(self.tzinfo_published)
-        return FlexTime.instance(localized, self.granularity_published,
-                                 truncate=True)
+        return FlexTime.instance(
+            localized, granularity=self.granularity_published, truncate=True)
 
     @published_timestamp.setter
     def published_timestamp(self, val):
