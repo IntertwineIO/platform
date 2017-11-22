@@ -9,9 +9,11 @@ from functools import reduce
 from sqlalchemy import Column, ForeignKey, Index, Table, desc, or_, orm, types
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy.orm.exc import NoResultFound
 
 from intertwine import IntertwineModel
-from intertwine.exceptions import (AttributeConflict, CircularReference)
+from intertwine.exceptions import (AttributeConflict, CircularReference,
+                                   DoesNotExist)
 from intertwine.utils.enums import MatchType
 from intertwine.utils.jsonable import JsonProperty
 from intertwine.utils.space import Area, Coordinate, GeoLocation
@@ -23,7 +25,7 @@ if sys.version_info < (3,):
     lzip = zip  # legacy zip returning list of tuples
     from itertools import izip as zip
 
-# BaseGeoModel = make_declarative_base(Base=ModelBase, Meta=Trackable)
+
 BaseGeoModel = IntertwineModel
 
 
@@ -1035,6 +1037,15 @@ class Geo(BaseGeoModel):
     jsonified_bottom_level_key = JsonProperty(name='bottom_level_key',
                                               hide=True)
 
+    @classmethod
+    def get_geo(cls, human_id, raise_on_miss=False):
+        human_id = human_id.lower()
+        try:
+            return cls.query.filter_by(human_id=human_id).one()
+        except NoResultFound:
+            if raise_on_miss:
+                raise DoesNotExist(cls=cls.__name__, key=human_id)
+
     Key = namedtuple('GeoKey', (HUMAN_ID,))
 
     @classmethod
@@ -1061,6 +1072,14 @@ class Geo(BaseGeoModel):
     def derive_key(self):
         '''Derive Trackable key (human_id 1-tupled) from a geo'''
         return self.__class__.Key(self.human_id)
+
+    @classmethod
+    def manifest_key(cls, geo):
+        '''Manifest key from geo if instance or human_id otherwise'''
+        try:
+            return geo.derive_key()
+        except AttributeError:
+            return cls.Key(geo)
 
     def __init__(self, name, abbrev=None, qualifier=None, path_parent=None,
                  alias_targets=None, aliases=None, uses_the=None,

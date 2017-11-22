@@ -10,9 +10,8 @@ from alchy.model import extend_declarative_base
 from . import models
 
 
-modname = __name__.split('.')[-1]
-blueprint = Blueprint(modname, __name__, template_folder='templates',
-                      static_folder='static')
+blueprint = Blueprint(models.Geo.get_blueprint_name(), __name__,
+                      template_folder='templates', static_folder='static')
 
 geo_db = Manager(Model=models.BaseGeoModel)
 

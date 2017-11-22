@@ -7,11 +7,9 @@ from collections import namedtuple
 from itertools import groupby
 from operator import attrgetter
 
-from past.builtins import basestring
 from sqlalchemy import Column, ForeignKey, Index, desc, orm, types
 
 from intertwine import IntertwineModel
-from intertwine.geos.models import Geo
 from intertwine.problems.exceptions import InvalidAggregation
 from intertwine.problems.models import (
     AggregateProblemConnectionRating as APCR,
@@ -69,26 +67,6 @@ class Community(BaseCommunityModel):
                 geo=self.geo.display(show_abbrev=False)) if self.geo else ''))
 
     jsonified_name = JsonProperty(name='name', begin=True)
-
-    @property
-    def uri(self):
-        return self.form_uri(self.problem, self.org, self.geo)
-
-    jsonified_uri = JsonProperty(name='uri', after='name')
-
-    @staticmethod
-    def form_uri(problem, org=None, geo=None):
-        problem_human_id = (Problem.Key(problem).human_id
-                            if isinstance(problem, basestring)
-                            else problem.derive_key().human_id)
-        geo_human_id = (Geo.Key(geo).human_id if isinstance(geo, basestring)
-                        else (geo.derive_key().human_id if geo else ''))
-
-        return '/{blueprint}/{problem_human_id}{slash}{geo_human_id}'.format(
-            blueprint='communities',
-            problem_human_id=problem_human_id,
-            slash='/' if geo_human_id else '',
-            geo_human_id=geo_human_id)
 
     @property
     def problem(self):

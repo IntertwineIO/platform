@@ -2,7 +2,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from ..exceptions import InterfaceException, IntertwineException
+from ..exceptions import IntertwineException
 
 
 #######################
@@ -61,12 +61,9 @@ class InvalidProblemForConnection(IntertwineException):
     '''{problem!r} must be a problem in {connection!r}.'''
 
 
-#######################
-# Interface Exceptions
-
-class InvalidAxis(InterfaceException):
+class InvalidAxis(IntertwineException):
     '''Invalid axis: {invalid_axis}. Valid axes: {valid_axes}'''
 
 
-class InvalidProblemName(InterfaceException):
+class InvalidProblemName(IntertwineException):
     '''Invalid problem name: {problem_name}'''

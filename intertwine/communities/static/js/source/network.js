@@ -1,7 +1,7 @@
 
 $(document).ready(function() {
     var payload = JSON.parse($('#payload').val());
-    var rootKey = payload['root_key'];
+    var rootKey = payload['root'];
     var community = payload[rootKey];
     var problemKey = community['problem'];
     var problem = problemKey ? payload[problemKey]: null;
@@ -100,7 +100,7 @@ $(document).ready(function() {
 
 
     function renderNewRatedConnection(category, ratedConnectionPayload) {
-        var rootKey = ratedConnectionPayload.root_key;
+        var rootKey = ratedConnectionPayload.root;
         var ratedConnection = ratedConnectionPayload[rootKey];
         var begHTML, adjacentProblemNameHTML, adjacentProblemIconHTML, endHTML;
         var renderedRatedConnection;

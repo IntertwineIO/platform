@@ -10,14 +10,19 @@ from operator import attrgetter
 
 from past.builtins import basestring
 from sqlalchemy import Column, ForeignKey, Index, or_, orm, types
+from sqlalchemy.orm import aliased
+from sqlalchemy.orm.exc import NoResultFound
 from titlecase import titlecase
 
 from intertwine import IntertwineModel
+from intertwine.exceptions import DoesNotExist
 from intertwine.geos.models import Geo
 from intertwine.third_party import urlnorm
-from .exceptions import (CircularConnection, InconsistentArguments,
+
+from .exceptions import (CircularConnection,
+                         InconsistentArguments,
                          InvalidAggregateConnectionRating, InvalidAggregation,
-                         InvalidConnectionAxis, InvalidEntity,
+                         InvalidAxis, InvalidConnectionAxis, InvalidEntity,
                          InvalidProblemConnectionRating,
                          InvalidProblemConnectionWeight,
                          InvalidProblemForConnection, InvalidUser)
@@ -124,7 +129,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         set of ratings to be aggregated. Ratings and rating/weight
         cannot both be specified.
     '''
-    BLUEPRINT_SUBCATEGORY = 'rated_connections'
+    SUB_BLUEPRINT = 'rated_connections'
     STRICT = 'strict'
 
     community_id = Column(types.Integer, ForeignKey('community.id'))
@@ -157,7 +162,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
     NO_WEIGHT = 0
 
     Key = namedtuple('AggregateProblemConnectionRatingKey',
-                     'community, connection, aggregation')
+                     'connection, aggregation, community')
 
     @property
     def adjacent_problem_name(self):
@@ -174,19 +179,19 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         problem = self.community.problem
         adjacent_problem = (key.problem_a if problem is key.problem_b
                             else key.problem_b)
-        return Community.form_uri(adjacent_problem, self.community.org,
-                                  self.community.geo)
+        return Community.form_uri(Community.Key(
+            adjacent_problem, self.community.org, self.community.geo))
 
     @classmethod
-    def create_key(cls, community, connection, aggregation=STRICT, **kwds):
+    def create_key(cls, connection, community, aggregation=STRICT, **kwds):
         '''
         Create key for an aggregate rating
 
         Return a key allowing the Trackable metaclass to register an
         aggregate problem connection rating instance. The key is a
-        namedtuple of community, connection, and aggregation.
+        namedtuple of connection, aggregation, and community.
         '''
-        return cls.Key(community, connection, aggregation)
+        return cls.Key(connection, aggregation, community)
 
     def derive_key(self):
         '''
@@ -194,10 +199,10 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
         Return the registry key used by the Trackable metaclass from an
         aggregate problem connection rating instance. The key is a
-        namedtuple of community, connection, and aggregation fields.
+        namedtuple of connection, aggregation, and community fields.
         '''
         return self.__class__.Key(
-            self.community, self.connection, self.aggregation)
+            self.connection, self.aggregation, self.community)
 
     @classmethod
     def calculate_values(cls, ratings):
@@ -352,6 +357,8 @@ class ProblemConnectionRating(BaseProblemModel):
     this will most likely become a separate microservice and this extra
     granularity may be useful.
     '''
+    SUB_BLUEPRINT = 'connection_ratings'
+
     # TODO: replace with problem_human_id and remove relationship
     problem_id = Column(types.Integer, ForeignKey('problem.id'))
     problem = orm.relationship('Problem')
@@ -657,9 +664,9 @@ class ProblemConnection(BaseProblemModel):
                                                     problem_b
                                                    ('narrower')
     '''
-    BLUEPRINT_SUBCATEGORY = 'connections'
+    SUB_BLUEPRINT = 'connections'
     AXIS, CAUSAL, SCOPED = 'axis', 'causal', 'scoped'
-    AXES = (CAUSAL, SCOPED)
+    AXES = {CAUSAL, SCOPED}
     DRIVER, IMPACT = 'driver', 'impact'
     DRIVERS, IMPACTS = 'drivers', 'impacts'
     BROADER, NARROWER = 'broader', 'narrower'
@@ -755,6 +762,44 @@ class ProblemConnection(BaseProblemModel):
             (self.BROADER if problem is p_b else self.NARROWER))
 
         return category
+
+    @classmethod
+    def get_problem_connection(cls, axis, problem_a_huid, problem_b_huid,
+                               raise_on_miss=False):
+        '''
+        Get problem connection
+
+        I/O:
+        axis: axis string, either 'causal' or 'scoped'
+        problem_a_huid: human_id string for 1st problem instance
+        problem_b_huid: human_id string for 2nd problem instance
+        raise_on_miss=False: raise DoesNotExist if True
+        return: corresponding problem connection or None if not found
+        '''
+        axis = axis.lower()
+        problem_a_huid = problem_a_huid.lower()
+        problem_b_huid = problem_b_huid.lower()
+
+        problem_a, problem_b = aliased(Problem), aliased(Problem)
+        if axis == cls.CAUSAL:
+            query = (cls.query.join(problem_a, cls.driver)
+                              .join(problem_b, cls.impact))
+        elif axis == cls.SCOPED:
+            query = (cls.query.join(problem_a, cls.broader)
+                              .join(problem_b, cls.narrower))
+        else:
+            raise InvalidAxis(invalid_axis=axis, valid_axes=cls.AXES)
+
+        query = (query.filter(problem_a.human_id == problem_a_huid)
+                      .filter(problem_b.human_id == problem_b_huid))
+
+        try:
+            return query.one()
+
+        except NoResultFound:
+            if raise_on_miss:
+                connection_key = cls.Key(axis, problem_a_huid, problem_b_huid)
+                raise DoesNotExist(cls=cls.__name__, key=connection_key)
 
     def __init__(self, axis, problem_a, problem_b,
                  ratings_data=None, ratings_context_problem=None):
@@ -988,6 +1033,23 @@ class Problem(BaseProblemModel):
         the problem instance.
         '''
         return self.__class__.Key(self.human_id)
+
+    @classmethod
+    def manifest_key(cls, problem):
+        '''Manifest key from problem if instance or human_id otherwise'''
+        try:
+            return problem.derive_key()
+        except AttributeError:
+            return cls.Key(problem)
+
+    @classmethod
+    def get_problem(cls, human_id, raise_on_miss=False):
+        human_id = cls.convert_name_to_human_id(human_id)
+        try:
+            return cls.query.filter_by(human_id=human_id).one()
+        except NoResultFound:
+            if raise_on_miss:
+                raise DoesNotExist(cls=cls.__name__, key=human_id)
 
     @staticmethod
     def convert_name_to_human_id(name):

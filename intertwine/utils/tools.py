@@ -3,6 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import enum
 import inspect
 import numbers
 import re
@@ -23,20 +24,21 @@ else:
 
 
 def add_leading_zeros(number, width):
+    '''Add Leading Zeros to a number given a target width'''
     number_string = str(number)
     return '0' * (width - len(number_string)) + number_string
 
 
 def camelCaseTo_snake_case(string):
-    '''Converts CamelCase to snake_case'''
+    '''Convert CamelCase to snake_case'''
     patterns = [
         (r'(.)([0-9]+)', r'\1_\2'),
         (r'([a-z]+)([A-Z])', r'\1_\2'),
     ]
-    engines = [
+    engines = (
         (pattern, replacement, re.compile(pattern))
         for pattern, replacement in patterns
-    ]
+    )
     for data in engines:
         pattern, replacement, eng = data
         string = eng.sub(replacement, string)
@@ -90,6 +92,78 @@ derive_defaults = (_derive_defaults_py2 if sys.version_info < (3,)
                    else _derive_defaults_py3)
 
 
+# Map of mypy-style type annotations and corresponding types
+ANNOTATION_TYPE_MAP = {
+    'Dict': dict,
+    'List': list,
+    'Set': set,
+    'Text': unicode,
+    'Tuple': tuple,
+    'bool': bool,
+    'float': float,
+    'int': int,
+    'str': str,
+    'unicode': unicode,
+}
+
+
+def derive_arg_types(func, custom=None):
+    '''
+    Derive Arg Types
+
+    Given a function with mypy-style named parameter type annotations,
+    return a generator that emits parameter (name, type) tuples.
+    '''
+    source_lines, _ = inspect.getsourcelines(func)
+    custom_map = {typ_.__name__: typ_ for typ_ in custom} if custom else None
+    for line in source_lines:
+        # Skip commented lines
+        if line.strip()[0] == '#':
+            continue
+        if '# type:' in line:
+            yield extract_arg_type(line, custom_map)
+        else:
+            if "'''" in line or '"""' in line:
+                break
+
+
+def extract_arg_type(line, custom_map=None):
+    '''
+    Extract Arg Type
+
+    Given a code line with a mypy-style named parameter type annotation,
+    return the parameter (name, type) tuple.
+    '''
+    field_definition, type_comment = line.split('# type:')
+    field_name = field_definition.split('=')[0].strip().strip(',')
+    type_annotation = type_comment.split('#')[0].strip().split('[')[0].strip()
+    typ_ = ANNOTATION_TYPE_MAP.get(type_annotation)
+    if typ_ is None and custom_map:
+        typ_ = custom_map.get(type_annotation)
+
+    return field_name, typ_
+
+
+def enumify(EnumClass, value):
+    '''
+    Enumify
+
+    Convert value to Enum/IntEnum value via EnumClass, attempting name,
+    value, and then int(value). ValueError is raised on all failures.
+    '''
+    try:
+        return EnumClass[value]
+    except KeyError:
+        try:
+            return EnumClass(value)
+        except ValueError:
+            try:
+                return EnumClass(int(value))
+            except ValueError:
+                raise ValueError('{value} is not a valid {enum}'
+                                 .format(value=value, enum=EnumClass.__name__))
+
+
 def find_all_words(text, words):
     '''Find all exact search words (a set) in text'''
     search_words = words if isinstance(words, set) else set(words)
@@ -135,6 +209,7 @@ def isiterator(iterable):
 
 
 def iterator(*elements):
+    '''Return an iterator (a generator) that emits the given elements'''
     for element in elements:
         yield element
 
@@ -347,8 +422,10 @@ def vardygrify(cls, **kwds):
                 setattr(vardygr, attr_name, attribute)
 
         except TypeError:  # attribute is not a function
+            if isinstance(attribute, enum.EnumMeta):
+                setattr(type(vardygr), attr_name, attribute)
             # properties must be set on the type to be used on an instance
-            if isinstance(attribute, property):
+            elif isinstance(attribute, property):
                 setattr(type(vardygr), attr_name, property(attribute.fget))
             elif isinstance(attribute, (basestring, Real, tuple, list)):
                 setattr(vardygr, attr_name, attribute)

@@ -71,10 +71,11 @@ def render_community(problem_human_id, geo_human_id):
 
         alias_targets = geo.alias_targets
         if alias_targets:
-            return redirect(Community.form_uri(problem, org, alias_targets[0]),
-                            code=302)
+            return redirect(Community.form_uri(
+                Community.Key(problem, org, alias_targets[0])), code=302)
         if corrected_url:
-            return redirect(Community.form_uri(problem, org, geo), code=302)
+            return redirect(Community.form_uri(
+                Community.Key(problem, org, geo)), code=302)
     else:
         geo = None
 

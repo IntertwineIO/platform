@@ -23,7 +23,8 @@ def test_add_rated_problem_connection(session, client, connection_category,
 
     from intertwine.communities.models import Community
     from intertwine.geos.models import Geo
-    from intertwine.problems.models import Problem
+    from intertwine.problems.models import Problem, ProblemConnection
+    from intertwine.utils.tools import vardygrify
 
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
@@ -35,6 +36,8 @@ def test_add_rated_problem_connection(session, client, connection_category,
     if is_real_community:
         community = Community(problem=problem1, org=org, geo=geo)
         session.add(community)
+    else:
+        community = vardygrify(Community, problem=problem1, org=org, geo=geo)
 
     session.commit()
 
@@ -80,18 +83,15 @@ def test_add_rated_problem_connection(session, client, connection_category,
 
     assert rated_connection['adjacent_problem_name'] == problem2_name
     assert rated_connection['aggregation'] == APCR.STRICT
-    assert rated_connection['community'] == (
-        "Community[({problem},{u}'{org}',{geo})]".format(
-            problem=problem1.trepr(), u=U_LITERAL, org=org, geo=geo.trepr()))
 
-    problem_a_trepr = ("Problem[{u}'{human_id}']".format(u=U_LITERAL,
-                       human_id=Problem.create_key(problem_a_name).human_id))
-    problem_b_trepr = ("Problem[{u}'{human_id}']".format(u=U_LITERAL,
-                       human_id=Problem.create_key(problem_b_name).human_id))
+    assert rated_connection['community'] == community.json_key()
 
-    assert rated_connection['connection'] == (
-        "ProblemConnection[({u}'{axis}',{problem_a},{problem_b})]".format(
-            u=U_LITERAL, axis=axis,
-            problem_a=problem_a_trepr, problem_b=problem_b_trepr))
+    problem_a_human_id = Problem.convert_name_to_human_id(problem_a_name)
+    problem_a = Problem[problem_a_human_id]
+    problem_b_human_id = Problem.convert_name_to_human_id(problem_b_name)
+    problem_b = Problem[problem_b_human_id]
+    problem_connection = ProblemConnection[ProblemConnection.create_key(
+        axis, problem_a, problem_b)]
+    assert rated_connection['connection'] == problem_connection.json_key()
 
     assert rated_connection['connection_category'] == connection_category

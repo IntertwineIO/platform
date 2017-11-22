@@ -31,6 +31,10 @@ class CircularReference(IntertwineException):
     circular reference'''
 
 
+class DoesNotExist(IntertwineException):
+    '''{cls} instance does not exist for key: {key}'''
+
+
 class InterfaceException(IntertwineException):
     '''Invalid usage is the base exception class for the API'''
     error_key = 'error'
