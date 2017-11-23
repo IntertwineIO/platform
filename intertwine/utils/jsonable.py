@@ -589,6 +589,19 @@ class Jsonable(object):
 
     @classmethod
     def extract_json_kwarg_values(cls, json_kwargs, *kwarg_names):
+        '''
+        Extract JSON Kwarg Values
+
+        Yield specified JSON kwarg values one at a time, casting each to
+        its type as specified by its parameter annotation in jsonify().
+        Casting allows transmission of JSON kwargs via query string. Any
+        missing/None values are replaced by jsonify arg defaults. If no
+        kwarg names are given, all JSON kwargs are yielded sequentially.
+
+        json_kwargs: dict or dict-like object with a get() method
+        *kwarg_names: names of JSON kwargs to be extracted
+        return: generator that emits the specified JSON kwarg values
+        '''
         kwarg_names = kwarg_names or cls.JSONIFY_ARG_DEFAULTS.keys()
 
         for kwarg_name in kwarg_names:
@@ -604,6 +617,16 @@ class Jsonable(object):
 
     @classmethod
     def extract_json_kwargs(cls, json_kwargs, *kwarg_names):
+        '''
+        Extract JSON Kwargs
+
+        Yield specified JSON kwargs as (name, value) tuples one at a
+        time, where values are emitted by extract_json_kwarg_values().
+
+        json_kwargs: dict or dict-like object with a get() method
+        *kwarg_names: names of JSON kwargs to be extracted
+        return: generator that emits JSON kwarg (name, value) tuples
+        '''
         kwarg_names = kwarg_names or cls.JSONIFY_ARG_DEFAULTS.keys()
         kwarg_values = cls.extract_json_kwarg_values(json_kwargs, *kwarg_names)
         return zip(kwarg_names, kwarg_values)
