@@ -620,6 +620,11 @@ class Jsonable(object):
                 .format(start=start, end=end, items=total_items,
                         page=page, pages=total_pages))
 
+    def print(self):
+        jsonified = self.jsonify(depth=1, limit=10, root=False,
+                                 key_type=self.JsonKeyType.NATURAL_KEY)
+        print(stringify(jsonified, limit=-1))
+
     def __bytes__(self):  # py3 only
         return self.__unicode__().encode('utf-8')
 
