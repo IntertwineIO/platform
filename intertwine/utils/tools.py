@@ -61,7 +61,7 @@ def define_constants_at_module_scope(module_name, module_class,
         setattr(module, constant_name, getattr(module_class, constant_name))
 
 
-def _derive_defaults_py3(func):
+def _derive_defaults_py3(func, public_only=True):
     '''
     Derive Defaults (Python 3.x)
 
@@ -71,11 +71,14 @@ def _derive_defaults_py3(func):
     Never use directly; use derive_defaults instead.
     '''
     signature = inspect.signature(func)
-    return ((k, v.default) for k, v in signature.parameters.items()
-            if v.default is not inspect.Parameter.empty)
+    arg_defaults = ((k, v.default) for k, v in signature.parameters.items()
+                    if v.default is not inspect.Parameter.empty)
+    if public_only:
+        return exclude_private_keys(arg_defaults)
+    return arg_defaults
 
 
-def _derive_defaults_py2(func):
+def _derive_defaults_py2(func, public_only=True):
     '''
     Derive Defaults (Python 2.6+)
 
@@ -85,7 +88,15 @@ def _derive_defaults_py2(func):
     Never use directly; use derive_defaults instead.
     '''
     args, _, _, defaults, _, _, _ = gethalffullargspec(func)
-    return zip(args[-len(defaults):], defaults)
+    arg_defaults = zip(args[-len(defaults):], defaults)
+    if public_only:
+        return exclude_private_keys(arg_defaults)
+    return arg_defaults
+
+
+def exclude_private_keys(iterator):
+    '''Given an iterator, return generator that excludes private keys'''
+    return ((key, value) for key, value in iterator if key[0] != '_')
 
 
 derive_defaults = (_derive_defaults_py2 if sys.version_info < (3,)
@@ -107,7 +118,7 @@ ANNOTATION_TYPE_MAP = {
 }
 
 
-def derive_arg_types(func, custom=None):
+def derive_arg_types(func, custom=None, public_only=True):
     '''
     Derive Arg Types
 
@@ -118,10 +129,13 @@ def derive_arg_types(func, custom=None):
     custom_map = {typ_.__name__: typ_ for typ_ in custom} if custom else None
     for line in source_lines:
         # Skip commented lines
-        if line.strip()[0] == '#':
+        if line.strip()[0] == '#':  # Skip commented lines
             continue
         if '# type:' in line:
-            yield extract_arg_type(line, custom_map)
+            arg_name, arg_type = extract_arg_type(line, custom_map)
+            if public_only and arg_name and arg_name[0] == '_':
+                continue
+            yield arg_name, arg_type
         else:
             if "'''" in line or '"""' in line:
                 break
@@ -134,14 +148,14 @@ def extract_arg_type(line, custom_map=None):
     Given a code line with a mypy-style named parameter type annotation,
     return the parameter (name, type) tuple.
     '''
-    field_definition, type_comment = line.split('# type:')
-    field_name = field_definition.split('=')[0].strip().strip(',')
+    arg_definition, type_comment = line.split('# type:')
+    arg_name = arg_definition.split('=')[0].strip().strip(',')
     type_annotation = type_comment.split('#')[0].strip().split('[')[0].strip()
-    typ_ = ANNOTATION_TYPE_MAP.get(type_annotation)
-    if typ_ is None and custom_map:
-        typ_ = custom_map.get(type_annotation)
+    arg_type = ANNOTATION_TYPE_MAP.get(type_annotation)
+    if arg_type is None and custom_map:
+        arg_type = custom_map.get(type_annotation)
 
-    return field_name, typ_
+    return arg_name, arg_type
 
 
 def enumify(EnumClass, value):
