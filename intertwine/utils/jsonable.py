@@ -357,10 +357,9 @@ class Jsonable(object):
                        kwarg_map.get(object, {}))
         json_kwargs[cls.JSON_ROOT] = False  # _json['root'] is already set
 
-        depth, limit, key_type, raw, tight, nest, default = (
+        depth, limit, key_type, nest, default = (
             cls.extract_json_kwarg_values(
-                json_kwargs, 'depth', 'limit', 'key_type', 'raw', 'tight',
-                'nest', 'default'))
+                json_kwargs, 'depth', 'limit', 'key_type', 'nest', 'default'))
 
         if hasattr(value, cls.JSONIFY):
             try:
@@ -521,8 +520,8 @@ class Jsonable(object):
         _path = '' if _path is None else _path
         _json = OrderedDict() if _json is None else _json
         json_kwargs = dict(
-            config=config, hide=hide, limit=limit, tight=tight, raw=raw,
-            default=default, key_type=key_type, nest=nest, root=False)
+            config=config, hide=hide, limit=limit, key_type=key_type,
+            raw=raw, tight=tight, nest=nest, root=False, default=default)
 
         # TODO: Check if item already exists and needs to be enhanced?
         self_json = OrderedDict()
