@@ -22,7 +22,6 @@ if sys.version_info < (3,):
     from itertools import izip as zip
     U_LITERAL = 'u'
 else:
-    unicode = str
     U_LITERAL = ''
 
 
@@ -78,8 +77,8 @@ def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
     if not outclassed and _lvl == 0:
         cls = osqb = csqb = ''
 
-    # Unpack 1-tuple key unless the value is itself a tuple
-    if len(key) == 1 and not isinstance(key[0], tuple):
+    # Unpack unnamed 1-tuple key unless the value is itself a tuple
+    if not named and len(key) == 1 and not isinstance(key[0], tuple):
         op = cp = ''
 
     try:
@@ -223,6 +222,44 @@ def _validate_(self, registry_key):
                                         registry_repaired=registry_repaired)
 
 
+def deconstruct(self, exclusions=None, named=False, base=None):
+    '''
+    Deconstruct
+
+    Generator function that emits the instance's key components,
+    recursively deconstructing components in a depth-first manner.
+
+    exclusions=None: a set of field names to be excluded
+    named=False: if True, emit (name, component) tuples, in which each
+        name includes the full field path delimited by '_'
+    base=None: base name to prepend to the field path if named is True
+    return: generator that emits components or (name, component) tuples
+    '''
+    if named:
+        key = self.derive_key()
+        for field, component in key._asdict().items():
+            try:
+                if exclusions and field in exclusions:
+                    continue
+            except AttributeError:
+                pass
+
+            name = '_'.join((base, field)) if base else field
+
+            try:
+                for name, component in component.deconstruct(
+                        exclusions=exclusions, named=True, base=name):
+                    yield (name, component)
+
+            except AttributeError:
+                yield (name, component)
+    else:
+        # If named is False, recurse with names but don't yield them
+        for name, component in self.deconstruct(
+                exclusions=exclusions, named=True):
+            yield component
+
+
 class Trackable(ModelMeta):
     '''
     Trackable
@@ -287,6 +324,7 @@ class Trackable(ModelMeta):
         attr['register_update'] = register_update
         attr['_update_'] = _update_
         attr['_validate_'] = _validate_
+        attr['deconstruct'] = deconstruct
         new_cls = super(Trackable, meta).__new__(meta, name, bases, attr)
         if new_cls.__name__ != 'Base':
             meta._classes[name] = new_cls
@@ -494,6 +532,9 @@ class Trackable(ModelMeta):
         for inst in cls._instances.values():
             yield inst
 
+    def __repr__(cls):
+        return '.'.join((inspect.getmodule(cls).__name__, cls.__name__))
+
     def _register_(cls, inst, key=None):
         '''Register instance, deriving key if not provided'''
         key = key or inst.derive_key()
@@ -507,15 +548,6 @@ class Trackable(ModelMeta):
         key = key or inst.derive_key()
         cls._instances.pop(key, None)
         cls._updates.discard(inst)
-
-    def __repr__(cls):
-        return '.'.join((inspect.getmodule(cls).__name__, cls.__name__))
-
-    def __str__(cls):
-        return unicode(cls).encode('utf-8')
-
-    def __unicode__(cls):
-        return cls.__name__
 
     @classmethod
     def register_existing(meta, session, *args):

@@ -13,6 +13,7 @@ from sqlalchemy import (Column,
 
 from intertwine import IntertwineModel
 # from intertwine.third_party import urlnorm
+from intertwine.utils.enums import UriType
 from intertwine.utils.mixins import AutoTimestampMixin
 from intertwine.utils.jsonable import JsonProperty
 from intertwine.utils.time import FlexTime, UTC
@@ -24,6 +25,8 @@ class Content(AutoTimestampMixin, BaseContentModel):
     '''
     Content
     '''
+    URI_TYPE = UriType.PRIMARY
+
     _title = Column(types.String(512))
     _author_names = Column(types.String(128))
 

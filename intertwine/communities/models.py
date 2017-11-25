@@ -7,8 +7,8 @@ from collections import namedtuple
 from itertools import groupby
 from operator import attrgetter
 
-from past.builtins import basestring
 from sqlalchemy import Column, ForeignKey, Index, desc, orm, types
+from sqlalchemy.orm.exc import NoResultFound
 
 from intertwine import IntertwineModel
 from intertwine.geos.models import Geo
@@ -69,26 +69,6 @@ class Community(BaseCommunityModel):
                 geo=self.geo.display(show_abbrev=False)) if self.geo else ''))
 
     jsonified_name = JsonProperty(name='name', begin=True)
-
-    @property
-    def uri(self):
-        return self.form_uri(self.problem, self.org, self.geo)
-
-    jsonified_uri = JsonProperty(name='uri', after='name')
-
-    @staticmethod
-    def form_uri(problem, org=None, geo=None):
-        problem_human_id = (Problem.Key(problem).human_id
-                            if isinstance(problem, basestring)
-                            else problem.derive_key().human_id)
-        geo_human_id = (Geo.Key(geo).human_id if isinstance(geo, basestring)
-                        else (geo.derive_key().human_id if geo else ''))
-
-        return '/{blueprint}/{problem_human_id}{slash}{geo_human_id}'.format(
-            blueprint='communities',
-            problem_human_id=problem_human_id,
-            slash='/' if geo_human_id else '',
-            geo_human_id=geo_human_id)
 
     @property
     def problem(self):
@@ -192,6 +172,25 @@ class Community(BaseCommunityModel):
         '''
         # Use __class__ instead of type() to support mocks
         return self.__class__.Key(self.problem, self.org, self.geo)
+
+    @classmethod
+    def get_community(cls, problem_huid, org_huid, geo_huid,
+                      raise_on_miss=False):
+        problem_huid = Problem.convert_name_to_human_id(problem_huid)
+        geo_huid = geo_huid.lower()
+
+        try:
+            return (cls.query.join(Community.problem)
+                             .join(Community.geo)
+                             .filter(Problem.human_id == problem_huid)
+                             .filter(Geo.human_id == geo_huid).one())
+
+        except NoResultFound:
+            problem = Problem.get_problem(problem_huid, raise_on_miss)
+            org = org_huid
+            geo = Geo.get_geo(geo_huid, raise_on_miss)
+            return vardygrify(Community, problem=problem, org=org, geo=geo,
+                              num_followers=0)
 
     def __init__(self, problem=None, org=None, geo=None, num_followers=0):
         '''Initialize a new community'''

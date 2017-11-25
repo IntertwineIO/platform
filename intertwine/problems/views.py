@@ -3,23 +3,23 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from flask import (abort, current_app, jsonify, make_response, render_template,
-                   # redirect,
-                   request)
+from flask import (abort, current_app, jsonify, make_response, redirect,
+                   render_template, request)
 
 from . import blueprint
 from .models import Problem, ProblemConnection
 from .models import AggregateProblemConnectionRating as APCR
-from ..exceptions import InterfaceException, ResourceDoesNotExist
-from .exceptions import InvalidAxis
-from ..utils.tools import vardygrify
+from ..exceptions import (InterfaceException, IntertwineException,
+                          ResourceDoesNotExist)
+from intertwine.utils.flask_utils import json_requested
+from intertwine.utils.tools import vardygrify
 
 
 @blueprint.errorhandler(InterfaceException)
 def handle_interface_exception(error):
     '''Handle invalid usage
 
-    Intercepts the error and returns a response consisting of the status
+    Intercept the error and return a response consisting of the status
     code and a JSON representation of the error.
     '''
     return make_response(jsonify(error.jsonify()), error.status_code)
@@ -37,11 +37,45 @@ def render():
     return template
 
 
-@blueprint.route('/<problem_key>', methods=['GET'])
-def render_problem(problem_key):
-    '''Problem page redirects to global community page'''
-    problem_key = problem_key.lower()
-    problem = Problem.query.filter_by(human_id=problem_key).first()
+@blueprint.route(Problem.form_uri(
+    Problem.Key('<problem_huid>'), sub=True), methods=['GET'])
+def get_problem(problem_huid):
+    '''Get problem endpoint'''
+    if json_requested():
+        return get_problem_json(problem_huid)
+
+    return get_problem_html(problem_huid)
+
+
+def get_problem_json(problem_huid):
+    '''
+    Get problem JSON
+
+    Usage:
+    curl -H 'accept:application/json' -X GET \
+    'http://localhost:5000/problems/homelessness'
+    '''
+    json_kwargs = dict(Problem.objectify_json_kwargs(request.args))
+
+    try:
+        problem = Problem.get_problem(problem_huid, raise_on_miss=True)
+    except IntertwineException as e:
+        raise ResourceDoesNotExist(str(e))
+
+    return jsonify(problem.jsonify(**json_kwargs))
+
+
+def get_problem_html(problem_huid):
+    '''
+    Get problem HTML
+
+    Redirect to global problem community page
+
+    Usage:
+    curl -H 'accept:text/html' -X GET \
+    'http://localhost:5000/problems/homelessness'
+    '''
+    problem = Problem.get_problem(problem_huid)
 
     if problem is None:
         # TODO: Instead of aborting, reroute to problem_not_found page
@@ -53,15 +87,51 @@ def render_problem(problem_key):
         # Or, you can create 'X' in Intertwine'
         abort(404)
 
-    # from ..communities.models import Community
-    # community_uri = Community.form_uri(problem=problem, org=None, geo=None)
-    # return redirect(community_uri, code=302)
+    from ..communities.models import Community
+    community_uri = Community.form_uri(Community.Key(problem, None, None))
+    return redirect(community_uri, code=302)
 
 
-@blueprint.route('/' + ProblemConnection.BLUEPRINT_SUBCATEGORY,
-                 methods=['POST'])
+@blueprint.route(ProblemConnection.form_uri(
+    ProblemConnection.Key('<axis>', '<problem_a_huid>', '<problem_b_huid>'),
+    sub=True), methods=['GET'])
+def get_problem_connection(axis, problem_a_huid, problem_b_huid):
+    '''Get problem connection endpoint'''
+    if json_requested():
+        return get_problem_connection_json(axis, problem_a_huid,
+                                           problem_b_huid)
+
+    return get_problem_connection_html(axis, problem_a_huid, problem_b_huid)
+
+
+def get_problem_connection_json(axis, problem_a_huid, problem_b_huid):
+    '''
+    Get problem connection JSON
+
+    Usage:
+    curl -H 'accept:application/json' -X GET \
+    'http://localhost:5000/problems/connections/scoped/poverty/homelessness'
+    '''
+    json_kwargs = dict(ProblemConnection.objectify_json_kwargs(request.args))
+
+    try:
+        connection = ProblemConnection.get_problem_connection(
+            axis, problem_a_huid, problem_b_huid, raise_on_miss=True)
+    except IntertwineException as e:
+        raise ResourceDoesNotExist(str(e))
+
+    return jsonify(connection.jsonify(**json_kwargs))
+
+
+def get_problem_connection_html(axis, problem_a_huid, problem_b_huid):
+    # TODO: add problem connection page
+    abort(404)
+
+
+@blueprint.route('/' + ProblemConnection.SUB_BLUEPRINT, methods=['POST'])
 def add_problem_connection():
-    '''Add a connection between two problems
+    '''
+    Add problem connection
 
     Usage:
     curl -H "Content-Type: application/json" -X POST -d '{
@@ -79,43 +149,10 @@ def add_problem_connection():
     return jsonify(connection.jsonify(depth=2))
 
 
-@blueprint.route('/{subcategory}/<axis>/<problem_a_key>/<problem_b_key>'
-                 .format(subcategory=ProblemConnection.BLUEPRINT_SUBCATEGORY),
-                 methods=['GET'])
-def get_problem_connection(axis, problem_a_key, problem_b_key):
-    '''Get a problem connection
-
-    Usage:
-    curl -H "Content-Type: application/json" -X GET \
-    'http://localhost:5000/problems/connections/scoped/poverty/homelessness'
-    '''
-    axis = axis.lower()
-    valid_axes = ProblemConnection.AXES
-    if axis not in valid_axes:
-        raise InvalidAxis(invalid_axis=axis, valid_axes=valid_axes)
-
-    problem_data = (problem_a_key.lower(), problem_b_key.lower())
-    problems = []
-    for problem_key in problem_data:
-        try:
-            problem = Problem[problem_key]
-        except KeyError:
-            raise ResourceDoesNotExist(cls='Problem', key=problem_key)
-        problems.append(problem)
-
-    problem_a, problem_b = problems
-    connection_key = ProblemConnection.Key(axis, problem_a, problem_b)
-    try:
-        connection = ProblemConnection[connection_key]
-    except KeyError:
-        raise ResourceDoesNotExist(cls='ProblemConnection', key=connection_key)
-
-    return jsonify(connection.jsonify())
-
-
-@blueprint.route('/' + APCR.BLUEPRINT_SUBCATEGORY, methods=['POST'])
+@blueprint.route('/' + APCR.SUB_BLUEPRINT, methods=['POST'])
 def add_rated_problem_connection():
-    '''Add a problem connection and return the aggregate rating
+    '''
+    Add problem connection and return aggregate rating
 
     Usage:
     curl -H "Content-Type: application/json" -X POST -d '{

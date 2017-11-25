@@ -4,10 +4,12 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import inspect
+import json
 import sys
 from collections import OrderedDict, namedtuple
 from datetime import datetime
-from enum import Enum
+from enum import Enum, EnumMeta
+from functools import partial
 from itertools import chain, islice
 from math import floor
 from mock.mock import NonCallableMagicMock
@@ -21,7 +23,8 @@ from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 from .structures import InsertableOrderedDict, PeekableIterator
-from .tools import derive_defaults, isiterator, stringify
+from .tools import (derive_defaults, derive_arg_types, enumify, isiterator,
+                    stringify)
 
 # Python version compatibilities
 if sys.version_info < (3,):
@@ -75,13 +78,12 @@ class Jsonable(object):
     JSON_PATH_DELIMITER = '.'
     JSON_PRIVATE_DESIGNATION = '_'
     JSON_PROPERTY_EXCLUSIONS = {'descriptor_dict', 'object_session'}
-    ID_FIELDS = {'id', 'pk', 'module_class_primary_key', 'json_key'}
+    ID_FIELDS = {'id', 'pk', 'qualified_pk', 'json_key'}
 
-    JsonKeyType = Enum('JsonKeyType', 'PRIMARY_KEY, NATURAL_KEY, URI',
+    JsonKeyType = Enum('JsonKeyType', 'PRIMARY, NATURAL, URI',
                        module=__name__)
 
-    ModuleClassPrimaryKey = namedtuple('ModuleClassPrimaryKey',
-                                       'module_name, class_name, primary_key')
+    QualifiedPrimaryKey = namedtuple('QualifiedPrimaryKey', 'module, cls, pk')
 
     @property
     def PrimaryKey(self):
@@ -110,30 +112,28 @@ class Jsonable(object):
         '''
         pk
 
-        Return instance's primary key value for a single primary key and
-        a PrimaryKey namedtuple of values for a composite primary key.
-        Abbreviated as "pk" to avoid conflict with alchy's primary_key.
+        Return PrimaryKey namedtuple of primary key values. Abbreviated
+        as "pk" to avoid conflict with alchy's primary_key.
         '''
-        pk = self.PrimaryKey(
+        return self.PrimaryKey(
             *(getattr(self, f) for f in self.primary_key_fields()))
-        return pk[0] if len(pk) == 1 else pk
 
     jsonified_pk = JsonProperty(name='pk', hide=True)
 
     @property
-    def module_class_primary_key(self):
-        return self.ModuleClassPrimaryKey(inspect.getmodule(self).__name__,
-                                          self.__class__.__name__, self.pk)
+    def qualified_pk(self):
+        cls = self.__class__
+        return self.QualifiedPrimaryKey(cls.__module__, cls.__name__, self.pk)
 
-    jsonified_module_class_primary_key = JsonProperty(
-        name='module_class_primary_key', hide=True, end=True)
+    jsonified_qualified_pk = JsonProperty(name='qualified_pk', hide=True)
 
     def json_key(self, key_type=None, **kwds):
-        '''JSON key defaults to module class key, but can be overridden'''
-        if not key_type or key_type is self.JsonKeyType.PRIMARY_KEY:
-            return self.module_class_primary_key
+        '''JSON key defaults to unique key repr, but can be overridden'''
+        if not key_type or key_type is self.JsonKeyType.PRIMARY:
+            return repr(self.qualified_pk)
         else:
-            raise TypeError('Unsupported JsonKeyType: {}'.format(key_type))
+            raise NotImplementedError('Unsupported JsonKeyType: {}'
+                                      .format(key_type))
 
     jsonified_json_key = JsonProperty(name='json_key', method='json_key',
                                       end=True)
@@ -353,9 +353,9 @@ class Jsonable(object):
                        kwarg_map.get(object, {}))
         json_kwargs[cls.JSON_ROOT] = False  # _json['root'] is already set
 
-        depth, limit, default, key_type, raw, tight, nest = (
-            cls._get_json_kwargs(json_kwargs, 'depth', 'limit', 'default',
-                                 'key_type', 'raw', 'tight', 'nest'))
+        depth, limit, key_type, nest, default = (
+            cls.extract_json_kwargs(
+                json_kwargs, 'depth', 'limit', 'key_type', 'nest', 'default'))
 
         if hasattr(value, cls.JSONIFY):
             try:
@@ -416,15 +416,27 @@ class Jsonable(object):
 
             return items
 
-    def jsonify(self, config=None, depth=1, hide=None, hide_all=False,
-                limit=10, default=None, key_type=None, raw=False, tight=True,
-                nest=False, root=True, _path=None, _json=None):
+    def jsonify(self,
+                config=None,     # type: Dict[Text: Union[int, float]]
+                depth=1,         # type: int
+                hide=None,       # type: Set[Text]
+                hide_all=False,  # type: bool
+                limit=10,        # type: int
+                key_type=None,   # type: JsonKeyType
+                raw=False,       # type: bool
+                tight=True,      # type: bool
+                nest=False,      # type: bool
+                root=True,       # type: bool
+                default=None,    # type: Callable[Any, [bool, int, float, str, None]]
+                _path=None,      # type: Text
+                _json=None):     # type: Dict[Text: Any]
         '''
         Jsonify
 
         Return a JSON-serializable dict representing the instance.
 
         I/O:
+
         config=None:
             Dictionary of field-level settings, in which keys are paths
             to fields and values are numeric:
@@ -433,7 +445,6 @@ class Jsonable(object):
                      ignored (e.g. 0.5 -> 0 depth, but field is shown)
                 N>0: Show all fields in related objects by default
                 N<0: Hide all fields in related objects by default
-
             Usage:
                 >>> geo = Geo['us/tx/austin']
                 >>> config = {
@@ -463,13 +474,15 @@ class Jsonable(object):
             Cap number of list or dictionary items beneath main level;
             a negative limit indicates no cap.
 
-        default=None:
-            Default function used to ensure value is json-safe. Defaults
-            to Jsonable.ensure_json_safe.
-
         key_type=None:
-            By default, keys are JsonKeyType.PRIMARY_KEY, a module and
-            class-scoped primary key tuple: ModuleClassPrimaryKey
+            A JsonKeyType enumeration with these options:
+            PRIMARY: QualifiedPrimaryKey, a module/class-scoped primary
+                key namedtuple. It is the default and only supported
+                option unless json_key() is overridden
+            NATURAL: A natural key composed of fields that determine
+                uniquness; NotImplemented in Jsonable, but see Trackable
+            URI: An item's Uniform Resource Identifier; NotImplemented
+                in Jsonable, but may be added by overriding json_key()
 
         raw=False:
             If True, add extra escape to unicode trepr (for printing).
@@ -483,6 +496,10 @@ class Jsonable(object):
 
         root=True:
             If True, add root key to top-level dict.
+
+        default=None:
+            Default function used to ensure value is json-safe. Defaults
+            to Jsonable.ensure_json_safe.
 
         _path=None:
             Private path to current field from the base object:
@@ -499,8 +516,8 @@ class Jsonable(object):
         _path = '' if _path is None else _path
         _json = OrderedDict() if _json is None else _json
         json_kwargs = dict(
-            config=config, hide=hide, limit=limit, tight=tight, raw=raw,
-            default=default, key_type=key_type, nest=nest, root=False)
+            config=config, hide=hide, limit=limit, key_type=key_type,
+            raw=raw, tight=tight, nest=nest, root=False, default=default)
 
         # TODO: Check if item already exists and needs to be enhanced?
         self_json = OrderedDict()
@@ -562,12 +579,52 @@ class Jsonable(object):
 
         return self_json if nest else _json
 
-    JSON_KWARG_DEFAULTS = OrderedDict(derive_defaults(jsonify))
+    JSONIFY_ARG_TYPES = OrderedDict(derive_arg_types(jsonify,
+                                                     custom=[JsonKeyType]))
+    JSONIFY_ARG_DEFAULTS = OrderedDict(derive_defaults(jsonify))
 
     @classmethod
-    def _get_json_kwargs(cls, json_kwargs, *kwarg_names):
-        return (json_kwargs.get(kwarg, cls.JSON_KWARG_DEFAULTS[kwarg])
+    def extract_json_kwargs(cls, json_kwargs, *kwarg_names):
+        '''Extract JSON Kwargs sequentially as specified (default all)'''
+        kwarg_names = kwarg_names or cls.JSONIFY_ARG_DEFAULTS.keys()
+        return (json_kwargs.get(kwarg, cls.JSONIFY_ARG_DEFAULTS[kwarg])
                 for kwarg in kwarg_names)
+
+    @classmethod
+    def objectify_json_kwargs(cls, json_kwargs, *kwarg_names):
+        '''
+        Objectify JSON Kwargs
+
+        Yield specified JSON kwarg (name, value) tuples sequentially,
+        casting each to its annotated type in jsonify(). Casting allows
+        transmission of JSON kwargs via query string. Any missing/None
+        values are replaced by jsonify arg defaults. If no kwarg names
+        are given, all JSON kwargs are yielded.
+
+        json_kwargs: dict or dict-like object with a get() method
+        *kwarg_names: names of JSON kwargs to be objectified
+        return: generator that emits JSON kwarg (name, value) tuples
+        '''
+        kwarg_names = kwarg_names or cls.JSONIFY_ARG_DEFAULTS.keys()
+
+        for kwarg_name in kwarg_names:
+            kwarg_value = json_kwargs.get(kwarg_name)
+            try:
+                # Convert JSON strings to objects (i.e. dicts/lists)
+                kwarg_value = json.loads(kwarg_value)
+            except (ValueError, TypeError):  # (string literal, non-string)
+                pass
+
+            if kwarg_value is not None:
+                kwarg_type = cls.JSONIFY_ARG_TYPES.get(kwarg_name)
+                if isinstance(kwarg_type, EnumMeta):
+                    kwarg_type = partial(enumify, kwarg_type)
+                if kwarg_type:
+                    kwarg_value = kwarg_type(kwarg_value)
+            else:
+                kwarg_value = cls.JSONIFY_ARG_DEFAULTS[kwarg_name]
+
+            yield kwarg_name, kwarg_value
 
     @classmethod
     def paginate(cls, page_items, page_size, total_items, start=1):
@@ -580,9 +637,20 @@ class Jsonable(object):
                 .format(start=start, end=end, items=total_items,
                         page=page, pages=total_pages))
 
-    def __str__(self):
-        return unicode(self).encode('utf-8')
+    def print(self):
+        jsonified = self.jsonify(depth=1, limit=10, root=False,
+                                 key_type=self.JsonKeyType.NATURAL)
+        print(stringify(jsonified, limit=-1))
 
-    def __unicode__(self):
-        jsonified = self.jsonify(depth=1, limit=10, root=False)
+    def __bytes__(self):  # py3 only
+        return self.__unicode__().encode('utf-8')
+
+    def __str__(self):
+        if sys.version_info < (3,):
+            return self.__bytes__()
+        return self.__unicode__()
+
+    def __unicode__(self):  # py2 only
+        jsonified = self.jsonify(depth=1, limit=10, root=False,
+                                 key_type=self.JsonKeyType.NATURAL)
         return stringify(jsonified, limit=-1)
