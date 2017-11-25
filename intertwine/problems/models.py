@@ -18,6 +18,7 @@ from intertwine import IntertwineModel
 from intertwine.exceptions import DoesNotExist
 from intertwine.geos.models import Geo
 from intertwine.third_party import urlnorm
+from intertwine.utils.enums import UriType
 
 from .exceptions import (CircularConnection,
                          InconsistentArguments,
@@ -32,6 +33,8 @@ BaseProblemModel = IntertwineModel
 
 class Image(BaseProblemModel):
     '''Base class for images'''
+    SUB_BLUEPRINT = 'images'
+    URI_TYPE = UriType.PRIMARY
 
     # TODO: make Image work with any entity (not just problems), where
     # each image can be attached to multiple entities

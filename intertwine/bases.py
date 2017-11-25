@@ -8,6 +8,7 @@ from alchy.model import ModelBase
 
 from intertwine.initiation import InitiationMixin, InitiationMetaMixin
 from intertwine.trackable import Trackable
+from intertwine.utils.enums import UriType
 from intertwine.utils.jsonable import Jsonable
 from intertwine.utils.mixins import AutoTableMixin
 
@@ -23,6 +24,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
                           ModelBase):
 
     ID_FIELDS = Jsonable.ID_FIELDS | {'uri'}
+    URI_TYPE = UriType.NATURAL
     URI_EXCLUSIONS = {'org'}  # Org is not yet supported
 
     @classmethod
@@ -44,9 +46,15 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
 
     @property
     def uri(self):
-        '''Default URI property based on deconstructed key'''
+        '''Default URI property based on natural or primary key'''
         try:
-            return self.form_uri(self.derive_key())
+            if self.__class__.URI_TYPE is UriType.NATURAL:
+                return self.form_uri(self.derive_key())
+            elif self.__class__.URI_TYPE is UriType.PRIMARY:
+                return self.form_uri(self.pk)
+            else:
+                raise ValueError('Unknown UriType: {}'.format(
+                    self.__class__.URI_TYPE))
         except AttributeError:
             return None
 
@@ -55,14 +63,15 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
         '''
         Form URI from given components
 
-        components: Iterable of URL components, typically a Trackable
-            Key namedtuple derived from the instance or formed manually
+        components: Iterable of URL components, usually a Trackable Key
+            namedtuple derived from the instance or formed manually
         sub=False: If True, start with sub-blueprint (exclude blueprint)
         deconstruct=True If True, recursively deconstruct components
         return: URI composed from the components
         '''
+        # Check for exclusions and filter them out
         exclusions = None
-        try:  # Check for exclusions and filter them out
+        try:
             exclusions = cls.URI_EXCLUSIONS
             components_dict = components._asdict()
             components = (
@@ -70,7 +79,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
                 if field not in exclusions)
         except AttributeError:
             pass
-
+        # Recursively deconstruct components if flag is True (default)
         if deconstruct:
             components = chain(*(
                 component.deconstruct(exclusions=exclusions)
@@ -95,7 +104,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
         return '/'.join(all_components)
 
     def json_key(self, key_type=None, raw=False, tight=True, **kwds):
-        '''JSON key supports URI (default), NATURAL_KEY, and UNIQUE_KEY'''
+        '''JSON key supports URI (default), NATURAL, and PRIMARY'''
         if key_type:
             if key_type is self.JsonKeyType.URI:
                 uri = self.uri
@@ -103,7 +112,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
                     return uri
                 raise NotImplementedError('{cls} instance missing URI'
                                           .format(cls=self.__class__))
-            if key_type is self.JsonKeyType.NATURAL_KEY:
+            if key_type is self.JsonKeyType.NATURAL:
                 return self.trepr(raw=raw, tight=tight)
             return super(BaseIntertwineModel, self).json_key(
                 key_type=key_type, raw=raw, tight=tight, **kwds)

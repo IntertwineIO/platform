@@ -3,17 +3,16 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from flask import (abort, current_app, jsonify, make_response, render_template,
-                   redirect,
-                   request)
+from flask import (abort, current_app, jsonify, make_response, redirect,
+                   render_template, request)
 
 from . import blueprint
 from .models import Problem, ProblemConnection
 from .models import AggregateProblemConnectionRating as APCR
 from ..exceptions import (InterfaceException, IntertwineException,
                           ResourceDoesNotExist)
-from ..utils.tools import vardygrify
-from ..utils.flask_utils import json_requested
+from intertwine.utils.flask_utils import json_requested
+from intertwine.utils.tools import vardygrify
 
 
 @blueprint.errorhandler(InterfaceException)
@@ -56,7 +55,7 @@ def get_problem_json(problem_huid):
     curl -H 'accept:application/json' -X GET \
     'http://localhost:5000/problems/homelessness'
     '''
-    json_kwargs = dict(Problem.extract_json_kwargs(request.args))
+    json_kwargs = dict(Problem.objectify_json_kwargs(request.args))
 
     try:
         problem = Problem.get_problem(problem_huid, raise_on_miss=True)
@@ -113,7 +112,7 @@ def get_problem_connection_json(axis, problem_a_huid, problem_b_huid):
     curl -H 'accept:application/json' -X GET \
     'http://localhost:5000/problems/connections/scoped/poverty/homelessness'
     '''
-    json_kwargs = dict(ProblemConnection.extract_json_kwargs(request.args))
+    json_kwargs = dict(ProblemConnection.objectify_json_kwargs(request.args))
 
     try:
         connection = ProblemConnection.get_problem_connection(

@@ -59,7 +59,7 @@ def find_geo_matches(match_string, match_limit=None):
     match_string = match_string.strip('"\'')
     match_limit = match_limit or int(request.args.get('match_limit', 0))
     geo_matches = Geo.find_matches(match_string)
-    json_kwargs = dict(Geo.extract_json_kwargs(request.args))
+    json_kwargs = dict(Geo.objectify_json_kwargs(request.args))
     # hide = {Geo.PARENTS, Geo.CHILDREN, Geo.PATH_CHILDREN}
     json_kwarg_map = {Geo: json_kwargs}
     if match_limit:
@@ -85,7 +85,7 @@ def get_geo_json(geo_huid):
     curl -H 'accept:application/json' -X GET \
     'http://localhost:5000/geos/us/tx/austin'
     '''
-    json_kwargs = dict(Geo.extract_json_kwargs(request.args))
+    json_kwargs = dict(Geo.objectify_json_kwargs(request.args))
 
     try:
         geo = Geo.get_geo(geo_huid, raise_on_miss=True)

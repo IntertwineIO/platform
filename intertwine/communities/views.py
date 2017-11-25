@@ -4,11 +4,13 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import flask
-from flask import abort, redirect, render_template
+from flask import abort, jsonify, redirect, render_template, request
 
 from . import blueprint
+from intertwine.exceptions import IntertwineException, ResourceDoesNotExist
 from intertwine.geos.models import Geo
 from intertwine.problems.models import Problem, ProblemConnection
+from intertwine.utils.flask_utils import json_requested
 from intertwine.utils.jsonable import Jsonable
 from intertwine.utils.tools import vardygrify
 from .models import Community
@@ -26,16 +28,46 @@ def render():
     return template
 
 
-@blueprint.route('/<problem_human_id>/', methods=['GET'])
-def render_global_community(problem_human_id):
-    return render_community(problem_human_id, '')
+@blueprint.route('/<problem_huid>/', methods=['GET'])
+def get_global_community(problem_huid):
+    return get_community(problem_huid, '')
 
 
-@blueprint.route('/<problem_human_id>/<path:geo_human_id>', methods=['GET'])
-def render_community(problem_human_id, geo_human_id):
+@blueprint.route('/<problem_huid>/<path:geo_huid>', methods=['GET'])
+def get_community(problem_huid, geo_huid):
     '''Community Page'''
-    problem_human_id = problem_human_id.lower()
-    problem = Problem.query.filter_by(human_id=problem_human_id).first()
+    # TODO: add org to URL or query string
+    org_huid = None
+    if json_requested():
+        return get_community_json(problem_huid, org_huid, geo_huid)
+
+    return get_community_html(problem_huid, org_huid, geo_huid)
+
+
+def get_community_json(problem_huid, org_huid, geo_huid):
+    '''
+    Get Community JSON
+
+    Usage:
+    curl -H 'accept:application/json' -X GET \
+    'http://localhost:5000/communities/homelessness/us/tx/austin'
+    '''
+    json_kwargs = dict(Community.objectify_json_kwargs(request.args))
+
+    try:
+        community = Community.get_community(problem_huid, org_huid, geo_huid,
+                                            raise_on_miss=True)
+    except IntertwineException as e:
+        raise ResourceDoesNotExist(str(e))
+
+    if not request.args.get('config'):
+        json_kwargs['config'] = configure_community_json()
+    return jsonify(community.jsonify(**json_kwargs))
+
+
+def get_community_html(problem_huid, org_huid, geo_huid):
+    problem_huid = problem_huid.lower()
+    problem = Problem.query.filter_by(human_id=problem_huid).first()
 
     if problem is None:
         # TODO: Instead of aborting, reroute to problem_not_found page
@@ -50,15 +82,15 @@ def render_community(problem_human_id, geo_human_id):
     # TODO: add org to URL or query string
     org = None
     # org = 'University of Texas'
-    geo_human_id = geo_human_id.lower()
+    geo_huid = geo_huid.lower()
 
-    if geo_human_id:
+    if geo_huid:
         corrected_url = False
-        if geo_human_id[-1] == '/':
-            geo_human_id = geo_human_id.rstrip('/')
+        if geo_huid[-1] == '/':
+            geo_huid = geo_huid.rstrip('/')
             corrected_url = True
 
-        geo = Geo.query.filter_by(human_id=geo_human_id).first()
+        geo = Geo.query.filter_by(human_id=geo_huid).first()
 
         if geo is None:
             # TODO: Instead of aborting, reroute to geo_not_found page
@@ -87,7 +119,7 @@ def render_community(problem_human_id, geo_human_id):
                                num_followers=0)
 
     config = configure_community_json()
-    payload = community.jsonify(config=config, depth=2)
+    payload = community.jsonify(config=config)
 
     template = render_template(
         'community.html',
@@ -98,8 +130,11 @@ def render_community(problem_human_id, geo_human_id):
 
 
 def configure_community_json():
-    config = {}
-    config['.aggregate_ratings'] = -2
+    config = {
+        '.problem': 1,
+        '.geo': 1,
+        '.aggregate_ratings': -2
+    }
     for category in ProblemConnection.CATEGORY_MAP:
         config[Jsonable.form_path('.problem', category)] = 0
         config[Jsonable.form_path('.aggregate_ratings', category,
