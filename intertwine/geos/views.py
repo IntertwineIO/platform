@@ -3,13 +3,25 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import flask
-from flask import abort, jsonify, redirect, render_template, request
+from flask import (abort, jsonify, make_response, redirect, render_template,
+                   request)
 
 from . import blueprint
 from .models import Geo, GeoLevel
 from intertwine.utils.jsonable import Jsonable
-from ..exceptions import IntertwineException, ResourceDoesNotExist
+from ..exceptions import InterfaceException, ResourceDoesNotExist
 from ..utils.flask_utils import json_requested
+
+
+@blueprint.errorhandler(InterfaceException)
+def handle_interface_exception(error):
+    '''
+    Handle Interface Exception
+
+    Intercept the error and return a response consisting of the status
+    code and a JSON representation of the error.
+    '''
+    return make_response(jsonify(error.jsonify()), error.status_code)
 
 
 @blueprint.route('/', methods=['GET'])
@@ -88,8 +100,8 @@ def get_geo_json(geo_huid):
     json_kwargs = dict(Geo.objectify_json_kwargs(request.args))
 
     try:
-        geo = Geo.get_geo(geo_huid, raise_on_miss=True)
-    except IntertwineException as e:
+        geo = Geo.reconstruct(geo_huid)
+    except KeyError as e:
         raise ResourceDoesNotExist(str(e))
 
     return jsonify(geo.jsonify(**json_kwargs))
@@ -100,7 +112,9 @@ def get_geo_html(geo_huid):
     geo_huid = geo_huid.lower()
     geo = Geo.query.filter_by(human_id=geo_huid).first()
 
-    if geo is None:
+    try:
+        geo = Geo.reconstruct(geo_huid)
+    except KeyError:
         # TODO: Instead of aborting, reroute to geo_not_found page
         # Oops! 'X' is not a geo found in Intertwine.
         # Did you mean:

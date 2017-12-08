@@ -15,7 +15,8 @@ from ..exceptions import InterfaceException
 
 @blueprint.errorhandler(InterfaceException)
 def handle_interface_exception(error):
-    '''Handle invalid usage
+    '''
+    Handle Interface Exception
 
     Intercepts the error and returns a response consisting of the status
     code and a JSON representation of the error.

@@ -83,7 +83,7 @@ class Jsonable(object):
     JsonKeyType = Enum('JsonKeyType', 'PRIMARY, NATURAL, URI',
                        module=__name__)
 
-    QualifiedPrimaryKey = namedtuple('QualifiedPrimaryKey', 'module, cls, pk')
+    QualifiedPrimaryKey = namedtuple('QualifiedPrimaryKey', 'model, pk')
 
     @property
     def PrimaryKey(self):
@@ -118,14 +118,13 @@ class Jsonable(object):
         return self.PrimaryKey(
             *(getattr(self, f) for f in self.primary_key_fields()))
 
-    jsonified_pk = JsonProperty(name='pk', hide=True)
+    # jsonified_pk = JsonProperty(name='pk', hide=True)
 
     @property
     def qualified_pk(self):
-        cls = self.__class__
-        return self.QualifiedPrimaryKey(cls.__module__, cls.__name__, self.pk)
+        return self.QualifiedPrimaryKey(self.__class__, self.pk)
 
-    jsonified_qualified_pk = JsonProperty(name='qualified_pk', hide=True)
+    # jsonified_qualified_pk = JsonProperty(name='qualified_pk', hide=True)
 
     def json_key(self, key_type=None, **kwds):
         '''JSON key defaults to unique key repr, but can be overridden'''
@@ -357,7 +356,9 @@ class Jsonable(object):
             cls.extract_json_kwargs(
                 json_kwargs, 'depth', 'limit', 'key_type', 'nest', 'default'))
 
-        if hasattr(value, cls.JSONIFY):
+        value_is_class = inspect.isclass(value)
+
+        if hasattr(value, cls.JSONIFY) and not value_is_class:
             try:
                 item_key = None if nest else value.json_key(**json_kwargs)
             except AttributeError:
@@ -372,7 +373,7 @@ class Jsonable(object):
             return None
 
         try:
-            if isinstance(value, basestring):
+            if isinstance(value, basestring) or value_is_class:
                 raise TypeError
             # TODO: apply limit() if a query and then count() for total
             all_item_iterator = PeekableIterator(value)  # non-iterables raise
@@ -559,7 +560,8 @@ class Jsonable(object):
                 **json_kwargs)
 
             # Short circuit if we can just use the key
-            if not nest and hasattr(value, self.JSONIFY):
+            if (not nest and hasattr(value, self.JSONIFY) and
+                    not inspect.isclass(value)):
                 try:
                     item_key = value.json_key(**json_field_kwargs)
                 except AttributeError:

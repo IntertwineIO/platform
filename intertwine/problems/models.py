@@ -10,12 +10,9 @@ from operator import attrgetter
 
 from past.builtins import basestring
 from sqlalchemy import Column, ForeignKey, Index, or_, orm, types
-from sqlalchemy.orm import aliased
-from sqlalchemy.orm.exc import NoResultFound
 from titlecase import titlecase
 
 from intertwine import IntertwineModel
-from intertwine.exceptions import DoesNotExist
 from intertwine.geos.models import Geo
 from intertwine.third_party import urlnorm
 from intertwine.utils.enums import UriType
@@ -23,7 +20,7 @@ from intertwine.utils.enums import UriType
 from .exceptions import (CircularConnection,
                          InconsistentArguments,
                          InvalidAggregateConnectionRating, InvalidAggregation,
-                         InvalidAxis, InvalidConnectionAxis, InvalidEntity,
+                         InvalidConnectionAxis, InvalidEntity,
                          InvalidProblemConnectionRating,
                          InvalidProblemConnectionWeight,
                          InvalidProblemForConnection, InvalidUser)
@@ -71,7 +68,7 @@ class Image(BaseProblemModel):
     # file          # local copy of image
     # dimensions    # in pixels
 
-    Key = namedtuple('ImageKey', 'problem, url')
+    Key = namedtuple('Image_Key', 'problem, url')
 
     @classmethod
     def create_key(cls, problem, url, **kwds):
@@ -164,24 +161,24 @@ class AggregateProblemConnectionRating(BaseProblemModel):
     NO_RATING = -1
     NO_WEIGHT = 0
 
-    Key = namedtuple('AggregateProblemConnectionRatingKey',
+    Key = namedtuple('AggregateProblemConnectionRating_Key',
                      'connection, aggregation, community')
 
     @property
     def adjacent_problem_name(self):
-        key = self.connection.derive_key()
         problem = self.community.problem
-        adjacent_problem = (key.problem_a if problem is key.problem_b
-                            else key.problem_b)
+        connection = self.connection
+        problem_a, problem_b = connection.problems
+        adjacent_problem = (problem_a if problem is problem_b else problem_b)
         return adjacent_problem.name
 
     @property
     def adjacent_community_url(self):
         from ..communities.models import Community
-        key = self.connection.derive_key()
         problem = self.community.problem
-        adjacent_problem = (key.problem_a if problem is key.problem_b
-                            else key.problem_b)
+        connection = self.connection
+        problem_a, problem_b = connection.problems
+        adjacent_problem = (problem_a if problem is problem_b else problem_b)
         return Community.form_uri(Community.Key(
             adjacent_problem, self.community.org, self.community.geo))
 
@@ -428,51 +425,17 @@ class ProblemConnectionRating(BaseProblemModel):
                             'org',
                             'geo_id'),)
 
-    Key = namedtuple('ProblemConnectionRatingKey',
+    Key = namedtuple('ProblemConnectionRating_Key',
                      'connection, problem, org, geo, user')
 
     @classmethod
     def create_key(cls, connection, problem, org=None, geo=None,
                    user='Intertwine', **kwds):
-        '''
-        Create key for a problem connection rating
-
-        Return a key allowing the Trackable metaclass to register a
-        problem connection rating instance. The key is a namedtuple of
-        connection, problem, org, geo, and user. The problem and geo may
-        be keys instead of instances.
-        '''
-        is_causal = connection.axis == connection.CAUSAL
-        p_a = connection.driver if is_causal else connection.broader
-        p_b = connection.impact if is_causal else connection.narrower
-
-        if not isinstance(problem, Problem):
-            problem_key = problem
-            problem = Problem[problem_key]
-            if not problem:
-                raise KeyError('Problem does not exist for key {key}'
-                               .format(key=problem_key))
-
-        if problem not in (p_a, p_b):
-            raise InvalidProblemForConnection(problem=problem,
-                                              connection=connection)
-
-        if not isinstance(geo, Geo):
-            geo_key = geo
-            geo = Geo[geo_key]
-            if not geo:
-                raise KeyError('Geo does not exist for key {key}'
-                               .format(key=geo_key))
+        '''Create Trackable key for a problem connection rating'''
         return cls.Key(connection, problem, org, geo, user)
 
     def derive_key(self):
-        '''
-        Derive key from a problem connection rating instance
-
-        Return the registry key used by the Trackable metaclass from a
-        problem connection rating instance. The key is a namedtuple of
-        connection, problem, org, geo, and user.
-        '''
+        '''Derive key from a problem connection rating instance'''
         return self.__class__.Key(self.connection, self.problem, self.org,
                                   self.geo, self.user)
 
@@ -706,7 +669,7 @@ class ProblemConnection(BaseProblemModel):
                             AXIS),)
 
     CategoryMapRecord = namedtuple(
-        'ProblemConnectionCategoryMapRecord',
+        'ProblemConnection_CategoryMapRecord',
         (AXIS, CATEGORY, COMPONENT, COMPONENT_ID, RELATIVE_A, RELATIVE_B,
             INVERSE_COMPONENT_ID, INVERSE_COMPONENT, INVERSE_CATEGORY))
 
@@ -725,30 +688,46 @@ class ProblemConnection(BaseProblemModel):
             ADJACENT_PROBLEM, PROBLEM_A_ID, BROADER, BROADER))
     ))
 
-    Key = namedtuple('ProblemConnectionKey', (AXIS, PROBLEM_A, PROBLEM_B))
+    Key = namedtuple('ProblemConnection_Key', (AXIS, PROBLEM_A, PROBLEM_B))
+    CausalKey = namedtuple('ProblemConnection_CausalKey',
+                           (AXIS, DRIVER, IMPACT))
+    ScopedKey = namedtuple('ProblemConnection_ScopedKey',
+                           (AXIS, BROADER, NARROWER))
+    Problems = namedtuple('ProblemConnection_Problems', (PROBLEM_A, PROBLEM_B))
 
     @classmethod
     def create_key(cls, axis, problem_a, problem_b, **kwds):
-        '''
-        Create key for a problem connection
-
-        Return a key allowing the Trackable metaclass to register a
-        problem connection instance. The key is a namedtuple of axis,
-        problem_a, and problem_b.
-        '''
-        return cls.Key(axis, problem_a, problem_b)
+        '''Create Trackable key, a CausalKey or ScopedKey based on axis'''
+        return cls._build_key(axis, problem_a, problem_b)
 
     def derive_key(self):
-        '''Derive key from a problem connection instance
+        '''Derive Trackable key, a CausalKey or ScopedKey based on axis'''
+        cls = self.__class__  # TODO: Fix vardygrify so this isn't needed
+        return cls._build_key(self.axis, self.problem_a, self.problem_b)
 
-        Return the registry key used by the Trackable metaclass from a
-        problem connection instance. The key is a namedtuple of axis,
-        problem_a, and problem_b.
-        '''
-        is_causal = self.axis == self.CAUSAL
-        p_a = self.driver if is_causal else self.broader
-        p_b = self.impact if is_causal else self.narrower
-        return self.__class__.Key(self.axis, p_a, p_b)
+    @classmethod
+    def _build_key(cls, axis, problem_a, problem_b):
+        if axis == cls.CAUSAL:
+            return cls.CausalKey(axis, problem_a, problem_b)
+        if axis == cls.SCOPED:
+            return cls.ScopedKey(axis, problem_a, problem_b)
+        else:
+            raise InvalidConnectionAxis(axis=axis, valid_axes=cls.AXES)
+
+    @property
+    def problem_a(self):
+        return self.driver if self.axis == self.CAUSAL else self.broader
+
+    @property
+    def problem_b(self):
+        return self.impact if self.axis == self.CAUSAL else self.narrower
+
+    @property
+    def problems(self):
+        cls = self.__class__
+        return (cls.Problems(self.driver, self.impact)
+                if self.axis == self.CAUSAL
+                else cls.Problems(self.broader, self.narrower))
 
     def derive_category(self, problem):
         '''Derive connection category, given a problem'''
@@ -765,44 +744,6 @@ class ProblemConnection(BaseProblemModel):
             (self.BROADER if problem is p_b else self.NARROWER))
 
         return category
-
-    @classmethod
-    def get_problem_connection(cls, axis, problem_a_huid, problem_b_huid,
-                               raise_on_miss=False):
-        '''
-        Get problem connection
-
-        I/O:
-        axis: axis string, either 'causal' or 'scoped'
-        problem_a_huid: human_id string for 1st problem instance
-        problem_b_huid: human_id string for 2nd problem instance
-        raise_on_miss=False: raise DoesNotExist if True
-        return: corresponding problem connection or None if not found
-        '''
-        axis = axis.lower()
-        problem_a_huid = problem_a_huid.lower()
-        problem_b_huid = problem_b_huid.lower()
-
-        problem_a, problem_b = aliased(Problem), aliased(Problem)
-        if axis == cls.CAUSAL:
-            query = (cls.query.join(problem_a, cls.driver)
-                              .join(problem_b, cls.impact))
-        elif axis == cls.SCOPED:
-            query = (cls.query.join(problem_a, cls.broader)
-                              .join(problem_b, cls.narrower))
-        else:
-            raise InvalidAxis(invalid_axis=axis, valid_axes=cls.AXES)
-
-        query = (query.filter(problem_a.human_id == problem_a_huid)
-                      .filter(problem_b.human_id == problem_b_huid))
-
-        try:
-            return query.one()
-
-        except NoResultFound:
-            if raise_on_miss:
-                connection_key = cls.Key(axis, problem_a_huid, problem_b_huid)
-                raise DoesNotExist(cls=cls.__name__, key=connection_key)
 
     def __init__(self, axis, problem_a, problem_b,
                  ratings_data=None, ratings_context_problem=None):
@@ -823,7 +764,7 @@ class ProblemConnection(BaseProblemModel):
         '''
         # TODO: make axis an Enum
         if axis not in self.AXES:
-            raise InvalidConnectionAxis(axis=axis)
+            raise InvalidConnectionAxis(axis=axis, valid_axes=self.AXES)
         if problem_a is problem_b:
             raise CircularConnection(problem=problem_a)
         self.axis = axis
@@ -881,9 +822,12 @@ class ProblemConnection(BaseProblemModel):
         '''
         rating_added = False
         for rating_data in ratings_data:
+            geo_huid = rating_data.pop('geo')
+            geo = Geo[geo_huid]
             connection_rating = ProblemConnectionRating(
                 connection=self,
                 problem=ratings_context_problem,
+                geo=geo,
                 **rating_data)
             # TODO: add tracking of new to Trackable and check it here
             if connection_rating not in self.ratings:
@@ -1013,7 +957,7 @@ class Problem(BaseProblemModel):
 
     human_id = orm.synonym('_human_id', descriptor=human_id)
 
-    Key = namedtuple('ProblemKey', (HUMAN_ID,))
+    Key = namedtuple('Problem_Key', (HUMAN_ID,))
 
     @classmethod
     def create_key(cls, name, **kwds):
@@ -1036,23 +980,6 @@ class Problem(BaseProblemModel):
         the problem instance.
         '''
         return self.__class__.Key(self.human_id)
-
-    @classmethod
-    def manifest_key(cls, problem):
-        '''Manifest key from problem if instance or human_id otherwise'''
-        try:
-            return problem.derive_key()
-        except AttributeError:
-            return cls.Key(problem)
-
-    @classmethod
-    def get_problem(cls, human_id, raise_on_miss=False):
-        human_id = cls.convert_name_to_human_id(human_id)
-        try:
-            return cls.query.filter_by(human_id=human_id).one()
-        except NoResultFound:
-            if raise_on_miss:
-                raise DoesNotExist(cls=cls.__name__, key=human_id)
 
     @staticmethod
     def convert_name_to_human_id(name):

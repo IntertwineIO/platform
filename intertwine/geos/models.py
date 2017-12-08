@@ -9,11 +9,9 @@ from functools import reduce
 from sqlalchemy import Column, ForeignKey, Index, Table, desc, or_, orm, types
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy.orm.exc import NoResultFound
 
 from intertwine import IntertwineModel
-from intertwine.exceptions import (AttributeConflict, CircularReference,
-                                   DoesNotExist)
+from intertwine.exceptions import (AttributeConflict, CircularReference)
 from intertwine.utils.enums import MatchType
 from intertwine.utils.jsonable import JsonProperty
 from intertwine.utils.space import Area, Coordinate, GeoLocation
@@ -74,7 +72,7 @@ class GeoID(BaseGeoModel):
                       #       unique=True),
                       )
 
-    Key = namedtuple('GeoIDKey', (STANDARD, CODE))
+    Key = namedtuple('GeoID_Key', (STANDARD, CODE))
 
     @classmethod
     def create_key(cls, standard, code, **kwds):
@@ -237,7 +235,7 @@ class GeoLevel(BaseGeoModel):
                             LEVEL,
                             unique=True),)
 
-    Key = namedtuple('GeoLevelKey', (GEO, LEVEL))
+    Key = namedtuple('GeoLevel_Key', (GEO, LEVEL))
 
     @classmethod
     def create_key(cls, geo, level, **kwds):
@@ -360,10 +358,10 @@ class GeoData(BaseGeoModel):
                             'total_pop'),)
 
     Record = namedtuple(
-        'GeoDataRecord',
+        'GeoData_Record',
         'total_pop, urban_pop, latitude, longitude, land_area, water_area')
 
-    Key = namedtuple('GeoDataKey', (GEO,))
+    Key = namedtuple('GeoData_Key', (GEO,))
 
     @classmethod
     def create_key(cls, geo, **kwds):
@@ -1037,19 +1035,10 @@ class Geo(BaseGeoModel):
     jsonified_bottom_level_key = JsonProperty(name='bottom_level_key',
                                               hide=True)
 
-    @classmethod
-    def get_geo(cls, human_id, raise_on_miss=False):
-        human_id = human_id.lower()
-        try:
-            return cls.query.filter_by(human_id=human_id).one()
-        except NoResultFound:
-            if raise_on_miss:
-                raise DoesNotExist(cls=cls.__name__, key=human_id)
-
-    Key = namedtuple('GeoKey', (HUMAN_ID,))
+    Key = namedtuple('Geo_Key', (HUMAN_ID,))
 
     @classmethod
-    def create_key(cls, name=None, abbrev=None, qualifier=None,
+    def create_key(cls, human_id=None, name=None, abbrev=None, qualifier=None,
                    path_parent=None, alias_targets=None, **kwds):
         '''
         Create Trackable key (human_id 1-tupled) for a geo
@@ -1061,6 +1050,9 @@ class Geo(BaseGeoModel):
         When provided, a qualifier is appended, delimited by a space.
         Prohibited characters/sequences are either replaced or removed.
         '''
+        if human_id:
+            return cls.Key(human_id)
+
         path = path_parent.human_id + Geo.PATH_DELIMITER if path_parent else ''
         nametag = u'{abbrev_or_name}{qualifier}'.format(
             abbrev_or_name=abbrev if abbrev else name,
@@ -1072,14 +1064,6 @@ class Geo(BaseGeoModel):
     def derive_key(self):
         '''Derive Trackable key (human_id 1-tupled) from a geo'''
         return self.__class__.Key(self.human_id)
-
-    @classmethod
-    def manifest_key(cls, geo):
-        '''Manifest key from geo if instance or human_id otherwise'''
-        try:
-            return geo.derive_key()
-        except AttributeError:
-            return cls.Key(geo)
 
     def __init__(self, name, abbrev=None, qualifier=None, path_parent=None,
                  alias_targets=None, aliases=None, uses_the=None,

@@ -12,9 +12,6 @@ from flask_bootstrap import Bootstrap
 from .bases import BaseIntertwineMeta, BaseIntertwineModel
 from .__metadata__ import *  # noqa
 
-# from . import demo
-# from sassutils.wsgi import SassMiddleware
-
 
 # Set up base model and database connection, and attach query property
 IntertwineModel = make_declarative_base(Base=BaseIntertwineModel,
@@ -24,6 +21,8 @@ intertwine_db = Manager(Model=IntertwineModel)
 extend_declarative_base(IntertwineModel, session=intertwine_db.session)
 
 from . import auth, communities, content, geos, main, problems, signup  # noqa
+
+IntertwineModel.initialize_table_model_map()
 
 
 def create_app(name=None, config=None):
@@ -35,6 +34,7 @@ def create_app(name=None, config=None):
     Returns:
         Flask: a Flask app
 
+    Usage:
     >>> from intertwine import create_app
     >>> from config import DevConfig
     >>> app = create_app(config=DevConfig)
@@ -51,11 +51,6 @@ def create_app(name=None, config=None):
     #     from flask_debugtoolbar import DebugToolbarExtension
     #     toolbar = DebugToolbarExtension()
 
-    # Auto-build SASS/SCSS for each request
-    # app.wsgi_app = SassMiddleware(app.wsgi_app, {
-    #     __name__: ('static/sass', 'static/css', 'static/css')
-    # })
-
     # TODO: replace with Bootstrap 4
     Bootstrap(app)
 
@@ -69,12 +64,6 @@ def create_app(name=None, config=None):
     app.register_blueprint(content.blueprint, url_prefix='/content')
 
     # app.url_map.strict_slashes = False
-    # app.register_blueprint(demo.blueprint, url_prefix='/demo')
-
-    # Auto-build SASS/SCSS for each request
-    # app.wsgi_app = SassMiddleware(app.wsgi_app, {
-    #     __name__: ('problems/static/sass', 'problems/static/css', 'problems/static/css')
-    # })
 
     # if app.config['DEBUG']:
     #     toolbar.init_app(app)

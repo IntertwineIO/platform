@@ -17,7 +17,8 @@ from intertwine.utils.tools import vardygrify
 
 @blueprint.errorhandler(InterfaceException)
 def handle_interface_exception(error):
-    '''Handle invalid usage
+    '''
+    Handle Interface Exception
 
     Intercept the error and return a response consisting of the status
     code and a JSON representation of the error.
@@ -58,8 +59,8 @@ def get_problem_json(problem_huid):
     json_kwargs = dict(Problem.objectify_json_kwargs(request.args))
 
     try:
-        problem = Problem.get_problem(problem_huid, raise_on_miss=True)
-    except IntertwineException as e:
+        problem = Problem.reconstruct(problem_huid)
+    except KeyError as e:
         raise ResourceDoesNotExist(str(e))
 
     return jsonify(problem.jsonify(**json_kwargs))
@@ -75,9 +76,11 @@ def get_problem_html(problem_huid):
     curl -H 'accept:text/html' -X GET \
     'http://localhost:5000/problems/homelessness'
     '''
-    problem = Problem.get_problem(problem_huid)
+    problem_huid = Problem.convert_name_to_human_id(problem_huid)
 
-    if problem is None:
+    try:
+        problem = Problem.reconstruct(problem_huid)
+    except KeyError:
         # TODO: Instead of aborting, reroute to problem_not_found page
         # Oops! 'X' is not a problem found in Intertwine.
         # Did you mean:
@@ -115,8 +118,8 @@ def get_problem_connection_json(axis, problem_a_huid, problem_b_huid):
     json_kwargs = dict(ProblemConnection.objectify_json_kwargs(request.args))
 
     try:
-        connection = ProblemConnection.get_problem_connection(
-            axis, problem_a_huid, problem_b_huid, raise_on_miss=True)
+        connection = ProblemConnection.reconstruct(
+            (axis, problem_a_huid, problem_b_huid))
     except IntertwineException as e:
         raise ResourceDoesNotExist(str(e))
 
