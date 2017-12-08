@@ -4,16 +4,29 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import flask
-from flask import abort, jsonify, redirect, render_template, request
+from flask import (abort, jsonify, make_response, redirect, render_template,
+                   request)
 
 from . import blueprint
-from intertwine.exceptions import IntertwineException, ResourceDoesNotExist
+from intertwine.exceptions import (InterfaceException, IntertwineException,
+                                   ResourceDoesNotExist)
 from intertwine.geos.models import Geo
 from intertwine.problems.models import Problem, ProblemConnection
 from intertwine.utils.flask_utils import json_requested
 from intertwine.utils.jsonable import Jsonable
 from intertwine.utils.tools import vardygrify
 from .models import Community
+
+
+@blueprint.errorhandler(InterfaceException)
+def handle_interface_exception(error):
+    '''
+    Handle Interface Exception
+
+    Intercept the error and return a response consisting of the status
+    code and a JSON representation of the error.
+    '''
+    return make_response(jsonify(error.jsonify()), error.status_code)
 
 
 @blueprint.route('/', methods=['GET'])
@@ -55,8 +68,8 @@ def get_community_json(problem_huid, org_huid, geo_huid):
     json_kwargs = dict(Community.objectify_json_kwargs(request.args))
 
     try:
-        community = Community.get_community(problem_huid, org_huid, geo_huid,
-                                            raise_on_miss=True)
+        community = Community.manifest(problem_huid, org_huid, geo_huid)
+
     except IntertwineException as e:
         raise ResourceDoesNotExist(str(e))
 

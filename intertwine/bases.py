@@ -8,6 +8,7 @@ from alchy.model import ModelBase
 
 from intertwine.initiation import InitiationMixin, InitiationMetaMixin
 from intertwine.trackable import Trackable
+from intertwine.trackable.utils import build_table_model_map
 from intertwine.utils.enums import UriType
 from intertwine.utils.jsonable import Jsonable
 from intertwine.utils.mixins import AutoTableMixin
@@ -124,3 +125,8 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
                 pass
 
         raise KeyError('Unable to create JSON key')
+
+    @classmethod
+    def initialize_table_model_map(cls):
+        '''Initialize table model map; invoke after loading all models'''
+        cls._table_model_map = build_table_model_map(cls)

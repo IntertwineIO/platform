@@ -12,6 +12,7 @@ class IntertwineException(Exception):
         template = message if message else ' '.join(self.__doc__.split())
         message = template.format(**kwds) if kwds else (
             template.format(*args) if args else template)
+        message = message.strip('\"\'')
         log.error(message)
         # TODO: Change to super() once on Python 3.6
         Exception.__init__(self, message)

@@ -201,8 +201,7 @@ def test_incremental_decode(session):
 def test_decode_same_data(session):
     '''Tests decoding incrementally'''
     from intertwine.trackable import Trackable
-    from intertwine.problems.models import (Problem, ProblemConnection,
-                                            ProblemConnectionRating)
+    from intertwine.problems.models import Problem
     from data.data_process import decode
 
     create_geo_data(session)

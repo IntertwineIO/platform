@@ -217,9 +217,25 @@ def gethalffullargspec(func):
             kwonlyargs=None, kwonlydefaults=None, annotations=None, *argspec)
 
 
-def isiterator(iterable):
-    '''Determine if an iterable (or any object) is an iterator'''
-    return hasattr(iterable, '__iter__') and not hasattr(iterable, '__len__')
+def iscollection(obj):
+    '''Determine if an object is a collection, e.g. list, tuple, dict, set'''
+    return hasattr(obj, '__iter__') and hasattr(obj, '__len__')
+
+
+def isiterator(obj):
+    '''Determine if an object is an iterator (not just iterable)'''
+    return hasattr(obj, '__iter__') and not hasattr(obj, '__len__')
+
+
+def isnamedtuple(obj):
+    '''Determine if an object is a namedtuple'''
+    return isinstance(obj, tuple) and hasattr(obj, '_asdict')
+
+
+def isnonstringsequence(obj):
+    '''Determine if an object is a non-string sequence, e.g. list, tuple'''
+    return (hasattr(obj, '__iter__') and hasattr(obj, '__getitem__') and
+            not isinstance(obj, basestring))
 
 
 def iterator(*elements):

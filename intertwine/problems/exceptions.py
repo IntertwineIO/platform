@@ -26,8 +26,7 @@ class InvalidEntity(IntertwineException):
 
 
 class InvalidConnectionAxis(IntertwineException):
-    '''Connection axis '{axis}' is not valid. Must be 'causal' or
-    'scoped'.'''
+    '''Invalid axis: {axis}. Valid axes: {valid_axes}'''
 
 
 class CircularConnection(IntertwineException):
@@ -59,10 +58,6 @@ class InvalidUser(IntertwineException):
 
 class InvalidProblemForConnection(IntertwineException):
     '''{problem!r} must be a problem in {connection!r}.'''
-
-
-class InvalidAxis(IntertwineException):
-    '''Invalid axis: {invalid_axis}. Valid axes: {valid_axes}'''
 
 
 class InvalidProblemName(IntertwineException):

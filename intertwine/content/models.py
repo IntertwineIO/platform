@@ -53,7 +53,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
                             '_published_timestamp',
                             unique=True),)
 
-    Key = namedtuple('ContentKey',  # add publisher?
+    Key = namedtuple('Content_Key',  # add publisher?
                      'title, author_names, publication, published_timestamp')
 
     @classmethod

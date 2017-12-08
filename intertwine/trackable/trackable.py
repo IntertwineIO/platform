@@ -5,24 +5,22 @@ from __future__ import (absolute_import, division, print_function,
 
 import inspect
 import sys
-from itertools import islice
+from collections import namedtuple
 
 from alchy.model import ModelMeta
 from past.builtins import basestring
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
+from sqlalchemy.orm import aliased, class_mapper
 
 from .exceptions import (
     InvalidRegistryKey, KeyConflictError, KeyInconsistencyError,
     KeyMissingFromRegistry, KeyMissingFromRegistryAndDatabase,
     KeyRegisteredAndNoModify)
+from .utils import (build_table_model_map, isiterator, isnamedtuple,
+                    isnonstringsequence, merge_args)
 
 # Python version compatibilities
-if sys.version_info < (3,):
-    lzip = zip  # legacy zip returning list of tuples
-    from itertools import izip as zip
-    U_LITERAL = 'u'
-else:
-    U_LITERAL = ''
+U_LITERAL = 'u' if sys.version_info < (3,) else ''
 
 
 def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
@@ -43,7 +41,7 @@ def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
                      If False, unicode characters print as intended.
 
     tight=False:     By default, newlines/indents are added when a line
-                     exceeds max_width. Excludes whitespace when True.
+                     exceeds MAX_WIDTH. Excludes whitespace when True.
 
     outclassed=True: By default, the outer class and []'s are included
                      in the return value so it evals to the instance.
@@ -84,10 +82,7 @@ def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
     try:
         if not named:
             raise ValueError
-        key_name = (u'{cls_name}.{key_cls_name}'
-                    .format(cls_name=self.__class__.__name__,
-                            key_cls_name=Trackable.KEY_NAMEDTUPLE_NAME))
-        #                     key_cls_name=key.__class__.__name__))
+        key_name = type(key).__name__.replace('_', '.')
         treprs = [u'{f}={trepr}'.format(
                   f=f, trepr=trepr(getattr(key, f),
                                    named, raw, tight, outclassed, _lvl + 1))
@@ -102,7 +97,7 @@ def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
                   .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
                           treprs=(u',' + sp).join(treprs), cp=cp, csqb=csqb))
 
-    if len(ind1) + len(all_1_line) < Trackable.max_width or tight:
+    if len(ind1) + len(all_1_line) < Trackable.MAX_WIDTH or tight:
         return all_1_line
     else:
         return (u'{cls}{osqb}{key_name}{op}\n{ind2}{treprs}\n{ind1}{cp}{csqb}'
@@ -231,7 +226,7 @@ def deconstruct(self, exclusions=None, named=False, base=None):
 
     exclusions=None: a set of field names to be excluded
     named=False: if True, emit (name, component) tuples, in which each
-        name includes the full field path delimited by '_'
+        name includes the full field path delimited by period ('.')
     base=None: base name to prepend to the field path if named is True
     return: generator that emits components or (name, component) tuples
     '''
@@ -244,7 +239,7 @@ def deconstruct(self, exclusions=None, named=False, base=None):
             except AttributeError:
                 pass
 
-            name = '_'.join((base, field)) if base else field
+            name = '.'.join((base, field)) if base else field
 
             try:
                 for name, component in component.deconstruct(
@@ -301,13 +296,13 @@ class Trackable(ModelMeta):
     set of modified instances of the same type.
     '''
 
-    KEY_NAMEDTUPLE_NAME = 'Key'
-
     # Keep track of all classes that are Trackable
     _classes = {}
 
+    QualifiedKey = namedtuple('QualifiedKey', 'model, key')
+
     # Max width used for Trackable's default repr
-    max_width = 79
+    MAX_WIDTH = 79
 
     def __new__(meta, name, bases, attr):
         # Track instances for each class of type Trackable
@@ -331,7 +326,7 @@ class Trackable(ModelMeta):
         return new_cls
 
     def __call__(cls, *args, **kwds):
-        all_kwds = cls.merge_args(*args, **kwds)
+        all_kwds = merge_args(cls.__init__, *args, **kwds)
         key = cls.create_key(**all_kwds)
         if key is None or key == '':
             raise InvalidRegistryKey(key=key, classname=cls.__name__)
@@ -371,7 +366,7 @@ class Trackable(ModelMeta):
         a miss looks in the database. The create fails over to looking
         for an existing object to address race conditions.
         '''
-        all_kwds = cls.merge_args(*args, **kwds)
+        all_kwds = merge_args(cls.__init__, *args, **kwds)
         key = cls.create_key(**all_kwds)
 
         try:
@@ -419,7 +414,7 @@ class Trackable(ModelMeta):
         a miss looks in the database. The create fails over to looking
         for an existing object to address race conditions.
         '''
-        all_kwds = cls.merge_args(*args, **kwds)
+        all_kwds = merge_args(cls.__init__, *args, **kwds)
         inst, created = cls.get_or_create(
             _query_on_miss=_query_on_miss,
             _nested_transaction=_nested_transaction, **all_kwds)
@@ -430,28 +425,183 @@ class Trackable(ModelMeta):
         inst._update_(_prefix=_prefix, _suffix=_suffix, **all_kwds)
         return inst, False
 
-    def merge_args(cls, *args, **kwds):
+    def reconstruct(cls, components, exclusions=None, retrieve=False,
+                    as_key=False, _idx=None):
         '''
-        Convert args to kwds for create_key(), modify(), etc. so
-        parameter order need not match __init__()
+        Reconstruct
+
+        Instantiate from deconstructed object's key components by
+        recursively reconstructing in a depth-first manner.
+
+        I/O:
+        components: list/tuple, iterator (e.g. deconstruct output) or
+            single component string value
+        exclusions=None: set of key fields excluded from components;
+            excluded values assumed to be None when retrieving instance
+        retrieve=False: if retrieve is False (default), instantiate
+            foreign keys during reconstruction; if retrieve is True,
+            reconstruct via single query, but forgo Trackable caching;
+            if as_key is also True, return hyper_key instead of instance
+        as_key=False: if not as_key (default), return instance;
+            if as_key is True and retrieve is False, return key;
+            if as_key is True and retrieve is True, return hyper_key
+        _idx=None: private parameter for tracking the index in recursion
+        return: instance (or key if as_key) matching given components
+        raise: if no instance is found:
+            KeyMissingFromRegistryAndDatabase (retrieve=False)
+            NoResultFound (retrieve=True)
         '''
-        if not args:
-            return kwds
+        exclusions = {} if exclusions is None else exclusions
+        fields = cls.Key._fields
+        key_components = []
 
-        try:  # py3
-            init_args = inspect.getfullargspec(cls.__init__).args
-        except AttributeError:  # py2
-            init_args = inspect.getargspec(cls.__init__).args
+        if _idx is None:
+            idx = 0
+            if isiterator(components):
+                components = tuple(components)
+            elif not isnonstringsequence(components):
+                components = (components,)
+        else:
+            idx = _idx
 
-        arg_names_gen = islice(init_args, 1, len(args) + 1)
+        for field in fields:
+            if field in exclusions:
+                key_components.append(None)
+                continue
+            try:
+                component_cls = cls.related_model(field)
+                component_value, idx = component_cls.reconstruct(
+                    components=components, exclusions=exclusions,
+                    retrieve=retrieve, _idx=idx)
+                key_components.append(component_value)
+            except AttributeError:
+                key_components.append(components[idx])
+                idx += 1
 
-        for arg_name, arg_value in zip(arg_names_gen, args):
-            if arg_name in kwds:
-                raise TypeError('Keyword arg {kwd_name} conflicts with '
-                                'positional arg'.format(kwd_name=arg_name))
-            kwds[arg_name] = arg_value
+        key = cls.create_key(*key_components)
 
-        return kwds
+        if as_key:
+            return key if _idx is None else (key, idx)
+
+        if retrieve:
+            return cls.retrieve(key) if _idx is None else (key, idx)
+
+        inst = cls[key]
+        return inst if _idx is None else (inst, idx)
+
+    def retrieve(cls, hyper_key, _alias=None, _query=None):
+        '''
+        Retrieve
+
+        Instantiate from hyper key by recursively building query in a
+        depth-first manner and then executing it with the expectation
+        there will be a single result.
+
+        I/O:
+        hyper_key: Trackable key in which objects are replaced by keys
+            Example:
+            ProblemConnection_CausalKey(
+                axis=u'causal',
+                driver=Problem_Key(human_id=u'domestic_violence'),
+                impact=Problem_Key(human_id=u'homelessness')
+            )
+        _alias=None: Private parameter containing SQLAlchemy alias for
+            each foreign key join; used to distinguish between multiple
+            joins to the same table (e.g. driver vs. impact above)
+        _idx=None: private parameter for tracking the index in recursion
+        return: instance matching given query_key
+        raise: NoResultFound if no instance is found
+        '''
+        query = _query or cls.query
+        for name, value in hyper_key._asdict().items():
+            field = getattr(_alias, name) if _alias else getattr(cls, name)
+
+            if not isnamedtuple(value):
+                query = query.filter(field == value)
+
+            else:
+                component_key = value
+                component_cls = cls.get_key_model(component_key)
+                alias = aliased(component_cls)  # UnmappedClassError if invalid
+                query = query.join(alias, field)
+                query = component_cls.retrieve(
+                    hyper_key=component_key, _alias=alias, _query=query)
+
+        return query.one() if _query is None else query
+
+    def reconstitute(cls, hyper_key):
+        '''
+        Reconstitute
+
+        I/O:
+        hyper_key: Trackable key in which objects are replaced by keys
+            Example:
+            ProblemConnection_CausalKey(
+                axis=u'causal',
+                driver=Problem_Key(human_id=u'domestic_violence'),
+                impact=Problem_Key(human_id=u'homelessness')
+            )
+        return: instance matching given query_key
+        raise: KeyMissingFromRegistryAndDatabase if no instance is found
+        '''
+        key_components = []
+
+        for name, value in hyper_key._asdict().items():
+
+            if not isnamedtuple(value):
+                key_components.append(value)
+
+            else:
+                component_key = value
+                component_cls = cls.get_key_model(component_key)
+                component_inst = component_cls.reconstitute(component_key)
+                key_components.append(component_inst)
+
+        key = cls.create_key(*key_components)
+        inst = cls[key]
+        return inst
+
+    def related_model(cls, field):
+        '''
+        Related Model
+
+        Retrieve related model given foreign key field or relation name.
+
+        I/O:
+        field: name of a foreign key field or relation
+        raise: AttributeError on failure
+        return: related model
+        '''
+        try:
+            field_attribute = getattr(cls, field)
+            return field_attribute.property.mapper.entity
+
+        except AttributeError:
+            field_attribute = (getattr(cls, field + '_id')
+                               if field[-3:] != '_id' else field)
+            try:
+                foreign_key = tuple(field_attribute.expression.foreign_keys)[0]
+            except (AttributeError, KeyError):
+                raise AttributeError('Field has no mapping or foreign key')
+            try:
+                related_table_name = foreign_key.target_fullname.split('.')[0]
+                # return cls.table_model_map[related_table_name]
+                return cls.get_table_model(related_table_name)
+            except (AttributeError, KeyError):
+                raise AttributeError("No model found for field's foreign key")
+
+    def get_key_model(cls, key):
+        '''Get model from Trackable key'''
+        model_name = type(key).__name__.split('_')[0]
+        return cls._classes[model_name]
+
+    def get_table_model(cls, table):
+        '''Get model given table name'''
+        try:
+            return cls._table_model_map[table]
+        except AttributeError:
+            cls._table_model_map = build_table_model_map(cls)
+            return cls._table_model_map[table]
 
     def tget(cls, key, default=None, query_on_miss=True):
         '''
@@ -494,10 +644,16 @@ class Trackable(ModelMeta):
         key_dict = key._asdict()
         try:
             instance = cls.query.filter_by(**key_dict).first()
+            if instance is None:
+                raise ValueError
 
-        except InvalidRequestError:  # cls does not have a field
+        # Field doesn't exist or it's not a SQLAlchemy field
+        except (InvalidRequestError, ValueError):
+            mapper = class_mapper(cls)
+            props = set(p.key for p in mapper.iterate_properties)
+
             for field, value in key._asdict().items():
-                if not hasattr(cls, field):
+                if field not in props:
                     del key_dict[field]
                     key_dict[field + '_id'] = getattr(value, 'id')
 
