@@ -13,8 +13,10 @@ from functools import partial
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from intertwine.trackable import Trackable
+from intertwine import IntertwineModel
 from intertwine.utils.tools import derive_required_args
+
+SQLALCHEMY_MODEL_BASE = IntertwineModel
 
 
 class Builder(object):
@@ -37,10 +39,14 @@ class Builder(object):
 
     _builder_count = 0
 
-    def build(self, **kwds):
+    def build(self, _stack=None, **kwds):
 
         self.instance_id = self._instance_count
         self._instance_count += 1
+
+        unique_id = self.unique_id
+        stack = _stack if _stack else []
+        stack.append(unique_id)
 
         model_init_kwds = kwds.copy()
         required_args = derive_required_args(self.model.__init__)
@@ -49,10 +55,11 @@ class Builder(object):
             if arg in kwds:
                 continue
 
-            field_builder = self.get_field_builder(arg)
+            field_builder = self.get_field_builder(field_name=arg, **kwds)
             if field_builder:
-                model_init_kwds[arg] = field_builder(**kwds)
+                model_init_kwds[arg] = field_builder(_stack=stack)
 
+        stack.pop()
         return self.model(**model_init_kwds)
 
     @classmethod
@@ -70,21 +77,32 @@ class Builder(object):
 
         model_name = model.__name__
         model_builder_name = ''.join((model_name, cls.MODEL_BUILDER_TAG))
-        model_builder_class = cls.get_builder(model_builder_name)
-        return model_builder_class(model)
+        return cls.get_builder(model_builder_name)
 
-    def get_field_builder(self, field_name):
+    @classmethod
+    def get_model_map(cls, base):
+        '''Build model map given SQLAlchemy declarative base'''
+        try:
+            return cls._model_map
+        except AttributeError:
+            cls._model_map = {model.__name__: model
+                              for model in base._decl_class_registry.values()
+                              if hasattr(model, '__table__')}
+            return cls._model_map
+
+    def get_field_builder(self, field_name, **kwds):
 
         build_field_name = '_'.join((self.BUILD_FIELD_TAG, field_name))
         return getattr(self, build_field_name,
-                       self.get_default_field_builder(field_name))
+                       self.get_default_field_builder(field_name, **kwds))
 
-    def get_default_field_builder(self, field_name):
+    def get_default_field_builder(self, field_name, **kwds):
 
         model = self.model
         try:
             related_model = model.related_model(field_name)
-            related_builder = self.get_model_builder(related_model)
+            related_builder_class = self.get_model_builder(related_model)
+            related_builder = related_builder_class()
             return related_builder.build
 
         except AttributeError:
@@ -100,7 +118,7 @@ class Builder(object):
             build_default_type_name = '_'.join((self.DEFAULT_FIELD_TAG,
                                                 field_type_name.lower()))
             build_default_type = getattr(self, build_default_type_name)
-            return partial(build_default_type, field_type=field_type)
+            return partial(build_default_type, field_type=field_type, **kwds)
 
     def default_boolean(self, field_type, **kwds):
         return bool(random.randint(0, 1))
@@ -132,12 +150,29 @@ class Builder(object):
                 break
         return ' '.join(words).capitalize()
 
-    def __init__(self, model=None):
+    @property
+    def unique_id(self):
+        return '.'.join((self.__class__.__name__,
+                         str(self.builder_id), str(self.instance_id)))
+
+    def __new__(cls, model=None, **kwds):
+
+        if model:
+            model_builder_class = cls.get_model_builder(model)
+            if model_builder_class is not cls:
+                inst = model_builder_class.__new__(model_builder_class, **kwds)
+                # inst.__init__(**kwds)
+                return inst
+
+        return super(Builder, cls).__new__(cls)
+
+    def __init__(self, model=None, **kwds):
+
+        super(Builder, self).__init__()
         cls = self.__class__
         if not model:
-            model_name = cls.__name__.split(
-                self.MODEL_BUILDER_TAG)[0]
-            model = Trackable._classes[model_name]
+            model_name = cls.__name__.split(self.MODEL_BUILDER_TAG)[0]
+            model = self.get_model_map(SQLALCHEMY_MODEL_BASE)[model_name]
         self.model = model
         self.builder_id = cls._builder_count
         cls._builder_count += 1
@@ -150,18 +185,42 @@ class ProblemBuilder(Builder):
         'Poverty',
         'Homelessness',
         'Domestic Violence',
-        'Substance Abuse'
+        'Substance Abuse',
+        'Mental Illness',
+        'Post-Traumatic Stress Disorder',
+        'Broken Foster Care System',
+        'Discrimination Against Formerly Incarcerated',
+        'Lack of Affordable Housing',
+        'Criminalization of Poverty',
+        'Unemployment',
+        'Economic Inequality',
+        'Social Injustice',
+        'Lack of Social Cohesion',
+        'Insufficient Safety Net',
+        'Human Suffering'
     }
 
-    def build_name(self):
-        return random.choice(tuple(self.NAMES))
+    def build_name(self, **kwds):
+        names = self.NAMES - self.exclude
+        return random.choice(tuple(names))
+
+    def __init__(self, model=None, exclude=None, **kwds):
+        self.exclude = exclude or set()
+        super(ProblemBuilder, self).__init__(**kwds)
 
 
 class ProblemConnectionBuilder(Builder):
 
-    def build_axis(self):
+    def build_axis(self, **kwds):
         return random.choice(tuple(self.model.AXES))
 
-    def build_problem_a(self):
-        return
-        return random.choice(tuple(self.model.AXES))
+    def build_problem_a(self, _stack=None, **kwds):
+        problem_builder = ProblemBuilder()
+        problem_a = problem_builder.build(_stack=_stack)
+        self.problem_a_name = problem_a.name
+        return problem_a
+
+    def build_problem_b(self, _stack=None, **kwds):
+        problem_builder = ProblemBuilder(exclude={self.problem_a_name})
+        problem_b = problem_builder.build(_stack=_stack)
+        return problem_b
