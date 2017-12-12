@@ -4,7 +4,18 @@ import pytest
 
 
 @pytest.mark.unit
-@pytest.mark.smoke
+def test_trackable_class_keys(session):
+    '''Test Trackable Class Keys'''
+    from intertwine.trackable import Trackable
+
+    for class_name, cls in Trackable._classes.items():
+        Key = cls.Key
+        key_class_name, key_name = Key.__name__.split('_')
+        assert key_class_name == class_name
+        assert key_name == 'Key'
+
+
+@pytest.mark.unit
 def test_trackable_tget(session):
     '''Tests Trackable get (tget)'''
     from intertwine.problems.models import Problem
@@ -56,7 +67,6 @@ def test_trackable_tget(session):
 
 
 @pytest.mark.unit
-@pytest.mark.smoke
 def test_trackable_indexability(session):
     '''Tests Trackable indexability (via []s)'''
     from intertwine.problems.models import Problem

@@ -22,6 +22,8 @@ if sys.version_info < (3,):
 else:
     unicode = str
 
+SELF_REFERENTIAL_PARAMS = {'self', 'cls', 'meta'}
+
 
 def add_leading_zeros(number, width):
     '''Add Leading Zeros to a number given a target width'''
@@ -87,7 +89,8 @@ def _derive_defaults_py2(func, public_only=True):
 
     Never use directly; use derive_defaults instead.
     '''
-    args, _, _, defaults, _, _, _ = gethalffullargspec(func)
+    fullargspec = gethalffullargspec(func)
+    args, defaults = fullargspec.args, fullargspec.defaults
     arg_defaults = zip(args[-len(defaults):], defaults)
     if public_only:
         return exclude_private_keys(arg_defaults)
@@ -101,6 +104,23 @@ def exclude_private_keys(iterator):
 
 derive_defaults = (_derive_defaults_py2 if sys.version_info < (3,)
                    else _derive_defaults_py3)
+
+
+def derive_required_args(func, include_self=False):
+    '''
+    Derive Required Args (Python 2.6+)
+
+    Return required arg generator (no defaults) for the given function
+
+    Never use directly; use derive_required_args instead.
+    '''
+    fullargspec = gethalffullargspec(func)
+    args, defaults = fullargspec.args, fullargspec.defaults
+    num_args = len(args) if args else 0
+    num_defaults = len(defaults) if defaults else 0
+    num_required_args = num_args - num_defaults
+    start = 1 if not include_self and args[0] in SELF_REFERENTIAL_PARAMS else 0
+    return islice(args, start, num_required_args)
 
 
 # Map of mypy-style type annotations and corresponding types

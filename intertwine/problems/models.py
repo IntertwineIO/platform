@@ -696,17 +696,20 @@ class ProblemConnection(BaseProblemModel):
     Problems = namedtuple('ProblemConnection_Problems', (PROBLEM_A, PROBLEM_B))
 
     @classmethod
-    def create_key(cls, axis, problem_a, problem_b, **kwds):
+    def create_key(cls, axis, problem_a, problem_b, generic=False, **kwds):
         '''Create Trackable key, a CausalKey or ScopedKey based on axis'''
-        return cls._build_key(axis, problem_a, problem_b)
+        return cls._build_key(axis, problem_a, problem_b, generic)
 
-    def derive_key(self):
+    def derive_key(self, generic=False):
         '''Derive Trackable key, a CausalKey or ScopedKey based on axis'''
         cls = self.__class__  # TODO: Fix vardygrify so this isn't needed
-        return cls._build_key(self.axis, self.problem_a, self.problem_b)
+        return cls._build_key(self.axis, self.problem_a, self.problem_b,
+                              generic)
 
     @classmethod
-    def _build_key(cls, axis, problem_a, problem_b):
+    def _build_key(cls, axis, problem_a, problem_b, generic=False):
+        if generic:
+            return cls.Key(axis, problem_a, problem_b)
         if axis == cls.CAUSAL:
             return cls.CausalKey(axis, problem_a, problem_b)
         if axis == cls.SCOPED:
