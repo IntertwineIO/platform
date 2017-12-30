@@ -68,6 +68,7 @@ def test_licenses(**options):
         'pytest-html',       # Mozilla Public License 2.0 (MPL 2.0)
         'pytest-runner',     # MIT
         'pytest-xdist',      # MIT
+        'text-unidecode',    # Artistic-Perl-1.0 - used by Faker
         'tox',               # MIT
         'virtualenv',        # MIT
 
@@ -104,6 +105,8 @@ def test_licenses(**options):
         'PSF', 'Python Software Foundation',
         'DSF', 'Django Software Foundation',
         'ISC', 'ISCL', 'Internet Software Consortium',
+        'Artistic-Perl-1.0',  # opensource.org/licenses/Artistic-Perl-1.0
+        'Artistic-2.0',  # opensource.org/licenses/Artistic-2.0
     ]
 
     for installed_distribution in get_installed_distributions():
