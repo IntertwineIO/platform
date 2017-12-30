@@ -11,6 +11,7 @@ from alchy.model import ModelMeta
 from past.builtins import basestring
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm import aliased, class_mapper
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from .exceptions import (
     InvalidRegistryKey, KeyConflictError, KeyInconsistencyError,
@@ -296,13 +297,16 @@ class Trackable(ModelMeta):
     set of modified instances of the same type.
     '''
 
+    # Max width used for Trackable's default repr
+    MAX_WIDTH = 79
+
+    ID_TAG = 'id'
+    _ID_TAG = '_id'
+
     # Keep track of all classes that are Trackable
     _classes = {}
 
     QualifiedKey = namedtuple('QualifiedKey', 'model, key')
-
-    # Max width used for Trackable's default repr
-    MAX_WIDTH = 79
 
     def __new__(meta, name, bases, attr):
         # Track instances for each class of type Trackable
@@ -345,15 +349,16 @@ class Trackable(ModelMeta):
             del inst._modified
         return inst
 
-    def _create_(cls, *args, **kwds):
+    def _create_(cls, _save=True, *args, **kwds):
         inst = cls(*args, **kwds)
-        session = cls.session()
-        session.add(inst)
-        session.flush()
+        if _save:
+            session = cls.session()
+            session.add(inst)
+            session.flush()
         return inst
 
-    def get_or_create(cls, _query_on_miss=True, _nested_transaction=True,
-                      *args, **kwds):
+    def get_or_create(cls, _query_on_miss=True, _nested_transaction=False,
+                      _save=True, *args, **kwds):
         '''
         Get or create
 
@@ -384,9 +389,9 @@ class Trackable(ModelMeta):
                     # to use these features, workarounds must be taken. (TODO)
                     # stackoverflow: https://goo.gl/aGibhe
                     with session.begin_nested():
-                        inst = cls._create_(*args, **kwds)
+                        inst = cls._create_(_save=_save, *args, **kwds)
                 else:
-                    inst = cls._create_(*args, **kwds)
+                    inst = cls._create_(_save=_save, *args, **kwds)
                 return inst, True
 
             except IntegrityError:
@@ -399,8 +404,8 @@ class Trackable(ModelMeta):
             inst = cls[key]
             return inst, False
 
-    def update_or_create(cls, _query_on_miss=True, _nested_transaction=True,
-                         _prefix='_', _suffix='', *args, **kwds):
+    def update_or_create(cls, _query_on_miss=True, _nested_transaction=False,
+                         _save=True, _prefix='_', _suffix='', *args, **kwds):
         '''
         Update or create
 
@@ -417,7 +422,7 @@ class Trackable(ModelMeta):
         all_kwds = merge_args(cls.__init__, *args, **kwds)
         inst, created = cls.get_or_create(
             _query_on_miss=_query_on_miss,
-            _nested_transaction=_nested_transaction, **all_kwds)
+            _nested_transaction=_nested_transaction, _save=_save, **all_kwds)
 
         if created:
             return inst, True
@@ -521,7 +526,7 @@ class Trackable(ModelMeta):
 
             else:
                 component_key = value
-                component_cls = cls.get_key_model(component_key)
+                component_cls = cls.key_model(component_key)
                 alias = aliased(component_cls)  # UnmappedClassError if invalid
                 query = query.join(alias, field)
                 query = component_cls.retrieve(
@@ -553,7 +558,7 @@ class Trackable(ModelMeta):
 
             else:
                 component_key = value
-                component_cls = cls.get_key_model(component_key)
+                component_cls = cls.key_model(component_key)
                 component_inst = component_cls.reconstitute(component_key)
                 key_components.append(component_inst)
 
@@ -561,47 +566,100 @@ class Trackable(ModelMeta):
         inst = cls[key]
         return inst
 
-    def related_model(cls, field):
+    def instrumented_attribute(cls, field_name):
+        '''
+        Instrumented Attribute
+
+        Retrieve instrumented attribute given field/relation name.
+
+        I/O:
+        field_name: name of a foreign key field or relation
+        raise: AttributeError on failure
+        return: SQAlchemy instrumented attribute
+        '''
+        field = None
+
+        try:
+            field = getattr(cls, field_name)  # Raise if no such member
+            if not isinstance(field, InstrumentedAttribute):
+                raise AttributeError(
+                    "'{cls}.{field}' not an InstrumentedAttribute"
+                    .format(cls=cls.__name__, field=field_name))
+
+        except AttributeError as e1:
+            try:
+                if field_name[-3:] == cls._ID_TAG:
+                    raise
+                field_name_with_id = field_name + cls._ID_TAG
+                if not hasattr(cls, field_name_with_id):
+                    raise AttributeError(
+                        str(e1) + ", '{field_id}' does not exist"
+                        .format(field_id=field_name_with_id))
+                field = getattr(cls, field_name_with_id)
+                if not isinstance(field, InstrumentedAttribute):
+                    raise AttributeError(
+                        str(e1) + ", '{field_id}' not instrumented"
+                        .format(field_id=field_name_with_id))
+            except AttributeError as e2:
+                try:
+                    # Find underlying field if field is a synonym
+                    # Only works once ORM has loaded an instance
+                    underlying_name = field.property.key  # Non-synonym raises
+                except AttributeError as e3:
+                    raise AttributeError(
+                        str(e3) + " and '{field}' not a synonym"
+                        .format(field=field_name))
+
+                if not hasattr(cls, underlying_name):
+                    raise AttributeError(
+                        str(e2) + ", and underlying '{field}' does not exist"
+                        .format(field=underlying_name))
+                field = getattr(cls, underlying_name)
+                if not isinstance(field, InstrumentedAttribute):
+                    raise AttributeError(
+                        str(e2) + ", and underlying '{field}' not instrumented"
+                        .format(field=underlying_name))
+
+        return field
+
+    def related_model(cls, field_name):
         '''
         Related Model
 
         Retrieve related model given foreign key field or relation name.
 
         I/O:
-        field: name of a foreign key field or relation
+        field_name: name of a foreign key field or relation
         raise: AttributeError on failure
-        return: related model
+        return: related SQAlchemy model
         '''
+        field = cls.instrumented_attribute(field_name)
         try:
-            field_attribute = getattr(cls, field)
-            return field_attribute.property.mapper.entity
-
+            return field.property.mapper.entity
         except AttributeError:
-            field_attribute = (getattr(cls, field + '_id')
-                               if field[-3:] != '_id' else field)
             try:
-                foreign_key = tuple(field_attribute.expression.foreign_keys)[0]
-            except (AttributeError, KeyError):
+                foreign_key = tuple(field.expression.foreign_keys)[0]
+            except (AttributeError, IndexError):
                 raise AttributeError('Field has no mapping or foreign key')
             try:
                 related_table_name = foreign_key.target_fullname.split('.')[0]
                 # return cls.table_model_map[related_table_name]
-                return cls.get_table_model(related_table_name)
+                return cls.table_model(related_table_name)
             except (AttributeError, KeyError):
                 raise AttributeError("No model found for field's foreign key")
 
-    def get_key_model(cls, key):
-        '''Get model from Trackable key'''
+    def key_model(cls, key):
+        '''Retrieve model from Trackable key'''
         model_name = type(key).__name__.split('_')[0]
         return cls._classes[model_name]
 
-    def get_table_model(cls, table):
-        '''Get model given table name'''
+    def table_model(cls, table_name):
+        '''Retrieve model given table name'''
         try:
-            return cls._table_model_map[table]
+            return cls._table_model_map[table_name]
         except AttributeError:
             cls._table_model_map = build_table_model_map(cls)
-            return cls._table_model_map[table]
+            return cls._table_model_map[table_name]
 
     def tget(cls, key, default=None, query_on_miss=True):
         '''
@@ -655,7 +713,7 @@ class Trackable(ModelMeta):
             for field, value in key._asdict().items():
                 if field not in props:
                     del key_dict[field]
-                    key_dict[field + '_id'] = getattr(value, 'id')
+                    key_dict[field + cls._ID_TAG] = getattr(value, cls.ID_TAG)
 
             instance = cls.query.filter_by(**key_dict).first()
 

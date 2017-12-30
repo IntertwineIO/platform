@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from fixtures import *  # noqa
+from tests.fixtures import *  # noqa
 
 
 def pytest_addoption(parser):

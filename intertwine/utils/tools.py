@@ -106,21 +106,29 @@ derive_defaults = (_derive_defaults_py2 if sys.version_info < (3,)
                    else _derive_defaults_py3)
 
 
-def derive_required_args(func, include_self=False):
+def derive_args(func, include_self=False, include_optional=True,
+                include_private=False):
     '''
-    Derive Required Args (Python 2.6+)
+    Derive Args (Python 2.6+)
 
-    Return required arg generator (no defaults) for the given function
+    Return arg generator for the given function
 
-    Never use directly; use derive_required_args instead.
+    I/O:
+    include_self=False:
+    include_optional=True:
+    include_private=False:
+    return: arg generator
     '''
     fullargspec = gethalffullargspec(func)
     args, defaults = fullargspec.args, fullargspec.defaults
+    start = 1 if not include_self and args[0] in SELF_REFERENTIAL_PARAMS else 0
     num_args = len(args) if args else 0
     num_defaults = len(defaults) if defaults else 0
-    num_required_args = num_args - num_defaults
-    start = 1 if not include_self and args[0] in SELF_REFERENTIAL_PARAMS else 0
-    return islice(args, start, num_required_args)
+    end = num_args if include_optional else num_args - num_defaults
+    arg_generator = islice(args, start, end)
+    if not include_private:
+        arg_generator = (arg for arg in arg_generator if arg[0] != '_')
+    return arg_generator
 
 
 # Map of mypy-style type annotations and corresponding types

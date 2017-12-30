@@ -131,6 +131,15 @@ class AggregateProblemConnectionRating(BaseProblemModel):
     '''
     SUB_BLUEPRINT = 'rated_connections'
     STRICT = 'strict'
+    AGGREGATIONS = {STRICT}
+
+    NO_RATING = -1
+    NO_WEIGHT = 0
+
+    MIN_RATING = 0
+    MAX_RATING = 4
+    MIN_WEIGHT = 0
+    MAX_WEIGHT = 10 ** 10
 
     community_id = Column(types.Integer, ForeignKey('community.id'))
     community = orm.relationship('Community',
@@ -157,9 +166,6 @@ class AggregateProblemConnectionRating(BaseProblemModel):
               'community_id',
               'aggregation',
               'connection_category'),)
-
-    NO_RATING = -1
-    NO_WEIGHT = 0
 
     Key = namedtuple('AggregateProblemConnectionRating_Key',
                      'connection, aggregation, community')
@@ -221,7 +227,8 @@ class AggregateProblemConnectionRating(BaseProblemModel):
             aggregate_weight += r.weight
 
         aggregate_rating = ((weighted_rating_total * 1.0 / aggregate_weight)
-                            if aggregate_weight > 0 else cls.NO_RATING)
+                            if aggregate_weight > cls.NO_WEIGHT
+                            else cls.NO_RATING)
 
         return (aggregate_rating, aggregate_weight)
 
@@ -242,13 +249,13 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
         self.rating, self.weight = new_aggregate_rating, new_aggregate_weight
 
-    def __init__(self, community, connection, aggregation=STRICT,
+    def __init__(self, connection, community, aggregation=STRICT,
                  rating=None, weight=None, ratings=None):
         problem, org, geo = community.derive_key()
         self.connection_category = connection.derive_category(problem)
         # TODO: add 'inclusive' to include all ratings within sub-orgs/geos
         # TODO: add 'inherited' to point to a different context for ratings
-        if aggregation not in (self.STRICT,):
+        if aggregation not in self.AGGREGATIONS:
             raise InvalidAggregation(aggregation=aggregation)
         if ((rating is None and weight is not None) or
                 (rating is not None and weight is None)):
@@ -268,8 +275,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         elif rating is None:
             if aggregation == self.STRICT:
                 rq = ProblemConnectionRating.query.filter_by(
-                    problem=problem, org=org, geo=geo,
-                    connection=connection)
+                    connection=connection, problem=problem, org=org, geo=geo)
                 # TODO: implement inclusive aggregation
                 # Removed since it is not strict:
                 # rq = rq.filter_by(org=org) if org else rq
@@ -284,7 +290,8 @@ class AggregateProblemConnectionRating(BaseProblemModel):
                     '{field} value of {value} is not a Real number.'
                     .format(field=field, value=value))
 
-        if not ((rating >= 0 and rating <= 4) or rating == -1):
+        if not ((rating >= self.MIN_RATING and rating <= self.MAX_RATING) or
+                rating == self.NO_RATING):
             raise InvalidAggregateConnectionRating(rating=rating,
                                                    connection=connection)
 
@@ -358,6 +365,11 @@ class ProblemConnectionRating(BaseProblemModel):
     granularity may be useful.
     '''
     SUB_BLUEPRINT = 'connection_ratings'
+
+    MIN_RATING = 0
+    MAX_RATING = 4
+    MIN_WEIGHT = 0
+    MAX_WEIGHT = 1000
 
     # TODO: replace with problem_human_id and remove relationship
     problem_id = Column(types.Integer, ForeignKey('problem.id'))
@@ -474,7 +486,8 @@ class ProblemConnectionRating(BaseProblemModel):
 
         if rating is None:
             rating = old_rating = self.rating
-        elif not isinstance(rating, int) or rating < 0 or rating > 4:
+        elif (not isinstance(rating, int) or
+                rating < self.MIN_RATING or rating > self.MAX_RATING):
             raise InvalidProblemConnectionRating(rating=rating,
                                                  *self.derive_key())
         else:
@@ -485,7 +498,8 @@ class ProblemConnectionRating(BaseProblemModel):
 
         if weight is None:
             weight = old_weight = self.weight
-        elif not isinstance(weight, int) or weight < 0:
+        elif (not isinstance(weight, int) or
+                weight < self.MIN_WEIGHT or weight > self.MAX_WEIGHT):
             raise InvalidProblemConnectionWeight(weight=weight,
                                                  *self.derive_key())
         else:
@@ -509,7 +523,7 @@ class ProblemConnectionRating(BaseProblemModel):
                                                    old_user_weight=old_weight)
         return has_updated
 
-    def __init__(self, rating, problem, connection, org=None, geo=None,
+    def __init__(self, rating, connection, problem, org, geo,
                  user='Intertwine', weight=None):
         '''
         Initialize a new problem connection rating

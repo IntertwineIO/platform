@@ -6,7 +6,7 @@ import sys
 
 from pip.utils import get_installed_distributions
 
-from decorators import license
+from tests.decorators import license
 
 
 @license
@@ -74,7 +74,8 @@ def test_licenses(**options):
         # Docs
         'alabaster',         # BSD  - From Sphinx
 
-        # Nagios plugin libraries
+        # Nagios: Zope Public License 2.1, a BSD-style Open Source license
+        # Nagios plugin dependencies:
         'inotify',           # GPL 2    - TODO: Alternatives?
         'graphitesend',      # Apache
 

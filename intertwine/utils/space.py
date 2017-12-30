@@ -57,6 +57,11 @@ class GeoLocation(object):
 
     Coordinates = namedtuple('Coordinates', COORDINATES)
 
+    MIN_LATITUDE = -90
+    MAX_LATITUDE = 90
+    MIN_LONGITUDE = -180
+    MAX_LONGITUDE = 180
+
     @property
     def timezone(self):
         return pendulum.timezone(self.timezone_name)

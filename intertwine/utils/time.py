@@ -12,6 +12,7 @@ from pendulum import timezone
 
 
 UTC = 'UTC'
+TZ_UTC = timezone(UTC)
 
 # fold not yet supported as Pendulum uses a non-standard default of 1
 DatetimeInfo = namedtuple(

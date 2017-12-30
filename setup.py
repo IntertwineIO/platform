@@ -41,6 +41,7 @@ def setup_project():
         'alchy>2.0.1',
         'docopt',
         'enum34>=1.1.6',
+        'Faker',
         'flask',
         'flask-bootstrap',
         'flask-restful',

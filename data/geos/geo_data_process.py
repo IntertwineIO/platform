@@ -652,7 +652,7 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
             # GeoIDs for the PLACE level must be added by load_place_geos
             geo_level, level_created = GeoLevel.update_or_create(
                 geo=place, level=place_level, designation=designation,
-                _query_on_miss=False, _nested_transaction=False)
+                _query_on_miss=False)
 
             if place is county:
                 continue
@@ -667,7 +667,7 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
                     geo_level, level_created = GeoLevel.redesignate_or_create(
                         geo=place_alias, level=SUBDIVISION3,
                         designation=designation, ids={FIPS: cousub_fips},
-                        _query_on_miss=False, _nested_transaction=False)
+                        _query_on_miss=False)
 
         else:
             cousub, cousub_created = manifest_geo(
@@ -947,7 +947,7 @@ def manifest_geo(name, lsad, path_parent, state, county,
 
             geo_level, level_created = GeoLevel.redesignate_or_create(
                 geo=geo, level=level, designation=designation, ids=geoids,
-                _query_on_miss=False, _nested_transaction=False)
+                _query_on_miss=False)
 
             if geo.is_known_by(name):
                 continue  # Execution proceeds after single loop
@@ -1047,7 +1047,7 @@ def manifest_geo(name, lsad, path_parent, state, county,
 
             geo_level, level_created = GeoLevel.redesignate_or_create(
                 geo=geo, level=level, designation=designation, ids=geoids,
-                _query_on_miss=False, _nested_transaction=False)
+                _query_on_miss=False)
 
             continue  # Execution proceeds after single loop
 
@@ -1076,7 +1076,7 @@ def manifest_geo(name, lsad, path_parent, state, county,
 
             geo_level, level_created = GeoLevel.redesignate_or_create(
                 geo=geo, level=level, designation=designation, ids=geoids,
-                _query_on_miss=False, _nested_transaction=False)
+                _query_on_miss=False)
 
         if geo_conflict_alias_targets:
             # geo is not an alias else we would have recycled per above
@@ -1149,7 +1149,7 @@ def add_level_and_rename(geo, level, designation, geoids, name, lsad,
 
     geo_level, created = GeoLevel.redesignate_or_create(
         geo=geo, level=level, designation=designation, ids=geoids,
-        _query_on_miss=False, _nested_transaction=False)
+        _query_on_miss=False)
 
     if tracker is not None:
         tracker['_'.join((match_level, 'matches'))].append(geo)

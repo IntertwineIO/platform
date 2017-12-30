@@ -182,7 +182,7 @@ class Community(BaseCommunityModel):
         except KeyMissingFromRegistryAndDatabase:
             return vardygrify(cls, num_followers=0, **key._asdict())
 
-    def __init__(self, problem=None, org=None, geo=None, num_followers=0):
+    def __init__(self, problem, org, geo, num_followers=0):
         '''Initialize a new community'''
         self.problem = problem
         self.org = org

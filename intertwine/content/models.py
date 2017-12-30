@@ -28,7 +28,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
     URI_TYPE = UriType.PRIMARY
 
     _title = Column(types.String(512))
-    _author_names = Column(types.String(128))
+    _author_names = Column(types.String(128))  # Model TODO: make 256
 
     # TODO: split out ContentPublication as 1:1?
     _publication = Column(types.String(64))  # e.g. Nature
@@ -62,7 +62,8 @@ class Content(AutoTimestampMixin, BaseContentModel):
         '''Create Content key'''
         lowered_title = title.lower()
         normalized_authors = cls.normalize_author_names(author_names)
-        dt_utc = published_timestamp.astimezone(UTC)
+        flex_dt = FlexTime.cast(published_timestamp)
+        dt_utc = flex_dt.astimezone(UTC)
         return cls.Key(lowered_title, normalized_authors, publication, dt_utc)
 
     def derive_key(self):
@@ -114,11 +115,45 @@ class Content(AutoTimestampMixin, BaseContentModel):
 
     @classmethod
     def normalize_author_names(cls, author_names):
-        author_name_list = [an.strip()
-                            for an in author_names.title().split(',')]
-        sorted_author_names = sorted(
-            author_name_list, key=lambda x: (x.split()[-1], x.split()[:-1]))
-        return ', '.join(sorted_author_names)
+        author_name_list = [cls.normalize_author_name(an)
+                            for an in author_names.split(';')]
+        return '; '.join(author_name_list)
+
+    @classmethod
+    def normalize_author_name(cls, author_name):
+        author_name = author_name.strip()
+        author_name_components = [c.strip() for c in author_name.split(',')]
+        credential = None
+        if (len(author_name_components) > 1 and
+                cls.is_credential(author_name_components[-1])):
+            credential = author_name_components[-1]
+            author_name_components = author_name_components[:-1]
+
+        if len(author_name_components) == 1:
+            author_name_components = [
+                c.strip() for c in author_name_components[0].split()]
+            if (len(author_name_components) > 1 and
+                    cls.is_credential(author_name_components[-1])):
+                credential = author_name_components[-1]
+                author_name_components = author_name_components[:-1]
+            author_name = ' '.join(author_name_components)
+
+        elif len(author_name_components) == 2:
+            last_name, first_name = author_name_components
+            author_name = ' '.join((first_name.strip(), last_name.strip()))
+        else:
+            raise ValueError('Invalid author name')
+
+        author_name = author_name.title()
+
+        if credential:
+            author_name = ', '.join((author_name, credential))
+
+        return author_name
+
+    @classmethod
+    def is_credential(cls, component):
+        return (component.upper() == component or component == 'PhD')
 
     @property
     def publication(self):

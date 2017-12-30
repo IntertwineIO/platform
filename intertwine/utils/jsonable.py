@@ -118,13 +118,13 @@ class Jsonable(object):
         return self.PrimaryKey(
             *(getattr(self, f) for f in self.primary_key_fields()))
 
-    # jsonified_pk = JsonProperty(name='pk', hide=True)
+    jsonified_pk = JsonProperty(name='pk', end=True, hide=True)
 
     @property
     def qualified_pk(self):
         return self.QualifiedPrimaryKey(self.__class__, self.pk)
 
-    # jsonified_qualified_pk = JsonProperty(name='qualified_pk', hide=True)
+    jsonified_qualified_pk = JsonProperty(name='qualified_pk', end=True)
 
     def json_key(self, key_type=None, **kwds):
         '''JSON key defaults to unique key repr, but can be overridden'''
@@ -269,9 +269,9 @@ class Jsonable(object):
                 fields.insert(begin_count, jp_name, prop, by_index=True)
                 begin_count += 1
             elif end:
-                # Insert before other 'end' fields
-                fields.insert(len(fields) - end_count - 1, jp_name,
-                              prop, after=True, by_index=True)
+                # Insert after other 'end' fields
+                fields.insert(len(fields) - 1, jp_name, prop, after=True,
+                              by_index=True)
                 end_count += 1
             elif before:
                 fields.insert(before, jp_name, prop)

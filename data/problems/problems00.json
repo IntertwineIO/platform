@@ -9,21 +9,25 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
