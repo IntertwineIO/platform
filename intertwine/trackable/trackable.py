@@ -330,7 +330,7 @@ class Trackable(ModelMeta):
         return new_cls
 
     def __call__(cls, *args, **kwds):
-        all_kwds = merge_args(cls.__init__, *args, **kwds)
+        all_kwds = merge_args(cls.__init__, *args, **kwds) if args else kwds
         key = cls.create_key(**all_kwds)
         if key is None or key == '':
             raise InvalidRegistryKey(key=key, classname=cls.__name__)
@@ -371,7 +371,7 @@ class Trackable(ModelMeta):
         a miss looks in the database. The create fails over to looking
         for an existing object to address race conditions.
         '''
-        all_kwds = merge_args(cls.__init__, *args, **kwds)
+        all_kwds = merge_args(cls.__init__, *args, **kwds) if args else kwds
         key = cls.create_key(**all_kwds)
 
         try:
@@ -412,14 +412,14 @@ class Trackable(ModelMeta):
         Given args/kwds as defined by the model's __init__, look for an
         existing object based on the unique key fields. If found, the
         object is updated based on the remaining fields. If not found,
-        an new object is created. The return value is a tuple of the
+        a new object is created. The return value is a tuple of the
         object and a boolean indicating whether the object was created.
 
         The existence check first looks in Trackable's registry and upon
         a miss looks in the database. The create fails over to looking
         for an existing object to address race conditions.
         '''
-        all_kwds = merge_args(cls.__init__, *args, **kwds)
+        all_kwds = merge_args(cls.__init__, *args, **kwds) if args else kwds
         inst, created = cls.get_or_create(
             _query_on_miss=_query_on_miss,
             _nested_transaction=_nested_transaction, _save=_save, **all_kwds)

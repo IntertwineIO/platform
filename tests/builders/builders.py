@@ -9,6 +9,8 @@ from __future__ import (absolute_import, division, print_function,
 import datetime
 import string
 import sys
+import uuid
+from collections import OrderedDict
 from functools import partial
 
 import pendulum
@@ -16,7 +18,7 @@ from faker import Faker
 
 from intertwine import IntertwineModel
 from intertwine.utils.space import Area, Coordinate, GeoLocation
-from intertwine.utils.tools import derive_args
+from intertwine.utils.tools import derive_args, get_value
 
 SQLALCHEMY_MODEL_BASE = IntertwineModel
 
@@ -80,8 +82,32 @@ class Builder(object):
         return inst
 
     @classmethod
-    def get_builder(cls, name):
+    def get_model_map(cls):
+        '''Build model map from configured SQLAlchemy declarative base'''
+        try:
+            return cls._model_map
+        except AttributeError:
+            base = SQLALCHEMY_MODEL_BASE
+            cls._model_map = {model.__name__: model
+                              for model in base._decl_class_registry.values()
+                              if hasattr(model, '__table__')}
+            return cls._model_map
 
+    @classmethod
+    def get_model(cls, name=None):
+        '''Get specified model or builder-implied model from model map'''
+        if not name:
+            name = cls.__name__.split(cls.MODEL_BUILDER_TAG)[0]
+        try:
+            return cls.get_model_map()[name]
+        except KeyError:
+            if not name and cls is Builder:
+                raise TypeError('Base {cls} has no model'.format(cls=cls))
+            raise TypeError('No model found for {name}'.format(name=name))
+
+    @classmethod
+    def get_builder(cls, name):
+        '''Get specified builder by name from subclasses'''
         try:
             builder_map = Builder._builder_map
         except AttributeError:
@@ -99,29 +125,19 @@ class Builder(object):
         except KeyError:
             return cls
 
-    @classmethod
-    def get_model_map(cls, base):
-        '''Build model map given SQLAlchemy declarative base'''
-        try:
-            return cls._model_map
-        except AttributeError:
-            cls._model_map = {model.__name__: model
-                              for model in base._decl_class_registry.values()
-                              if hasattr(model, '__table__')}
-            return cls._model_map
-
     def get_field_builder(self, field_name, **kwds):
-
+        '''Get specified field builder by field name or default'''
         build_field_name = '_'.join((self.BUILD_FIELD_TAG, field_name))
-        return getattr(self, build_field_name,
-                       self.get_default_field_builder(field_name, **kwds))
+        field_builder = getattr(self, build_field_name, None)
+        if not field_builder:
+            field_builder = self.get_default_field_builder(field_name, **kwds)
+        return field_builder
 
     def get_default_field_builder(self, field_name, **kwds):
-
+        '''Get default field/model builder from specified field type'''
         model = self.model
         try:
             related_model = model.related_model(field_name)
-            # related_builder_class = self.get_model_builder(related_model)
             related_builder = self.__class__(model=related_model, derive=True)
             related_builder_field = '_'.join((field_name,
                                               self.BUILDER_FIELD_TAG))
@@ -129,7 +145,6 @@ class Builder(object):
             return related_builder.build
 
         except AttributeError:
-            # field = getattr(model, field_name)
             field = model.instrumented_attribute(field_name)
             field_type = field.expression.type
             field_type_name = field_type.__class__.__name__
@@ -139,9 +154,11 @@ class Builder(object):
             return partial(build_default_type, field_type=field_type, **kwds)
 
     def default_boolean(self, field_type, **kwds):
+        '''Default random boolean value'''
         return bool(self.random.randint(0, 1))
 
     def default_datetime(self, field_type, **kwds):
+        '''Default random datetime value'''
         now = datetime.datetime.utcnow()
         start = datetime.datetime(1900, 1, 1)
         naive_dt = self.fake.date_time_between_dates(datetime_start=start,
@@ -154,6 +171,7 @@ class Builder(object):
         return local_dt
 
     def default_float(self, field_type, **kwds):
+        '''Default random float value'''
         maxsize = sys.maxsize
         max_divisor_power = len(str(maxsize))
         divisor_power = self.random.randint(0, max_divisor_power)
@@ -161,9 +179,11 @@ class Builder(object):
         return self.random.randint(-maxsize - 1, maxsize) / divisor
 
     def default_integer(self, field_type, **kwds):
+        '''Default random integer value'''
         return self.random.randint(-sys.maxsize - 1, sys.maxsize)
 
     def default_string(self, field_type, **kwds):
+        '''Default random string value'''
         field_length = field_type.length
         num_chars = (self.random.randint(1, field_length) if field_length
                      else self.DEFAULT_MAX_STRING_LENGTH)
@@ -177,6 +197,7 @@ class Builder(object):
         return default_text[:field_length]
 
     def default_text(self, field_type, max_length=None, **kwds):
+        '''Default random text value'''
         num_words = self.random.randint(1, len(self.DEFAULT_WORDS))
         words = []
         length = -1  # First word has no space
@@ -186,7 +207,9 @@ class Builder(object):
             words.append(random_word)
             if max_length and length >= max_length - 1:
                 break
-        return ' '.join(words).capitalize()
+        rejoined = ' '.join(words)
+        capitalized = '. '.join(s.capitalize() for s in rejoined.split('. '))
+        return capitalized
 
     @property
     def unique_id(self):
@@ -210,8 +233,7 @@ class Builder(object):
         super(Builder, self).__init__()
         cls = self.__class__
         if not model:
-            model_name = cls.__name__.split(self.MODEL_BUILDER_TAG)[0]
-            model = self.get_model_map(SQLALCHEMY_MODEL_BASE)[model_name]
+            model = self.get_model()
         self.model = model
         self.optional = optional
         self.builder_id = cls._builder_count
@@ -244,15 +266,15 @@ class ProblemBuilder(Builder):
     }
 
     def build_name(self, **kwds):
-        included_names = self.include or self.NAMES
-        excluded_names = self.exclude
-        names = included_names - excluded_names
+        include = self.include or self.NAMES
+        exclude = self.exclude
+        names = include - exclude
         return self.random.choice(tuple(names))
 
     def __init__(self, model=None, include=None, exclude=None, **kwds):
+        super(ProblemBuilder, self).__init__(**kwds)
         self.include = include or set()
         self.exclude = exclude or set()
-        super(ProblemBuilder, self).__init__(**kwds)
 
 
 class ProblemConnectionBuilder(Builder):
@@ -317,9 +339,9 @@ class ProblemConnectionBuilder(Builder):
         return self.problem_b_builder.build(_stack=_stack)
 
     def __init__(self, model=None, include=None, exclude=None, **kwds):
+        super(ProblemConnectionBuilder, self).__init__(**kwds)
         self.include = include or set()
         self.exclude = exclude or set()
-        super(ProblemConnectionBuilder, self).__init__(**kwds)
 
 
 class ProblemConnectionRatingBuilder(Builder):
@@ -438,22 +460,43 @@ class OrgBuilder(Builder):
         return self.build_name(**kwds)
 
     def build_name(self, **kwds):
-        included_names = self.include or self.NAMES
-        excluded_names = self.exclude
-        names = included_names - excluded_names
+        include = self.include or self.NAMES
+        exclude = self.exclude
+        names = include - exclude
         return self.random.choice(tuple(names))
 
     def __init__(self, model=None, include=None, exclude=None, **kwds):
+        # No super call because there's no org model (yet)
         self.include = include or set()
         self.exclude = exclude or set()
 
 
 class GeoBuilder(Builder):
 
+    PROBABILITY_TAG = 'probability'
+
+    ABBREV_TAG = 'abbrev'
+    QUALIFIER_TAG = 'qualifier'
+    PATH_PARENT_TAG = 'path_parent'
+    ALIAS_TARGETS_TAG = 'alias_targets'
+    ALIASES_TAG = 'aliases'
+    PARENTS_TAG = 'parents'
+    CHILDREN_TAG = 'children'
+
+    DEFAULT_PROBABILITIES = OrderedDict((
+        (ABBREV_TAG, 0.2),
+        (QUALIFIER_TAG, 0.2),
+        (PATH_PARENT_TAG, 0),
+        (ALIAS_TARGETS_TAG, 1),  # all aliases must have a target
+        (ALIASES_TAG, 0),
+        (PARENTS_TAG, 0),
+        (CHILDREN_TAG, 0),
+    ))
+
     NAMES = {
         'Diagon Alley',
         'Forbidden Forest',
-        'The Great Lake',
+        'Black Lake',
         'Azkaban',
         'Little Whinging',
         'Surrey',
@@ -463,14 +506,127 @@ class GeoBuilder(Builder):
         'Somewhere in the Pyrenees',
         'Andorra',
         'France',
-        'The Far North of Europe',
+        'Far North of Europe',
         'Europe',
-        'The Middle of the North Sea',
-        'The North Sea',
+        'Middle of the North Sea',
+        'North Sea',
+    }
+
+    QUALIFIERS = {
+        'in our imagination',
+        'of Harry Potter fame',
+        'we know and love',
+        'as we read somewhere',
+        '...you know the one',
     }
 
     def build_name(self, **kwds):
-        return self.random.choice(tuple(self.NAMES))
+        include = self.include or self.NAMES
+        exclude = self.exclude
+        names = include - exclude
+        return self.random.choice(tuple(names))
+
+    def build_abbrev(self, **kwds):
+        if self.random.uniform(0, 1) > self.abbrev_probability:
+            return
+        name = self.model_init_kwds['name']
+        name_words = name.split()
+        if len(name_words) > 1:
+            return ''.join((w[0] for w in name_words)).upper()
+        return name[:3].upper()
+
+    def build_qualifier(self, **kwds):
+        if self.only_new:
+            # Ensure the geo is new via a unique qualifier
+            return 'in dimension {}'.format(uuid.uuid4())
+        if self.random.uniform(0, 1) > self.qualifier_probability:
+            return
+        return self.random.choice(tuple(self.QUALIFIERS))
+
+    def _build_related_geo(self, relation, is_alias=False, _stack=None,
+                           **build_kwds):
+        probability_name = '_'.join((relation, self.PROBABILITY_TAG))
+        probability = getattr(self, probability_name)
+        if self.random.uniform(0, 1) > probability:
+            return
+
+        name = self.model_init_kwds['name']
+        if relation == self.ALIASES_TAG:
+            include = {name}
+            exclude = None
+        else:
+            include = None
+            exclude = self.exclude | {self.model_init_kwds['name']}
+            if not (self.NAMES - exclude):
+                return
+
+        geo_builder = GeoBuilder(include=include, exclude=exclude,
+                                 is_alias=is_alias, optional=self.optional)
+        builder_field_name = '_'.join((relation, self.BUILDER_FIELD_TAG))
+        setattr(self, builder_field_name, geo_builder)
+        geo = geo_builder.build(_stack=_stack, **build_kwds)
+
+        if not is_alias:
+            assert not geo.alias_targets, ('{relation} may not be an alias'
+                                           .format(relation=relation))
+        return geo
+
+    def build_path_parent(self, _stack=None, **kwds):
+        if self.is_alias:
+            return
+        return self._build_related_geo(self.PATH_PARENT_TAG, is_alias=False,
+                                       _stack=_stack)
+
+    def build_alias_targets(self, _stack=None, **kwds):
+        if not self.is_alias:
+            return
+        geo = self._build_related_geo(self.ALIAS_TARGETS_TAG, is_alias=False,
+                                      _stack=_stack)
+        return [geo] if geo else None
+
+    def build_aliases(self, _stack=None, **kwds):
+        if self.is_alias:
+            return
+        # Create alias without targets since its target is being built
+        geo = self._build_related_geo(self.ALIASES_TAG, is_alias=True,
+                                      _stack=_stack, alias_targets=None)
+        return [geo] if geo else None
+
+    def build_parents(self, _stack=None, **kwds):
+        if self.is_alias:
+            return
+        geo = self._build_related_geo(self.PARENTS_TAG, is_alias=False,
+                                      _stack=_stack)
+        return [geo] if geo else None
+
+    def build_children(self, _stack=None, **kwds):
+        if self.is_alias:
+            return
+        geo = self._build_related_geo(self.CHILDREN_TAG, is_alias=False,
+                                      _stack=_stack)
+        return [geo] if geo else None
+
+    def build_data(self, _stack=None, **kwds):
+        return
+
+    def build_levels(self, _stack=None, **kwds):
+        return
+
+    def __init__(self, model=None, include=None, exclude=None, only_new=False,
+                 is_alias=False, abbrev_probability=None,
+                 qualifier_probability=None, path_parent_probability=None,
+                 alias_targets_probability=None, aliases_probability=None,
+                 parents_probability=None, children_probability=None, **kwds):
+        super(GeoBuilder, self).__init__(**kwds)
+        self.include = include or set()
+        self.exclude = exclude or set()
+        self.only_new = only_new or is_alias
+        self.is_alias = is_alias
+
+        for field_name, default in self.DEFAULT_PROBABILITIES.items():
+            probability_name = '_'.join((field_name, self.PROBABILITY_TAG))
+            value = get_value(locals()[probability_name], default)
+            setattr(self, probability_name, value)
 
 
 class GeoDataBuilder(Builder):
@@ -490,6 +646,11 @@ class GeoDataBuilder(Builder):
 
     COORDINATE_PRECISION = Coordinate.DEFAULT_PRECISION
     AREA_PRECISION = Area.DEFAULT_PRECISION
+
+    def build_geo(self, _stack=None, **kwds):
+        self.geo_builder = GeoBuilder(only_new=True, is_alias=False,
+                                      optional=self.optional)
+        return self.geo_builder.build(_stack=_stack)
 
     def build_total_pop(self, **kwds):
         if 'urban_pop' in self.model_init_kwds:
@@ -534,6 +695,11 @@ class GeoDataBuilder(Builder):
 
 class GeoLevelBuilder(Builder):
 
+    def build_geo(self, _stack=None, **kwds):
+        self.geo_builder = GeoBuilder(only_new=True, is_alias=False,
+                                      optional=self.optional)
+        return self.geo_builder.build(_stack=_stack)
+
     def build_level(self, **kwds):
         return self.random.choice(self.model.UP.keys())
 
@@ -551,7 +717,7 @@ class CommunityBuilder(Builder):
     def build_problem(self, _stack=None, **kwds):
         self.problem_builder = ProblemBuilder(
             include=self.problem_include, exclude=self.problem_exclude)
-        return self.problem_builder.build(_stack=None)
+        return self.problem_builder.build(_stack=_stack)
 
     def build_org(self, **kwds):
         self.org_builder = OrgBuilder()
@@ -562,9 +728,9 @@ class CommunityBuilder(Builder):
 
     def __init__(self, model=None, problem_include=None, problem_exclude=None,
                  **kwds):
+        super(CommunityBuilder, self).__init__(**kwds)
         self.problem_include = problem_include or set()
         self.problem_exclude = problem_exclude or set()
-        super(CommunityBuilder, self).__init__(**kwds)
 
 
 class ContentBuilder(Builder):

@@ -245,6 +245,12 @@ def gethalffullargspec(func):
             kwonlyargs=None, kwonlydefaults=None, annotations=None, *argspec)
 
 
+def get_value(value, default, checks=None):
+    '''Get value or default as determined by checks'''
+    checks = checks or {None}
+    return value if value not in checks else default
+
+
 def iscollection(obj):
     '''Determine if an object is a collection, e.g. list, tuple, dict, set'''
     return hasattr(obj, '__iter__') and hasattr(obj, '__len__')
