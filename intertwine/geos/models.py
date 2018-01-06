@@ -9,6 +9,7 @@ from functools import reduce
 from sqlalchemy import Column, ForeignKey, Index, Table, desc, or_, orm, types
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from intertwine import IntertwineModel
 from intertwine.exceptions import (AttributeConflict, CircularReference)
@@ -1454,31 +1455,43 @@ class Geo(BaseGeoModel):
             raise ValueError('{rel} is not an allowed value for relation'
                              .format(rel=relation))
 
-        base_q = getattr(self, relation).join(Geo.data).join(Geo.levels)
-        levels = (lvl for lvl in (
-            GeoLevel.UP if relation == self.PARENTS else GeoLevel.DOWN))
+        try:
+            base_q = getattr(self, relation).join(Geo.data).join(Geo.levels)
 
-        if limit < 0:
-            rv = OrderedDict(
-                (lvl, [self.jsonify_geo(g, **json_kwargs)
-                       for g in base_q.filter(GeoLevel.level == lvl)
-                       .order_by(desc(GeoData.total_pop)).all()])
-                for lvl in levels)
+        # Allow instances not bound to a session to still be printed
+        except DetachedInstanceError:
+            base_q = getattr(self, relation)
+            rv = OrderedDict()
+            rv['all_levels'] = [self.jsonify_geo(g, **json_kwargs)
+                                for g in base_q.all()]
+
         else:
-            rv = OrderedDict(
-                (lvl, [self.jsonify_geo(g, **json_kwargs)
-                       for g in base_q.filter(GeoLevel.level == lvl)
-                       .order_by(desc(GeoData.total_pop)).limit(limit).all()])
-                for lvl in levels)
+            levels = (lvl for lvl in (
+                GeoLevel.UP if relation == self.PARENTS else GeoLevel.DOWN))
 
-        for lvl, geos in list(rv.items()):
-            if len(geos) == 0:
-                rv.pop(lvl)
+            if limit < 0:
+                rv = OrderedDict(
+                    (lvl, [self.jsonify_geo(g, **json_kwargs)
+                           for g in base_q.filter(GeoLevel.level == lvl)
+                           .order_by(desc(GeoData.total_pop)).all()])
+                    for lvl in levels)
+            else:
+                rv = OrderedDict(
+                    (lvl, [self.jsonify_geo(g, **json_kwargs)
+                           for g in base_q.filter(GeoLevel.level == lvl)
+                           .order_by(desc(GeoData.total_pop))
+                           .limit(limit).all()])
+                    for lvl in levels)
 
-            if len(geos) == limit:
-                total = base_q.filter(GeoLevel.level == lvl).count()
-                if total > limit:
-                    rv[lvl].append(self.paginate(len(rv[lvl]), limit, total))
+            for lvl, geos in list(rv.items()):
+                if len(geos) == 0:
+                    rv.pop(lvl)
+
+                if len(geos) == limit:
+                    total = base_q.filter(GeoLevel.level == lvl).count()
+                    if total > limit:
+                        rv[lvl].append(
+                            self.paginate(len(rv[lvl]), limit, total))
 
         return rv
 

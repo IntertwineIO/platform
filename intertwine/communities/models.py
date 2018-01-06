@@ -8,6 +8,7 @@ from itertools import groupby
 from operator import attrgetter
 
 from sqlalchemy import Column, ForeignKey, Index, desc, orm, types
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from intertwine import IntertwineModel
 from intertwine.problems.exceptions import InvalidAggregation
@@ -39,6 +40,8 @@ class Community(BaseCommunityModel):
     # There could also be an 'All Organizations' org that does not
     # include None. A problem and geo must always be defined, whereas an
     # org may each be None, indicating no org affiliation.
+
+    ALPHABETIZE_UNRATED_CONNECTIONS = False  # Adds overhead when True
 
     problem_id = Column(types.Integer, ForeignKey('problem.id'))
     _problem = orm.relationship('Problem', lazy='joined')
@@ -169,16 +172,16 @@ class Community(BaseCommunityModel):
         community instance. The key is a namedtuple of problem, org, and
         geo.
         '''
-        # Use __class__ instead of type() to support mocks
+        # Use __class__ to support mocks
         return self.__class__.Key(self.problem, self.org, self.geo)
 
     @classmethod
     def manifest(cls, problem_huid, org_huid, geo_huid):
         '''Manifest community, either real or vardygr'''
+        # Raise if any human ids don't exist
         key = cls.reconstruct((problem_huid, org_huid, geo_huid), as_key=True)
         try:
             return cls[key]
-
         except KeyMissingFromRegistryAndDatabase:
             return vardygrify(cls, num_followers=0, **key._asdict())
 
@@ -285,18 +288,25 @@ class Community(BaseCommunityModel):
         '''
         _json = json_kwargs['_json']
         rated_connections = set()
-        for aggregate_rating in aggregate_ratings:
-            rated_connections.add(aggregate_rating.connection)
+        if aggregate_ratings:
+            for aggregate_rating in aggregate_ratings:
+                rated_connections.add(aggregate_rating.connection)
 
-            ar_key = aggregate_rating.json_key(**json_kwargs)
-            if depth > 1 and ar_key not in _json:
-                aggregate_rating.jsonify(depth=depth - 1, **json_kwargs)
+                ar_key = aggregate_rating.json_key(**json_kwargs)
+                if depth > 1 and ar_key not in _json:
+                    aggregate_rating.jsonify(depth=depth - 1, **json_kwargs)
 
-            yield ar_key
+                yield ar_key
 
-        component = getattr(PC, PC.CATEGORY_MAP[category].component)
-        connections = (getattr(problem, category).join(component)
-                                                 .order_by(Problem.name))
+        if self.ALPHABETIZE_UNRATED_CONNECTIONS:
+            try:
+                component = getattr(PC, PC.CATEGORY_MAP[category].component)
+                connections = (getattr(problem, category)
+                               .join(component).order_by(Problem.name))
+            except DetachedInstanceError:
+                connections = getattr(problem, category)
+        else:
+            connections = getattr(problem, category)
 
         for connection in connections:
             if connection not in rated_connections:
@@ -344,15 +354,15 @@ class Community(BaseCommunityModel):
                          reverse=True)
 
         rv = {category: list(community.jsonify_connection_category(
-              problem, category, aggregation, ars_by_cat, depth,
+              problem, category, aggregation, aggregate_ratings, depth,
               _path=Jsonable.form_path(_path, category), **json_kwargs))
-              for category, ars_by_cat
+              for category, aggregate_ratings
               in groupby(ars, key=attrgetter('connection_category'))}
 
         for category in PC.CATEGORY_MAP:
             if category not in rv:
                 rv[category] = list(community.jsonify_connection_category(
-                    problem, category, aggregation, [], depth,
+                    problem, category, aggregation, None, depth,
                     _path=Jsonable.form_path(_path, category), **json_kwargs))
 
         return rv
