@@ -522,9 +522,23 @@ class GeoBuilder(Builder):
 
     def build_name(self, **kwds):
         include = self.include or self.NAMES
-        exclude = self.exclude
+        related = self._get_related_geo_names()
+        exclude = self.exclude | related
         names = include - exclude
         return self.random.choice(tuple(names))
+
+    def _get_related_geo_names(self):
+        path_parent_name = ({self.model_init_kwds[self.PATH_PARENT_TAG].name}
+                            if self.model_init_kwds.get(self.PATH_PARENT_TAG)
+                            else set())
+        parents_names = (
+            {g.name for g in self.model_init_kwds[self.PARENTS_TAG]}
+            if self.model_init_kwds.get(self.PARENTS_TAG) else set())
+        children_names = (
+            {g.name for g in self.model_init_kwds[self.CHILDREN_TAG]}
+            if self.model_init_kwds.get(self.CHILDREN_TAG) else set())
+
+        return path_parent_name | parents_names | children_names
 
     def build_abbrev(self, **kwds):
         if self.random.uniform(0, 1) > self.abbrev_probability:
