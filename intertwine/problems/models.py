@@ -80,7 +80,7 @@ class Image(BaseProblemModel):
         '''
         return cls.Key(problem, urlnorm.norm(url))
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''
         Derive key from an image instance
 
@@ -168,7 +168,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
               'connection_category'),)
 
     Key = namedtuple('AggregateProblemConnectionRating_Key',
-                     'connection, aggregation, community')
+                     'connection, community, aggregation')
 
     @property
     def adjacent_problem_name(self):
@@ -195,20 +195,20 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
         Return a key allowing the Trackable metaclass to register an
         aggregate problem connection rating instance. The key is a
-        namedtuple of connection, aggregation, and community.
+        namedtuple of connection, community, and aggregation.
         '''
-        return cls.Key(connection, aggregation, community)
+        return cls.Key(connection, community, aggregation)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''
         Derive key from an aggregate rating instance
 
         Return the registry key used by the Trackable metaclass from an
         aggregate problem connection rating instance. The key is a
-        namedtuple of connection, aggregation, and community fields.
+        namedtuple of connection, community, and aggregation fields.
         '''
         return self.__class__.Key(
-            self.connection, self.aggregation, self.community)
+            self.connection, self.community, self.aggregation)
 
     @classmethod
     def calculate_values(cls, ratings):
@@ -446,7 +446,7 @@ class ProblemConnectionRating(BaseProblemModel):
         '''Create Trackable key for a problem connection rating'''
         return cls.Key(connection, problem, org, geo, user)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive key from a problem connection rating instance'''
         return self.__class__.Key(self.connection, self.problem, self.org,
                                   self.geo, self.user)
@@ -714,7 +714,7 @@ class ProblemConnection(BaseProblemModel):
         '''Create Trackable key, a CausalKey or ScopedKey based on axis'''
         return cls._build_key(axis, problem_a, problem_b, generic)
 
-    def derive_key(self, generic=False):
+    def derive_key(self, generic=False, **kwds):
         '''Derive Trackable key, a CausalKey or ScopedKey based on axis'''
         cls = self.__class__  # TODO: Fix vardygrify so this isn't needed
         return cls._build_key(self.axis, self.problem_a, self.problem_b,
@@ -722,14 +722,12 @@ class ProblemConnection(BaseProblemModel):
 
     @classmethod
     def _build_key(cls, axis, problem_a, problem_b, generic=False):
-        if generic:
+        if generic or axis not in cls.AXES:
             return cls.Key(axis, problem_a, problem_b)
         if axis == cls.CAUSAL:
             return cls.CausalKey(axis, problem_a, problem_b)
         if axis == cls.SCOPED:
             return cls.ScopedKey(axis, problem_a, problem_b)
-        else:
-            raise InvalidConnectionAxis(axis=axis, valid_axes=cls.AXES)
 
     @property
     def problem_a(self):
@@ -794,7 +792,7 @@ class ProblemConnection(BaseProblemModel):
                                  .format(p=problem))
             if isinstance(problem, basestring):
                 problem_name = problem
-                problem_key = Problem.create_key(problem_name)
+                problem_key = Problem.create_key(name=problem_name)
                 try:
                     problem = Problem[problem_key]
                 except KeyError:
@@ -977,7 +975,7 @@ class Problem(BaseProblemModel):
     Key = namedtuple('Problem_Key', (HUMAN_ID,))
 
     @classmethod
-    def create_key(cls, name, **kwds):
+    def create_key(cls, human_id=None, name=None, **kwds):
         '''
         Create key for a problem
 
@@ -985,10 +983,10 @@ class Problem(BaseProblemModel):
         up a problem instance. The key is created from the given name
         parameter.
         '''
-        human_id = cls.convert_name_to_human_id(name)
+        human_id = human_id if human_id else cls.convert_name_to_human_id(name)
         return cls.Key(human_id)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''
         Derive key from a problem instance
 

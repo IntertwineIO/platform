@@ -73,7 +73,7 @@ def test_add_rated_problem_connection(session, client, connection_category,
 
     assert response is not None
 
-    problem2 = Problem[Problem.create_key(problem2_name)]
+    problem2 = Problem[Problem.create_key(name=problem2_name)]
     assert problem2 is not None
 
     response_data = response.get_data(as_text=True)

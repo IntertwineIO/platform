@@ -66,7 +66,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
         dt_utc = flex_dt.astimezone(UTC)
         return cls.Key(lowered_title, normalized_authors, publication, dt_utc)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive Content key from instance'''
         return self.__class__.Key(
             self.title.lower(), self.author_names, self.publication,

@@ -80,7 +80,7 @@ class GeoID(BaseGeoModel):
         '''Create Trackable key (standard/code tuple) for a geo ID'''
         return cls.Key(standard, code)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive Trackable key (standard/code tuple) from a geo ID'''
         return self.__class__.Key(self.standard, self.code)
 
@@ -245,7 +245,7 @@ class GeoLevel(BaseGeoModel):
         '''Create Trackable key (geo/level tuple) for a geo level'''
         return cls.Key(geo, level)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive Trackable key (geo/level tuple) from a geo level'''
         return self.__class__.Key(self.geo, self.level)
 
@@ -374,7 +374,7 @@ class GeoData(BaseGeoModel):
         '''Create Trackable key (geo 1-tupled) for a geo data'''
         return cls.Key(geo)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive Trackable key (geo 1-tupled) from a geo data'''
         return self.__class__.Key(self.geo)
 
@@ -1113,7 +1113,7 @@ class Geo(BaseGeoModel):
                    .replace(' ', '_').lower().replace('/', '-'))
         return cls.Key(path + nametag)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive Trackable key (human_id 1-tupled) from a geo'''
         return self.__class__.Key(self.human_id)
 

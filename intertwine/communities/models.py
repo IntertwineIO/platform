@@ -165,7 +165,7 @@ class Community(BaseCommunityModel):
         '''
         return cls.Key(problem, org, geo)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive key from a community instance
 
         Return the registry key used by the Trackable metaclass from a
