@@ -63,14 +63,14 @@ class Content(AutoTimestampMixin, BaseContentModel):
         lowered_title = title.lower()
         normalized_authors = cls.normalize_author_names(author_names)
         flex_dt = FlexTime.cast(published_timestamp)
-        dt_utc = flex_dt.astimezone(UTC)
+        dt_utc = flex_dt.astimezone(UTC).deflex(native=True)
         return cls.Key(lowered_title, normalized_authors, publication, dt_utc)
 
     def derive_key(self, **kwds):
         '''Derive Content key from instance'''
         return self.__class__.Key(
             self.title.lower(), self.author_names, self.publication,
-            self.published_timestamp.astimezone(UTC))
+            self.published_timestamp.astimezone(UTC).deflex(native=True))
 
     @property
     def title(self):
@@ -241,7 +241,8 @@ class Content(AutoTimestampMixin, BaseContentModel):
 
         # During __init__()
         if self._published_timestamp is None:
-            self._published_timestamp = flex_dt.astimezone(UTC)
+            self._published_timestamp = (flex_dt.astimezone(UTC)
+                                                .deflex(native=True))
         else:  # Not during __init__()
             key = self.__class__.create_key(
                 self.title, self.author_names, self.publication, flex_dt)

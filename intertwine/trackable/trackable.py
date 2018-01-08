@@ -698,7 +698,7 @@ class Trackable(ModelMeta):
         if not query_on_miss:
             return default
 
-        key = cls.Key(*key)  # convert tuple to namedtuple
+        key = cls.create_key(*key)  # convert tuple to key
         key_dict = key._asdict()
         try:
             instance = cls.query.filter_by(**key_dict).first()

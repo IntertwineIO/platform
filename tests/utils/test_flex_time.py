@@ -160,6 +160,7 @@ def test_core_flex_time_interactions(
 
     assert flex_dt.info == dt_info
     assert flex_dt.deflex() == base_dt
+    assert flex_dt.deflex(native=True) == native_dt
 
     flex_dt_via_copy = flex_dt.copy()
     assert flex_dt_via_copy is not flex_dt

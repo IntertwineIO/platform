@@ -20,6 +20,8 @@ from intertwine import IntertwineModel
 from intertwine.utils.space import Area, Coordinate, GeoLocation
 from intertwine.utils.tools import derive_args, get_value
 
+LETTERS = string.letters if sys.version_info < (3,) else string.ascii_letters
+
 SQLALCHEMY_MODEL_BASE = IntertwineModel
 
 
@@ -31,7 +33,7 @@ class Builder(object):
     DEFAULT_FIELD_TAG = 'default'
 
     DEFAULT_MAX_STRING_LENGTH = 255
-    DEFAULT_ALPHABET = string.digits + string.letters + string.punctuation
+    DEFAULT_ALPHABET = LETTERS + string.digits + string.punctuation
     DEFAULT_TEXT = '''
     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
     eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
@@ -715,7 +717,7 @@ class GeoLevelBuilder(Builder):
         return self.geo_builder.build(_stack=_stack)
 
     def build_level(self, **kwds):
-        return self.random.choice(self.model.UP.keys())
+        return self.random.choice(tuple(self.model.UP.keys()))
 
 
 class GeoIDBuilder(Builder):
@@ -769,7 +771,7 @@ class ContentBuilder(Builder):
 
     def build_author_names(self, **kwds):
         num_authors = self.random.randint(1, self.MAX_AUTHORS)
-        authors = (self.fake.name() for _ in xrange(num_authors))
+        authors = (self.fake.name() for _ in range(num_authors))
         author_names = '; '.join(authors)
         return author_names
 
