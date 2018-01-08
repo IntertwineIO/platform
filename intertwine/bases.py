@@ -10,7 +10,7 @@ from intertwine.initiation import InitiationMixin, InitiationMetaMixin
 from intertwine.trackable import Trackable
 from intertwine.trackable.utils import build_table_model_map
 from intertwine.utils.enums import UriType
-from intertwine.utils.jsonable import Jsonable
+from intertwine.utils.jsonable import Jsonable, JsonProperty
 from intertwine.utils.mixins import AutoTableMixin
 
 if sys.version_info >= (3,):
@@ -58,6 +58,8 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
                     self.__class__.URI_TYPE))
         except AttributeError:
             return None
+
+    jsonified_uri = JsonProperty(name='uri', before='json_key')
 
     @classmethod
     def form_uri(cls, components, sub=False, deconstruct=True):

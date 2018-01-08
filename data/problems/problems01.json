@@ -14,16 +14,19 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     }
                 ]
@@ -34,21 +37,25 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -59,21 +66,25 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -84,21 +95,25 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -109,21 +124,25 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -134,21 +153,25 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -159,21 +182,25 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -184,21 +211,25 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -209,21 +240,25 @@
                     {
                         "rating": 1,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -236,21 +271,25 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -261,21 +300,25 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -286,21 +329,25 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -311,21 +358,25 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -336,21 +387,25 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -361,31 +416,37 @@
                     {
                         "rating": 1,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us/tx"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -398,21 +459,25 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -423,21 +488,25 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -448,21 +517,25 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -473,21 +546,25 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -498,21 +575,25 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -523,31 +604,37 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us/tx"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -560,21 +647,25 @@
                     {
                         "rating": 4,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -585,21 +676,25 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -610,21 +705,25 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -635,21 +734,25 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -660,21 +763,25 @@
                     {
                         "rating": 2,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -685,31 +792,37 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us/tx"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]
@@ -720,31 +833,37 @@
                     {
                         "rating": 3,
                         "user": "eli@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 1,
                         "user": "brian@intertwine.io",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "Donald.Christian@concordia.edu",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 2,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us/tx/austin"
                     },
                     {
                         "rating": 3,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us/tx"
                     },
                     {
                         "rating": 4,
                         "user": "sapanadonde@hotmail.com",
+                        "org": null,
                         "geo": "us"
                     }
                 ]

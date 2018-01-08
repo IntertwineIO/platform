@@ -22,6 +22,8 @@ if sys.version_info < (3,):
 else:
     unicode = str
 
+SELF_REFERENTIAL_PARAMS = {'self', 'cls', 'meta'}
+
 
 def add_leading_zeros(number, width):
     '''Add Leading Zeros to a number given a target width'''
@@ -87,7 +89,8 @@ def _derive_defaults_py2(func, public_only=True):
 
     Never use directly; use derive_defaults instead.
     '''
-    args, _, _, defaults, _, _, _ = gethalffullargspec(func)
+    fullargspec = gethalffullargspec(func)
+    args, defaults = fullargspec.args, fullargspec.defaults
     arg_defaults = zip(args[-len(defaults):], defaults)
     if public_only:
         return exclude_private_keys(arg_defaults)
@@ -101,6 +104,31 @@ def exclude_private_keys(iterator):
 
 derive_defaults = (_derive_defaults_py2 if sys.version_info < (3,)
                    else _derive_defaults_py3)
+
+
+def derive_args(func, include_self=False, include_optional=True,
+                include_private=False):
+    '''
+    Derive Args (Python 2.6+)
+
+    Return arg generator for the given function
+
+    I/O:
+    include_self=False:
+    include_optional=True:
+    include_private=False:
+    return: arg generator
+    '''
+    fullargspec = gethalffullargspec(func)
+    args, defaults = fullargspec.args, fullargspec.defaults
+    start = 1 if not include_self and args[0] in SELF_REFERENTIAL_PARAMS else 0
+    num_args = len(args) if args else 0
+    num_defaults = len(defaults) if defaults else 0
+    end = num_args if include_optional else num_args - num_defaults
+    arg_generator = islice(args, start, end)
+    if not include_private:
+        arg_generator = (arg for arg in arg_generator if arg[0] != '_')
+    return arg_generator
 
 
 # Map of mypy-style type annotations and corresponding types
@@ -215,6 +243,12 @@ def gethalffullargspec(func):
         argspec = inspect.getargspec(func)
         return FullArgSpec(
             kwonlyargs=None, kwonlydefaults=None, annotations=None, *argspec)
+
+
+def get_value(value, default, checks=None):
+    '''Get value or default as determined by checks'''
+    checks = checks or {None}
+    return value if value not in checks else default
 
 
 def iscollection(obj):

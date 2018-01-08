@@ -3,6 +3,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import datetime
+import sys
 from collections import namedtuple
 from enum import Enum
 from itertools import chain, islice
@@ -12,6 +14,7 @@ from pendulum import timezone
 
 
 UTC = 'UTC'
+TZ_UTC = timezone(UTC)
 
 # fold not yet supported as Pendulum uses a non-standard default of 1
 DatetimeInfo = namedtuple(
@@ -204,13 +207,21 @@ class FlexTime(DatetimeClass):
             # tzinfo is None, pytz instance, or tzinfo string
             return default if tzinfo is None else str(tzinfo)
 
-    def deflex(self, truncate=False):
+    def deflex(self, native=False):
         '''Deflex instance by creating copy with parent DatetimeClass'''
-        try:
-            return super(FlexTime, self).instance(self)  # raise if no instance
-        except AttributeError:
-            dt_info = self.form_info(self, truncate=truncate, tz_instance=True)
-            return DatetimeClass(**dt_info._asdict())
+        if not native:
+            try:
+                # Raise if super has no instance method
+                return super(FlexTime, self).instance(self)
+            except AttributeError:
+                pass
+        dt_info = self.form_info(self, granularity=self.MAX_GRANULARITY,
+                                 default=True, tz_instance=True)
+        dt_kwds = dt_info._asdict()
+        if native and sys.version_info < (3, 6):
+            del dt_kwds[self.FOLD_TAG]
+        return (datetime.datetime(**dt_kwds) if native
+                else DatetimeClass(**dt_kwds))
 
     @classmethod
     def now(cls, tz=None, granularity=None):

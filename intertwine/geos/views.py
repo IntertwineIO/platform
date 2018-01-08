@@ -110,7 +110,6 @@ def get_geo_json(geo_huid):
 def get_geo_html(geo_huid):
     '''Geo Page'''
     geo_huid = geo_huid.lower()
-    geo = Geo.query.filter_by(human_id=geo_huid).first()
 
     try:
         geo = Geo.reconstruct(geo_huid)

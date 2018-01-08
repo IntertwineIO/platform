@@ -9,6 +9,7 @@ from functools import reduce
 from sqlalchemy import Column, ForeignKey, Index, Table, desc, or_, orm, types
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from intertwine import IntertwineModel
 from intertwine.exceptions import (AttributeConflict, CircularReference)
@@ -79,7 +80,7 @@ class GeoID(BaseGeoModel):
         '''Create Trackable key (standard/code tuple) for a geo ID'''
         return cls.Key(standard, code)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive Trackable key (standard/code tuple) from a geo ID'''
         return self.__class__.Key(self.standard, self.code)
 
@@ -121,12 +122,12 @@ class GeoID(BaseGeoModel):
 
     def __init__(self, level, standard, code):
         '''Initialize a new geo ID'''
+        if not level:
+            raise ValueError('Invalid level: {}'.format(level))
         if standard not in self.STANDARDS:
             raise ValueError('Unknown standard: {}'.format(standard))
         if not code:
             raise ValueError('Invalid code: {}'.format(code))
-        if not level:
-            raise ValueError('Invalid level: {}'.format(level))
         self.standard = standard
         self.code = code
 
@@ -191,6 +192,8 @@ class GeoLevel(BaseGeoModel):
         (COUNTRY, ())
     ))
 
+    assert set(UP.keys()) == set(DOWN.keys())
+
     geo_id = Column(types.Integer, ForeignKey('geo.id'))
     # _geo relationship defined via backref on Geo._levels
 
@@ -242,7 +245,7 @@ class GeoLevel(BaseGeoModel):
         '''Create Trackable key (geo/level tuple) for a geo level'''
         return cls.Key(geo, level)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive Trackable key (geo/level tuple) from a geo level'''
         return self.__class__.Key(self.geo, self.level)
 
@@ -284,7 +287,7 @@ class GeoLevel(BaseGeoModel):
 
     @classmethod
     def redesignate_or_create(cls, geo, level, designation, ids,
-                              _query_on_miss=True, _nested_transaction=True):
+                              _query_on_miss=True):
         '''
         Redesignate (existing geolevel) or create (a new one)
 
@@ -296,18 +299,21 @@ class GeoLevel(BaseGeoModel):
 
         geo_level, created = GeoLevel.update_or_create(
             geo=geo, level=level, designation=designation,
-            _query_on_miss=_query_on_miss,
-            _nested_transaction=_nested_transaction)
+            _query_on_miss=_query_on_miss)
 
         for standard, code in ids.items():
             GeoID.get_or_create(level=geo_level, standard=standard, code=code,
-                                _query_on_miss=_query_on_miss,
-                                _nested_transaction=_nested_transaction)
+                                _query_on_miss=_query_on_miss)
 
         return geo_level, created
 
     def __init__(self, geo, level, designation=None):
         '''Initialize a new geo level'''
+        if not geo:
+            raise ValueError('Invalid geo: {}'.format(geo))
+        if level not in self.UP:
+            raise ValueError('Unknown level: {}'.format(level))
+
         self.level = level
         self.designation = designation
 
@@ -368,68 +374,114 @@ class GeoData(BaseGeoModel):
         '''Create Trackable key (geo 1-tupled) for a geo data'''
         return cls.Key(geo)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive Trackable key (geo 1-tupled) from a geo data'''
         return self.__class__.Key(self.geo)
 
     @property
     def latitude(self):
-        return Coordinate(self._latitude, requantize=True)
+        try:
+            return Coordinate(self._latitude, requantize=True)
+        except TypeError:
+            if self._latitude is None:
+                return None
+            else:
+                raise
 
     @latitude.setter
     def latitude(self, value):
-        self._latitude = Coordinate.cast(value).dequantize()
+        self._latitude = (Coordinate.cast(value).dequantize()
+                          if value is not None else None)
 
     latitude = orm.synonym('_latitude', descriptor=latitude)
     jsonified_latitude = JsonProperty(name='latitude', hide=True)
 
     @property
     def longitude(self):
-        return Coordinate(self._longitude, requantize=True)
+        try:
+            return Coordinate(self._longitude, requantize=True)
+        except TypeError:
+            if self._latitude is None:
+                return None
+            else:
+                raise
 
     @longitude.setter
     def longitude(self, value):
-        self._longitude = Coordinate.cast(value).dequantize()
+        self._longitude = (Coordinate.cast(value).dequantize()
+                           if value is not None else None)
 
     longitude = orm.synonym('_longitude', descriptor=longitude)
     jsonified_longitude = JsonProperty(name='longitude', hide=True)
 
     @property
     def location(self):
-        return GeoLocation(self.latitude, self.longitude)
+        try:
+            return GeoLocation(self.latitude, self.longitude)
+        except TypeError:
+            if self.latitude is None and self.longitude is None:
+                return None
+            else:
+                raise
 
     @location.setter
     def location(self, value):
         try:
             self.latitude, self.longitude = value.latitude, value.longitude
         except AttributeError:
-            self.latitude, self.longitude = value
+            try:
+                self.latitude, self.longitude = value
+            except TypeError:
+                if value is None:
+                    self.latitude, self.longitude = None, None
+                else:
+                    raise
 
     jsonified_location = JsonProperty(name='location', after='geo')
 
     @property
     def land_area(self):
-        return Area(self._land_area, requantize=True)
+        try:
+            return Area(self._land_area, requantize=True)
+        except TypeError:
+            if self._land_area is None:
+                return None
+            else:
+                raise
 
     @land_area.setter
     def land_area(self, value):
-        self._land_area = Area.cast(value).dequantize()
+        self._land_area = (Area.cast(value).dequantize()
+                           if value is not None else None)
 
     land_area = orm.synonym('_land_area', descriptor=land_area)
 
     @property
     def water_area(self):
-        return Area(self._water_area, requantize=True)
+        try:
+            return Area(self._water_area, requantize=True)
+        except TypeError:
+            if self._water_area is None:
+                return None
+            else:
+                raise
 
     @water_area.setter
     def water_area(self, value):
-        self._water_area = Area.cast(value).dequantize()
+        self._water_area = (Area.cast(value).dequantize()
+                            if value is not None else None)
 
     water_area = orm.synonym('_water_area', descriptor=water_area)
 
     @property
     def total_area(self):
-        return self.land_area + self.water_area
+        try:
+            return self.land_area + self.water_area
+        except TypeError:
+            if self.land_area is None and self.water_area is None:
+                return None
+            else:
+                raise
 
     @property
     def geo(self):
@@ -517,7 +569,7 @@ class GeoData(BaseGeoModel):
         return cls(parent_geo, **data)
 
     def __init__(self, geo, total_pop=None, urban_pop=None,
-                 longitude=None, latitude=None,
+                 latitude=None, longitude=None,
                  land_area=None, water_area=None):
         '''Initialize a new geo level'''
         self.geo = geo
@@ -1061,7 +1113,7 @@ class Geo(BaseGeoModel):
                    .replace(' ', '_').lower().replace('/', '-'))
         return cls.Key(path + nametag)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive Trackable key (human_id 1-tupled) from a geo'''
         return self.__class__.Key(self.human_id)
 
@@ -1403,31 +1455,43 @@ class Geo(BaseGeoModel):
             raise ValueError('{rel} is not an allowed value for relation'
                              .format(rel=relation))
 
-        base_q = getattr(self, relation).join(Geo.data).join(Geo.levels)
-        levels = (lvl for lvl in (
-            GeoLevel.UP if relation == self.PARENTS else GeoLevel.DOWN))
+        try:
+            base_q = getattr(self, relation).join(Geo.data).join(Geo.levels)
 
-        if limit < 0:
-            rv = OrderedDict(
-                (lvl, [self.jsonify_geo(g, **json_kwargs)
-                       for g in base_q.filter(GeoLevel.level == lvl)
-                       .order_by(desc(GeoData.total_pop)).all()])
-                for lvl in levels)
+        # Allow instances not bound to a session to still be printed
+        except DetachedInstanceError:
+            base_q = getattr(self, relation)
+            rv = OrderedDict()
+            rv['all_levels'] = [self.jsonify_geo(g, **json_kwargs)
+                                for g in base_q.all()]
+
         else:
-            rv = OrderedDict(
-                (lvl, [self.jsonify_geo(g, **json_kwargs)
-                       for g in base_q.filter(GeoLevel.level == lvl)
-                       .order_by(desc(GeoData.total_pop)).limit(limit).all()])
-                for lvl in levels)
+            levels = (lvl for lvl in (
+                GeoLevel.UP if relation == self.PARENTS else GeoLevel.DOWN))
 
-        for lvl, geos in list(rv.items()):
-            if len(geos) == 0:
-                rv.pop(lvl)
+            if limit < 0:
+                rv = OrderedDict(
+                    (lvl, [self.jsonify_geo(g, **json_kwargs)
+                           for g in base_q.filter(GeoLevel.level == lvl)
+                           .order_by(desc(GeoData.total_pop)).all()])
+                    for lvl in levels)
+            else:
+                rv = OrderedDict(
+                    (lvl, [self.jsonify_geo(g, **json_kwargs)
+                           for g in base_q.filter(GeoLevel.level == lvl)
+                           .order_by(desc(GeoData.total_pop))
+                           .limit(limit).all()])
+                    for lvl in levels)
 
-            if len(geos) == limit:
-                total = base_q.filter(GeoLevel.level == lvl).count()
-                if total > limit:
-                    rv[lvl].append(self.paginate(len(rv[lvl]), limit, total))
+            for lvl, geos in list(rv.items()):
+                if len(geos) == 0:
+                    rv.pop(lvl)
+
+                if len(geos) == limit:
+                    total = base_q.filter(GeoLevel.level == lvl).count()
+                    if total > limit:
+                        rv[lvl].append(
+                            self.paginate(len(rv[lvl]), limit, total))
 
         return rv
 

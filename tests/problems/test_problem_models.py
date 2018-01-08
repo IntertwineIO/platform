@@ -59,8 +59,9 @@ def test_problem_connection_rating_model(session):
     org = None
     geo = Geo('Test Geo')
     rating = ProblemConnectionRating(rating=2,
-                                     problem=problem1,
+                                     weight=1,
                                      connection=connection,
+                                     problem=problem1,
                                      org=org,
                                      geo=geo,
                                      user='new_user')
@@ -110,34 +111,34 @@ def test_aggregate_problem_connection_rating_model(session):
     session.add(community1)
     session.commit()
 
-    rating1 = ProblemConnectionRating(problem=problem1,
+    rating1 = ProblemConnectionRating(rating=1,
+                                      weight=1,
                                       connection=connection12,
+                                      problem=problem1,
                                       org=org1,
                                       geo=geo1,
-                                      user=user1,
-                                      rating=1,
-                                      weight=1)
-    rating2 = ProblemConnectionRating(problem=problem1,
+                                      user=user1)
+    rating2 = ProblemConnectionRating(rating=2,
+                                      weight=2,
                                       connection=connection12,
+                                      problem=problem1,
                                       org=org1,
                                       geo=geo1,
-                                      user=user2,
-                                      rating=2,
-                                      weight=2)
-    rating3 = ProblemConnectionRating(problem=problem1,
+                                      user=user2)
+    rating3 = ProblemConnectionRating(rating=3,
+                                      weight=3,
                                       connection=connection12,
+                                      problem=problem1,
                                       org=org1,
                                       geo=geo1,
-                                      user=user3,
-                                      rating=3,
-                                      weight=3)
-    rating4 = ProblemConnectionRating(problem=problem1,
+                                      user=user3)
+    rating4 = ProblemConnectionRating(rating=4,
+                                      weight=4,
                                       connection=connection12,
+                                      problem=problem1,
                                       org=org1,
                                       geo=geo1,
-                                      user=user4,
-                                      rating=4,
-                                      weight=4)
+                                      user=user4)
 
     for rating in connection12.ratings:
         session.add(rating)
@@ -152,8 +153,8 @@ def test_aggregate_problem_connection_rating_model(session):
     assert rs[2].rating is rating3.rating
     assert rs[3].rating is rating4.rating
 
-    ar1 = AggregateProblemConnectionRating(community=community1,
-                                           connection=connection12,
+    ar1 = AggregateProblemConnectionRating(connection=connection12,
+                                           community=community1,
                                            aggregation='strict')
 
     assert AggregateProblemConnectionRating[ar1.derive_key()] is ar1

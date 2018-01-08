@@ -80,7 +80,7 @@ class Image(BaseProblemModel):
         '''
         return cls.Key(problem, urlnorm.norm(url))
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''
         Derive key from an image instance
 
@@ -131,6 +131,15 @@ class AggregateProblemConnectionRating(BaseProblemModel):
     '''
     SUB_BLUEPRINT = 'rated_connections'
     STRICT = 'strict'
+    AGGREGATIONS = {STRICT}
+
+    NO_RATING = -1
+    NO_WEIGHT = 0
+
+    MIN_RATING = 0
+    MAX_RATING = 4
+    MIN_WEIGHT = 0
+    MAX_WEIGHT = 10 ** 10
 
     community_id = Column(types.Integer, ForeignKey('community.id'))
     community = orm.relationship('Community',
@@ -158,11 +167,8 @@ class AggregateProblemConnectionRating(BaseProblemModel):
               'aggregation',
               'connection_category'),)
 
-    NO_RATING = -1
-    NO_WEIGHT = 0
-
     Key = namedtuple('AggregateProblemConnectionRating_Key',
-                     'connection, aggregation, community')
+                     'connection, community, aggregation')
 
     @property
     def adjacent_problem_name(self):
@@ -189,20 +195,20 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
         Return a key allowing the Trackable metaclass to register an
         aggregate problem connection rating instance. The key is a
-        namedtuple of connection, aggregation, and community.
+        namedtuple of connection, community, and aggregation.
         '''
-        return cls.Key(connection, aggregation, community)
+        return cls.Key(connection, community, aggregation)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''
         Derive key from an aggregate rating instance
 
         Return the registry key used by the Trackable metaclass from an
         aggregate problem connection rating instance. The key is a
-        namedtuple of connection, aggregation, and community fields.
+        namedtuple of connection, community, and aggregation fields.
         '''
         return self.__class__.Key(
-            self.connection, self.aggregation, self.community)
+            self.connection, self.community, self.aggregation)
 
     @classmethod
     def calculate_values(cls, ratings):
@@ -221,7 +227,8 @@ class AggregateProblemConnectionRating(BaseProblemModel):
             aggregate_weight += r.weight
 
         aggregate_rating = ((weighted_rating_total * 1.0 / aggregate_weight)
-                            if aggregate_weight > 0 else cls.NO_RATING)
+                            if aggregate_weight > cls.NO_WEIGHT
+                            else cls.NO_RATING)
 
         return (aggregate_rating, aggregate_weight)
 
@@ -242,13 +249,13 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
         self.rating, self.weight = new_aggregate_rating, new_aggregate_weight
 
-    def __init__(self, community, connection, aggregation=STRICT,
+    def __init__(self, connection, community, aggregation=STRICT,
                  rating=None, weight=None, ratings=None):
         problem, org, geo = community.derive_key()
         self.connection_category = connection.derive_category(problem)
         # TODO: add 'inclusive' to include all ratings within sub-orgs/geos
         # TODO: add 'inherited' to point to a different context for ratings
-        if aggregation not in (self.STRICT,):
+        if aggregation not in self.AGGREGATIONS:
             raise InvalidAggregation(aggregation=aggregation)
         if ((rating is None and weight is not None) or
                 (rating is not None and weight is None)):
@@ -268,8 +275,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         elif rating is None:
             if aggregation == self.STRICT:
                 rq = ProblemConnectionRating.query.filter_by(
-                    problem=problem, org=org, geo=geo,
-                    connection=connection)
+                    connection=connection, problem=problem, org=org, geo=geo)
                 # TODO: implement inclusive aggregation
                 # Removed since it is not strict:
                 # rq = rq.filter_by(org=org) if org else rq
@@ -284,7 +290,8 @@ class AggregateProblemConnectionRating(BaseProblemModel):
                     '{field} value of {value} is not a Real number.'
                     .format(field=field, value=value))
 
-        if not ((rating >= 0 and rating <= 4) or rating == -1):
+        if not ((rating >= self.MIN_RATING and rating <= self.MAX_RATING) or
+                rating == self.NO_RATING):
             raise InvalidAggregateConnectionRating(rating=rating,
                                                    connection=connection)
 
@@ -358,6 +365,11 @@ class ProblemConnectionRating(BaseProblemModel):
     granularity may be useful.
     '''
     SUB_BLUEPRINT = 'connection_ratings'
+
+    MIN_RATING = 0
+    MAX_RATING = 4
+    MIN_WEIGHT = 0
+    MAX_WEIGHT = 1000
 
     # TODO: replace with problem_human_id and remove relationship
     problem_id = Column(types.Integer, ForeignKey('problem.id'))
@@ -434,7 +446,7 @@ class ProblemConnectionRating(BaseProblemModel):
         '''Create Trackable key for a problem connection rating'''
         return cls.Key(connection, problem, org, geo, user)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''Derive key from a problem connection rating instance'''
         return self.__class__.Key(self.connection, self.problem, self.org,
                                   self.geo, self.user)
@@ -474,7 +486,8 @@ class ProblemConnectionRating(BaseProblemModel):
 
         if rating is None:
             rating = old_rating = self.rating
-        elif not isinstance(rating, int) or rating < 0 or rating > 4:
+        elif (not isinstance(rating, int) or
+                rating < self.MIN_RATING or rating > self.MAX_RATING):
             raise InvalidProblemConnectionRating(rating=rating,
                                                  *self.derive_key())
         else:
@@ -485,7 +498,8 @@ class ProblemConnectionRating(BaseProblemModel):
 
         if weight is None:
             weight = old_weight = self.weight
-        elif not isinstance(weight, int) or weight < 0:
+        elif (not isinstance(weight, int) or
+                weight < self.MIN_WEIGHT or weight > self.MAX_WEIGHT):
             raise InvalidProblemConnectionWeight(weight=weight,
                                                  *self.derive_key())
         else:
@@ -509,7 +523,7 @@ class ProblemConnectionRating(BaseProblemModel):
                                                    old_user_weight=old_weight)
         return has_updated
 
-    def __init__(self, rating, problem, connection, org=None, geo=None,
+    def __init__(self, rating, connection, problem, org, geo,
                  user='Intertwine', weight=None):
         '''
         Initialize a new problem connection rating
@@ -696,23 +710,24 @@ class ProblemConnection(BaseProblemModel):
     Problems = namedtuple('ProblemConnection_Problems', (PROBLEM_A, PROBLEM_B))
 
     @classmethod
-    def create_key(cls, axis, problem_a, problem_b, **kwds):
+    def create_key(cls, axis, problem_a, problem_b, generic=False, **kwds):
         '''Create Trackable key, a CausalKey or ScopedKey based on axis'''
-        return cls._build_key(axis, problem_a, problem_b)
+        return cls._build_key(axis, problem_a, problem_b, generic)
 
-    def derive_key(self):
+    def derive_key(self, generic=False, **kwds):
         '''Derive Trackable key, a CausalKey or ScopedKey based on axis'''
         cls = self.__class__  # TODO: Fix vardygrify so this isn't needed
-        return cls._build_key(self.axis, self.problem_a, self.problem_b)
+        return cls._build_key(self.axis, self.problem_a, self.problem_b,
+                              generic)
 
     @classmethod
-    def _build_key(cls, axis, problem_a, problem_b):
+    def _build_key(cls, axis, problem_a, problem_b, generic=False):
+        if generic or axis not in cls.AXES:
+            return cls.Key(axis, problem_a, problem_b)
         if axis == cls.CAUSAL:
             return cls.CausalKey(axis, problem_a, problem_b)
         if axis == cls.SCOPED:
             return cls.ScopedKey(axis, problem_a, problem_b)
-        else:
-            raise InvalidConnectionAxis(axis=axis, valid_axes=cls.AXES)
 
     @property
     def problem_a(self):
@@ -777,7 +792,7 @@ class ProblemConnection(BaseProblemModel):
                                  .format(p=problem))
             if isinstance(problem, basestring):
                 problem_name = problem
-                problem_key = Problem.create_key(problem_name)
+                problem_key = Problem.create_key(name=problem_name)
                 try:
                     problem = Problem[problem_key]
                 except KeyError:
@@ -960,7 +975,7 @@ class Problem(BaseProblemModel):
     Key = namedtuple('Problem_Key', (HUMAN_ID,))
 
     @classmethod
-    def create_key(cls, name, **kwds):
+    def create_key(cls, human_id=None, name=None, **kwds):
         '''
         Create key for a problem
 
@@ -968,10 +983,10 @@ class Problem(BaseProblemModel):
         up a problem instance. The key is created from the given name
         parameter.
         '''
-        human_id = cls.convert_name_to_human_id(name)
+        human_id = human_id if human_id else cls.convert_name_to_human_id(name)
         return cls.Key(human_id)
 
-    def derive_key(self):
+    def derive_key(self, **kwds):
         '''
         Derive key from a problem instance
 
