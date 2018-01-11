@@ -134,6 +134,22 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
         return model.reconstruct(components, exclusions=exclusions)
 
     @classmethod
+    def validate_against_sub_blueprints(cls, include=True, **kwds):
+        blueprint_name = cls.blueprint_name()
+        blueprint_sub_map = cls.blueprint_sub_map()
+        sub_blueprints = blueprint_sub_map[blueprint_name]
+        if include:
+            for field, value in kwds.items():
+                if value not in sub_blueprints:
+                    raise ValueError('{field} must be one of: {subs}'
+                                     .format(field=field, subs=sub_blueprints))
+        else:
+            for field, value in kwds.items():
+                if value in sub_blueprints:
+                    raise ValueError('{field} may not be any of: {subs}'
+                                     .format(field=field, subs=sub_blueprints))
+
+    @classmethod
     def blueprint_name(cls):
         '''Get blueprint name from containing module'''
         try:

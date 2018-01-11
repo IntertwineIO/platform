@@ -962,12 +962,14 @@ class Problem(BaseProblemModel):
     def human_id(self, val):
         if val is None:
             raise ValueError('human_id cannot be set to None')
+        cls = self.__class__
+        cls.validate_against_sub_blueprints(human_id=val, include=False)
         # During __init__()
         if self._human_id is None:
             self._human_id = val
             return
         # Not during __init__()
-        key = self.__class__.Key(human_id=val)
+        key = cls.Key(human_id=val)
         self.register_update(key)
 
     human_id = orm.synonym('_human_id', descriptor=human_id)

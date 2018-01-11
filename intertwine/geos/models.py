@@ -1003,12 +1003,13 @@ class Geo(BaseGeoModel):
     def human_id(self, val):
         if val is None:
             raise ValueError('human_id cannot be set to None')
+        cls = self.__class__
+        cls.validate_against_sub_blueprints(human_id=val, include=False)
         # During __init__()
         if self._human_id is None:
             self._human_id = val
             return
         # Not during __init__()
-        cls = self.__class__
         key = cls.Key(human_id=val)
         if not self.register_update(key):
             return
