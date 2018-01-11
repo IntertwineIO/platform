@@ -34,6 +34,8 @@ class GeoID(BaseGeoModel):
 
     Used to map geos (by level) to 3rd party IDs and vice versa.
     '''
+    SUB_BLUEPRINT = 'ids'
+
     LEVEL = 'level'
     STANDARD = 'standard'
     CODE = 'code'
@@ -157,6 +159,8 @@ class GeoLevel(BaseGeoModel):
     subdivision equivalent (subdivision3), and a city
     (place).
     '''
+    SUB_BLUEPRINT = 'levels'
+
     GEO = 'geo'
     LEVEL = 'level'
 
@@ -323,6 +327,8 @@ class GeoLevel(BaseGeoModel):
 
 class GeoData(BaseGeoModel):
     '''Base class for geo data'''
+    SUB_BLUEPRINT = 'data'
+
     GEO = 'geo'
 
     TOTAL_POP = 'total_pop'

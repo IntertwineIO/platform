@@ -9,7 +9,7 @@ from alchy.model import extend_declarative_base
 
 from . import models
 
-blueprint = Blueprint(models.Problem.get_blueprint_name(), __name__,
+blueprint = Blueprint(models.Problem.blueprint_name(), __name__,
                       template_folder='templates', static_folder='static')
 
 problem_db = Manager(Model=models.BaseProblemModel)

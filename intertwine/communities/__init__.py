@@ -10,7 +10,7 @@ from alchy.model import extend_declarative_base
 from . import models
 
 
-blueprint = Blueprint(models.Community.get_blueprint_name(), __name__,
+blueprint = Blueprint(models.Community.blueprint_name(), __name__,
                       template_folder='templates', static_folder='static')
 
 community_db = Manager(Model=models.BaseCommunityModel)

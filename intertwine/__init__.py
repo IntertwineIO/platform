@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 '''
 Base platform for intertwine.
-
 '''
 import flask
 from alchy import Manager
