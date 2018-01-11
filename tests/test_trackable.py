@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from tests.builders.builders import Builder
+from tests.builders.master import Builder
 
 
 @pytest.mark.unit
