@@ -13,6 +13,7 @@ from intertwine.trackable.utils import build_table_model_map
 from intertwine.utils.enums import UriType
 from intertwine.utils.jsonable import Jsonable, JsonProperty
 from intertwine.utils.mixins import AutoTableMixin
+from intertwine.utils.tools import get_value
 
 if sys.version_info >= (3,):
     unicode = str
@@ -28,6 +29,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
     ID_FIELDS = Jsonable.ID_FIELDS | {'uri'}
     URI_TYPE = UriType.NATURAL
     URI_EXCLUSIONS = {'org'}  # Org is not yet supported
+    URI_QUERY_PARAMETERS = {'org'}
 
     def json_key(self, key_type=None, raw=False, tight=True, **kwds):
         '''JSON key supports URI (default), NATURAL, and PRIMARY'''
@@ -111,7 +113,8 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
                 chain(('', blueprint, sub_blueprint), components)
                 if sub_blueprint else chain(('', blueprint), components))
 
-        return '/'.join(all_components)
+        path = '/'.join(all_components)
+        return path
 
     @classmethod
     def instantiate_uri(cls, uri):
@@ -202,7 +205,8 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
         except AttributeError:
             models = sorted(
                 Trackable._classes.values(),
-                key=lambda x: (x.blueprint_name(), x.sub_blueprint_name()))
+                key=lambda x: (x.blueprint_name(),
+                               get_value(x.sub_blueprint_name(), '')))
             cls._blueprint_model_map = OrderedDict(
                 ((m.blueprint_name(), m.sub_blueprint_name()), m)
                 for m in models)
