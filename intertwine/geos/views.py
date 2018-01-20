@@ -80,7 +80,7 @@ def find_geo_matches(match_string, match_limit=None):
 
 
 @blueprint.route(Geo.form_uri(
-    Geo.Key('<path:geo_huid>'), sub=True), methods=['GET'])
+    Geo.Key('<path:geo_huid>'), sub_only=True), methods=['GET'])
 def get_geo(geo_huid):
     '''Get geo endpoint'''
     if json_requested():

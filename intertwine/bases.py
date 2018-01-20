@@ -16,7 +16,11 @@ from intertwine.utils.mixins import AutoTableMixin
 from intertwine.utils.tools import get_value
 
 if sys.version_info >= (3,):
+    from urllib.parse import parse_qsl, urlencode, urlparse
     unicode = str
+else:
+    from urllib import urlencode
+    from urlparse import parse_qsl, urlparse
 
 
 class BaseIntertwineMeta(InitiationMetaMixin, Trackable):
@@ -28,7 +32,6 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
 
     ID_FIELDS = Jsonable.ID_FIELDS | {'uri'}
     URI_TYPE = UriType.NATURAL
-    URI_EXCLUSIONS = {'org'}  # Org is not yet supported
     URI_QUERY_PARAMETERS = {'org'}
 
     def json_key(self, key_type=None, raw=False, tight=True, **kwds):
@@ -56,85 +59,90 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
     @property
     def uri(self):
         '''Default URI property based on natural or primary key'''
+        cls = self.__class__
         try:
-            if self.__class__.URI_TYPE is UriType.NATURAL:
-                return self.form_uri(self.derive_key())
-            elif self.__class__.URI_TYPE is UriType.PRIMARY:
-                return self.form_uri(self.pk)
-            else:
-                raise ValueError('Unknown UriType: {}'.format(
-                    self.__class__.URI_TYPE))
+            if cls.URI_TYPE is UriType.NATURAL:
+                key = self.derive_key()
+                return cls.form_uri(key)
+            if cls.URI_TYPE is UriType.PRIMARY:
+                return cls.form_uri(self.pk)
+            raise ValueError('Unknown UriType: {}'.format(cls.URI_TYPE))
         except AttributeError:
             return None
 
     jsonified_uri = JsonProperty(name='uri', before='json_key')
 
     @classmethod
-    def form_uri(cls, components, sub=False, deconstruct=True):
+    def form_uri(cls, components, sub_only=False):
         '''
         Form URI from given components
 
         components: Iterable of URL components, usually a Trackable Key
             namedtuple derived from the instance or formed manually. Any
             top-level exclusions can only be applied if a namedtuple.
-        sub=False: If True, start with sub-blueprint (exclude blueprint)
-        deconstruct=True If True, recursively deconstruct components
+        sub_only=False: If True, start with sub-blueprint (exclude blueprint)
         return: URI composed from the components
         '''
-        # Check for exclusions and filter them out
-        exclusions = None
+        query_fields = cls.URI_QUERY_PARAMETERS
         try:
-            exclusions = cls.URI_EXCLUSIONS  # raise if no URI_EXCLUSIONS
-            components_dict = components._asdict()  # raise if not namedtuple
-            components = (
-                component for field, component in components_dict.items()
-                if field not in exclusions)
-        except AttributeError:
-            pass
-        # Recursively deconstruct components if flag is True (default)
-        if deconstruct:
-            components = chain(*(
-                component.deconstruct(exclusions=exclusions)
-                if hasattr(component, 'deconstruct')
-                else (component,) for component in components))
+            path, query = cls.deconstruct_key(
+                components, query_fields=query_fields, named=True)
+            path = path.values()
 
-        components = (unicode(component) if component is not None else ''
-                      for component in components)
+        except AttributeError:
+            path, query = components, None
+
+        path_components = (unicode(component) if component is not None else ''
+                           for component in path)
 
         sub_blueprint = cls.sub_blueprint_name()
 
-        if sub:
-            all_components = (
-                chain(('', sub_blueprint), components)  # '' to prefix /
-                if sub_blueprint else chain(('',), components))
+        if sub_only:
+            all_path_components = (
+                chain(('', sub_blueprint), path_components)  # '' to prefix /
+                if sub_blueprint else chain(('',), path_components))
         else:
             blueprint = cls.blueprint_name()
-            all_components = (
-                chain(('', blueprint, sub_blueprint), components)
-                if sub_blueprint else chain(('', blueprint), components))
+            all_path_components = (
+                chain(('', blueprint, sub_blueprint), path_components)
+                if sub_blueprint else chain(('', blueprint), path_components))
 
-        path = '/'.join(all_components)
-        return path
+        path_string = '/'.join(all_path_components)
+        query_string = urlencode(query)
+        uri = ('?'.join((path_string, query_string)) if query_string
+               else path_string)
+        return uri
 
     @classmethod
     def instantiate_uri(cls, uri):
-        uri_components = uri.strip('/').split('/')
+        url_components = urlparse(uri)
+        path_string, query_string = url_components.path, url_components.query
+        path_components = path_string.strip('/').split('/')
         blueprint_sub_map = cls.blueprint_sub_map()
-        if uri_components[0] in blueprint_sub_map:
-            blueprint_name = uri_components[0]
-            if uri_components[1] in blueprint_sub_map[blueprint_name]:
-                sub_blueprint_name = uri_components[1]
-                components = uri_components[2:]
+
+        if path_components[0] in blueprint_sub_map:
+            blueprint_name = path_components[0]
+            if path_components[1] in blueprint_sub_map[blueprint_name]:
+                sub_blueprint_name = path_components[1]
+                path = path_components[2:]
             else:
                 sub_blueprint_name = None
-                components = uri_components[1:]
+                path = path_components[1:]
             model = cls.blueprint_model(blueprint_name, sub_blueprint_name)
         else:
-            components = uri_components
+            path = path_components
             model = cls
 
-        exclusions = getattr(cls, 'URI_EXCLUSIONS', None)
-        return model.reconstruct(components, exclusions=exclusions)
+        if model.URI_TYPE is UriType.NATURAL:
+            query = OrderedDict(parse_qsl(query_string))
+            query_fields = getattr(cls, 'URI_QUERY_PARAMETERS', None)
+            return model.reconstruct(path, query, query_fields=query_fields)
+
+        if model.URI_TYPE is UriType.PRIMARY:
+            pk_fields = model.PrimaryKeyTuple()._fields
+            pk_values = (int(v) for v in path)
+            pk_kwargs = dict(zip(pk_fields, pk_values))
+            return model.query.filter_by(**pk_kwargs).one()
 
     @classmethod
     def validate_against_sub_blueprints(cls, include=True, **kwds):

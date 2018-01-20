@@ -11,18 +11,17 @@ def test_trackable_class_keys(session):
     from intertwine.trackable import Trackable
 
     for class_name, cls in Trackable._classes.items():
-        Key = cls.Key
-        key_class_name, key_name = Key.__name__.split('_')
+        key_class_name = cls.Key.__name__.split('Key')[0]
         assert key_class_name == class_name
-        assert key_name == 'Key'
 
         builder = Builder(cls, optional=False)
         inst = builder.build()
-        derived_key = inst.derive_key(generic=True)
+        derived_key = inst.derive_key()
         assert cls.key_model(derived_key) is cls
 
         created_key = cls.create_key(**derived_key._asdict())
         assert created_key == derived_key
+        assert created_key._asdict() == derived_key._asdict()
 
 
 @pytest.mark.unit
@@ -33,49 +32,49 @@ def test_trackable_deconstruction_reconstruction(session):
     for class_name, cls in Trackable._classes.items():
         builder = Builder(cls, optional=False)
         inst = builder.build()
-        deconstructed_via_list = list(inst.deconstruct())
-        deconstructed_via_tuple = tuple(inst.deconstruct())
+        path_as_list, query_as_list = inst.deconstruct(named=False)
+        path_as_od, query_as_od = inst.deconstruct(named=True)
+        query_as_dict = dict(query_as_od)
 
         # Reconstruct with retrieve=False
-        reconstructed = cls.reconstruct(inst.deconstruct())
-        assert reconstructed is inst
-        reconstructed = cls.reconstruct(deconstructed_via_list)
-        assert reconstructed is inst
-        reconstructed = cls.reconstruct(deconstructed_via_tuple)
-        assert reconstructed is inst
+        reconstructed_via_list = cls.reconstruct(path_as_list, query_as_list)
+        assert reconstructed_via_list is inst
+        reconstructed_via_od = cls.reconstruct(path_as_od, query_as_od)
+        assert reconstructed_via_od is inst
+        reconstructed_via_dict = cls.reconstruct(path_as_od, query_as_dict)
+        assert reconstructed_via_dict is inst
 
         # Reconstruct as hyper-key
-        hyper_key = cls.reconstruct(inst.deconstruct(),
-                                    retrieve=True, as_key=True)
-        hyper_key_via_list = cls.reconstruct(deconstructed_via_list,
+        hyper_key_via_list = cls.reconstruct(path_as_list, query_as_list,
                                              retrieve=True, as_key=True)
-        assert hyper_key_via_list == hyper_key
-        hyper_key_via_tuple = cls.reconstruct(deconstructed_via_tuple,
-                                              retrieve=True, as_key=True)
-        assert hyper_key_via_tuple == hyper_key
+        hyper_key_via_od = cls.reconstruct(path_as_od, query_as_od,
+                                           retrieve=True, as_key=True)
+        assert hyper_key_via_list == hyper_key_via_od
 
         # Reconstitute from hyper-key
-        reconstituted = cls.reconstitute(hyper_key)
-        assert reconstituted is inst
+        reconstituted_via_list = cls.reconstitute(hyper_key_via_list)
+        assert reconstituted_via_list is inst
+        reconstituted_via_od = cls.reconstitute(hyper_key_via_od)
+        assert reconstituted_via_od is inst
 
         session.add(inst)
         session.commit()
 
         # Reconstruct with retrieve=True (and as_key=False) queries the db
-        reconstructed = cls.reconstruct(inst.deconstruct(), retrieve=True)
-        assert reconstructed is inst
-        reconstructed = cls.reconstruct(deconstructed_via_list, retrieve=True)
-        assert reconstructed is inst
-        reconstructed = cls.reconstruct(deconstructed_via_tuple, retrieve=True)
-        assert reconstructed is inst
+        reconstructed_via_list = cls.reconstruct(path_as_list, query_as_list,
+                                                 retrieve=True)
+        assert reconstructed_via_list is inst
+        reconstructed_via_od = cls.reconstruct(path_as_od, query_as_od,
+                                               retrieve=True)
+        assert reconstructed_via_od is inst
 
         # Reconstruct as key
-        key = cls.reconstruct(inst.deconstruct(), as_key=True)
-        assert key == inst.derive_key()
-        key_via_list = cls.reconstruct(deconstructed_via_list, as_key=True)
+        key = inst.derive_key()
+        key_via_list = cls.reconstruct(path_as_list, query_as_list,
+                                       as_key=True)
         assert key_via_list == key
-        key_via_tuple = cls.reconstruct(deconstructed_via_tuple, as_key=True)
-        assert key_via_tuple == key
+        key_via_od = cls.reconstruct(path_as_od, query_as_od, as_key=True)
+        assert key_via_od == key
 
 
 @pytest.mark.unit

@@ -68,7 +68,7 @@ class Image(BaseProblemModel):
     # file          # local copy of image
     # dimensions    # in pixels
 
-    Key = namedtuple('Image_Key', 'problem, url')
+    Key = namedtuple('ImageKey', 'problem, url')
 
     @classmethod
     def create_key(cls, problem, url, **kwds):
@@ -167,7 +167,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
               'aggregation',
               'connection_category'),)
 
-    Key = namedtuple('AggregateProblemConnectionRating_Key',
+    Key = namedtuple('AggregateProblemConnectionRatingKey',
                      'connection, community, aggregation')
 
     @property
@@ -437,7 +437,7 @@ class ProblemConnectionRating(BaseProblemModel):
                             'org',
                             'geo_id'),)
 
-    Key = namedtuple('ProblemConnectionRating_Key',
+    Key = namedtuple('ProblemConnectionRatingKey',
                      'connection, problem, org, geo, user')
 
     @classmethod
@@ -702,28 +702,26 @@ class ProblemConnection(BaseProblemModel):
             ADJACENT_PROBLEM, PROBLEM_A_ID, BROADER, BROADER))
     ))
 
-    Key = namedtuple('ProblemConnection_Key', (AXIS, PROBLEM_A, PROBLEM_B))
-    CausalKey = namedtuple('ProblemConnection_CausalKey',
+    Key = namedtuple('ProblemConnectionKey', (AXIS, PROBLEM_A, PROBLEM_B))
+    CausalKey = namedtuple('ProblemConnectionCausalKey',
                            (AXIS, DRIVER, IMPACT))
-    ScopedKey = namedtuple('ProblemConnection_ScopedKey',
+    ScopedKey = namedtuple('ProblemConnectionScopedKey',
                            (AXIS, BROADER, NARROWER))
     Problems = namedtuple('ProblemConnection_Problems', (PROBLEM_A, PROBLEM_B))
 
     @classmethod
-    def create_key(cls, axis, problem_a, problem_b, generic=False, **kwds):
+    def create_key(cls, axis, problem_a, problem_b, **kwds):
         '''Create Trackable key, a CausalKey or ScopedKey based on axis'''
-        return cls._build_key(axis, problem_a, problem_b, generic)
+        return cls.Key(axis, problem_a, problem_b)
 
     def derive_key(self, generic=False, **kwds):
         '''Derive Trackable key, a CausalKey or ScopedKey based on axis'''
         cls = self.__class__  # TODO: Fix vardygrify so this isn't needed
-        return cls._build_key(self.axis, self.problem_a, self.problem_b,
-                              generic)
+        return cls.Key(self.axis, self.problem_a, self.problem_b)
 
     @classmethod
-    def _build_key(cls, axis, problem_a, problem_b, generic=False):
-        if generic or axis not in cls.AXES:
-            return cls.Key(axis, problem_a, problem_b)
+    def mutate_key(cls, key):
+        axis, problem_a, problem_b = key
         if axis == cls.CAUSAL:
             return cls.CausalKey(axis, problem_a, problem_b)
         if axis == cls.SCOPED:
@@ -974,7 +972,7 @@ class Problem(BaseProblemModel):
 
     human_id = orm.synonym('_human_id', descriptor=human_id)
 
-    Key = namedtuple('Problem_Key', (HUMAN_ID,))
+    Key = namedtuple('ProblemKey', (HUMAN_ID,))
 
     @classmethod
     def create_key(cls, human_id=None, name=None, **kwds):

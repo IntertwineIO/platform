@@ -39,7 +39,7 @@ def render():
 
 
 @blueprint.route(Problem.form_uri(
-    Problem.Key('<problem_huid>'), sub=True), methods=['GET'])
+    Problem.Key('<problem_huid>'), sub_only=True), methods=['GET'])
 def get_problem(problem_huid):
     '''Get problem endpoint'''
     if json_requested():
@@ -97,7 +97,7 @@ def get_problem_html(problem_huid):
 
 @blueprint.route(ProblemConnection.form_uri(
     ProblemConnection.Key('<axis>', '<problem_a_huid>', '<problem_b_huid>'),
-    sub=True), methods=['GET'])
+    sub_only=True), methods=['GET'])
 def get_problem_connection(axis, problem_a_huid, problem_b_huid):
     '''Get problem connection endpoint'''
     if json_requested():
