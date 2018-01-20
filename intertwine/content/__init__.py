@@ -10,7 +10,7 @@ from alchy.model import extend_declarative_base
 from . import models
 
 
-blueprint = Blueprint(models.Content.get_blueprint_name(), __name__,
+blueprint = Blueprint(models.Content.blueprint_name(), __name__,
                       template_folder='templates', static_folder='static')
 
 content_db = Manager(Model=models.BaseContentModel)

@@ -34,6 +34,8 @@ class GeoID(BaseGeoModel):
 
     Used to map geos (by level) to 3rd party IDs and vice versa.
     '''
+    SUB_BLUEPRINT = 'ids'
+
     LEVEL = 'level'
     STANDARD = 'standard'
     CODE = 'code'
@@ -73,7 +75,7 @@ class GeoID(BaseGeoModel):
                       #       unique=True),
                       )
 
-    Key = namedtuple('GeoID_Key', (STANDARD, CODE))
+    Key = namedtuple('GeoIDKey', (STANDARD, CODE))
 
     @classmethod
     def create_key(cls, standard, code, **kwds):
@@ -157,6 +159,8 @@ class GeoLevel(BaseGeoModel):
     subdivision equivalent (subdivision3), and a city
     (place).
     '''
+    SUB_BLUEPRINT = 'levels'
+
     GEO = 'geo'
     LEVEL = 'level'
 
@@ -238,7 +242,7 @@ class GeoLevel(BaseGeoModel):
                             LEVEL,
                             unique=True),)
 
-    Key = namedtuple('GeoLevel_Key', (GEO, LEVEL))
+    Key = namedtuple('GeoLevelKey', (GEO, LEVEL))
 
     @classmethod
     def create_key(cls, geo, level, **kwds):
@@ -323,6 +327,8 @@ class GeoLevel(BaseGeoModel):
 
 class GeoData(BaseGeoModel):
     '''Base class for geo data'''
+    SUB_BLUEPRINT = 'data'
+
     GEO = 'geo'
 
     TOTAL_POP = 'total_pop'
@@ -367,7 +373,7 @@ class GeoData(BaseGeoModel):
         'GeoData_Record',
         'total_pop, urban_pop, latitude, longitude, land_area, water_area')
 
-    Key = namedtuple('GeoData_Key', (GEO,))
+    Key = namedtuple('GeoDataKey', (GEO,))
 
     @classmethod
     def create_key(cls, geo, **kwds):
@@ -997,12 +1003,13 @@ class Geo(BaseGeoModel):
     def human_id(self, val):
         if val is None:
             raise ValueError('human_id cannot be set to None')
+        cls = self.__class__
+        cls.validate_against_sub_blueprints(human_id=val, include=False)
         # During __init__()
         if self._human_id is None:
             self._human_id = val
             return
         # Not during __init__()
-        cls = self.__class__
         key = cls.Key(human_id=val)
         if not self.register_update(key):
             return
@@ -1087,7 +1094,7 @@ class Geo(BaseGeoModel):
     jsonified_bottom_level_key = JsonProperty(name='bottom_level_key',
                                               hide=True)
 
-    Key = namedtuple('Geo_Key', (HUMAN_ID,))
+    Key = namedtuple('GeoKey', (HUMAN_ID,))
 
     @classmethod
     def create_key(cls, human_id=None, name=None, abbrev=None, qualifier=None,

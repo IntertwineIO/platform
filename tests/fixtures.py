@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import os
 
 import pytest
-
 from alchy.model import extend_declarative_base
 
 from intertwine import IntertwineModel, create_app, intertwine_db
@@ -27,7 +29,8 @@ def options():
 
 # TODO: Update for alchy
 TESTDB = 'test-sqlite.db'
-TESTDB_FOLDER = os.path.dirname(os.path.dirname(__file__))
+FILE = __file__
+TESTDB_FOLDER = os.path.dirname(os.path.realpath(FILE))
 TESTDB_PATH = "{folder}/{filename}".format(folder=TESTDB_FOLDER, filename=TESTDB)
 TEST_DATABASE_URI = 'sqlite:///' + TESTDB_PATH
 
@@ -37,7 +40,8 @@ def app(request):
     '''Session-wide test `Flask` application'''
     settings_override = {
         'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': TEST_DATABASE_URI
+        'SQLALCHEMY_DATABASE_URI': TEST_DATABASE_URI,
+        # 'SQLALCHEMY_TRACK_MODIFICATIONS': False
     }
     app = create_app(__name__, settings_override)
 

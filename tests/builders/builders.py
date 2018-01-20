@@ -497,6 +497,9 @@ class GeoIDBuilder(Builder):
     def build_standard(self, **kwds):
         return self.random.choice(tuple(self.model.STANDARDS))
 
+    def build_code(self, **kwds):
+        return str(self.random.randint(10 ** 3, (10 ** 4) - 1))
+
 
 class CommunityBuilder(Builder):
 
