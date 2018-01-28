@@ -6,7 +6,7 @@ Platform: Intertwine.io's website
 Untangle the world's problems
 
 Created by Intertwine
-Copyright (c) 2015-2017
+Copyright (c) 2015-2018
 
 License:  Proprietary.
 '''
