@@ -10,17 +10,17 @@ export default new Router({
   routes: [
     {
       path: '/',
-      name: 'IntertwineHome',
+      name: 'home',
       component: IntertwineHome
     },
     {
       path: '/communities',
-      name: 'IntertwineCommunities',
+      name: 'communities',
       component: IntertwineCommunities
     },
     {
       path: '/problems',
-      name: 'IntertwineProblems',
+      name: 'problems',
       component: IntertwineProblems
     }
   ]
