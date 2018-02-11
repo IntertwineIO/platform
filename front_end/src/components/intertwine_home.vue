@@ -2,6 +2,7 @@
   <main class="intertwine__home stage">
     <h1>{{ headline }}</h1>
     <p>{{ blurb }}</p>
+
     <EmailCapture></EmailCapture>
     <nav>
       <router-link :to="{ name: 'communities'}">By Community</router-link>
