@@ -1,5 +1,5 @@
 <template>
-  <main id="intertwine__communities">
+  <main class="intertwine__communities stage">
     <h1>{{ headline }}</h1>
     <p>{{ blurb }}</p>
   </main>

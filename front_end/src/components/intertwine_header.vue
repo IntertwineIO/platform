@@ -11,22 +11,35 @@
 </template>
 
 <style lang="scss" scoped >
+@import '~@/sass/palette.scss';
 
 .intertwine__header {
   display: flex;
   justify-content: space-between;
+  border-top: 3px solid $light_blue;
 
   .intertwine__logo {
     padding: 1rem;
     margin: 0;
+
+    figure {
+      a {
+        color: $red !important;
+      }
+    }
   }
 
   nav {
-    padding: 1rem;
     margin-right: 2rem;
 
     a {
-      padding: 0 1rem;
+      padding: 1rem;
+      color: $red;
+      display: inline-block;
+
+      &:hover {
+        background: $light_blue;
+      }
     }
   }
 }

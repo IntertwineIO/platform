@@ -1,5 +1,5 @@
 <template>
-  <main id="intertwine__home">
+  <main class="intertwine__home stage">
     <h1>{{ headline }}</h1>
     <p>{{ blurb }}</p>
 
@@ -28,10 +28,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-#intertwine__home {
+@import '~@/sass/palette.scss';
+
+.intertwine__home {
   width: 70vw;
   margin: 0 auto;
-  padding: 2rem;
   text-align: center;
 
   nav {
@@ -45,15 +46,21 @@ export default {
     a {
       display: block;
       width: 39%;
-      padding: 3rem;
+      padding: 2rem 3rem;
       text-transform: uppercase;
       transition: all .2s;
       font-size: 1.25rem;
+      color: red;
 
       &:hover {
-        background: rgba(255,255,255,1);
+        background: $red;
+        color: $gold;
       }
     }
+  }
+
+  h1 {
+    color: $red;
   }
 }
 </style>
