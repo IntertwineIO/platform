@@ -16,3 +16,9 @@ export default {
   }
 }
 </script>
+
+<style>
+.vue2leaflet-map {
+  height: 70vh;
+}
+</style>

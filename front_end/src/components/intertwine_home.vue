@@ -30,10 +30,6 @@ export default {
 <style lang="scss" scoped>
 @import '~@/sass/palette.scss';
 
-.vue2leaflet-map {
-  height: 50vh;
-}
-
 .intertwine__home {
   width: 70vw;
   margin: 0 auto;
@@ -65,6 +61,11 @@ export default {
 
   h1 {
     color: $red;
+    margin-bottom: 0;
   }
+}
+
+.vue2leaflet-map {
+  height: 50vh !important;
 }
 </style>
