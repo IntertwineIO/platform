@@ -19,10 +19,11 @@
   border-top: 3px solid $light_blue;
 
   .intertwine__logo {
-    padding: 1rem;
+    padding: 1rem 2rem;
     margin: 0;
 
     figure {
+      color: $red !important;
       a {
         color: $red !important;
       }
