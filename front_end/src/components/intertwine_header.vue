@@ -39,7 +39,7 @@
       display: inline-block;
 
       &:hover {
-        background: $light_blue;
+        background-color: rgba(124,219,213, .5);
       }
 
       &.router-link-active {

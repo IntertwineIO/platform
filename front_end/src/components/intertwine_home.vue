@@ -4,6 +4,7 @@
     <p>{{ blurb }}</p>
 
     <EmailCapture></EmailCapture>
+
     <nav>
       <router-link :to="{ name: 'communities'}">By Community</router-link>
       <router-link :to="{ name: 'problems'}">By Problem</router-link>
@@ -28,6 +29,10 @@ export default {
 
 <style lang="scss" scoped>
 @import '~@/sass/palette.scss';
+
+.vue2leaflet-map {
+  height: 50vh;
+}
 
 .intertwine__home {
   width: 70vw;

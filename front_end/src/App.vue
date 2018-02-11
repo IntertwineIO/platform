@@ -1,15 +1,53 @@
 <template>
   <div id="intertwine__app">
+
     <IntertwineHeader></IntertwineHeader>
     <router-view/>
+
+    <article class="current_place"><span>{{ current_place }}</span></article>
+    <v-map :zoom="zoom" :center="current">
+      <v-tilelayer url="http://{s}.tile.osm.org/{z}/{x}/{y}.png"></v-tilelayer>
+      <v-marker :lat-lng="marker"></v-marker>
+    </v-map>
+
   </div>
 </template>
 
 <script>
+import _ from 'lodash'
+import stopPoints from './static/stop_points'
+import L from 'leaflet'
+const initialPoint = _.find(stopPoints, stop => { return stop.title === 'Austin, TX' })
+const initialCoords = initialPoint.coords
+
 export default {
   name: 'App',
   components: {
     IntertwineHeader: () => import('@/components/intertwine_header')
+  },
+  mounted () {
+    setInterval(function () {
+      this.getNextMapPoint()
+    }.bind(this), 4000)
+  },
+  data () {
+    return {
+      stopPoints: stopPoints,
+      zoom: 7,
+      current: initialCoords,
+      current_place: initialPoint.title,
+      url: 'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
+      attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+      marker: L.latLng(initialCoords)
+    }
+  },
+  methods: {
+    getNextMapPoint () {
+      let randomSelection = stopPoints[Math.floor(Math.random() * stopPoints.length)]
+      this.current = randomSelection.coords
+      this.current_place = randomSelection.title
+      this.marker = L.latLng(randomSelection.coords)
+    }
   }
 }
 </script>
@@ -53,7 +91,33 @@ body {
     main.stage {
       @include fadeInUp();
       text-align: center;
-      padding-top: 2rem;
     }
   }
+
+#intertwine__app {
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+
+  .current_place {
+    text-align: center;
+
+    span {
+      display: inline-block;
+      background: #f53240;
+      color: #f9be02;
+      padding: .5rem 1rem;
+    }
+  }
+
+  .intertwine__map_stage {
+    position: relative;
+  }
+
+  .vue2leaflet-map {
+    border-top: 3px solid $red;
+    z-index: 1;
+  }
+}
+
 </style>

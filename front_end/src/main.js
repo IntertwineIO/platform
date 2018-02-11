@@ -3,6 +3,11 @@
 import Vue from 'vue'
 import App from './App'
 import router from './router'
+import Vue2Leaflet from 'vue2-leaflet'
+
+Vue.component('v-map', Vue2Leaflet.Map)
+Vue.component('v-tilelayer', Vue2Leaflet.TileLayer)
+Vue.component('v-marker', Vue2Leaflet.Marker)
 
 Vue.config.productionTip = false
 
