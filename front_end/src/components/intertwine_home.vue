@@ -29,9 +29,31 @@ export default {
 
 <style lang="scss" scoped>
 #intertwine__home {
-  width: 50vw;
-  background: rgba(0,0,0,.25);
+  width: 70vw;
   margin: 0 auto;
   padding: 2rem;
+  text-align: center;
+
+  nav {
+    margin-top: 1rem;
+    border-top: 1px solid rgba(0,0,0,.05);
+    display: flex;
+    justify-content: space-evenly;
+    align-items: stretch;
+    align-content: stretch;
+
+    a {
+      display: block;
+      width: 39%;
+      padding: 3rem;
+      text-transform: uppercase;
+      transition: all .2s;
+      font-size: 1.25rem;
+
+      &:hover {
+        background: rgba(255,255,255,1);
+      }
+    }
+  }
 }
 </style>
