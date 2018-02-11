@@ -41,6 +41,10 @@
       &:hover {
         background: $light_blue;
       }
+
+      &.router-link-active {
+        background: $light_blue;
+      }
     }
   }
 }

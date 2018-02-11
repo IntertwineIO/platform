@@ -16,7 +16,7 @@ export default {
     return {
       label: 'Enter your email address to chart our progress...',
       email_address: null,
-      message: 'The email address you submitted is not the correct format. Please adjust so we can keep in touch.'
+      message: 'The email address are providing is not the correct format. Maybe you just haven\'t finished typing?'
     }
   },
   methods: {
@@ -48,6 +48,8 @@ export default {
 
 <style lang="scss" scoped >
 @import '~@/sass/palette.scss';
+@import '~@/sass/animate.scss';
+
 .intertwine__email_capture {
   display: flex;
   padding: 0 2rem;
@@ -64,10 +66,23 @@ export default {
     background-color: $aqua;
     color: white;
     border: none;
+
+    &:hover {
+      cursor: pointer;
+    }
+
+    &.disabled {
+      background-color: rgba(2,200,167,.5);
+
+      &:hover {
+        cursor: disabled !important;
+      }
+    }
   }
-  .disabled {
-    background-color: rgba(2,200,167,.5);
-  }
+}
+
+.intertwine__email_capture--message {
+  @include fadeInDown();
 }
 
 </style>
