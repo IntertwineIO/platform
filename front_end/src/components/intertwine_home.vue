@@ -29,6 +29,7 @@ export default {
 
 <style lang="scss" scoped>
 @import '~@/sass/palette.scss';
+@import '~@/sass/_mixins.scss';
 
 .intertwine__home {
   width: 70vw;
@@ -46,14 +47,14 @@ export default {
     a {
       display: block;
       width: 39%;
-      padding: 2rem 3rem;
+      padding: 1rem 3rem;
       text-transform: uppercase;
       transition: all .2s;
       font-size: 1.25rem;
       color: red;
 
       &:hover {
-        background: $red;
+        @include accent_texture;
         color: $gold;
       }
     }
@@ -63,9 +64,5 @@ export default {
     color: $red;
     margin-bottom: 0;
   }
-}
-
-.vue2leaflet-map {
-  height: 50vh !important;
 }
 </style>
