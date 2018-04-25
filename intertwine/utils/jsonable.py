@@ -79,7 +79,7 @@ class Jsonable(object):
     JSON_PRIVATE_DESIGNATION = '_'
     JSON_PROPERTY_EXCLUSIONS = {'descriptor_dict', 'object_session'}
     ID_FIELDS = {'id', 'pk', 'qualified_pk', 'json_key'}
-    _FIELDS = {}
+    _fields = {}
 
     JsonKeyType = Enum('JsonKeyType', 'PRIMARY, NATURAL, URI',
                        module=__name__)
@@ -160,10 +160,10 @@ class Jsonable(object):
         return: Insertable ordered dict of properties keyed by name
         '''
         try:
-            return cls._FIELDS[cls.__name__]
+            return cls._fields[cls.__name__]
         except KeyError:
-            cls._FIELDS[cls.__name__] = cls._derive_fields()
-            return cls._FIELDS[cls.__name__]
+            cls._fields[cls.__name__] = cls._derive_fields()
+            return cls._fields[cls.__name__]
 
     @classmethod
     def _derive_fields(cls):
