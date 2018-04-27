@@ -40,7 +40,7 @@ def setup_project():
     package_requires = [
         'alchy>2.0.1',
         'docopt',
-        'enum34>=1.1.6',
+        # 'enum34>=1.1.6',
         'Faker',
         'flask',
         'flask-bootstrap',

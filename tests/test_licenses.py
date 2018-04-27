@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+import pkg_resources
 import pytest
 import sys
-
-from pip.utils import get_installed_distributions
 
 from tests.decorators import license
 
@@ -16,7 +15,7 @@ def test_licenses(**options):
     Checks for licenses minus those that have been identified to
     be ignored.
     '''
-    meta_files_to_check = ['PKG-INFO', 'METADATA']
+    meta_files_to_check = ['METADATA', 'PKG-INFO']
 
     known_ignores = [
 
@@ -34,17 +33,21 @@ def test_licenses(**options):
         'uWSGI',             # GPL2
 
         # Debug packages
-        'gnureadline',       # GPL 2    - TODO: Alternatives?
+        'entrypoints',       # MIT <- nbconvert <- jupyter
+        'gnureadline',       # GPL 2 - TODO: Alternatives? not in Py3
         'prompt-toolkit',    # BSD
         'ptyprocess',        # ISC
+        'pandocfilters',     # BSD 3-Clause <- nbconvert <- jupyter
+        'terminado',         # BSD <- notebook <- jupyter
+        'testpath',          # MIT <- nbconvert <- jupyter
 
         # Virtualenv packages added
         'wheel',             # MIT
 
         # Test packages added
-        'ansi2html',         # GPLv3+ - only used by tox?
+        'ansi2html',         # GPLv3+ - only used by tox? not in Py3
         'apipkg',            # MIT
-        'astroid',           # LGPL - python linter package
+        'astroid',           # LGPL - python linter package; not in Py3
         'autopep8',          # Expat
         'backports-abc',     # PSF
         'coverage',          # Apache 2.0
@@ -77,27 +80,31 @@ def test_licenses(**options):
 
         # Nagios: Zope Public License 2.1, a BSD-style Open Source license
         # Nagios plugin dependencies:
-        'inotify',           # GPL 2    - TODO: Alternatives?
+        'inotify',           # GPL 2 - TODO: Alternatives? not in Py3
         'graphitesend',      # Apache
 
         # Unknown - where did they come from?
         'aniso8601',         # Nonstandard/permissive: https://goo.gl/0kTVx3
 
         # Known licenses that do not register with this test
-        'dominate',          # LGPL
+        'chardet',           # LGPL <- requests <- ? - TODO: Alternatives?
+        'dominate',          # LGPL <- Flask-Bootstrap - TODO: Alternatives?
         'itsdangerous',      # BSD
         'mock',              # BSD
         'pbr',               # Apache 2.0
+        'python-dateutil',   # Simplified BSD <- pendulum, jupyter-client, Faker
         'stevedore',         # Apache 2.0
         'tzlocal',           # MIT
-        'websocket-client',  # LGPL
+        'websocket-client',  # LGPL - TODO: Alternatives? not in Py3
 
         # Company owned licenses
         'intertwine',        # Proprietary
     ]
 
     accepted_licenses = [
-        'BSD',
+        'BSD',  # original 4-clause BSD
+        'BSD 2.0', 'Revised BSD', 'New BSD', 'Modified BSD License',  # 3-clause BSD
+        'Simplified BSD', 'FreeBSD',  # 2-clause BSD
         'MIT', 'Expat',
         'ZPL', 'Zope',
         'MPL', 'Mozilla Public License',
@@ -109,7 +116,7 @@ def test_licenses(**options):
         'Artistic-2.0',  # opensource.org/licenses/Artistic-2.0
     ]
 
-    for installed_distribution in get_installed_distributions():
+    for installed_distribution in pkg_resources.working_set:
         found_license = None
         found_valid = None
         skip = False
