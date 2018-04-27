@@ -92,6 +92,7 @@ def test_licenses(**options):
         'itsdangerous',      # BSD
         'mock',              # BSD
         'pbr',               # Apache 2.0
+        'python-dateutil',   # Simplified BSD <- pendulum, jupyter-client, Faker
         'stevedore',         # Apache 2.0
         'tzlocal',           # MIT
         'websocket-client',  # LGPL - TODO: Alternatives? not in Py3
@@ -101,7 +102,9 @@ def test_licenses(**options):
     ]
 
     accepted_licenses = [
-        'BSD',
+        'BSD',  # original 4-clause BSD
+        'BSD 2.0', 'Revised BSD', 'New BSD', 'Modified BSD License',  # 3-clause BSD
+        'Simplified BSD', 'FreeBSD',  # 2-clause BSD
         'MIT', 'Expat',
         'ZPL', 'Zope',
         'MPL', 'Mozilla Public License',
