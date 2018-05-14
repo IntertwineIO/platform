@@ -95,6 +95,7 @@ def test_licenses(**options):
         'python-dateutil',   # Simplified BSD <- pendulum, jupyter-client, Faker
         'stevedore',         # Apache 2.0
         'tzlocal',           # MIT
+        'url-normalize',     # "Python" (PSF) License
         'websocket-client',  # LGPL - TODO: Alternatives? not in Py3
 
         # Company owned licenses
