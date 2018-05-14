@@ -38,22 +38,23 @@ def setup_project():
     '''
     # Whatever dependencies package requires
     package_requires = [
-        'alchy>2.0.1',
-        'docopt',
-        # 'enum34>=1.1.6',
-        'Faker',
-        'flask',
-        'flask-bootstrap',
-        'flask-restful',
-        'flask-security',
-        'flask-sqlalchemy',
-        'flask-wtf',
-        'future',
-        'mock',
-        'pendulum>=1.2.5',
-        'SQLAlchemy>=1.1.14',
-        'timezonefinder',
-        'titlecase',
+        'alchy==2.2.2',  # was 2.0.1
+        'docopt==0.6.2',
+        # 'enum34==1.1.6',
+        'Faker==0.8.13',
+        'flask==1.0.2',
+        'flask-bootstrap==3.3.7.1',
+        'flask-restful==0.3.6',
+        'flask-security==3.0.0',
+        'flask-sqlalchemy==2.3.2',
+        'flask-wtf==0.14.2',
+        'future==0.16.0',
+        # 'mock==2.0.0',
+        'pendulum==2.0.1',  # was 1.2.5
+        'SQLAlchemy==1.2.7',  # was 1.1.14
+        'timezonefinder==2.1.2',
+        'titlecase==0.12.0',
+        'url-normalize==1.3.3',
     ]
 
     return package_requires
