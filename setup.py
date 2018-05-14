@@ -49,7 +49,7 @@ def setup_project():
         'flask-sqlalchemy==2.3.2',
         'flask-wtf==0.14.2',
         'future==0.16.0',
-        # 'mock==2.0.0',
+        'mock==2.0.0',
         'pendulum==2.0.1',  # was 1.2.5
         'SQLAlchemy==1.2.7',  # was 1.1.14
         'timezonefinder==2.1.2',
