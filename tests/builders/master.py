@@ -43,7 +43,6 @@ class Builder(object):
     DEFAULT_WORDS = DEFAULT_TEXT.split()
     NOW = pendulum.now()
     SEED = int(NOW.strftime('%Y%m%d'))  # Daily seed: YYYYMMDD
-    SEED = 20180514
 
     fake = Faker()
     fake.seed(SEED)
