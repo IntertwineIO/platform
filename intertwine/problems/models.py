@@ -931,10 +931,11 @@ class Problem(BaseProblemModel):
         cascade='delete, delete-orphan')
 
     # URL Guidance: perishablepress.com/stop-using-unsafe-characters-in-urls
-    # Exclude unsafe:            "<>#%{}|\^~[]`
+    # Exclude disallowed:        <>#%"
+    # Exclude unwise:            {}|\^[]`
     # Exclude reserved:          ;/?:@=&
     # Exclude space placeholder: _
-    # Exclude unnecessary:       !*
+    # Exclude unnecessary:       !*~
     # Include safe plus space:   -+.,$'() a-zA-Z0-9
     name_pattern = re.compile(r'''^[-+.,$'() a-zA-Z0-9]+$''')
 
