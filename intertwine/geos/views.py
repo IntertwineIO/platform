@@ -71,7 +71,7 @@ def find_geo_matches(match_string, match_limit=None):
     '''
     match_string = match_string.strip('"\'')
     if not match_string:
-        return jsonify([])
+        return jsonify(Jsonable.jsonify_value([]))
 
     match_limit = match_limit or int(request.args.get('match_limit', 0))
     geo_matches = Geo.find_matches(match_string)

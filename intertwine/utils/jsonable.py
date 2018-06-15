@@ -577,7 +577,7 @@ class Jsonable(object):
             # jsonify_value returns jsonified item if nest
             self_json[field] = self.jsonify_value(value, kwarg_map, _json)
 
-        if not nest and root and _json.get(self.JSON_ROOT) is None:
+        if root and not nest and self.JSON_ROOT not in _json:
             _json[self.JSON_ROOT] = self_key
 
         return self_json if nest else _json
