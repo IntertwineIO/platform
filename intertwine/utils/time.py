@@ -282,8 +282,6 @@ class FlexTime(DateTime):
                         tzinfo=self.tzinfo.name, fold=self.fold,
                         granularity=self.granularity.value))
 
-    # Comparison Operators
-
     def __eq__(self, other):
         try:
             # info is not compared to support equality across time zones
