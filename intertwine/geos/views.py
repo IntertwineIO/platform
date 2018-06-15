@@ -25,6 +25,7 @@ def handle_interface_exception(error):
 
 
 @blueprint.route('/', methods=['GET'])
+@crossdomain(origin='*')
 def render():
     '''Base endpoint serving both pages and the API'''
     match_string = request.args.get('match_string')
