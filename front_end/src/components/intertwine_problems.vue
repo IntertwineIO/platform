@@ -19,9 +19,10 @@ export default {
   name: 'IntertwineProblems',
   data () {
     return {
-      headline: 'Find a problem',
-      blurb: 'Some blurb here about Problems',
-      dataSource: 'https://opentdb.com/api.php?amount=10',
+      headline: 'Find a problem by Geo',
+      blurb: 'Some blurb here about Problems by Geo',
+      dataSource: 'http://0.0.0.0:5000/geos/?match_string=austin,%20tx&match_limit=-1',
+      dataSource2: 'https://opentdb.com/api.php?amount=10',
       problems: [],
       error: null
     }
