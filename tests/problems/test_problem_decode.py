@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
 import pytest
+
+from definitions import PROJECT_ROOT
+
+PROBLEM_DATA_DIRECTORY = os.path.join(PROJECT_ROOT, 'data/problems')
 
 
 def create_geo_data(session):
@@ -29,7 +34,8 @@ def test_decode_problem(session):
 
     create_geo_data(session)
 
-    u1 = decode(session, 'data/problems/problems01.json')
+    json_path = os.path.join(PROBLEM_DATA_DIRECTORY, 'problems01.json')
+    u1 = decode(session, json_path)
     for updates in u1.values():
         session.add_all(updates)
     session.commit()
@@ -59,7 +65,8 @@ def test_decode_problem_connection(session):
 
     create_geo_data(session)
 
-    u0 = decode(session, 'data/problems/problems00.json')
+    json_path = os.path.join(PROBLEM_DATA_DIRECTORY, 'problems00.json')
+    u0 = decode(session, json_path)
     for updates in u0.values():
         session.add_all(updates)
     session.commit()
@@ -89,7 +96,7 @@ def test_decode_problem_connection_rating(session):
 
     create_geo_data(session)
 
-    u = decode(session, 'data/problems/')  # Decode entire directory
+    u = decode(session, PROBLEM_DATA_DIRECTORY)  # Decode entire directory
     for updates in u.values():
         session.add_all(updates)
     session.commit()
@@ -123,7 +130,8 @@ def test_incremental_decode(session):
     create_geo_data(session)
 
     # Initial data load:
-    u0 = decode(session, 'data/problems/problems00.json')
+    json_path = os.path.join(PROBLEM_DATA_DIRECTORY, 'problems00.json')
+    u0 = decode(session, json_path)
     for updates in u0.values():
         session.add_all(updates)
     session.commit()
@@ -134,7 +142,8 @@ def test_incremental_decode(session):
     Trackable.clear_all()
 
     # Next data load:
-    u1 = decode(session, 'data/problems/problems01.json')
+    json_path = os.path.join(PROBLEM_DATA_DIRECTORY, 'problems01.json')
+    u1 = decode(session, json_path)
     for updates in u1.values():
         session.add_all(updates)
     session.commit()
@@ -147,7 +156,8 @@ def test_incremental_decode(session):
     Trackable.clear_all()
 
     # Next data load:
-    u2 = decode(session, 'data/problems/problems02.json')
+    json_path = os.path.join(PROBLEM_DATA_DIRECTORY, 'problems02.json')
+    u2 = decode(session, json_path)
     for updates in u2.values():
         session.add_all(updates)
     session.commit()
@@ -206,7 +216,8 @@ def test_decode_same_data(session):
 
     create_geo_data(session)
 
-    u2 = decode(session, 'data/problems/problems02.json')
+    json_path = os.path.join(PROBLEM_DATA_DIRECTORY, 'problems02.json')
+    u2 = decode(session, json_path)
     for updates in u2.values():
         session.add_all(updates)
     session.commit()
@@ -217,6 +228,6 @@ def test_decode_same_data(session):
     Trackable.clear_all()
 
     # Try reloading existing data (none should be loaded):
-    u2_repeat = decode(session, 'data/problems/problems02.json')
+    u2_repeat = decode(session, json_path)
     for updates in u2_repeat.values():
         assert len(updates) == 0

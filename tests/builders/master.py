@@ -17,7 +17,12 @@ from faker import Faker
 from intertwine import IntertwineModel
 from intertwine.utils.tools import derive_args
 
-LETTERS = string.letters if sys.version_info < (3,) else string.ascii_letters
+if sys.version_info < (3,):
+    LETTERS = string.letters
+    LOWERCASE = string.lowercase
+else:
+    LETTERS = string.ascii_letters
+    LOWERCASE = string.ascii_lowercase
 
 SQLALCHEMY_MODEL_BASE = IntertwineModel
 
@@ -192,7 +197,7 @@ class Builder(object):
         if num_chars < 5:
             characters = []
             for i in range(num_chars):
-                characters.append(self.random.choice(string.lowercase))
+                characters.append(self.random.choice(LOWERCASE))
             return ''.join(characters)
 
         default_text = self.default_text(field_type, max_length=num_chars)

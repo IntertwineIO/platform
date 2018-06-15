@@ -29,21 +29,20 @@ def options():
 
 # TODO: Update for alchy
 TESTDB = 'test-sqlite.db'
-FILE = __file__
-TESTDB_FOLDER = os.path.dirname(os.path.realpath(FILE))
-TESTDB_PATH = "{folder}/{filename}".format(folder=TESTDB_FOLDER, filename=TESTDB)
+TESTDB_FOLDER = os.path.dirname(os.path.realpath(__file__))
+TESTDB_PATH = os.path.join(TESTDB_FOLDER, TESTDB)
 TEST_DATABASE_URI = 'sqlite:///' + TESTDB_PATH
+
+
+class PyTestConfig(ToxConfig):
+    SQLALCHEMY_DATABASE_URI = TEST_DATABASE_URI
+    # SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 @pytest.fixture(scope='function')
 def app(request):
     '''Session-wide test `Flask` application'''
-    settings_override = {
-        'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': TEST_DATABASE_URI,
-        # 'SQLALCHEMY_TRACK_MODIFICATIONS': False
-    }
-    app = create_app(__name__, settings_override)
+    app = create_app(__name__, PyTestConfig)
 
     # Establish an application context before running the tests.
     ctx = app.app_context()

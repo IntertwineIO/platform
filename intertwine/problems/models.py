@@ -11,10 +11,10 @@ from operator import attrgetter
 from past.builtins import basestring
 from sqlalchemy import Column, ForeignKey, Index, or_, orm, types
 from titlecase import titlecase
+from url_normalize import url_normalize
 
 from intertwine import IntertwineModel
 from intertwine.geos.models import Geo
-from intertwine.third_party import urlnorm
 from intertwine.utils.enums import UriType
 
 from .exceptions import (CircularConnection,
@@ -78,7 +78,7 @@ class Image(BaseProblemModel):
         Return a key allowing the Trackable metaclass to register an
         image. The key is a namedtuple of problem and url.
         '''
-        return cls.Key(problem, urlnorm.norm(url))
+        return cls.Key(problem, url_normalize(url))
 
     def derive_key(self, **kwds):
         '''
@@ -95,7 +95,7 @@ class Image(BaseProblemModel):
 
         Inputs are key-value pairs based on the JSON problem schema.
         '''
-        self.url = urlnorm.norm(url)
+        self.url = url_normalize(url)
         self.problem = problem
 
 
@@ -1015,7 +1015,7 @@ class Problem(BaseProblemModel):
         '''
         self.name = name
         self.definition = definition.strip() if definition else None
-        self.definition_url = (urlnorm.norm(definition_url)
+        self.definition_url = (url_normalize(definition_url)
                                if definition_url else None)
         self.sponsor = sponsor.strip() if sponsor else None
         self.images = []

@@ -235,7 +235,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
         flex_dt = FlexTime.cast(dt, granularity)
         granularity, info = flex_dt.granularity, flex_dt.info
 
-        now = pendulum.utcnow()
+        now = pendulum.now(UTC)
         if flex_dt > now:
             raise ValueError('Publication date may not be in the future')
 

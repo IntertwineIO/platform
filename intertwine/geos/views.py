@@ -10,7 +10,7 @@ from . import blueprint
 from .models import Geo, GeoLevel
 from intertwine.utils.jsonable import Jsonable
 from ..exceptions import InterfaceException, ResourceDoesNotExist
-from ..utils.flask_utils import json_requested
+from ..utils.flask_utils import crossdomain, json_requested
 
 
 @blueprint.errorhandler(InterfaceException)
@@ -25,6 +25,7 @@ def handle_interface_exception(error):
 
 
 @blueprint.route('/', methods=['GET'])
+@crossdomain(origin='*')
 def render():
     '''Base endpoint serving both pages and the API'''
     match_string = request.args.get('match_string')
