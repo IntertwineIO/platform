@@ -13,6 +13,39 @@ from flask import make_response, request, current_app
 def crossdomain(origin=None, methods=None, headers=None,
                 max_age=21600, attach_to_all=True,
                 automatic_options=True):
+    """
+    Crossdomain
+
+    Decorator for the HTTP Access Control
+
+    Cross-site HTTP requests are HTTP requests for resources from a
+    different domain than the domain of the resource making the request.
+    For instance, a resource loaded from Domain A makes a request for a
+    resource on Domain B. The way this is implemented in modern browsers
+    is by using HTTP Access Control headers: Documentation on
+    developer.mozilla.org.
+
+    I/O:
+
+    methods:    Optional list of methods allowed for this view. If not
+                provided allow all implemented methods.
+    headers:    Optional list of headers allowed for this request.
+    origin:     '*' to allow all origins, otherwise a string with a URL
+                or a list of URLs that might access the resource.
+    max_age:    Number of seconds as integer or timedelta for which the
+                preflighted request is valid.
+    attach_to_all: True if the decorator should add access control
+                headers to all HTTP methods or False if it should only
+                add them to OPTIONS responses.
+    automatic_options: If enabled, the decorator will use the default
+                Flask OPTIONS response and attach the headers there,
+                otherwise the view function will be called to generate
+                an appropriate response.
+
+    This snippet by Armin Ronacher can be used freely for anything you
+    like. Consider it public domain.
+    http://flask.pocoo.org/snippets/56/
+    """
     if methods is not None:
         methods = ', '.join(sorted(x.upper() for x in methods))
     if headers is not None and not isinstance(headers, basestring):
@@ -66,6 +99,8 @@ def json_requested():
 
     This snippet by Armin Ronacher can be used freely for anything you
     like. Consider it public domain.
+
+    http://flask.pocoo.org/snippets/45/
     '''
     accept_mimetypes = request.accept_mimetypes
 
