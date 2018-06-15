@@ -25,7 +25,6 @@ def handle_interface_exception(error):
 
 
 @blueprint.route('/', methods=['GET'])
-@crossdomain(origin='*')
 def render():
     '''Base endpoint serving both pages and the API'''
     match_string = request.args.get('match_string')
@@ -43,7 +42,7 @@ def render_index():
     # geos = [glvl.geo for glvl in glvls]
     if len(geos) == 1:
         geo = geos[0]
-        glvl = geo.levels.keys()[0]
+        glvl = next(iter(geo.levels))
         dlvl = GeoLevel.DOWN[glvl][0]
 
         by_name = geo.get_related_geos(Geo.PATH_CHILDREN, level=dlvl,

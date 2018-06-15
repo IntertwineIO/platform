@@ -56,7 +56,11 @@ def json_requested():
     '''
     JSON requested
 
-    Why check if json has a higher quality than HTML and not just go
+    If JSON is explicitly listed in the accept mime types, return True.
+
+    Otherwise, continue with Armin's best match logic:
+
+    Why check if JSON has a higher quality than HTML and not just go
     with the best match? Because some browsers accept on */* and we
     don't want to deliver JSON to an ordinary browser.
 
@@ -64,6 +68,11 @@ def json_requested():
     like. Consider it public domain.
     '''
     accept_mimetypes = request.accept_mimetypes
+
+    for mimetype in accept_mimetypes.values():
+        if mimetype == 'application/json':
+            return True
+
     best = accept_mimetypes.best_match(['application/json', 'text/html'])
     return (best == 'application/json' and
             accept_mimetypes[best] > accept_mimetypes['text/html'])
