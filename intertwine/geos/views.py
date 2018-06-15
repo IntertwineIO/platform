@@ -28,8 +28,8 @@ def handle_interface_exception(error):
 @crossdomain(origin='*')
 def render():
     '''Base endpoint serving both pages and the API'''
-    match_string = request.args.get('match_string')
-    if json_requested() and match_string:
+    if json_requested():
+        match_string = request.args.get('match_string')
         return find_geo_matches(match_string)
 
     return render_index()
@@ -70,13 +70,18 @@ def find_geo_matches(match_string, match_limit=None):
     'http://localhost:5000/geos/?match_string=austin,%20tx&match_limit=-1'
     '''
     match_string = match_string.strip('"\'')
+    if not match_string:
+        return jsonify([])
+
     match_limit = match_limit or int(request.args.get('match_limit', 0))
     geo_matches = Geo.find_matches(match_string)
     json_kwargs = dict(Geo.objectify_json_kwargs(request.args))
     # hide = {Geo.PARENTS, Geo.CHILDREN, Geo.PATH_CHILDREN}
     json_kwarg_map = {Geo: json_kwargs}
+
     if match_limit:
         json_kwarg_map[object] = dict(limit=match_limit)
+
     return jsonify(Jsonable.jsonify_value(geo_matches, json_kwarg_map))
 
 
