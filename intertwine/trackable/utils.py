@@ -48,7 +48,8 @@ def build_table_model_map(base):
 
 def isiterator(obj):
     '''Determine if an object is an iterator (not just iterable)'''
-    return hasattr(obj, '__iter__') and not hasattr(obj, '__len__')
+    cls = obj.__class__
+    return hasattr(cls, '__iter__') and not hasattr(cls, '__len__')
 
 
 def isnamedtuple(obj):
@@ -57,9 +58,10 @@ def isnamedtuple(obj):
 
 
 def isnonstringsequence(obj):
-    '''Determine if an object is a non-string sequence, i.e. list, tuple'''
-    return (hasattr(obj, '__iter__') and hasattr(obj, '__getitem__') and
-            not isinstance(obj, basestring))
+    '''Determine if an object is a non-string sequence, e.g. list, tuple'''
+    cls = obj.__class__
+    return (hasattr(cls, '__iter__') and hasattr(cls, '__getitem__') and
+            not isinstance(obj, basestring) and not hasattr(obj, 'items'))
 
 
 def merge_args(func, *args, **kwds):

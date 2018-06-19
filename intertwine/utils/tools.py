@@ -274,12 +274,14 @@ def get_value(value, default, checks=None):
 
 def iscollection(obj):
     '''Determine if an object is a collection, e.g. list, tuple, dict, set'''
-    return hasattr(obj, '__iter__') and hasattr(obj, '__len__')
+    cls = obj.__class__
+    return hasattr(cls, '__iter__') and hasattr(cls, '__len__')
 
 
 def isiterator(obj):
     '''Determine if an object is an iterator (not just iterable)'''
-    return hasattr(obj, '__iter__') and not hasattr(obj, '__len__')
+    cls = obj.__class__
+    return hasattr(cls, '__iter__') and not hasattr(cls, '__len__')
 
 
 def isnamedtuple(obj):
@@ -289,8 +291,9 @@ def isnamedtuple(obj):
 
 def isnonstringsequence(obj):
     '''Determine if an object is a non-string sequence, e.g. list, tuple'''
-    return (hasattr(obj, '__iter__') and hasattr(obj, '__getitem__') and
-            not isinstance(obj, basestring))
+    cls = obj.__class__
+    return (hasattr(cls, '__iter__') and hasattr(cls, '__getitem__') and
+            not isinstance(obj, basestring) and not hasattr(obj, 'items'))
 
 
 def iterator(*elements):
