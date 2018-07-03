@@ -24,6 +24,7 @@ export default {
       dataSource: 'http://0.0.0.0:5000/geos/?match_string=austin,%20tx&match_limit=-1',
       dataSource2: 'https://opentdb.com/api.php?amount=10',
       problems: [],
+      geos: {},
       error: null
     }
   },
@@ -32,12 +33,10 @@ export default {
   },
   methods: {
     makeCall () {
-      let vm = this
       axios.get(this.dataSource)
         .then(function (response) {
-          let responseData = response.data || {}
-          let problemResults = responseData.results || []
-          vm.problems = problemResults
+          let data = response.data || {}
+          this.geos = data
         })
         .catch(function (error) {
           console.log(error)
