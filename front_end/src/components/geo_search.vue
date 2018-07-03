@@ -7,10 +7,10 @@
       <p class="geo_search--message" v-show="showMessage">{{ message }}</p>
     </div>
 
-    <section id="geo_search--results">
+    <section class="geo_search--results">
       <article v-for="(geo, index) in geos" :key="index" class="geo_search--result">
         <h2>{{ geo.display }}</h2>
-        <p><strong>POP:</strong></p>
+        <p v-if="geo.data"><strong>POP:</strong> {{ geo.data.total_pop }}</p>
       </article>
     </section>
   </section>
@@ -40,6 +40,7 @@ export default {
   methods: {
     searchGeoService: _.debounce(function (term) {
       let vue = this
+      this.geos = {}
       axios.get(this.dataSource)
         .then(function (response) {
           let data = response.data || {}
@@ -116,6 +117,8 @@ export default {
 
   .geo_search--results {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
   }
 
   .geo_search--result {
@@ -124,6 +127,8 @@ export default {
     border-top: 4px solid;
     border-color: $light_blue;
     text-align: left;
+    width: 28%;
+    margin-bottom: .5rem;
   }
 }
 

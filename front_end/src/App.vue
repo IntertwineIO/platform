@@ -4,11 +4,11 @@
     <IntertwineHeader></IntertwineHeader>
     <router-view/>
 
-    <article class="current_place"><span><i class="fas fa-map-marker-alt"></i> {{ current_place }}</span></article>
-    <v-map :zoom="zoom" :center="current">
+    <!-- <article class="current_place"><span><i class="fas fa-map-marker-alt"></i> {{ current_place }}</span></article> -->
+    <!-- <v-map :zoom="zoom" :center="current">
       <v-tilelayer url="http://{s}.tile.osm.org/{z}/{x}/{y}.png"></v-tilelayer>
       <v-marker :lat-lng="marker"></v-marker>
-    </v-map>
+    </v-map> -->
 
   </div>
 </template>
