@@ -2,13 +2,23 @@
 
   <section id="geo_search">
     <div class="geo_search--input_wrapper">
-      <input class="geo_search--input" v-model="searchText" :placeholder="label">
+      <input 
+        class="geo_search--input" 
+        :class="{ working : inProgress }"
+        v-model="searchText" 
+        :placeholder="label"
+      >
       <button @click="clearSearch" class="geo_search--clear" v-show="readyToSearch">X</button>
       <p class="geo_search--message" v-show="showMessage">{{ message }}</p>
     </div>
 
     <section class="geo_search--results">
-      <article v-for="(geo, index) in geos" :key="index" class="geo_search--result">
+      <article 
+        v-for="(geo, index) in geos"
+        v-if="geo.data"
+        :key="index"
+        class="geo_search--result"
+      >
         <h2>{{ geo.display }}</h2>
         <p v-if="geo.data"><strong>POP:</strong> {{ geo.data.total_pop }}</p>
       </article>
@@ -33,6 +43,7 @@ export default {
   watch: {
     searchText () {
       if (this.readyToSearch) {
+        this.inProgress = true
         this.searchGeoService(this.searchText)
       }
     }
@@ -45,12 +56,15 @@ export default {
         .then(function (response) {
           let data = response.data || {}
           vue.geos = data
+          vue.inProgress = false
         })
         .catch(function (error) {
           console.log(`UH OH ======== :( ${error}`)
+          vue.inProgress = false
         })
     }, 400),
     clearSearch () {
+      this.inProgress = false
       this.searchText = ''
       this.geos = {}
     }
@@ -89,6 +103,10 @@ export default {
     font-weight: 700;
     color: $aqua;
     text-align: center;
+
+    &.working {
+      animation: activePulse 2s infinite;
+    }
   }
 
   .geo_search--input_wrapper {
@@ -100,7 +118,7 @@ export default {
   .geo_search--clear {
     position: absolute;
     right: 1rem;
-    top: 1rem;
+    top: 1.5rem;
     font-size: 1.25rem;
     opacity: .75;
     color: white;
@@ -129,6 +147,12 @@ export default {
     text-align: left;
     width: 28%;
     margin-bottom: .5rem;
+    opacity: .8;
+
+    &:hover {
+      cursor: pointer;
+      opacity: 1;
+    }
   }
 }
 
