@@ -1,14 +1,8 @@
 <template>
   <main class="intertwine__home stage">
     <h1>{{ headline }}</h1>
+    <geoSearch></geoSearch>
     <p>{{ blurb }}</p>
-
-    <EmailCapture></EmailCapture>
-
-    <nav>
-      <router-link :to="{ name: 'communities'}">By Community</router-link>
-      <router-link :to="{ name: 'problems'}">By Problem</router-link>
-    </nav>
   </main>
 </template>
 
@@ -16,7 +10,7 @@
 export default {
   name: 'IntertwineHome',
   components: {
-    EmailCapture: () => import('@/components/home/email_capture')
+    geoSearch: () => import('@/components/geo_search')
   },
   data () {
     return {
@@ -35,6 +29,7 @@ export default {
   width: 70vw;
   margin: 0 auto;
   text-align: center;
+  height: 100%;
 
   nav {
     margin-top: 1rem;

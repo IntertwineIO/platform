@@ -93,6 +93,11 @@ body {
     @include fadeInUp();
     text-align: center;
   }
+
+  button {
+    border: none;
+    background: transparent;
+  }
 }
 
 #intertwine__app {
