@@ -2,24 +2,27 @@
 
   <section id="geo_search">
     <div class="geo_search--input_wrapper">
-      <input 
-        class="geo_search--input" 
+      <input
+        class="geo_search--input"
         :class="{ working : inProgress }"
-        v-model="searchText" 
+        v-model="searchText"
         :placeholder="label"
       >
       <button @click="clearSearch" class="geo_search--clear" v-show="readyToSearch">X</button>
       <p class="geo_search--message" v-show="showMessage">{{ message }}</p>
     </div>
 
+    <h3 v-show="searchResultCount">{{ searchResultCount }} Results found for <strong>" {{ searchText }} "</strong></h3>
+
     <section class="geo_search--results">
-      <article 
+      <article
         v-for="(geo, index) in geos"
         v-if="geo.data"
         :key="index"
         class="geo_search--result"
       >
         <h2>{{ geo.display }}</h2>
+        <p> {{ index.index }} </p>
         <p v-if="geo.data"><strong>POP:</strong> {{ geo.data.total_pop }}</p>
       </article>
     </section>
@@ -36,7 +39,7 @@ export default {
       label: 'Find a Way to Contribute from Wherever You Are',
       searchText: null,
       inProgress: false,
-      geos: {},
+      geos: [],
       message: 'We couldn\'t find any results for your search, sorry. Try a different place.'
     }
   },
@@ -75,6 +78,10 @@ export default {
     },
     dataSource () {
       return `http://0.0.0.0:5000/geos/?match_string=${this.searchText}&match_limit=-1`
+    },
+    searchResultCount () {
+      let resultsFound = this.geos && _.keys(this.geos).length > 0
+      return resultsFound ? _.keys(this.geos).length : 0
     },
     showMessage () {
       return false
@@ -140,6 +147,7 @@ export default {
   }
 
   .geo_search--result {
+    @include fadeInUp();
     padding: .5rem 1rem;
     background: white;
     border-top: 4px solid;
@@ -147,11 +155,9 @@ export default {
     text-align: left;
     width: 28%;
     margin-bottom: .5rem;
-    opacity: .8;
 
     &:hover {
       cursor: pointer;
-      opacity: 1;
     }
   }
 }
