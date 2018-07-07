@@ -41,6 +41,16 @@ def render():
     return template
 
 
+@blueprint.route('/problems/<path:geo_huid>', methods=['GET'])
+def get_problem_network(geo_huid):
+    geo_huid = geo_huid[:-1] if geo_huid[-1] == '/' else geo_huid
+    communities = (Community.query.join(Community.geo)
+                                  .filter(Geo.human_id == 'us/tx/austin').all())
+    problems = Problem.query.all()
+
+    return 'Problem Network for geo: {geo}'.format(geo=geo_huid)
+
+
 @blueprint.route('/<problem_huid>/', methods=['GET'])
 def get_global_community(problem_huid):
     return get_community(problem_huid, '')
