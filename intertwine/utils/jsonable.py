@@ -442,20 +442,21 @@ class Jsonable(object):
         config=None:
             Dictionary of field-level settings, in which keys are paths
             to fields and values are numeric:
-                0:   Hide field (non-zero for show field)
-                N:   Show related objects to depth N; any decimals are
-                     ignored (e.g. 0.5 -> 0 depth, but field is shown)
-                N>0: Show all fields in related objects by default
-                N<0: Hide all fields in related objects by default
+                0:      Hide field (non-zero for show field)
+                +/-N:   Show related objects to depth N; decimals are
+                        ignored: e.g. 0.5 -> 0 depth, but field is shown
+                N>0:    Show all fields in related objects by default
+                N<0:    Hide all fields in related objects by default
             Usage:
                 >>> geo = Geo['us/tx/austin']
                 >>> config = {
+                    '.': -1,  # Hide all fields and set depth to 1
                     '.path_parent': 1,  # Show TX (path_parent of Austin)
                     '.path_parent.children': 0,  # Hide TX's children
                     '.path_parent.path_children': 0,  # Hide TX's path children
                     '.path_parent.path_parent': -1,  # Show US, but hide fields
                     '.path_parent.path_parent.path_children': 0.5  # Show US...
-                    }  # ...path children references, without the objects
+                    }  # ...path children references only – no objects
                 >>> geo.jsonify(config=config)
 
         depth=1:
@@ -482,7 +483,7 @@ class Jsonable(object):
                 key namedtuple. It is the default and only supported
                 option unless json_key() is overridden
             NATURAL: A natural key composed of fields that determine
-                uniquness; NotImplemented in Jsonable, but see Trackable
+                uniqueness; NotImplemented in Jsonable, but see Trackable
             URI: An item's Uniform Resource Identifier; NotImplemented
                 in Jsonable, but may be added by overriding json_key()
 
@@ -510,13 +511,20 @@ class Jsonable(object):
         _json=None:
             Private top-level JSON dict for recursion.
         '''
-        assert depth > 0
+        _json = OrderedDict() if _json is None else _json
         config = {} if config is None else config
         hide = set() if hide is None else hide
         hide = set(hide) if not isinstance(hide, set) else hide
+        if _path is None:
+            _path = ''
+            dot_setting = config.get('.')
+            if dot_setting is not None:
+                hide_all = dot_setting < 0
+                depth = int(floor(abs(dot_setting)))
+
+        if depth < 1:
+            raise ValueError('Jsonify depth of {} is less than 1'.format(depth))
         default = default or self.ensure_json_safe
-        _path = '' if _path is None else _path
-        _json = OrderedDict() if _json is None else _json
         json_kwargs = dict(
             config=config, hide=hide, limit=limit, key_type=key_type,
             raw=raw, tight=tight, nest=nest, root=False, default=default)
