@@ -14,7 +14,6 @@ from itertools import chain, islice
 from math import floor
 from mock.mock import NonCallableMagicMock
 from operator import attrgetter, itemgetter
-from past.builtins import basestring
 
 import sqlalchemy
 from sqlalchemy import orm
@@ -24,7 +23,7 @@ from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 from .structures import InsertableOrderedDict, PeekableIterator
 from .tools import (derive_defaults, derive_arg_types, enumify, isiterator,
-                    stringify)
+                    isnonstringiterable, stringify)
 
 # Python version compatibilities
 if sys.version_info < (3,):
@@ -361,62 +360,56 @@ class Jsonable(object):
 
         if hasattr(value, cls.JSONIFY) and not value_is_class:
             try:
-                item_key = None if nest else value.json_key(**json_kwargs)
+                item_key = value.json_key(**json_kwargs)
             except AttributeError:
                 item_key = None
-
-            if not item_key or (depth > 0 and item_key not in _json):
+            is_nested = not item_key or (depth > 0 and nest)
+            if is_nested or (depth > 0 and item_key not in _json):
                 jsonified = value.jsonify(_json=_json, **json_kwargs)
-
-            return item_key if item_key else jsonified
+            return jsonified if is_nested else item_key
 
         if isinstance(value, NonCallableMagicMock):
             return None
 
-        try:
-            if isinstance(value, basestring) or value_is_class:
-                raise TypeError
-            # TODO: apply limit() if a query and then count() for total
-            all_item_iterator = PeekableIterator(value)  # non-iterables raise
-
-        except TypeError:
+        if not isnonstringiterable(value):
             default = default or cls.ensure_json_safe
             return default(value)
 
-        else:  # value is iterable and not a string
-            item_iterator = (islice(all_item_iterator, limit) if limit > 0
-                             else all_item_iterator)
+        # value is iterable and not a string
+        all_item_iterator = PeekableIterator(value)
+        item_iterator = (islice(all_item_iterator, limit) if limit > 0
+                         else all_item_iterator)
 
-            if hasattr(value, 'items'):  # dictionary
-                items = OrderedDict(
-                    (cls.jsonify_value(k, kwarg_map, _json),
-                     cls.jsonify_value(value[k], kwarg_map, _json))
-                    for k in item_iterator)
+        if hasattr(value, 'items'):  # dictionary
+            items = OrderedDict(
+                (cls.jsonify_value(k, kwarg_map, _json),
+                 cls.jsonify_value(value[k], kwarg_map, _json))
+                for k in item_iterator)
 
-            else:  # tuple/list
+        else:  # tuple/list
+            try:
+                constructor = value._make  # namedtuple
+                item_iterator = all_item_iterator  # all fields required
+            except AttributeError:
+                constructor = list
+
+            items = constructor(
+                cls.jsonify_value(item, kwarg_map, _json)
+                for item in item_iterator)
+
+        if all_item_iterator.has_next():  # paginate
+            try:
+                total = len(value)
+            except TypeError:
+                total = value.count()
+            if limit < total:
+                pagination = cls.paginate(len(items), limit, total)
                 try:
-                    constructor = value._make  # namedtuple
-                    item_iterator = all_item_iterator  # all fields required
+                    items.append(pagination)
                 except AttributeError:
-                    constructor = list
+                    items[cls.JSON_PAGINATION] = pagination
 
-                items = constructor(
-                    cls.jsonify_value(item, kwarg_map, _json)
-                    for item in item_iterator)
-
-            if all_item_iterator.has_next():  # paginate
-                try:
-                    total = len(value)
-                except TypeError:
-                    total = value.count()
-                if limit < total:
-                    pagination = cls.paginate(len(items), limit, total)
-                    try:
-                        items.append(pagination)
-                    except AttributeError:
-                        items[cls.JSON_PAGINATION] = pagination
-
-            return items
+        return items
 
     def jsonify(self,
                 config=None,     # type: Dict[Text: Union[int, float]]
