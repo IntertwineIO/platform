@@ -312,8 +312,8 @@ class PeekableIterator(object):
         while self.has_next():
             yield self.next()
 
-    def __init__(self, iterable, sentinel=object(), *args, **kwds):
+    def __init__(self, iterable, sentinel=None, *args, **kwds):
         self.iterable = iter(iterable)
-        self.sentinel = sentinel
+        self.sentinel = sentinel or Sentinel()
         self.next_item = next(self.iterable, self.sentinel)
         super(PeekableIterator, self).__init__(*args, **kwds)
