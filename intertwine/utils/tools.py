@@ -273,24 +273,31 @@ def get_value(value, default, checks=None):
 
 
 def iscollection(obj):
-    '''Determine if an object is a collection, e.g. list, tuple, dict, set'''
+    '''Determine if object is collection: list, tuple, dict, set...'''
     cls = obj.__class__
     return hasattr(cls, '__iter__') and hasattr(cls, '__len__')
 
 
 def isiterator(obj):
-    '''Determine if an object is an iterator (not just iterable)'''
+    '''Determine if object is iterator (not just iterable)'''
     cls = obj.__class__
     return hasattr(cls, '__iter__') and not hasattr(cls, '__len__')
 
 
 def isnamedtuple(obj):
-    '''Determine if an object is a namedtuple'''
+    '''Determine if object is namedtuple'''
     return isinstance(obj, tuple) and hasattr(obj, '_asdict')
 
 
+def isnonstringiterable(obj):
+    '''Determine if object is non-string iterable: list, tuple, dict'''
+    cls = obj.__class__
+    return (hasattr(cls, '__iter__') and hasattr(cls, '__getitem__') and
+            not isinstance(obj, basestring))
+
+
 def isnonstringsequence(obj):
-    '''Determine if an object is a non-string sequence, e.g. list, tuple'''
+    '''Determine if object is non-string sequence, e.g. list, tuple'''
     cls = obj.__class__
     return (hasattr(cls, '__iter__') and hasattr(cls, '__getitem__') and
             not isinstance(obj, basestring) and not hasattr(obj, 'items'))
