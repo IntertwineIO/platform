@@ -47,18 +47,18 @@ def build_table_model_map(base):
 
 
 def isiterator(obj):
-    '''Determine if an object is an iterator (not just iterable)'''
+    '''Check if object is iterator (not just iterable)'''
     cls = obj.__class__
     return hasattr(cls, '__iter__') and not hasattr(cls, '__len__')
 
 
 def isnamedtuple(obj):
-    '''Determine if an object is a namedtuple'''
+    '''Check if object is namedtuple'''
     return isinstance(obj, tuple) and hasattr(obj, '_asdict')
 
 
-def isnonstringsequence(obj):
-    '''Determine if an object is a non-string sequence, e.g. list, tuple'''
+def issequence(obj):
+    '''Check if object is non-string sequence, e.g. list, tuple'''
     cls = obj.__class__
     return (hasattr(cls, '__iter__') and hasattr(cls, '__getitem__') and
             not isinstance(obj, basestring) and not hasattr(obj, 'items'))

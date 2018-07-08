@@ -23,7 +23,7 @@ from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 from .structures import InsertableOrderedDict, PeekableIterator
 from .tools import (derive_defaults, derive_arg_types, enumify, isiterator,
-                    isnonstringiterable, stringify)
+                    isiterable, stringify)
 
 # Python version compatibilities
 if sys.version_info < (3,):
@@ -371,11 +371,10 @@ class Jsonable(object):
         if isinstance(value, NonCallableMagicMock):
             return None
 
-        if not isnonstringiterable(value):
+        if not isiterable(value):
             default = default or cls.ensure_json_safe
             return default(value)
 
-        # value is iterable and not a string
         all_item_iterator = PeekableIterator(value)
         item_iterator = (islice(all_item_iterator, limit) if limit > 0
                          else all_item_iterator)
