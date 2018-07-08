@@ -561,18 +561,6 @@ class Jsonable(object):
                 hide_all=field_hide_all, depth=field_depth, _path=field_path,
                 **json_kwargs)
 
-            # Short circuit if we can just use the key
-            if (not nest and hasattr(value, self.JSONIFY) and
-                    not inspect.isclass(value)):
-                try:
-                    item_key = value.json_key(**json_field_kwargs)
-                except AttributeError:
-                    pass
-                else:
-                    if field_depth == 0 or item_key in _json:
-                        self_json[field] = item_key
-                        continue
-
             kwarg_map = {object: json_field_kwargs}
 
             # jsonify_value returns jsonified item if nest
