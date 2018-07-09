@@ -311,12 +311,11 @@ class Community(BaseCommunityModel):
 
         for connection in connections:
             if connection not in rated_connections:
-                aggregate_rating = vardygrify(cls=APCR,
-                                              community=self,
-                                              connection=connection,
-                                              aggregation=aggregation,
-                                              rating=APCR.NO_RATING,
-                                              weight=APCR.NO_WEIGHT)
+                aggregate_rating = APCR(community=self,
+                                        connection=connection,
+                                        aggregation=aggregation,
+                                        rating=APCR.NO_RATING,
+                                        weight=APCR.NO_WEIGHT)
 
                 key = aggregate_rating.json_key(**json_kwargs)
                 if depth > 1 and (nest or key not in _json):

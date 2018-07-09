@@ -23,7 +23,7 @@ from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 from .structures import InsertableOrderedDict, PeekableIterator
 from .tools import (derive_defaults, derive_arg_types, enumify, isiterator,
-                    isnonstringiterable, stringify)
+                    isiterable, stringify)
 
 # Python version compatibilities
 if sys.version_info < (3,):
@@ -371,11 +371,10 @@ class Jsonable(object):
         if isinstance(value, NonCallableMagicMock):
             return None
 
-        if not isnonstringiterable(value):
+        if not isiterable(value):
             default = default or cls.ensure_json_safe
             return default(value)
 
-        # value is iterable and not a string
         all_item_iterator = PeekableIterator(value)
         item_iterator = (islice(all_item_iterator, limit) if limit > 0
                          else all_item_iterator)
@@ -560,18 +559,6 @@ class Jsonable(object):
             json_field_kwargs = dict(
                 hide_all=field_hide_all, depth=field_depth, _path=field_path,
                 **json_kwargs)
-
-            # Short circuit if we can just use the key
-            if (not nest and hasattr(value, self.JSONIFY) and
-                    not inspect.isclass(value)):
-                try:
-                    item_key = value.json_key(**json_field_kwargs)
-                except AttributeError:
-                    pass
-                else:
-                    if field_depth == 0 or item_key in _json:
-                        self_json[field] = item_key
-                        continue
 
             kwarg_map = {object: json_field_kwargs}
 
