@@ -55,6 +55,7 @@ def setup_project():
         'timezonefinder==2.1.2',
         'titlecase==0.12.0',
         'url-normalize==1.3.3',
+        'wrapt==1.10.11',
     ]
 
     return package_requires
