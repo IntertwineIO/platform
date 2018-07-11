@@ -43,12 +43,50 @@ def render():
 
 @blueprint.route('/problems/<path:geo_huid>', methods=['GET'])
 def get_problem_network(geo_huid):
+    # TODO: add org to URL or query string
+    # org = None
     geo_huid = geo_huid[:-1] if geo_huid[-1] == '/' else geo_huid
-    communities = (Community.query.join(Community.geo)
-                                  .filter(Geo.human_id == 'us/tx/austin').all())
-    problems = Problem.query.all()
+    geo = Geo.query.filter_by(human_id=geo_huid).first()
+    communities = Community.query.filter_by(geo=geo).all()
 
-    return 'Problem Network for geo: {geo}'.format(geo=geo_huid)
+    # TODO: improve performance of vardygrs
+    # community_problem_huids = {c.problem.human_id for c in communities}
+    # # In the future, consider filtering based on activity metrics
+    # problems = Problem.query.all()
+
+    # vardygr_communities = [
+    #     vardygrify(Community, problem=p, org=org, geo=geo, num_followers=0)
+    #     for p in problems if p.human_id not in community_problem_huids]
+
+    # communities.extend(vardygr_communities)
+
+    config = configure_problem_network_community_json()
+    kwarg_map = {object: {'limit': -1},
+                 Community: {'config': config, 'nest': False}}
+
+    return jsonify(Jsonable.jsonify_value(communities, kwarg_map))
+
+
+def configure_problem_network_community_json():
+    config = {
+        '.': -1,
+        '.name': 1,
+        '.num_followers': 1,
+        '.problem': {'depth': 2, 'hide_all': True, 'nest': True},
+        '.problem.name': 1,
+        '.problem.uri': 1,
+        '.org': 0,
+        '.geo': 0,
+        '.aggregate_ratings': {'depth': 2, 'hide_all': True, 'nest': True},
+    }
+    for category in ProblemConnection.CATEGORY_MAP:
+        config[Jsonable.form_path('.aggregate_ratings', category,
+                                  'rating')] = 1
+        config[Jsonable.form_path('.aggregate_ratings', category,
+                                  'adjacent_problem_name')] = 1
+        config[Jsonable.form_path('.aggregate_ratings', category,
+                                  'adjacent_community_url')] = 1
+    return config
 
 
 @blueprint.route('/<problem_huid>/', methods=['GET'])
