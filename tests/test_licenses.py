@@ -92,6 +92,7 @@ def test_licenses(**options):
         'itsdangerous',      # BSD
         'mock',              # BSD
         'pbr',               # Apache 2.0
+        'pendulum',          # MIT
         'python-dateutil',   # Simplified BSD <- pendulum, jupyter-client, Faker
         'stevedore',         # Apache 2.0
         'tzlocal',           # MIT

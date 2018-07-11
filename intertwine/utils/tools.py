@@ -203,7 +203,8 @@ def extract_arg_type(line, custom_map=None):
     arg_type = ANNOTATION_TYPE_MAP.get(type_annotation)
     if arg_type is None and custom_map:
         arg_type = custom_map.get(type_annotation)
-
+    if arg_type is None:
+        arg_type = object
     return arg_name, arg_type
 
 

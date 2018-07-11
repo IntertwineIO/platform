@@ -87,14 +87,14 @@ class Jsonable(object):
 
     @property
     def PrimaryKey(self):
-        '''PrimaryKey is a namedtuple for the primary key fields'''
+        """PrimaryKey is a namedtuple for the primary key fields"""
         return self.PrimaryKeyTuple()
 
     jsonified_PrimaryKey = JsonProperty(name='PrimaryKey', hide=True)
 
     @classmethod
     def PrimaryKeyTuple(cls):
-        '''PrimaryKeyTuple is the PrimaryKey namedtuple constructor'''
+        """PrimaryKeyTuple is the PrimaryKey namedtuple constructor"""
         try:
             return cls._PrimaryKey
         except AttributeError:
@@ -104,17 +104,17 @@ class Jsonable(object):
 
     @classmethod
     def primary_key_fields(cls):
-        '''Primary key fields from the PrimaryKey namedtuple'''
+        """Primary key fields from the PrimaryKey namedtuple"""
         return cls.PrimaryKeyTuple()._fields
 
     @property
     def pk(self):
-        '''
+        """
         pk
 
         Return PrimaryKey namedtuple of primary key values. Abbreviated
         as "pk" to avoid conflict with alchy's primary_key.
-        '''
+        """
         return self.PrimaryKey(
             *(getattr(self, f) for f in self.primary_key_fields()))
 
@@ -127,7 +127,7 @@ class Jsonable(object):
     jsonified_qualified_pk = JsonProperty(name='qualified_pk', end=True)
 
     def json_key(self, key_type=None, **kwds):
-        '''JSON key defaults to unique key repr, but can be overridden'''
+        """JSON key defaults to unique key repr, but can be overridden"""
         if not key_type or key_type is self.JsonKeyType.PRIMARY:
             return repr(self.qualified_pk)
         else:
@@ -139,7 +139,7 @@ class Jsonable(object):
 
     @classmethod
     def fields(cls):
-        '''
+        """
         Return fields and their SQLAlchemy and JSON properties
 
         Nets out a model's SQLAlchemy column, relationship, and synonym
@@ -157,7 +157,7 @@ class Jsonable(object):
         I/O:
         cls:  SQLAlchemy model from which to derive fields
         return: Insertable ordered dict of properties keyed by name
-        '''
+        """
         try:
             return cls._fields[cls.__name__]
         except KeyError:
@@ -166,7 +166,7 @@ class Jsonable(object):
 
     @classmethod
     def _derive_fields(cls):
-        '''Derive fields associated with the model (see "fields")'''
+        """Derive fields associated with the model (see "fields")"""
         mapper = orm.class_mapper(cls)
         pk = set(cls.primary_key_fields())
         # Catalog SA properties based on type and primary key
@@ -306,7 +306,7 @@ class Jsonable(object):
 
     @classmethod
     def jsonify_value(cls, value, kwarg_map=None, _json=None):
-        '''
+        """
         Jsonify value
 
         Convert any value or acyclic collection to a JSON-serializable
@@ -339,7 +339,7 @@ class Jsonable(object):
             and the latter is passed separately.
 
         _json=None: Private top-level JSON dict for recursion
-        '''
+        """
         kwarg_map = {} if kwarg_map is None else kwarg_map
 
         if _json is None:
@@ -424,7 +424,7 @@ class Jsonable(object):
                 default=None,    # type: Callable[Any, [bool, int, float, str, None]]
                 _path=None,      # type: Text
                 _json=None):     # type: Dict[Text: Any]
-        '''
+        """
         Jsonify
 
         Return a JSON-serializable dict representing the instance.
@@ -433,12 +433,15 @@ class Jsonable(object):
 
         config=None:
             Dictionary of field-level settings, in which keys are paths
-            to fields and values are numeric:
+            to fields and values are numeric or JSON kwarg dictionaries.
+            Numeric values:
                 0:      Hide field (non-zero for show field)
                 +/-N:   Show related objects to depth N; decimals are
                         ignored: e.g. 0.5 -> 0 depth, but field is shown
                 N>0:    Show all fields in related objects by default
                 N<0:    Hide all fields in related objects by default
+            Dictionary values may include any public jsonify parameter.
+
             Usage:
                 >>> geo = Geo['us/tx/austin']
                 >>> config = {
@@ -502,30 +505,37 @@ class Jsonable(object):
 
         _json=None:
             Private top-level JSON dict for recursion.
-        '''
+        """
         _json = OrderedDict() if _json is None else _json
         config = {} if config is None else config
         hide = set() if hide is None else hide
-        hide = set(hide) if not isinstance(hide, set) else hide
+        default = default or self.ensure_json_safe
+        dot_setting_kwargs = None
+
         if _path is None:
             _path = ''
-            dot_setting = config.get('.')
-            if dot_setting is not None:
-                hide_all = dot_setting < 0
-                depth = int(floor(abs(dot_setting)))
+            if '.' in config:
+                dot_setting_kwargs = self.extract_settings('.', config, use_floor=True)
 
-        if depth < 1:
-            raise ValueError('Jsonify depth of {} is less than 1'.format(depth))
-        default = default or self.ensure_json_safe
-        json_kwargs = dict(
-            config=config, hide=hide, limit=limit, key_type=key_type,
-            raw=raw, tight=tight, nest=nest, root=False, default=default)
+        base_json_kwargs = dict(
+            config=config, depth=depth, hide=hide, hide_all=hide_all,
+            limit=limit, key_type=key_type, raw=raw, tight=tight, nest=nest,
+            root=False, default=default)  # exclude: _path, _json
+        if dot_setting_kwargs:
+            base_json_kwargs.update(dot_setting_kwargs)
+
+        hide_all = base_json_kwargs['hide_all']
+        nest = base_json_kwargs['nest']
 
         # TODO: Check if item already exists and needs to be enhanced?
         self_json = OrderedDict()
         if not nest:
-            self_key = self.json_key(**json_kwargs)
+            self_key = self.json_key(**base_json_kwargs)
             _json[self_key] = self_json
+
+        depth = base_json_kwargs.pop('depth')
+        if depth < 1:
+            raise ValueError(f'Jsonify depth must be >= 1; value: {depth}')
 
         fields = self.fields()
 
@@ -533,35 +543,36 @@ class Jsonable(object):
             if field in hide:
                 continue
 
-            field_depth = depth - 1
-            field_hide_all = hide_all
-
+            field_setting_kwargs = field_setting_depth = None
             field_path = self.form_path(_path, field)
+
             if field_path in config:
-                field_setting = config[field_path]
-                if not field_setting:
-                    continue
-                field_depth = int(floor(abs(field_setting)))
-                field_hide_all = field_setting < 0
+                field_setting_kwargs = self.extract_settings(field_path, config)
+
+                if 'depth' in field_setting_kwargs:
+                    field_setting_depth = field_setting_kwargs['depth']
+                    if field_setting_depth == 0:
+                        continue
+                    field_setting_kwargs['depth'] = int(floor(field_setting_depth))
+
             elif hide_all:
                 continue
 
+            field_json_kwargs = dict(depth=depth - 1, _path=field_path, **base_json_kwargs)
+            if field_setting_kwargs:
+                field_json_kwargs.update(field_setting_kwargs)
+
             if isinstance(prop, JsonProperty):
                 if not prop.hide:
-                    self_json[field] = prop(
-                        obj=self, hide_all=field_hide_all,
-                        depth=field_depth if field_path in config else depth,
-                        _path=field_path, _json=_json, **json_kwargs)
+                    # Defer depth decrement handling to JSON property
+                    if field_setting_depth is None:
+                        field_json_kwargs['depth'] = depth
+                    self_json[field] = prop(obj=self, _json=_json, **field_json_kwargs)
                 continue
 
             value = getattr(self, field)
 
-            json_field_kwargs = dict(
-                hide_all=field_hide_all, depth=field_depth, _path=field_path,
-                **json_kwargs)
-
-            kwarg_map = {object: json_field_kwargs}
-
+            kwarg_map = {object: field_json_kwargs}
             # jsonify_value returns jsonified item if nest
             self_json[field] = self.jsonify_value(value, kwarg_map, _json)
 
@@ -570,20 +581,39 @@ class Jsonable(object):
 
         return self_json if nest else _json
 
-    JSONIFY_ARG_TYPES = OrderedDict(derive_arg_types(jsonify,
-                                                     custom=[JsonKeyType]))
+    def extract_settings(self, path, config, use_floor=False):
+        """Extract settings for the given path and config"""
+        settings = config[path]
+        if hasattr(settings, 'items'):
+            setting_kwargs = {k: v for k, v in settings.items()
+                              if isinstance(v, self.JSONIFY_ARG_TYPES[k])}
+            if len(setting_kwargs) < len(settings):
+                missing = {k: v for k, v in settings.items() if k not in setting_kwargs}
+                raise ValueError(f'Invalid type for setting in path {path!r}: {missing}')
+            if 'depth' in setting_kwargs:
+                if setting_kwargs['depth'] < 0:
+                    raise ValueError('Jsonify depth setting must be >= 0; '
+                                     f"value: {setting_kwargs['depth']}")
+        else:
+            depth = int(floor(abs(settings))) if use_floor else abs(settings)
+            hide_all = settings < 0
+            setting_kwargs = {'depth': depth, 'hide_all': hide_all}
+
+        return setting_kwargs
+
+    JSONIFY_ARG_TYPES = OrderedDict(derive_arg_types(jsonify, custom=[JsonKeyType]))
     JSONIFY_ARG_DEFAULTS = OrderedDict(derive_defaults(jsonify))
 
     @classmethod
     def extract_json_kwargs(cls, json_kwargs, *kwarg_names):
-        '''Extract JSON Kwargs sequentially as specified (default all)'''
+        """Extract JSON Kwargs sequentially as specified (default all)"""
         kwarg_names = kwarg_names or cls.JSONIFY_ARG_DEFAULTS.keys()
         return (json_kwargs.get(kwarg, cls.JSONIFY_ARG_DEFAULTS[kwarg])
                 for kwarg in kwarg_names)
 
     @classmethod
     def objectify_json_kwargs(cls, json_kwargs, *kwarg_names):
-        '''
+        """
         Objectify JSON Kwargs
 
         Yield specified JSON kwarg (name, value) tuples sequentially,
@@ -595,7 +625,7 @@ class Jsonable(object):
         json_kwargs: dict or dict-like object with a get() method
         *kwarg_names: names of JSON kwargs to be objectified
         return: generator that emits JSON kwarg (name, value) tuples
-        '''
+        """
         kwarg_names = kwarg_names or cls.JSONIFY_ARG_DEFAULTS.keys()
 
         for kwarg_name in kwarg_names:
@@ -619,7 +649,7 @@ class Jsonable(object):
 
     @classmethod
     def paginate(cls, page_items, page_size, total_items, start=1):
-        '''Append pagination for collections'''
+        """Append pagination for collections"""
         page = (start - 1) // page_size + 1
         full_pages, remainder = divmod(total_items, page_size)
         total_pages = full_pages + bool(remainder)
