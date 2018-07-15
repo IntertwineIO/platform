@@ -44,27 +44,33 @@ def render():
 @blueprint.route('/problems/<path:geo_huid>', methods=['GET'])
 def get_problem_network(geo_huid):
     # TODO: add org to URL or query string
-    # org = None
-    geo_huid = geo_huid[:-1] if geo_huid[-1] == '/' else geo_huid
-    geo = Geo.query.filter_by(human_id=geo_huid).first()
+    org = None
+    geo_huid = 'global' if not geo_huid else geo_huid.lower()
+    geo_huid = geo_huid[:-1] if geo_huid and geo_huid[-1] == '/' else geo_huid
+    geo = None if geo_huid == 'global' else Geo.query.filter_by(human_id=geo_huid).first()
     communities = Community.query.filter_by(geo=geo).all()
 
     # TODO: improve performance of vardygrs
-    # community_problem_huids = {c.problem.human_id for c in communities}
-    # # In the future, consider filtering based on activity metrics
-    # problems = Problem.query.all()
+    community_problem_huids = {c.problem.human_id for c in communities}
+    # In the future, consider filtering based on activity metrics
+    problems = Problem.query.all()
 
-    # vardygr_communities = [
-    #     vardygrify(Community, problem=p, org=org, geo=geo, num_followers=0)
-    #     for p in problems if p.human_id not in community_problem_huids]
+    vardygr_communities = [
+        Vardygr(Community, problem=p, org=org, geo=geo, num_followers=0)
+        for p in problems if p.human_id not in community_problem_huids]
 
-    # communities.extend(vardygr_communities)
+    communities.extend(vardygr_communities)
 
     config = configure_problem_network_community_json()
     kwarg_map = {object: {'limit': -1},
                  Community: {'config': config, 'nest': False}}
 
     return jsonify(Jsonable.jsonify_value(communities, kwarg_map))
+
+
+@blueprint.route('/problems/', methods=['GET'])
+def get_global_problem_network():
+    return get_problem_network(None)
 
 
 def configure_problem_network_community_json():
