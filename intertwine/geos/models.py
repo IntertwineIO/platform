@@ -84,7 +84,7 @@ class GeoID(BaseGeoModel):
 
     def derive_key(self, **kwds):
         '''Derive Trackable key (standard/code tuple) from a geo ID'''
-        return self.__class__.Key(self.standard, self.code)
+        return self.model_class.Key(self.standard, self.code)
 
     @property
     def standard(self):
@@ -99,7 +99,7 @@ class GeoID(BaseGeoModel):
             self._standard = val
             return
         # Not during __init__()
-        key = self.__class__.Key(standard=val, code=self.code)
+        key = self.model_class.Key(standard=val, code=self.code)
         self.register_update(key)
 
     standard = orm.synonym('_standard', descriptor=standard)
@@ -117,7 +117,7 @@ class GeoID(BaseGeoModel):
             self._code = val
             return
         # Not during __init__()
-        key = self.__class__.Key(standard=self.standard, code=val)
+        key = self.model_class.Key(standard=self.standard, code=val)
         self.register_update(key)
 
     code = orm.synonym('_code', descriptor=code)
@@ -251,7 +251,7 @@ class GeoLevel(BaseGeoModel):
 
     def derive_key(self, **kwds):
         '''Derive Trackable key (geo/level tuple) from a geo level'''
-        return self.__class__.Key(self.geo, self.level)
+        return self.model_class.Key(self.geo, self.level)
 
     @property
     def geo(self):
@@ -266,7 +266,7 @@ class GeoLevel(BaseGeoModel):
             self._geo = val
             return
         # Not during __init__()
-        key = self.__class__.Key(geo=val, level=self.level)
+        key = self.model_class.Key(geo=val, level=self.level)
         self.register_update(key)
 
     geo = orm.synonym('_geo', descriptor=geo)
@@ -284,7 +284,7 @@ class GeoLevel(BaseGeoModel):
             self._level = val
             return
         # Not during __init__()
-        key = self.__class__.Key(geo=self.geo, level=val)
+        key = self.model_class.Key(geo=self.geo, level=val)
         self.register_update(key)
 
     level = orm.synonym('_level', descriptor=level)
@@ -382,7 +382,7 @@ class GeoData(BaseGeoModel):
 
     def derive_key(self, **kwds):
         '''Derive Trackable key (geo 1-tupled) from a geo data'''
-        return self.__class__.Key(self.geo)
+        return self.model_class.Key(self.geo)
 
     @property
     def latitude(self):
@@ -502,7 +502,7 @@ class GeoData(BaseGeoModel):
             self._geo = val
             return
         # Not during __init__()
-        key = self.__class__.Key(geo=val)
+        key = self.model_class.Key(geo=val)
         self.register_update(key)
 
     geo = orm.synonym('_geo', descriptor=geo)
@@ -1003,7 +1003,7 @@ class Geo(BaseGeoModel):
     def human_id(self, val):
         if val is None:
             raise ValueError('human_id cannot be set to None')
-        cls = self.__class__
+        cls = self.model_class
         cls.validate_against_sub_blueprints(human_id=val, include=False)
         # During __init__()
         if self._human_id is None:
@@ -1122,7 +1122,7 @@ class Geo(BaseGeoModel):
 
     def derive_key(self, **kwds):
         '''Derive Trackable key (human_id 1-tupled) from a geo'''
-        return self.__class__.Key(self.human_id)
+        return self.model_class.Key(self.human_id)
 
     def __init__(self, name, abbrev=None, qualifier=None, path_parent=None,
                  alias_targets=None, aliases=None, uses_the=None,

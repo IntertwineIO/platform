@@ -14,7 +14,7 @@ from intertwine.geos.models import Geo
 from intertwine.problems.models import Problem, ProblemConnection
 from intertwine.utils.flask_utils import json_requested
 from intertwine.utils.jsonable import Jsonable
-from intertwine.utils.tools import vardygrify
+from intertwine.utils.vardygr import Vardygr
 from .models import Community
 
 
@@ -176,8 +176,8 @@ def get_community_html(problem_huid, org_huid, geo_huid):
         problem=problem, org=org, geo=geo).first()
 
     if not community:
-        community = vardygrify(Community, problem=problem, org=org, geo=geo,
-                               num_followers=0)
+        community = Vardygr(Community, problem=problem, org=org, geo=geo,
+                            num_followers=0)
 
     config = configure_community_json()
     payload = community.jsonify(config=config)

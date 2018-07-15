@@ -34,6 +34,10 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
     URI_TYPE = UriType.NATURAL
     URI_QUERY_PARAMETERS = {'org'}
 
+    @property
+    def model_class(self):
+        return self.__class__
+
     def json_key(self, key_type=None, raw=False, tight=True, **kwds):
         '''JSON key supports URI (default), NATURAL, and PRIMARY'''
         if key_type:
@@ -42,7 +46,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
                 if uri:
                     return uri
                 raise NotImplementedError('{cls} instance missing URI'
-                                          .format(cls=self.__class__))
+                                          .format(cls=self.model_class))
             if key_type is self.JsonKeyType.NATURAL:
                 return self.trepr(raw=raw, tight=tight)
             return super(BaseIntertwineModel, self).json_key(
@@ -59,7 +63,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
     @property
     def uri(self):
         '''Default URI property based on natural or primary key'''
-        cls = self.__class__
+        cls = self.model_class
         try:
             if cls.URI_TYPE is UriType.NATURAL:
                 key = self.derive_key()

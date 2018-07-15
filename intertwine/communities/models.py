@@ -20,7 +20,7 @@ from intertwine.problems.models import (
 from intertwine.trackable.exceptions import KeyMissingFromRegistryAndDatabase
 from intertwine.utils.jsonable import Jsonable, JsonProperty
 from intertwine.utils.structures import PeekableIterator
-from intertwine.utils.tools import vardygrify
+from intertwine.utils.vardygr import Vardygr
 
 BaseCommunityModel = IntertwineModel
 
@@ -84,7 +84,7 @@ class Community(BaseCommunityModel):
             self._problem = val
             return
         # Not during __init__()
-        key = self.__class__.Key(problem=val, org=self.org, geo=self.geo)
+        key = self.model_class.Key(problem=val, org=self.org, geo=self.geo)
         self.register_update(key)
 
     problem = orm.synonym('_problem', descriptor=problem)
@@ -101,7 +101,7 @@ class Community(BaseCommunityModel):
             self._org = val
             return
         # Not during __init__()
-        key = self.__class__.Key(problem=self.problem, org=val, geo=self.val)
+        key = self.model_class.Key(problem=self.problem, org=val, geo=self.val)
         self.register_update(key)
 
     org = orm.synonym('_org', descriptor=org)
@@ -118,7 +118,7 @@ class Community(BaseCommunityModel):
             self._geo = val
             return
         # Not during __init__()
-        key = self.__class__.Key(problem=self.problem, org=self.org, geo=val)
+        key = self.model_class.Key(problem=self.problem, org=self.org, geo=val)
         self.register_update(key)
 
     geo = orm.synonym('_geo', descriptor=geo)
@@ -172,8 +172,8 @@ class Community(BaseCommunityModel):
         community instance. The key is a namedtuple of problem, org, and
         geo.
         '''
-        # Use __class__ to support mocks
-        return self.__class__.Key(self.problem, self.org, self.geo)
+        # Use model_class to support vardygr
+        return self.model_class.Key(self.problem, self.org, self.geo)
 
     @classmethod
     def manifest(cls, problem_huid, org_huid, geo_huid):
@@ -183,7 +183,7 @@ class Community(BaseCommunityModel):
         try:
             return cls[key]
         except KeyMissingFromRegistryAndDatabase:
-            return vardygrify(cls, num_followers=0, **key._asdict())
+            return Vardygr(cls, num_followers=0, **key._asdict())
 
     def __init__(self, problem, org, geo, num_followers=0):
         '''Initialize a new community'''
@@ -311,12 +311,13 @@ class Community(BaseCommunityModel):
 
         for connection in connections:
             if connection not in rated_connections:
-                aggregate_rating = vardygrify(cls=APCR,
-                                              community=self,
-                                              connection=connection,
-                                              aggregation=aggregation,
-                                              rating=APCR.NO_RATING,
-                                              weight=APCR.NO_WEIGHT)
+                aggregate_rating = Vardygr(APCR,
+                                           community=self,
+                                           connection=connection,
+                                           connection_category=connection.derive_category(problem),
+                                           aggregation=aggregation,
+                                           rating=APCR.NO_RATING,
+                                           weight=APCR.NO_WEIGHT)
 
                 key = aggregate_rating.json_key(**json_kwargs)
                 if depth > 1 and (nest or key not in _json):

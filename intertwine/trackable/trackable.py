@@ -17,8 +17,8 @@ from .exceptions import (
     InvalidRegistryKey, KeyConflictError, KeyInconsistencyError,
     KeyMissingFromRegistry, KeyMissingFromRegistryAndDatabase,
     KeyRegisteredAndNoModify)
-from .utils import (build_table_model_map, dehumpify, isiterator, isnamedtuple,
-                    merge_args)
+from .utils import (build_table_model_map, dehumpify, get_class, isiterator,
+                    isnamedtuple, merge_args)
 
 # Python version compatibilities
 U_LITERAL = 'u' if sys.version_info < (3,) else ''
@@ -72,7 +72,7 @@ def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
         return repr(self)
 
     osqb, op, cp, csqb = '[', '(', ')', ']'
-    cls = self.__class__.__name__
+    cls = get_class(self).__name__
     if not outclassed and _lvl == 0:
         cls = osqb = csqb = ''
 
@@ -115,12 +115,12 @@ def _repr_(self):
 
 def register(self, key=None):
     '''Register self by deriving key if not passed'''
-    self.__class__._register_(self, key)
+    get_class(self)._register_(self, key)
 
 
 def deregister(self, key=None):
     '''Deregister self with silent failure, deriving key if needed'''
-    self.__class__._deregister_(self, key)
+    get_class(self)._deregister_(self, key)
 
 
 def destroy(self):
@@ -192,7 +192,7 @@ def _update_(self, _prefix='_', _suffix='', **fields):
         updated = True
 
     if updated:
-        self.__class__._updates.add(self)
+        get_class(self)._updates.add(self)
     return updated
 
 
@@ -238,7 +238,7 @@ def deconstruct(self, query_fields=None, named=True):
         the URI query string parameter values. The path and query are
         OrderedDicts if named is True and lists otherwise.
     '''
-    cls = self.__class__
+    cls = get_class(self)
     key = self.derive_key()
     return cls.deconstruct_key(key=key, query_fields=query_fields, named=named)
 
@@ -447,7 +447,7 @@ class Trackable(ModelMeta):
 
                 try:
                     component_key = component.derive_key()
-                    component_cls = component.__class__
+                    component_cls = get_class(component)
                     component_path, component_query = (
                         component_cls.deconstruct_key(
                             key=component_key, query_fields=query_fields,

@@ -46,6 +46,13 @@ def build_table_model_map(base):
             if hasattr(model, '__table__')}
 
 
+def get_class(obj):
+    '''Get object's class, supporting model_class override'''
+    if hasattr(obj, 'model_class'):
+        return obj.model_class
+    return obj.__class__
+
+
 def isiterator(obj):
     '''Check if object is iterator (not just iterable)'''
     cls = obj.__class__
