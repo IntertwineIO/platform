@@ -68,7 +68,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
 
     def derive_key(self, **kwds):
         '''Derive Content key from instance'''
-        return self.__class__.Key(
+        return self.model_class.Key(
             self.title.lower(), self.author_names, self.publication,
             self.published_timestamp.astimezone(UTC).deflex(native=True))
 
@@ -85,7 +85,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
             self._title = val.lower()
             return
         # Not during __init__()
-        key = self.__class__.create_key(
+        key = self.model_class.create_key(
             val, self.author_names, self.publication,
             self.published_timestamp.astimezone(UTC))
         self.register_update(key)
@@ -106,7 +106,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
             self._author_names = normalized_val
             return
         # Not during __init__()
-        key = self.__class__.create_key(
+        key = self.model_class.create_key(
             self.title, normalized_val, self.publication,
             self.published_timestamp.astimezone(UTC))
         self.register_update(key)
@@ -168,7 +168,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
             self._publication = val
             return
         # Not during __init__()
-        key = self.__class__.create_key(
+        key = self.model_class.create_key(
             self.title, self.author_names, val,
             self.published_timestamp.astimezone(UTC))
         self.register_update(key)
@@ -244,7 +244,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
             self._published_timestamp = (flex_dt.astimezone(UTC)
                                                 .deflex(native=True))
         else:  # Not during __init__()
-            key = self.__class__.create_key(
+            key = self.model_class.create_key(
                 self.title, self.author_names, self.publication, flex_dt)
             self.register_update(key)
 

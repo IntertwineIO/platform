@@ -12,7 +12,7 @@ from .models import AggregateProblemConnectionRating as APCR
 from ..exceptions import (InterfaceException, IntertwineException,
                           ResourceDoesNotExist)
 from intertwine.utils.flask_utils import json_requested
-from intertwine.utils.tools import vardygrify
+from intertwine.utils.vardygr import vardygrify
 
 
 @blueprint.errorhandler(InterfaceException)
@@ -186,7 +186,7 @@ def add_rated_problem_connection():
         community = Community[(problem, org, geo)]
     except KeyError:
         community = vardygrify(
-            cls=Community, problem=problem, org=org, geo=geo, num_followers=0)
+            Community, problem=problem, org=org, geo=geo, num_followers=0)
 
     connection_dict = payload.get('connection')
     connection = ProblemConnection(**connection_dict)
@@ -199,7 +199,7 @@ def add_rated_problem_connection():
     aggregation = payload.get('aggregation')
 
     aggregate_rating = vardygrify(
-        cls=APCR, community=community, connection=connection,
+        APCR, community=community, connection=connection,
         connection_category=connection_category, aggregation=aggregation,
         rating=APCR.NO_RATING, weight=APCR.NO_WEIGHT)
 

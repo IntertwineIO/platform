@@ -22,8 +22,8 @@ from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 from .structures import InsertableOrderedDict, PeekableIterator
-from .tools import (derive_defaults, derive_arg_types, enumify, isiterator,
-                    isiterable, stringify)
+from .tools import (derive_defaults, derive_arg_types, enumify, get_class,
+                    isiterator, isiterable, stringify)
 
 # Python version compatibilities
 if sys.version_info < (3,):
@@ -122,9 +122,9 @@ class Jsonable(object):
 
     @property
     def qualified_pk(self):
-        return self.QualifiedPrimaryKey(self.__class__, self.pk)
+        return self.QualifiedPrimaryKey(self.model_class, self.pk)
 
-    jsonified_qualified_pk = JsonProperty(name='qualified_pk', end=True)
+    jsonified_qualified_pk = JsonProperty(name='qualified_pk', end=True, hide=True)
 
     def json_key(self, key_type=None, **kwds):
         """JSON key defaults to unique key repr, but can be overridden"""
@@ -348,7 +348,7 @@ class Jsonable(object):
                 value, kwarg_map, _json)
             return _json
 
-        json_kwargs = (kwarg_map.get(value.__class__) or
+        json_kwargs = (kwarg_map.get(get_class(value)) or
                        kwarg_map.get(object, {}))
         json_kwargs[cls.JSON_ROOT] = False  # _json['root'] is already set
 
@@ -371,7 +371,7 @@ class Jsonable(object):
         if isinstance(value, NonCallableMagicMock):
             return None
 
-        if not isiterable(value):
+        if not isiterable(value) or value_is_class:
             default = default or cls.ensure_json_safe
             return default(value)
 

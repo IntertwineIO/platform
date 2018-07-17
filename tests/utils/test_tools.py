@@ -97,7 +97,7 @@ def test_vardygrify(session, problem_name, org_name, geo_name, num_followers):
     from intertwine.communities.models import Community
     from intertwine.geos.models import Geo
     from intertwine.problems.models import Problem
-    from intertwine.utils.tools import vardygrify
+    from intertwine.utils.vardygr import vardygrify
 
     problem = Problem(name=problem_name) if problem_name else None
     org = org_name if org_name else None

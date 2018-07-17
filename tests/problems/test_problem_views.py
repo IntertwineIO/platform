@@ -3,8 +3,12 @@
 import pytest
 import sys
 
+from intertwine.communities.models import Community
+from intertwine.geos.models import Geo
+from intertwine.problems.models import Problem
 from intertwine.problems.models import ProblemConnection as PC
 from intertwine.problems.models import AggregateProblemConnectionRating as APCR
+from intertwine.utils.vardygr import vardygrify
 
 # Python version compatibilities
 U_LITERAL = 'u' if sys.version_info < (3,) else ''
@@ -21,10 +25,9 @@ def test_add_rated_problem_connection(session, client, connection_category,
     '''Tests aggregate problem connection rating model interaction'''
     import json
 
-    from intertwine.communities.models import Community
-    from intertwine.geos.models import Geo
-    from intertwine.problems.models import Problem, ProblemConnection
-    from intertwine.utils.tools import vardygrify
+    # from intertwine.communities.models import Community
+    # from intertwine.geos.models import Geo
+    # from intertwine.problems.models import Problem, ProblemConnection
 
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
@@ -90,7 +93,7 @@ def test_add_rated_problem_connection(session, client, connection_category,
     problem_a = Problem[problem_a_human_id]
     problem_b_human_id = Problem.convert_name_to_human_id(problem_b_name)
     problem_b = Problem[problem_b_human_id]
-    problem_connection = ProblemConnection[ProblemConnection.create_key(
+    problem_connection = PC[PC.create_key(
         axis, problem_a, problem_b)]
     assert rated_connection['connection'] == problem_connection.json_key()
 

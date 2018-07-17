@@ -87,7 +87,7 @@ class Image(BaseProblemModel):
         Return the registry key used by the Trackable metaclass from an
         image instance. The key is a namedtuple of problem and url.
         '''
-        return self.__class__.Key(self.problem, self.url)
+        return self.model_class.Key(self.problem, self.url)
 
     def __init__(self, url, problem):
         '''
@@ -207,7 +207,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         aggregate problem connection rating instance. The key is a
         namedtuple of connection, community, and aggregation fields.
         '''
-        return self.__class__.Key(
+        return self.model_class.Key(
             self.connection, self.community, self.aggregation)
 
     @classmethod
@@ -327,7 +327,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
     def display(self):
         '''Display (old custom __str__ method)'''
-        cls_name = self.__class__.__name__
+        cls_name = self.model_class.__name__
         problem, org, geo = self.community.derive_key()
         p_name = self.community.problem.name
         conn = self.connection
@@ -448,8 +448,8 @@ class ProblemConnectionRating(BaseProblemModel):
 
     def derive_key(self, **kwds):
         '''Derive key from a problem connection rating instance'''
-        return self.__class__.Key(self.connection, self.problem, self.org,
-                                  self.geo, self.user)
+        return self.model_class.Key(self.connection, self.problem, self.org,
+                                    self.geo, self.user)
 
     @property
     def rating(self):
@@ -610,7 +610,7 @@ class ProblemConnectionRating(BaseProblemModel):
         return ('{cls}: {rating} by {user} with {weight} weight\n'
                 '  on {conn}\n'
                 '  {org}{geo}'.format(
-                    cls=self.__class__.__name__,
+                    cls=self.model_class.__name__,
                     rating=self.rating,
                     user=self.user,
                     weight=self.weight,
@@ -716,7 +716,7 @@ class ProblemConnection(BaseProblemModel):
 
     def derive_key(self, generic=False, **kwds):
         '''Derive Trackable key, a CausalKey or ScopedKey based on axis'''
-        cls = self.__class__  # TODO: Fix vardygrify so this isn't needed
+        cls = self.model_class
         return cls.Key(self.axis, self.problem_a, self.problem_b)
 
     @classmethod
@@ -737,7 +737,7 @@ class ProblemConnection(BaseProblemModel):
 
     @property
     def problems(self):
-        cls = self.__class__
+        cls = self.model_class
         return (cls.Problems(self.driver, self.impact)
                 if self.axis == self.CAUSAL
                 else cls.Problems(self.broader, self.narrower))
@@ -961,7 +961,7 @@ class Problem(BaseProblemModel):
     def human_id(self, val):
         if val is None:
             raise ValueError('human_id cannot be set to None')
-        cls = self.__class__
+        cls = self.model_class
         cls.validate_against_sub_blueprints(human_id=val, include=False)
         # During __init__()
         if self._human_id is None:
@@ -995,7 +995,7 @@ class Problem(BaseProblemModel):
         problem instance. The key is derived from the human_id field on
         the problem instance.
         '''
-        return self.__class__.Key(self.human_id)
+        return self.model_class.Key(self.human_id)
 
     @staticmethod
     def convert_name_to_human_id(name):

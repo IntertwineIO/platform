@@ -3,16 +3,12 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import enum
 import inspect
 import numbers
 import re
 import sys
 from collections import namedtuple
-from functools import partial
 from itertools import chain, islice
-from mock import create_autospec
-from numbers import Real
 
 from past.builtins import basestring
 
@@ -25,31 +21,20 @@ else:
 SELF_REFERENTIAL_PARAMS = {'self', 'cls', 'meta'}
 
 
-ord_A = ord('A')
-ord_Z = ord('Z')
-ord_a = ord('a')
-ord_z = ord('z')
-
-
-def dehumpify(camelcase):
-    '''Emit strings by progressively removing camel humps from end'''
-    length = len(camelcase)
-    for i, c in enumerate(reversed(camelcase), start=1):
-        following_idx = length - i + 1
-        followed_by_lower = (following_idx < length and
-                             ord_a <= ord(camelcase[following_idx]) <= ord_z)
-        is_upper = ord_A <= ord(c) <= ord_Z
-        preceding_idx = length - i - 1
-        preceded_by_upper = (preceding_idx > -1 and
-                             ord_A <= ord(camelcase[preceding_idx]) <= ord_Z)
-        if is_upper and (followed_by_lower or not preceded_by_upper):
-            yield camelcase[:-i]
-
-
 def add_leading_zeros(number, width):
     '''Add Leading Zeros to a number given a target width'''
     number_string = str(number)
     return '0' * (width - len(number_string)) + number_string
+
+
+def bind(func, asname, instance=None, cls=None):
+    '''Bind function as name to instance or class'''
+    cls = cls or instance.__class__
+    bound = func.__get__(instance, cls)
+    if instance:
+        setattr(instance, asname, bound)
+    else:
+        setattr(cls, asname, bound)
 
 
 def camelCaseTo_snake_case(string):
@@ -82,6 +67,52 @@ def define_constants_at_module_scope(module_name, module_class,
     for constant_value in constant_values:
         constant_name = constant_value.upper().replace(' ', '_')
         setattr(module, constant_name, getattr(module_class, constant_name))
+
+
+ord_A = ord('A')
+ord_Z = ord('Z')
+ord_a = ord('a')
+ord_z = ord('z')
+
+
+def dehumpify(camelcase):
+    '''Emit strings by progressively removing camel humps from end'''
+    length = len(camelcase)
+    for i, c in enumerate(reversed(camelcase), start=1):
+        following_idx = length - i + 1
+        followed_by_lower = (following_idx < length and
+                             ord_a <= ord(camelcase[following_idx]) <= ord_z)
+        is_upper = ord_A <= ord(c) <= ord_Z
+        preceding_idx = length - i - 1
+        preceded_by_upper = (preceding_idx > -1 and
+                             ord_A <= ord(camelcase[preceding_idx]) <= ord_Z)
+        if is_upper and (followed_by_lower or not preceded_by_upper):
+            yield camelcase[:-i]
+
+
+def derive_args(func, include_self=False, include_optional=True,
+                include_private=False):
+    '''
+    Derive Args (Python 2.6+)
+
+    Return arg generator for the given function
+
+    I/O:
+    include_self=False:
+    include_optional=True:
+    include_private=False:
+    return: arg generator
+    '''
+    fullargspec = gethalffullargspec(func)
+    args, defaults = fullargspec.args, fullargspec.defaults
+    start = 1 if not include_self and args[0] in SELF_REFERENTIAL_PARAMS else 0
+    num_args = len(args) if args else 0
+    num_defaults = len(defaults) if defaults else 0
+    end = num_args if include_optional else num_args - num_defaults
+    arg_generator = islice(args, start, end)
+    if not include_private:
+        arg_generator = (arg for arg in arg_generator if arg[0] != '_')
+    return arg_generator
 
 
 def _derive_defaults_py3(func, public_only=True):
@@ -118,38 +149,8 @@ def _derive_defaults_py2(func, public_only=True):
     return arg_defaults
 
 
-def exclude_private_keys(iterator):
-    '''Given an iterator, return generator that excludes private keys'''
-    return ((key, value) for key, value in iterator if key[0] != '_')
-
-
 derive_defaults = (_derive_defaults_py2 if sys.version_info < (3,)
                    else _derive_defaults_py3)
-
-
-def derive_args(func, include_self=False, include_optional=True,
-                include_private=False):
-    '''
-    Derive Args (Python 2.6+)
-
-    Return arg generator for the given function
-
-    I/O:
-    include_self=False:
-    include_optional=True:
-    include_private=False:
-    return: arg generator
-    '''
-    fullargspec = gethalffullargspec(func)
-    args, defaults = fullargspec.args, fullargspec.defaults
-    start = 1 if not include_self and args[0] in SELF_REFERENTIAL_PARAMS else 0
-    num_args = len(args) if args else 0
-    num_defaults = len(defaults) if defaults else 0
-    end = num_args if include_optional else num_args - num_defaults
-    arg_generator = islice(args, start, end)
-    if not include_private:
-        arg_generator = (arg for arg in arg_generator if arg[0] != '_')
-    return arg_generator
 
 
 # Map of mypy-style type annotations and corresponding types
@@ -167,32 +168,9 @@ ANNOTATION_TYPE_MAP = {
 }
 
 
-def derive_arg_types(func, custom=None, public_only=True):
+def derive_arg_type(line, custom_map=None):
     '''
-    Derive Arg Types
-
-    Given a function with mypy-style named parameter type annotations,
-    return a generator that emits parameter (name, type) tuples.
-    '''
-    source_lines, _ = inspect.getsourcelines(func)
-    custom_map = {typ_.__name__: typ_ for typ_ in custom} if custom else None
-    for line in source_lines:
-        # Skip commented lines
-        if line.strip()[0] == '#':  # Skip commented lines
-            continue
-        if '# type:' in line:
-            arg_name, arg_type = extract_arg_type(line, custom_map)
-            if public_only and arg_name and arg_name[0] == '_':
-                continue
-            yield arg_name, arg_type
-        else:
-            if "'''" in line or '"""' in line:
-                break
-
-
-def extract_arg_type(line, custom_map=None):
-    '''
-    Extract Arg Type
+    Derive Arg Type
 
     Given a code line with a mypy-style named parameter type annotation,
     return the parameter (name, type) tuple.
@@ -208,24 +186,51 @@ def extract_arg_type(line, custom_map=None):
     return arg_name, arg_type
 
 
-def enumify(EnumClass, value):
+def derive_arg_types(func, custom=None, public_only=True):
+    '''
+    Derive Arg Types
+
+    Given a function with mypy-style named parameter type annotations,
+    return a generator that emits parameter (name, type) tuples.
+    '''
+    source_lines, _ = inspect.getsourcelines(func)
+    custom_map = {typ_.__name__: typ_ for typ_ in custom} if custom else None
+    for line in source_lines:
+        # Skip commented lines
+        if line.strip()[0] == '#':  # Skip commented lines
+            continue
+        if '# type:' in line:
+            arg_name, arg_type = derive_arg_type(line, custom_map)
+            if public_only and arg_name and arg_name[0] == '_':
+                continue
+            yield arg_name, arg_type
+        else:
+            if "'''" in line or '"""' in line:
+                break
+
+
+def enumify(enum_class, value):
     '''
     Enumify
 
-    Convert value to Enum/IntEnum value via EnumClass, attempting name,
+    Convert value to Enum/IntEnum value via enum_class, attempting name,
     value, and then int(value). ValueError is raised on all failures.
     '''
     try:
-        return EnumClass[value]
+        return enum_class[value]
     except KeyError:
         try:
-            return EnumClass(value)
+            return enum_class(value)
         except ValueError:
             try:
-                return EnumClass(int(value))
+                return enum_class(int(value))
             except ValueError:
-                raise ValueError('{value} is not a valid {enum}'
-                                 .format(value=value, enum=EnumClass.__name__))
+                raise ValueError(f'{value} is not a valid {enum_class} enum')
+
+
+def exclude_private_keys(iterator):
+    '''Given an iterator, return generator that excludes private keys'''
+    return ((key, value) for key, value in iterator if key[0] != '_')
 
 
 def find_all_words(text, words):
@@ -242,6 +247,19 @@ def find_any_words(text, words):
         if text_word in search_words:
             return True
     return False
+
+
+def get_class(obj):
+    '''Get object's class, supporting model_class override'''
+    if hasattr(obj, 'model_class'):
+        return obj.model_class
+    return obj.__class__
+
+
+def get_value(value, default, checks=None):
+    '''Get value or default as determined by checks'''
+    checks = checks or {None}
+    return value if value not in checks else default
 
 
 if sys.version_info < (3,):
@@ -265,12 +283,6 @@ def gethalffullargspec(func):
         argspec = inspect.getargspec(func)
         return FullArgSpec(
             kwonlyargs=None, kwonlydefaults=None, annotations=None, *argspec)
-
-
-def get_value(value, default, checks=None):
-    '''Get value or default as determined by checks'''
-    checks = checks or {None}
-    return value if value not in checks else default
 
 
 def iscollection(obj):
@@ -471,59 +483,3 @@ def stringify(thing, limit=-1, _lvl=0):
             ind=ind, limit=limit, total=len_thing))
 
     return '\n'.join(strings)
-
-
-def vardygrify(cls, **kwds):
-    u'''
-    Vardygrify
-
-    From Wikipedia (https://en.wikipedia.org/wiki/Vard%C3%B8ger):
-
-        Vardoger, also known as vardyvle or vardyger, is a spirit
-        predecessor in Scandinavian folklore. Stories typically include
-        instances that are nearly deja vu in substance, but in reverse,
-        where a spirit with the subject's footsteps, voice, scent, or
-        appearance and overall demeanor precedes them in a location or
-        activity, resulting in witnesses believing they've seen or heard
-        the actual person before the person physically arrives. This
-        bears a subtle difference from a doppelganger, with a less
-        sinister connotation. It has been likened to being a phantom
-        double, or form of bilocation.
-
-    A convenience method for creating a non-persisted mock instance of
-    a classes. Adds method mimicry capabilities on top of Mock.
-    '''
-    EXCLUDED_BUILTINS = {'__new__', '__init__', '__class__', '__setattr__'}
-    INCLUDED_BUILTINS = {'__repr__', '__str__', '__unicode__'}
-
-    vardygr = create_autospec(cls, spec_set=False, instance=True)
-
-    for k, v in kwds.items():
-        setattr(vardygr, k, v)
-
-    for attr_name in dir(cls):
-        if attr_name in EXCLUDED_BUILTINS:
-            continue
-
-        attribute = getattr(cls, attr_name)
-
-        try:
-            # works if attribute is a function
-            fullargspec = gethalffullargspec(attribute)
-            args = fullargspec.args
-            if (len(args) > 0 and args[0] == 'self' and
-                    attr_name not in INCLUDED_BUILTINS):
-                setattr(vardygr, attr_name, partial(attribute, vardygr))
-            else:  # classmethod, staticmethod, or included builtin
-                setattr(vardygr, attr_name, attribute)
-
-        except TypeError:  # attribute is not a function
-            if isinstance(attribute, enum.EnumMeta):
-                setattr(type(vardygr), attr_name, attribute)
-            # properties must be set on the type to be used on an instance
-            elif isinstance(attribute, property):
-                setattr(type(vardygr), attr_name, property(attribute.fget))
-            elif isinstance(attribute, (basestring, Real, tuple, list)):
-                setattr(vardygr, attr_name, attribute)
-
-    return vardygr
