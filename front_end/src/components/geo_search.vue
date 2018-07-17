@@ -21,9 +21,15 @@
         :key="index"
         class="geo_search--result"
       >
-        <h2>{{ geo.display }}</h2>
-        <p> {{ index.index }} </p>
-        <p v-if="geo.data"><strong>POP:</strong> {{ geo.data.total_pop }}</p>
+        <v-map :zoom="zoom" :center="geo.data.location" :zoomControl="false" >
+          <v-tilelayer url="http://{s}.tile.osm.org/{z}/{x}/{y}.png"></v-tilelayer>
+          <v-marker :lat-lng="geo.data.location"></v-marker>
+        </v-map>
+
+        <div class="geo_search--result_info">
+          <h2>{{ geo.display }}</h2>
+          <p v-if="geo.data"><strong>POP:</strong> {{ numberWithCommas(geo.data.total_pop) }}</p>
+        </div>
       </article>
     </section>
   </section>
@@ -32,6 +38,7 @@
 <script>
 import axios from 'axios'
 import _ from 'lodash'
+
 export default {
   name: 'geoSearch',
   data () {
@@ -40,13 +47,13 @@ export default {
       searchText: null,
       inProgress: false,
       geos: [],
+      zoom: 8,
       message: 'We couldn\'t find any results for your search, sorry. Try a different place.'
     }
   },
   watch: {
     searchText () {
       if (this.readyToSearch) {
-        this.inProgress = true
         this.searchGeoService(this.searchText)
       }
     }
@@ -54,6 +61,7 @@ export default {
   methods: {
     searchGeoService: _.debounce(function (term) {
       let vue = this
+      this.inProgress = true
       this.geos = {}
       axios.get(this.dataSource)
         .then(function (response) {
@@ -66,6 +74,9 @@ export default {
           vue.inProgress = false
         })
     }, 400),
+    numberWithCommas (num) {
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    },
     clearSearch () {
       this.inProgress = false
       this.searchText = ''
@@ -148,9 +159,8 @@ export default {
 
   .geo_search--result {
     @include fadeInUp();
-    padding: .5rem 1rem;
     background: white;
-    border-top: 4px solid;
+    border-bottom: 4px solid;
     border-color: $light_blue;
     text-align: left;
     width: 28%;
@@ -159,6 +169,14 @@ export default {
     &:hover {
       cursor: pointer;
     }
+
+    .leaflet-container {
+      height: 10em;
+    }
+  }
+
+  .geo_search--result_info {
+    padding: .5rem;
   }
 }
 

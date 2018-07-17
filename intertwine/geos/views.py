@@ -29,7 +29,8 @@ def handle_interface_exception(error):
 def render():
     '''Base endpoint serving both pages and the API'''
     match_string = request.args.get('match_string')
-    if json_requested() and match_string:
+    # if json_requested() and match_string:
+    if match_string:
         return find_geo_matches(match_string)
 
     return render_index()
