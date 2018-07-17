@@ -124,7 +124,7 @@ class Jsonable(object):
     def qualified_pk(self):
         return self.QualifiedPrimaryKey(self.model_class, self.pk)
 
-    jsonified_qualified_pk = JsonProperty(name='qualified_pk', end=True)
+    jsonified_qualified_pk = JsonProperty(name='qualified_pk', end=True, hide=True)
 
     def json_key(self, key_type=None, **kwds):
         """JSON key defaults to unique key repr, but can be overridden"""
@@ -371,7 +371,7 @@ class Jsonable(object):
         if isinstance(value, NonCallableMagicMock):
             return None
 
-        if not isiterable(value):
+        if not isiterable(value) or value_is_class:
             default = default or cls.ensure_json_safe
             return default(value)
 

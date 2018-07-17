@@ -8,7 +8,7 @@ from intertwine.geos.models import Geo
 from intertwine.problems.models import Problem
 from intertwine.problems.models import ProblemConnection as PC
 from intertwine.problems.models import AggregateProblemConnectionRating as APCR
-from intertwine.utils.vardygr import Vardygr
+from intertwine.utils.vardygr import vardygrify
 
 # Python version compatibilities
 U_LITERAL = 'u' if sys.version_info < (3,) else ''
@@ -40,7 +40,7 @@ def test_add_rated_problem_connection(session, client, connection_category,
         community = Community(problem=problem1, org=org, geo=geo)
         session.add(community)
     else:
-        community = Vardygr(Community, problem=problem1, org=org, geo=geo)
+        community = vardygrify(Community, problem=problem1, org=org, geo=geo)
 
     session.commit()
 

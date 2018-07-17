@@ -38,6 +38,8 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
     def model_class(self):
         return self.__class__
 
+    jsonified_model_class = JsonProperty(name='model_class', hide=True)
+
     def json_key(self, key_type=None, raw=False, tight=True, **kwds):
         '''JSON key supports URI (default), NATURAL, and PRIMARY'''
         if key_type:
@@ -74,7 +76,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
         except AttributeError:
             return None
 
-    jsonified_uri = JsonProperty(name='uri', before='json_key')
+    jsonified_uri = JsonProperty(name='uri', before='json_key', hide=True)
 
     @classmethod
     def form_uri(cls, components, sub_only=False):

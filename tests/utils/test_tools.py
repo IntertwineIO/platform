@@ -92,12 +92,12 @@ def test_enumify(session, EnumType):
     ('Homelessness', None, u'Lopeño', 0),
     ('Homelessness', None, 'Waxahachie', None),
 ])
-def test_vardygr(session, problem_name, org_name, geo_name, num_followers):
-    '''Test Vardygr by comparing vardygr and real communities'''
+def test_vardygrify(session, problem_name, org_name, geo_name, num_followers):
+    '''Test vardygrify by comparing vardygr and real communities'''
     from intertwine.communities.models import Community
     from intertwine.geos.models import Geo
     from intertwine.problems.models import Problem
-    from intertwine.utils.vardygr import Vardygr
+    from intertwine.utils.vardygr import vardygrify
 
     problem = Problem(name=problem_name) if problem_name else None
     org = org_name if org_name else None
@@ -109,7 +109,7 @@ def test_vardygr(session, problem_name, org_name, geo_name, num_followers):
     session.add(real_community)
     session.commit()
 
-    vardygr_community = Vardygr(Community, **community_kwds)
+    vardygr_community = vardygrify(Community, **community_kwds)
 
     # Hide ids, since they will differ
     hide = Community.ID_FIELDS

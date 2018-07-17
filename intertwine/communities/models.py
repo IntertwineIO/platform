@@ -20,7 +20,7 @@ from intertwine.problems.models import (
 from intertwine.trackable.exceptions import KeyMissingFromRegistryAndDatabase
 from intertwine.utils.jsonable import Jsonable, JsonProperty
 from intertwine.utils.structures import PeekableIterator
-from intertwine.utils.vardygr import Vardygr
+from intertwine.utils.vardygr import vardygrify
 
 BaseCommunityModel = IntertwineModel
 
@@ -172,7 +172,6 @@ class Community(BaseCommunityModel):
         community instance. The key is a namedtuple of problem, org, and
         geo.
         '''
-        # Use model_class to support vardygr
         return self.model_class.Key(self.problem, self.org, self.geo)
 
     @classmethod
@@ -183,7 +182,7 @@ class Community(BaseCommunityModel):
         try:
             return cls[key]
         except KeyMissingFromRegistryAndDatabase:
-            return Vardygr(cls, num_followers=0, **key._asdict())
+            return vardygrify(cls, num_followers=0, **key._asdict())
 
     def __init__(self, problem, org, geo, num_followers=0):
         '''Initialize a new community'''
@@ -311,13 +310,13 @@ class Community(BaseCommunityModel):
 
         for connection in connections:
             if connection not in rated_connections:
-                aggregate_rating = Vardygr(APCR,
-                                           community=self,
-                                           connection=connection,
-                                           connection_category=connection.derive_category(problem),
-                                           aggregation=aggregation,
-                                           rating=APCR.NO_RATING,
-                                           weight=APCR.NO_WEIGHT)
+                aggregate_rating = vardygrify(APCR,
+                                              community=self,
+                                              connection=connection,
+                                              connection_category=connection.derive_category(problem),
+                                              aggregation=aggregation,
+                                              rating=APCR.NO_RATING,
+                                              weight=APCR.NO_WEIGHT)
 
                 key = aggregate_rating.json_key(**json_kwargs)
                 if depth > 1 and (nest or key not in _json):

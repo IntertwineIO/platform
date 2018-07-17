@@ -14,7 +14,7 @@ from intertwine.geos.models import Geo
 from intertwine.problems.models import Problem, ProblemConnection
 from intertwine.utils.flask_utils import json_requested
 from intertwine.utils.jsonable import Jsonable
-from intertwine.utils.vardygr import Vardygr
+from intertwine.utils.vardygr import vardygrify
 from .models import Community
 
 
@@ -50,13 +50,12 @@ def get_problem_network(geo_huid):
     geo = None if geo_huid == 'global' else Geo.query.filter_by(human_id=geo_huid).first()
     communities = Community.query.filter_by(geo=geo).all()
 
-    # TODO: improve performance of vardygrs
     community_problem_huids = {c.problem.human_id for c in communities}
     # In the future, consider filtering based on activity metrics
     problems = Problem.query.all()
 
     vardygr_communities = [
-        Vardygr(Community, problem=p, org=org, geo=geo, num_followers=0)
+        vardygrify(Community, problem=p, org=org, geo=geo, num_followers=0)
         for p in problems if p.human_id not in community_problem_huids]
 
     communities.extend(vardygr_communities)
@@ -182,8 +181,8 @@ def get_community_html(problem_huid, org_huid, geo_huid):
         problem=problem, org=org, geo=geo).first()
 
     if not community:
-        community = Vardygr(Community, problem=problem, org=org, geo=geo,
-                            num_followers=0)
+        community = vardygrify(
+            Community, problem=problem, org=org, geo=geo, num_followers=0)
 
     config = configure_community_json()
     payload = community.jsonify(config=config)
