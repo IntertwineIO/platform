@@ -15,7 +15,7 @@ if sys.version_info >= (3,):
 
 
 def perform_core_quantized_interactions(cls, number):
-    '''Test core interactions for QuantizedDecimal class'''
+    """Test core interactions for QuantizedDecimal class"""
     precision = cls.DEFAULT_PRECISION
     multiplier = Decimal(10) ** precision
     decimal_value = Decimal(number)
@@ -49,7 +49,7 @@ def perform_core_quantized_interactions(cls, number):
     0
 ])
 def test_area_core_interactions(session, number):
-    '''Test core Area interactions'''
+    """Test core Area interactions"""
     perform_core_quantized_interactions(Area, number)
 
 
@@ -62,7 +62,7 @@ def test_area_core_interactions(session, number):
     0
 ])
 def test_coordinate_core_interactions(session, number):
-    '''Test core Coordinate interactions'''
+    """Test core Coordinate interactions"""
     perform_core_quantized_interactions(Coordinate, number)
 
 
@@ -71,7 +71,7 @@ def test_coordinate_core_interactions(session, number):
     ('2.718281828', '3.14159265359'),
 ])
 def test_geo_location_core_interactions(session, number1, number2):
-    '''Test core GeoLocation interactions'''
+    """Test core GeoLocation interactions"""
     coordinate1, coordinate2 = Coordinate(number1), Coordinate(number2)
     dequantized1 = coordinate1.dequantize()
     dequantized2 = coordinate2.dequantize()
@@ -117,7 +117,7 @@ def test_geo_location_core_interactions(session, number1, number2):
       '-98.7654321', '-12.3456789', '42.1234567')])
 def test_geo_location_combine(session, lat1, lon1, wt1, lat2, lon2, wt2,
                               lat3, lon3, wt3):
-    '''Test GeoLocation combine methods'''
+    """Test GeoLocation combine methods"""
     geo_location1 = GeoLocation(lat1, lon1)
     geo_location2 = GeoLocation(lat2, lon2)
     geo_location3 = GeoLocation(lat3, lon3)

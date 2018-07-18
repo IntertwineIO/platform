@@ -4,7 +4,7 @@ from uuid import uuid4
 
 
 class DefaultConfig(object):
-    '''Base class for all configurations'''
+    """Base class for all configurations"""
 
     DEBUG = False
     TESTING = False
@@ -19,7 +19,7 @@ class DefaultConfig(object):
 
 
 class DevelopmentConfig(DefaultConfig):
-    '''For use with development'''
+    """For use with development"""
 
     DEBUG = True
     PROPAGATE_EXCEPTIONS = True
@@ -32,7 +32,7 @@ class DevelopmentConfig(DefaultConfig):
 
 
 class TestingConfig(DefaultConfig):
-    '''For use with testing'''
+    """For use with testing"""
 
     TESTING = True
     PROPAGATE_EXCEPTIONS = True
@@ -43,14 +43,14 @@ class TestingConfig(DefaultConfig):
 
 
 class DeployableConfig(DefaultConfig):
-    '''For use on deployed system'''
+    """For use on deployed system"""
     SECRET_KEY = uuid4().bytes
     PERMANENT_SESSION_LIFETIME = 60 * 120  # 2 hours: in seconds
     JSON_SORT_KEYS = False
 
 
 class ProductionConfig(DeployableConfig):
-    '''For use on production system'''
+    """For use on production system"""
     SERVER_NAME = 'intertwine.io'
     SECRET_KEY = uuid4().bytes
     PERMANENT_SESSION_LIFETIME = 60 * 120  # 2 hours: in seconds

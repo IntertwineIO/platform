@@ -7,7 +7,7 @@ from tests.builders.master import Builder
 
 @pytest.mark.unit
 def test_trackable_class_keys(session):
-    '''Test Trackable Class Keys'''
+    """Test Trackable Class Keys"""
     from intertwine.trackable import Trackable
 
     for class_name, cls in Trackable._classes.items():
@@ -26,7 +26,7 @@ def test_trackable_class_keys(session):
 
 @pytest.mark.unit
 def test_trackable_deconstruction_reconstruction(session):
-    '''Test Trackable Deconstruction & Reconstruction'''
+    """Test Trackable Deconstruction & Reconstruction"""
     from intertwine.trackable import Trackable
 
     for class_name, cls in Trackable._classes.items():
@@ -79,7 +79,7 @@ def test_trackable_deconstruction_reconstruction(session):
 
 @pytest.mark.unit
 def test_trackable_tget(session):
-    '''Tests Trackable get (tget)'''
+    """Test Trackable get (tget)"""
     from intertwine.problems.models import Problem
     from intertwine.trackable import Trackable
 
@@ -130,7 +130,7 @@ def test_trackable_tget(session):
 
 @pytest.mark.unit
 def test_trackable_indexability(session):
-    '''Tests Trackable indexability (via []s)'''
+    """Test Trackable indexability (via []s)"""
     from intertwine.problems.models import Problem
     from intertwine.trackable import Trackable
     from intertwine.trackable.exceptions import (

@@ -52,7 +52,7 @@ class State(KeyedUp, AutoTablenameMixin, BaseGeoDataModel):
 
 
 class CBSA(AutoTablenameMixin, BaseGeoDataModel):
-    '''Core Based Statistical Area (CBSA)'''
+    """Core Based Statistical Area (CBSA)"""
     CORE_BASED_STATISTICAL_AREA = 'core based statistical area'
 
     cbsa_code = Column(types.String(5))                 # 12420
@@ -291,7 +291,7 @@ class Geoclass(AutoTablenameMixin, BaseGeoDataModel):
 
 
 class GHRP(BaseGeoDataModel):
-    '''
+    """
     Geographic Header Row Plus (GHRP)
 
     Contains all columns from the Geographic Header Row (GHR) plus:
@@ -299,7 +299,7 @@ class GHRP(BaseGeoDataModel):
     cousub_id, the concatenation of statefp, countyfp, and cousubfp
     place_id, the concatenation of statefp and placefp
     all columns from File 02.
-    '''
+    """
     DATA_FIELDS = (
         'p0020001', 'p0020002', 'intptlat', 'intptlon', 'arealand', 'areawatr')
 

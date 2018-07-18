@@ -8,17 +8,17 @@ __all__ = ['DemoConfig', 'LocalDemoConfig', 'DevConfig', 'ToxConfig']
 
 
 class DemoConfig(DeployableConfig, HerokuConfig, SqlLiteConfig):
-    '''Configures for demo'''
+    """Configures for demo"""
 
 
 class LocalDemoConfig(DeployableConfig, LocalConfig, SqlLiteConfig):
-    '''Configures for local demo'''
+    """Configures for local demo"""
 
 
 class DevConfig(DevelopmentConfig, LocalConfig, SqlLiteConfig,
                 GeoSqlLiteConfig):
-    '''Standard development environment configuration'''
+    """Standard development environment configuration"""
 
 
 class ToxConfig(TestingConfig, LocalConfig, InMemoryConfig):
-    '''Standard development for tox testing'''
+    """Standard development for tox testing"""

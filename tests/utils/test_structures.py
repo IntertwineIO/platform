@@ -15,7 +15,7 @@ from intertwine.utils.tools import nth_item
 
 @pytest.mark.unit
 def test_sentinel():
-    '''Test Sentinel via comparisons'''
+    """Test Sentinel via comparisons"""
     sentinel0 = Sentinel()
     same_sentinels = [sentinel0] * 3
     for sentinel in same_sentinels:
@@ -33,7 +33,7 @@ def build_alphabet_map():
 
 @pytest.mark.unit
 def test_insertable_ordered_dict_init():
-    '''Test InsertableOrderedDict initialization'''
+    """Test InsertableOrderedDict initialization"""
     # Initialize InsertableOrderedDict from iterable of 2-tuples
     iod0 = InsertableOrderedDict(build_alphabet_map())
     assert isinstance(iod0, InsertableOrderedDict)
@@ -71,7 +71,7 @@ def test_insertable_ordered_dict_init():
 
 @pytest.mark.unit
 def test_insertable_ordered_dict_insert():
-    '''Test InsertableOrderedDict via insertions'''
+    """Test InsertableOrderedDict via insertions"""
     iod0 = InsertableOrderedDict(build_alphabet_map())
     iod1 = iod0.copy()
     iod2 = iod0.copy()
@@ -111,7 +111,7 @@ def test_insertable_ordered_dict_insert():
 
 @pytest.mark.unit
 def test_insertable_ordered_dict_set_and_get():
-    '''Test InsertableOrderedDict set and get'''
+    """Test InsertableOrderedDict set and get"""
     iod0 = InsertableOrderedDict(build_alphabet_map())
     iod1 = InsertableOrderedDict()
 
@@ -128,7 +128,7 @@ def test_insertable_ordered_dict_set_and_get():
 
 @pytest.mark.unit
 def test_insertable_ordered_dict_delete():
-    '''Test InsertableOrderedDict delete'''
+    """Test InsertableOrderedDict delete"""
     iod0 = InsertableOrderedDict(build_alphabet_map())
     iod1 = iod0.copy()
 
@@ -159,7 +159,7 @@ def test_insertable_ordered_dict_delete():
 
 @pytest.mark.unit
 def test_insertable_ordered_dict_pop():
-    '''Test InsertableOrderedDict pop and popitem'''
+    """Test InsertableOrderedDict pop and popitem"""
     iod0 = InsertableOrderedDict(build_alphabet_map())
     iod1 = iod0.copy()
 
@@ -193,7 +193,7 @@ def test_insertable_ordered_dict_pop():
 
 @pytest.mark.unit
 def test_insertable_ordered_dict_iterables():
-    '''Test InsertableOrderedDict set and get'''
+    """Test InsertableOrderedDict set and get"""
     iod = InsertableOrderedDict(build_alphabet_map())
 
     od = OrderedDict(build_alphabet_map())
@@ -222,7 +222,7 @@ def test_insertable_ordered_dict_iterables():
 
 @pytest.mark.unit
 def test_insertable_ordered_dict_reversal():
-    '''Test InsertableOrderedDict reverse and reversed'''
+    """Test InsertableOrderedDict reverse and reversed"""
     iod0 = InsertableOrderedDict(build_alphabet_map())
     iod1 = iod0.copy()
     iod1_items = list(iod1.items())
@@ -248,7 +248,7 @@ def test_insertable_ordered_dict_reversal():
 
 @pytest.mark.unit
 def test_multi_key_map():
-    '''Test MultiKeyMap with a collection of namedtuples'''
+    """Test MultiKeyMap with a collection of namedtuples"""
     random.seed(42)
 
     fields = ('field1', 'field2', 'field3')

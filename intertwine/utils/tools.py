@@ -22,13 +22,13 @@ SELF_REFERENTIAL_PARAMS = {'self', 'cls', 'meta'}
 
 
 def add_leading_zeros(number, width):
-    '''Add Leading Zeros to a number given a target width'''
+    """Add Leading Zeros to a number given a target width"""
     number_string = str(number)
     return '0' * (width - len(number_string)) + number_string
 
 
 def bind(func, asname, instance=None, cls=None):
-    '''Bind function as name to instance or class'''
+    """Bind function as name to instance or class"""
     cls = cls or instance.__class__
     bound = func.__get__(instance, cls)
     if instance:
@@ -38,7 +38,7 @@ def bind(func, asname, instance=None, cls=None):
 
 
 def camelCaseTo_snake_case(string):
-    '''Convert CamelCase to snake_case'''
+    """Convert CamelCase to snake_case"""
     patterns = [
         (r'(.)([0-9]+)', r'\1_\2'),
         (r'([a-z]+)([A-Z])', r'\1_\2'),
@@ -56,12 +56,12 @@ def camelCaseTo_snake_case(string):
 
 def define_constants_at_module_scope(module_name, module_class,
                                      constant_values):
-    '''
+    """
     Define constants at module scope
 
     Enforce naming convention in which constant names match the values,
     but are in ALL_CAPS with _'s instead of spaces.
-    '''
+    """
     module = sys.modules[module_name]
 
     for constant_value in constant_values:
@@ -76,7 +76,7 @@ ord_z = ord('z')
 
 
 def dehumpify(camelcase):
-    '''Emit strings by progressively removing camel humps from end'''
+    """Emit strings by progressively removing camel humps from end"""
     length = len(camelcase)
     for i, c in enumerate(reversed(camelcase), start=1):
         following_idx = length - i + 1
@@ -92,7 +92,7 @@ def dehumpify(camelcase):
 
 def derive_args(func, include_self=False, include_optional=True,
                 include_private=False):
-    '''
+    """
     Derive Args (Python 2.6+)
 
     Return arg generator for the given function
@@ -102,7 +102,7 @@ def derive_args(func, include_self=False, include_optional=True,
     include_optional=True:
     include_private=False:
     return: arg generator
-    '''
+    """
     fullargspec = gethalffullargspec(func)
     args, defaults = fullargspec.args, fullargspec.defaults
     start = 1 if not include_self and args[0] in SELF_REFERENTIAL_PARAMS else 0
@@ -116,14 +116,14 @@ def derive_args(func, include_self=False, include_optional=True,
 
 
 def _derive_defaults_py3(func, public_only=True):
-    '''
+    """
     Derive Defaults (Python 3.x)
 
     Return generator of (arg, default) tuples for the given function
     https://stackoverflow.com/questions/12627118/get-a-function-arguments-default-value
 
     Never use directly; use derive_defaults instead.
-    '''
+    """
     signature = inspect.signature(func)
     arg_defaults = ((k, v.default) for k, v in signature.parameters.items()
                     if v.default is not inspect.Parameter.empty)
@@ -133,14 +133,14 @@ def _derive_defaults_py3(func, public_only=True):
 
 
 def _derive_defaults_py2(func, public_only=True):
-    '''
+    """
     Derive Defaults (Python 2.6+)
 
     Return generator of (arg, default) tuples for the given function
     https://stackoverflow.com/questions/12627118/get-a-function-arguments-default-value
 
     Never use directly; use derive_defaults instead.
-    '''
+    """
     fullargspec = gethalffullargspec(func)
     args, defaults = fullargspec.args, fullargspec.defaults
     arg_defaults = zip(args[-len(defaults):], defaults)
@@ -169,12 +169,12 @@ ANNOTATION_TYPE_MAP = {
 
 
 def derive_arg_type(line, custom_map=None):
-    '''
+    """
     Derive Arg Type
 
     Given a code line with a mypy-style named parameter type annotation,
     return the parameter (name, type) tuple.
-    '''
+    """
     arg_definition, type_comment = line.split('# type:')
     arg_name = arg_definition.split('=')[0].strip().strip(',')
     type_annotation = type_comment.split('#')[0].strip().split('[')[0].strip()
@@ -187,12 +187,12 @@ def derive_arg_type(line, custom_map=None):
 
 
 def derive_arg_types(func, custom=None, public_only=True):
-    '''
+    """
     Derive Arg Types
 
     Given a function with mypy-style named parameter type annotations,
     return a generator that emits parameter (name, type) tuples.
-    '''
+    """
     source_lines, _ = inspect.getsourcelines(func)
     custom_map = {typ_.__name__: typ_ for typ_ in custom} if custom else None
     for line in source_lines:
@@ -210,12 +210,12 @@ def derive_arg_types(func, custom=None, public_only=True):
 
 
 def enumify(enum_class, value):
-    '''
+    """
     Enumify
 
     Convert value to Enum/IntEnum value via enum_class, attempting name,
     value, and then int(value). ValueError is raised on all failures.
-    '''
+    """
     try:
         return enum_class[value]
     except KeyError:
@@ -229,19 +229,19 @@ def enumify(enum_class, value):
 
 
 def exclude_private_keys(iterator):
-    '''Given an iterator, return generator that excludes private keys'''
+    """Given an iterator, return generator that excludes private keys"""
     return ((key, value) for key, value in iterator if key[0] != '_')
 
 
 def find_all_words(text, words):
-    '''Find all exact search words (a set) in text'''
+    """Find all exact search words (a set) in text"""
     search_words = words if isinstance(words, set) else set(words)
     text_words = set(text.split())
     return text_words & search_words
 
 
 def find_any_words(text, words):
-    '''True iff any exact search words (a set) found in text'''
+    """True iff any exact search words (a set) found in text"""
     search_words = words if isinstance(words, set) else set(words)
     for text_word in text.split():
         if text_word in search_words:
@@ -250,14 +250,14 @@ def find_any_words(text, words):
 
 
 def get_class(obj):
-    '''Get object's class, supporting model_class override'''
+    """Get object's class, supporting model_class override"""
     if hasattr(obj, 'model_class'):
         return obj.model_class
     return obj.__class__
 
 
 def get_value(value, default, checks=None):
-    '''Get value or default as determined by checks'''
+    """Get value or default as determined by checks"""
     checks = checks or {None}
     return value if value not in checks else default
 
@@ -268,14 +268,14 @@ if sys.version_info < (3,):
 
 
 def gethalffullargspec(func):
-    '''
+    """
     gethalffullargspec
 
     Call getfullargspec (py3) or getargspec (py2) and return the py3
     FullArgSpec namedtuple in both cases - hence, it's 1/2 full...
     FullArgSpec has a varkw term instead of ArgSpec's keywords term.
     In py2, kwonlyargs, kwonlydefaults, and annotations are None.
-    '''
+    """
     try:  # py3
         return inspect.getfullargspec(func)
 
@@ -286,62 +286,62 @@ def gethalffullargspec(func):
 
 
 def iscollection(obj):
-    '''Check if object is collection: list, tuple, dict, set...'''
+    """Check if object is collection: list, tuple, dict, set..."""
     cls = obj.__class__
     return hasattr(cls, '__iter__') and hasattr(cls, '__len__')
 
 
 def isiterator(obj):
-    '''Check if object is iterator (not just iterable)'''
+    """Check if object is iterator (not just iterable)"""
     cls = obj.__class__
     return hasattr(cls, '__iter__') and not hasattr(cls, '__len__')
 
 
 def isnamedtuple(obj):
-    '''Check if object is namedtuple'''
+    """Check if object is namedtuple"""
     return isinstance(obj, tuple) and hasattr(obj, '_asdict')
 
 
 def isiterable(obj):
-    '''Check if object is non-string iterable: list, tuple, dict'''
+    """Check if object is non-string iterable: list, tuple, dict"""
     cls = obj.__class__
     return (hasattr(cls, '__iter__') and hasattr(cls, '__getitem__') and
             not isinstance(obj, basestring))
 
 
 def issequence(obj):
-    '''Check if object is non-string sequence, e.g. list, tuple'''
+    """Check if object is non-string sequence, e.g. list, tuple"""
     cls = obj.__class__
     return (hasattr(cls, '__iter__') and hasattr(cls, '__getitem__') and
             not isinstance(obj, basestring) and not hasattr(obj, 'items'))
 
 
 def iterator(*elements):
-    '''Return an iterator (a generator) that emits the given elements'''
+    """Return an iterator (a generator) that emits the given elements"""
     for element in elements:
         yield element
 
 
 def nth_key(iterable, n):
-    '''Return the nth key from an iterable'''
+    """Return the nth key from an iterable"""
     return next(islice(iterable, n, None))
 
 
 def nth_value(iterable, n):
-    '''Return the nth value from an iterable'''
+    """Return the nth value from an iterable"""
     key = nth_key(iterable, n)
     return iterable[key]
 
 
 def nth_item(iterable, n):
-    '''Return the nth item from an iterable'''
+    """Return the nth item from an iterable"""
     key = nth_key(iterable, n)
     return (key, iterable[key])
 
 
 def kwargify(parg_tuples=None, arg_tuples=(), kwargs=None,
              exclude=set(), selfish=False):
-    '''
+    """
     Kwargify
 
     Consolidate positional args, *args, and **kwargs into a new dict.
@@ -363,7 +363,7 @@ def kwargify(parg_tuples=None, arg_tuples=(), kwargs=None,
     selfish=False: by default, 'self' is added to exclusions
 
     return: generator of consolidated pargs, args, and kwargs
-    '''
+    """
     derived = not parg_tuples or not kwargs
     if derived:
         prior_frame = inspect.stack()[1][0]
@@ -407,7 +407,7 @@ def kwargify(parg_tuples=None, arg_tuples=(), kwargs=None,
 
 
 def stringify(thing, limit=-1, _lvl=0):
-    '''
+    """
     Stringify
 
     Convert things into nicely formatted unicode strings for printing.
@@ -429,7 +429,7 @@ def stringify(thing, limit=-1, _lvl=0):
         A negative limit (the default) means no cap is applied.
 
     _lvl=0: Private parameter to determine indentation during recursion
-    '''
+    """
     limit = float('inf') if limit < 0 else limit
     ind = _lvl * 4 * ' '
     len_thing = -1

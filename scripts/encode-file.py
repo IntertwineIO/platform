@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 Tests conversion
 
 Usage:
@@ -10,7 +10,7 @@ Options:
    -e --encoding ENCODE    Describes the file format for the filepath
    -d --decoding DECODE    Describes the final file format desired  [default: utf-8]
    -v --verbose            More spam
-'''
+"""
 from __future__ import print_function
 
 import os

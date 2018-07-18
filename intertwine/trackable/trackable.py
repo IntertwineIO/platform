@@ -25,7 +25,7 @@ U_LITERAL = 'u' if sys.version_info < (3,) else ''
 
 
 def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
-    '''
+    """
     Trackable Representation (trepr)
 
     trepr is the default repr for Trackable classes.
@@ -57,7 +57,7 @@ def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
     >>> p2 = eval(repr(p1))
     >>> p1 is p2
     True
-    '''
+    """
     if tight:
         sp = ind1 = ''
     else:
@@ -108,29 +108,29 @@ def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
 
 
 def _repr_(self):
-    '''Default repr for Trackable classes'''
+    """Default repr for Trackable classes"""
     # Prefix newline due to ipython pprint bug related to lists
     return '\n' + trepr(self)
 
 
 def register(self, key=None):
-    '''Register self by deriving key if not passed'''
+    """Register self by deriving key if not passed"""
     get_class(self)._register_(self, key)
 
 
 def deregister(self, key=None):
-    '''Deregister self with silent failure, deriving key if needed'''
+    """Deregister self with silent failure, deriving key if needed"""
     get_class(self)._deregister_(self, key)
 
 
 def destroy(self):
-    '''Destroy itself via deregister and delete'''
+    """Destroy itself via deregister and delete"""
     self.deregister()
     self.session().delete(self)
 
 
 def register_update(self, key, _prefix='_', _suffix=''):
-    '''Register update
+    """Register update
 
     Register update should be used from within a model's setter property
     when updating a field that is a component of the registry key.
@@ -148,7 +148,7 @@ def register_update(self, key, _prefix='_', _suffix=''):
     _prefix='_': string prepended to field to identify affixed fields
     _suffix='': string appended to field to identify affixed fields
     return: True iff any fields have been updated with new values
-    '''
+    """
     derived_key = self.derive_key()
     if key == derived_key:
         return False
@@ -160,7 +160,7 @@ def register_update(self, key, _prefix='_', _suffix=''):
 
 
 def _update_(self, _prefix='_', _suffix='', **fields):
-    '''
+    """
     Update (fields)
 
     Private method to update fields without invoking setter properties.
@@ -173,7 +173,7 @@ def _update_(self, _prefix='_', _suffix='', **fields):
     _suffix='': string appended to field to identify affixed fields
     **fields: unaffixed fields to be updated
     return: True iff any fields have been updated with new values
-    '''
+    """
     updated = False
     for field, value in fields.items():
         affixed_field = '{prefix}{field}{suffix}'.format(
@@ -197,13 +197,13 @@ def _update_(self, _prefix='_', _suffix='', **fields):
 
 
 def _validate_(self, registry_key):
-    '''
+    """
     Validate (key)
 
     Validate that the given registered key matches the self-derived key.
     If not, attempt to correct the registry to use the derived key
     before raising KeyInconsistencyError.
-    '''
+    """
     derived_key = self.derive_key()
     if derived_key != registry_key:
         try:
@@ -222,7 +222,7 @@ URIComponents = namedtuple('URIComponents', 'path, query')
 
 
 def deconstruct(self, query_fields=None, named=True):
-    '''
+    """
     Deconstruct
 
     Deconstruct instance into path and query URI components based on the
@@ -237,14 +237,14 @@ def deconstruct(self, query_fields=None, named=True):
         path contains the URI path parameter values and query contains
         the URI query string parameter values. The path and query are
         OrderedDicts if named is True and lists otherwise.
-    '''
+    """
     cls = get_class(self)
     key = self.derive_key()
     return cls.deconstruct_key(key=key, query_fields=query_fields, named=named)
 
 
 class Trackable(ModelMeta):
-    '''
+    """
     Trackable
 
     Trackable is a metaclass for tracking instances. This enables the
@@ -282,7 +282,7 @@ class Trackable(ModelMeta):
     instances are tracked automatically. Modifications of instances may
     be tracked using the '_modified' field on the instance, which is the
     set of modified instances of the same type.
-    '''
+    """
 
     # Max width used for Trackable's default repr
     MAX_WIDTH = 79
@@ -346,7 +346,7 @@ class Trackable(ModelMeta):
 
     def get_or_create(cls, _query_on_miss=True, _nested_transaction=False,
                       _save=True, *args, **kwds):
-        '''
+        """
         Get or create
 
         Given args/kwds as defined by the model's __init__, return the
@@ -357,7 +357,7 @@ class Trackable(ModelMeta):
         The existence check first looks in Trackable's registry and upon
         a miss looks in the database. The create fails over to looking
         for an existing object to address race conditions.
-        '''
+        """
         all_kwds = merge_args(cls.__init__, *args, **kwds) if args else kwds
         key = cls.create_key(**all_kwds)
 
@@ -393,7 +393,7 @@ class Trackable(ModelMeta):
 
     def update_or_create(cls, _query_on_miss=True, _nested_transaction=False,
                          _save=True, _prefix='_', _suffix='', *args, **kwds):
-        '''
+        """
         Update or create
 
         Given args/kwds as defined by the model's __init__, look for an
@@ -405,7 +405,7 @@ class Trackable(ModelMeta):
         The existence check first looks in Trackable's registry and upon
         a miss looks in the database. The create fails over to looking
         for an existing object to address race conditions.
-        '''
+        """
         all_kwds = merge_args(cls.__init__, *args, **kwds) if args else kwds
         inst, created = cls.get_or_create(
             _query_on_miss=_query_on_miss,
@@ -419,7 +419,7 @@ class Trackable(ModelMeta):
 
     def deconstruct_key(cls, key, query_fields=None, named=True, _base=None,
                         _path=None, _query=None, _is_query_param=False):
-        '''
+        """
         Deconstruct Key
 
         Deconstruct Trackable key into path and query URI components,
@@ -434,7 +434,7 @@ class Trackable(ModelMeta):
             where path contains the URI path parameter values and query
             contains the URI query string parameter values. The path and
             query are OrderedDicts if named is True and lists otherwise.
-        '''
+        """
         if named:
             path = _path or OrderedDict()
             query = _query or OrderedDict()
@@ -473,7 +473,7 @@ class Trackable(ModelMeta):
                     query_fields=None, _is_query_param=False, _base=None,
                     _path_list=None, _query_list=None,
                     _path_ismap=None, _query_ismap=None, _pidx=0, _qidx=0):
-        '''
+        """
         Reconstruct
 
         Instantiate from deconstructed object's key components by
@@ -494,7 +494,7 @@ class Trackable(ModelMeta):
         raise: if no instance is found:
             KeyMissingFromRegistryAndDatabase (retrieve=False)
             NoResultFound (retrieve=True)
-        '''
+        """
         if _base is None:
             if isiterator(path):
                 path = tuple(path)
@@ -547,7 +547,7 @@ class Trackable(ModelMeta):
         return inst if _base is None else (inst, _pidx, _qidx)
 
     def retrieve(cls, hyper_key, _alias=None, _query=None):
-        '''
+        """
         Retrieve
 
         Instantiate from hyper key by recursively building query in a
@@ -568,7 +568,7 @@ class Trackable(ModelMeta):
         _idx=None: private parameter for tracking the index in recursion
         return: instance matching given query_key
         raise: NoResultFound if no instance is found
-        '''
+        """
         query = _query or cls.query
         if hasattr(cls, 'mutate_key'):
             hyper_key = cls.mutate_key(hyper_key)
@@ -589,7 +589,7 @@ class Trackable(ModelMeta):
         return query.one() if _query is None else query
 
     def reconstitute(cls, hyper_key):
-        '''
+        """
         Reconstitute
 
         I/O:
@@ -602,7 +602,7 @@ class Trackable(ModelMeta):
             )
         return: instance matching given query_key
         raise: KeyMissingFromRegistryAndDatabase if no instance is found
-        '''
+        """
         key_components = []
 
         for name, value in hyper_key._asdict().items():
@@ -621,7 +621,7 @@ class Trackable(ModelMeta):
         return inst
 
     def instrumented_attribute(cls, field_name):
-        '''
+        """
         Instrumented Attribute
 
         Retrieve instrumented attribute given field/relation name.
@@ -630,7 +630,7 @@ class Trackable(ModelMeta):
         field_name: name of a foreign key field or relation
         raise: AttributeError on failure
         return: SQAlchemy instrumented attribute
-        '''
+        """
         field = None
 
         try:
@@ -677,7 +677,7 @@ class Trackable(ModelMeta):
         return field
 
     def related_model(cls, field_name):
-        '''
+        """
         Related Model
 
         Retrieve related model given foreign key field or relation name.
@@ -686,7 +686,7 @@ class Trackable(ModelMeta):
         field_name: name of a foreign key field or relation
         raise: AttributeError on failure
         return: related SQAlchemy model
-        '''
+        """
         field = cls.instrumented_attribute(field_name)
         try:
             return field.property.mapper.entity
@@ -703,7 +703,7 @@ class Trackable(ModelMeta):
                 raise AttributeError("No model found for field's foreign key")
 
     def key_model(cls, key):
-        '''Retrieve model from Trackable key'''
+        """Retrieve model from Trackable key"""
         key_name = type(key).__name__
         for model_name in dehumpify(key_name):
             try:
@@ -712,7 +712,7 @@ class Trackable(ModelMeta):
                 pass
 
     def table_model(cls, table_name):
-        '''Retrieve model given table name'''
+        """Retrieve model given table name"""
         try:
             return cls._table_model_map[table_name]
         except AttributeError:
@@ -720,7 +720,7 @@ class Trackable(ModelMeta):
             return cls._table_model_map[table_name]
 
     def tget(cls, key, default=None, query_on_miss=True):
-        '''
+        """
         Trackable get (tget)
 
         Given a key, gets the corresponding instance from the registry.
@@ -740,7 +740,7 @@ class Trackable(ModelMeta):
         query_on_miss=True:
             When True, the database is queried if the key is not found
             in the registry.
-        '''
+        """
         try:
             return cls._instances[key]
         except KeyError:
@@ -808,7 +808,7 @@ class Trackable(ModelMeta):
         return '.'.join((inspect.getmodule(cls).__name__, cls.__name__))
 
     def _register_(cls, inst, key=None):
-        '''Register instance, deriving key if not provided'''
+        """Register instance, deriving key if not provided"""
         key = key or inst.derive_key()
         existing = cls.tget(key)
         if existing is not None and existing is not inst:
@@ -816,14 +816,14 @@ class Trackable(ModelMeta):
         cls._instances[key] = inst
 
     def _deregister_(cls, inst, key=None):
-        '''Deregister instance with silent failure, deriving key if needed'''
+        """Deregister instance with silent failure, deriving key if needed"""
         key = key or inst.derive_key()
         cls._instances.pop(key, None)
         cls._updates.discard(inst)
 
     @classmethod
     def register_existing(meta, session, *args):
-        '''
+        """
         Register existing instances of Trackable classes
 
         Takes a session and optional Trackable classes as input. The
@@ -831,7 +831,7 @@ class Trackable(ModelMeta):
         and registered. If no classes are provided, instances of all
         Trackable classes are loaded from the database and registered.
         If a class is not Trackable, a TypeError is raised.
-        '''
+        """
         classes = meta._classes.values() if len(args) == 0 else args
         for cls in classes:
             if cls.__name__ not in meta._classes:
@@ -842,14 +842,14 @@ class Trackable(ModelMeta):
 
     @classmethod
     def clear_instances(meta, *args):
-        '''
+        """
         Clear instances tracked by Trackable classes
 
         If no arguments are provided, all Trackable classes have their
         instances cleared from the registry. If one or more classes are
         passed as input, only these classes have their instances
         cleared. If a class is not Trackable, a TypeError is raised.
-        '''
+        """
         classes = meta._classes.values() if len(args) == 0 else args
         for cls in classes:
             if cls.__name__ not in meta._classes:
@@ -858,14 +858,14 @@ class Trackable(ModelMeta):
 
     @classmethod
     def clear_updates(meta, *args):
-        '''
+        """
         Clear updates tracked by Trackable classes
 
         If no arguments are provided, all Trackable classes have their
         updates cleared (i.e. reset). If one or more classes are passed
         as input, only these classes have their updates cleared. If a
         class is not Trackable, a TypeError is raised.
-        '''
+        """
         classes = meta._classes.values() if len(args) == 0 else args
         for cls in classes:
             if cls.__name__ not in meta._classes:
@@ -874,20 +874,20 @@ class Trackable(ModelMeta):
 
     @classmethod
     def clear_all(meta, *args):
-        '''
+        """
         Clear all instances/updates tracked by Trackable classes
 
         If no arguments are provided, all Trackable classes have their
         updates cleared (i.e. reset). If one or more classes are passed
         as input, only these classes have their updates cleared. If a
         class is not Trackable, a TypeError is raised.
-        '''
+        """
         meta.clear_instances(*args)
         meta.clear_updates(*args)
 
     @classmethod
     def catalog_updates(meta, *args):
-        '''
+        """
         Catalog updates tracked by Trackable classes
 
         Returns a dictionary keyed by class name, where the values are
@@ -897,7 +897,7 @@ class Trackable(ModelMeta):
         are included. If one or more classes are passed as input, only
         updates from these classes are included. If a class is not
         Trackable, a TypeError is raised.
-        '''
+        """
         classes = meta._classes.values() if len(args) == 0 else args
         updates = {}
         for cls in classes:

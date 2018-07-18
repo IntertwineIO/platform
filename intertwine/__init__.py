@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 Base platform for intertwine.
-'''
+"""
 import flask
 from alchy import Manager
 from alchy.model import extend_declarative_base, make_declarative_base
@@ -25,7 +25,7 @@ IntertwineModel.initialize_table_model_map()
 
 
 def create_app(name=None, config=None):
-    '''Creates an app based on a config file
+    """Creates an app based on a config file
 
     Args:
         config: Configuration
@@ -38,7 +38,7 @@ def create_app(name=None, config=None):
     >>> from config import DevConfig
     >>> app = create_app(config=DevConfig)
     >>> app.run()
-    '''
+    """
     name = name or __name__
     app = flask.Flask(name, static_folder='static', static_url_path='')
     if config is None:

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 Custom builders for instantiating test data
-'''
+"""
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -52,7 +52,7 @@ class ProblemBuilder(Builder):
 
 
 class ProblemConnectionBuilder(Builder):
-    '''
+    """
     ProblemConnectionBuilder
 
     If the net includes contains 2 or more names, both problem names are
@@ -63,7 +63,7 @@ class ProblemConnectionBuilder(Builder):
     I/O:
     include=None: set of problem names to include
     exclude=None: set of problem names to exclude
-    '''
+    """
 
     def build(self, **kwds):
         net_include = self.include - self.exclude

@@ -6,7 +6,7 @@ log = logging.getLogger('intertwine.trackable.exceptions')
 
 
 class TrackableException(Exception):
-    '''Trackable exception'''
+    """Trackable exception"""
 
     def __init__(self, message=None, *args, **kwds):
         template = message if message else ' '.join(self.__doc__.split())
@@ -19,27 +19,27 @@ class TrackableException(Exception):
 
 
 class InvalidRegistryKey(TrackableException, KeyError):
-    '''{key!r} is not a valid registry key for class {classname}'''
+    """{key!r} is not a valid registry key for class {classname}"""
 
 
 class KeyConflictError(TrackableException, KeyError):
-    '''Key has already been registered: {key!r}'''
+    """Key has already been registered: {key!r}"""
 
 
 class KeyInconsistencyError(TrackableException, KeyError):
-    '''Derived key inconsistent with registry key.
+    """Derived key inconsistent with registry key.
     Derived: {derived_key!r} Registry: {registry_key!r}
-    Registry repaired: {registry_repaired}'''
+    Registry repaired: {registry_repaired}"""
 
 
 class KeyMissingFromRegistry(TrackableException, KeyError):
-    '''Key missing from Trackable registry: {key!r}'''
+    """Key missing from Trackable registry: {key!r}"""
 
 
 class KeyMissingFromRegistryAndDatabase(KeyMissingFromRegistry):
-    '''Key missing from Trackable registry and database: {key!r}'''
+    """Key missing from Trackable registry and database: {key!r}"""
 
 
 class KeyRegisteredAndNoModify(TrackableException, KeyError):
-    '''{key!r} has already been registered for class {classname} and
-    {classname}.modify() has not been implemented'''
+    """{key!r} has already been registered for class {classname} and
+    {classname}.modify() has not been implemented"""

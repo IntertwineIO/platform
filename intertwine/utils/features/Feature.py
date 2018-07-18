@@ -5,7 +5,8 @@ import json
 
 
 class Feature(object):
-    '''Feature flag
+    """
+    Feature flag
 
     Args:
         name(string):  The name of the feature
@@ -15,34 +16,37 @@ class Feature(object):
     >>> f = Feature('test')
     >>> f
     <Feature test {'active': None}>
-    '''
+    """
 
     def disable(self):
-        '''Disables feature flag
+        """
+        Disable feature flag
 
-        Returns:
+        Return:
             bool: current state
-        '''
+        """
         self.activated = False
         self.registry.set(self, self.activated)
         return self.activated
 
     def enable(self):
-        '''Enables feature flag
+        """
+        Enable feature flag
 
-        Returns:
+        Return:
             bool: current state
-        '''
+        """
         self.activated = True
         self.registry.set(self, self.activated)
         return self.activated
 
     def toggle(self):
-        '''Switches feature flag off and on
+        """
+        Switch feature flag off and on
 
-        Returns:
+        Return:
             bool: current state
-        '''
+        """
         if self.activated is False:
             self.activated = True
         else:

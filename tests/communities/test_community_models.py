@@ -19,7 +19,7 @@ import pytest
 ])
 def test_community_model_create(session, problem_name, org_name, geo_name,
                                 num_followers):
-    '''Tests simple community model interaction'''
+    """Test simple community model interaction"""
     from intertwine.communities.models import Community
     from intertwine.geos.models import Geo
     from intertwine.problems.models import Problem

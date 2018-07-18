@@ -86,7 +86,7 @@ def crossdomain(origin=None, methods=None, headers=None,
 
 
 def json_requested():
-    '''
+    """
     JSON requested
 
     If JSON is explicitly listed in the accept mime types, return True.
@@ -101,7 +101,7 @@ def json_requested():
     like. Consider it public domain.
 
     http://flask.pocoo.org/snippets/45/
-    '''
+    """
     accept_mimetypes = request.accept_mimetypes
 
     for mimetype in accept_mimetypes.values():

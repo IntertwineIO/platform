@@ -25,7 +25,7 @@ ord_z = ord('z')
 
 
 def dehumpify(camelcase):
-    '''Emit strings by progressively removing camel humps from end'''
+    """Emit strings by progressively removing camel humps from end"""
     length = len(camelcase)
     for i, c in enumerate(reversed(camelcase), start=1):
         following_idx = length - i + 1
@@ -40,39 +40,39 @@ def dehumpify(camelcase):
 
 
 def build_table_model_map(base):
-    '''Build table model map given SQLAlchemy declarative base'''
+    """Build table model map given SQLAlchemy declarative base"""
     return {model.__table__.fullname: model
             for model in base._decl_class_registry.values()
             if hasattr(model, '__table__')}
 
 
 def get_class(obj):
-    '''Get object's class, supporting model_class override'''
+    """Get object's class, supporting model_class override"""
     if hasattr(obj, 'model_class'):
         return obj.model_class
     return obj.__class__
 
 
 def isiterator(obj):
-    '''Check if object is iterator (not just iterable)'''
+    """Check if object is iterator (not just iterable)"""
     cls = obj.__class__
     return hasattr(cls, '__iter__') and not hasattr(cls, '__len__')
 
 
 def isnamedtuple(obj):
-    '''Check if object is namedtuple'''
+    """Check if object is namedtuple"""
     return isinstance(obj, tuple) and hasattr(obj, '_asdict')
 
 
 def issequence(obj):
-    '''Check if object is non-string sequence, e.g. list, tuple'''
+    """Check if object is non-string sequence, e.g. list, tuple"""
     cls = obj.__class__
     return (hasattr(cls, '__iter__') and hasattr(cls, '__getitem__') and
             not isinstance(obj, basestring) and not hasattr(obj, 'items'))
 
 
 def merge_args(func, *args, **kwds):
-    '''Merge args into kwds, with keys based on func parameter order'''
+    """Merge args into kwds, with keys based on func parameter order"""
     if not args:
         return kwds
 

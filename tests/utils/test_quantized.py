@@ -32,7 +32,7 @@ POW = 'pow(a, b)'
 ])
 @pytest.mark.parametrize('precision', [None, 0, 1, 7])
 def test_quantized_decimal_core_interactions(session, number, precision):
-    '''Tests core quantized decimal interactions'''
+    """Test core quantized decimal interactions"""
     prec = (QuantizedDecimal.DEFAULT_PRECISION if precision is None
             else precision)
     mult = Decimal(10) ** prec
@@ -67,7 +67,7 @@ def test_quantized_decimal_core_interactions(session, number, precision):
 ])
 @pytest.mark.parametrize('precision', [5])
 def test_quantized_decimal_comparisons(session, precision, number1, number2):
-    '''Tests quantized decimal comparisons'''
+    """Test quantized decimal comparisons"""
     qd1 = QuantizedDecimal(number1, precision)
     qd2 = QuantizedDecimal(number2, precision)
 
@@ -125,7 +125,7 @@ def stringify_operation(operator, *operands):
 @pytest.mark.parametrize('precision', [11])
 def test_quantized_decimal_binary_math(session, operator, number1, number2,
                                        precision):
-    '''Tests quantized decimal binary operations, including in-place'''
+    """Test quantized decimal binary operations, including in-place"""
     qd1 = QuantizedDecimal(number1, precision)
     qd2 = QuantizedDecimal(number2, precision)
     assert qd1 == qd1.value and qd2 == qd2.value
@@ -161,7 +161,7 @@ def test_quantized_decimal_binary_math(session, operator, number1, number2,
 @pytest.mark.parametrize('number', ['2.718281828'])
 @pytest.mark.parametrize('precision', [9])
 def test_quantized_decimal_unary_math(session, operator, number, precision):
-    '''Tests quantized decimal unary operations'''
+    """Test quantized decimal unary operations"""
     qd1 = QuantizedDecimal(number, precision)
     assert qd1 == qd1.value
 
@@ -179,7 +179,7 @@ def test_quantized_decimal_unary_math(session, operator, number, precision):
 @pytest.mark.parametrize('number', [2 ** 63 + 0.1234567])
 @pytest.mark.parametrize('precision', [7])
 def test_quantized_decimal_type_cast(session, operator, number, precision):
-    '''Tests quantized decimal type casts'''
+    """Test quantized decimal type casts"""
     qd1 = QuantizedDecimal(number, precision)
     assert qd1 == qd1.value
 

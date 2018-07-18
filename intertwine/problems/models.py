@@ -29,7 +29,7 @@ BaseProblemModel = IntertwineModel
 
 
 class Image(BaseProblemModel):
-    '''Base class for images'''
+    """Base class for images"""
     SUB_BLUEPRINT = 'images'
     URI_TYPE = UriType.PRIMARY
 
@@ -72,35 +72,35 @@ class Image(BaseProblemModel):
 
     @classmethod
     def create_key(cls, problem, url, **kwds):
-        '''
+        """
         Create key for an image
 
         Return a key allowing the Trackable metaclass to register an
         image. The key is a namedtuple of problem and url.
-        '''
+        """
         return cls.Key(problem, url_normalize(url))
 
     def derive_key(self, **kwds):
-        '''
+        """
         Derive key from an image instance
 
         Return the registry key used by the Trackable metaclass from an
         image instance. The key is a namedtuple of problem and url.
-        '''
+        """
         return self.model_class.Key(self.problem, self.url)
 
     def __init__(self, url, problem):
-        '''
+        """
         Initialize a new image from a url
 
         Inputs are key-value pairs based on the JSON problem schema.
-        '''
+        """
         self.url = url_normalize(url)
         self.problem = problem
 
 
 class AggregateProblemConnectionRating(BaseProblemModel):
-    '''
+    """
     Base class for aggregate problem connection ratings
 
     Rating aggregations are used to display connections on the problem
@@ -128,7 +128,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
     ratings=None: Iterable of ProblemConnectionRating specifying the
         set of ratings to be aggregated. Ratings and rating/weight
         cannot both be specified.
-    '''
+    """
     SUB_BLUEPRINT = 'rated_connections'
     STRICT = 'strict'
     AGGREGATIONS = {STRICT}
@@ -190,36 +190,36 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
     @classmethod
     def create_key(cls, connection, community, aggregation=STRICT, **kwds):
-        '''
+        """
         Create key for an aggregate rating
 
         Return a key allowing the Trackable metaclass to register an
         aggregate problem connection rating instance. The key is a
         namedtuple of connection, community, and aggregation.
-        '''
+        """
         return cls.Key(connection, community, aggregation)
 
     def derive_key(self, **kwds):
-        '''
+        """
         Derive key from an aggregate rating instance
 
         Return the registry key used by the Trackable metaclass from an
         aggregate problem connection rating instance. The key is a
         namedtuple of connection, community, and aggregation fields.
-        '''
+        """
         return self.model_class.Key(
             self.connection, self.community, self.aggregation)
 
     @classmethod
     def calculate_values(cls, ratings):
-        '''
+        """
         Calculate values
 
         Given an iterable of ratings, returns a tuple consisting of the
         aggregate rating and the aggregate weight. If ratings is empty,
         the aggregate rating defaults to -1 and the aggregate weight
         defaults to 0.
-        '''
+        """
         weighted_rating_total = aggregate_weight = cls.NO_WEIGHT
         for r in ratings:
             weighted_rating_total += r.rating * r.weight
@@ -234,7 +234,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
     def update_values(self, new_user_rating, new_user_weight,
                       old_user_rating=None, old_user_weight=None):
-        '''Update values'''
+        """Update values"""
         old_user_rating = 0 if old_user_rating is None else old_user_rating
         old_user_weight = 0 if old_user_weight is None else old_user_weight
 
@@ -302,13 +302,13 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         self.weight = weight
 
     def modify(self, **kwds):
-        '''
+        """
         Modify an existing aggregate rating
 
         Modify the rating and/or weight if new values are provided and
         flag the aggregate problem connection rating as modified.
         Required by the Trackable metaclass.
-        '''
+        """
         rating = kwds.get('rating', None)
         weight = kwds.get('weight', None)
 
@@ -326,7 +326,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
             self._modified.add(self)
 
     def display(self):
-        '''Display (old custom __str__ method)'''
+        """Display (old custom __str__ method)"""
         cls_name = self.model_class.__name__
         problem, org, geo = self.community.derive_key()
         p_name = self.community.problem.name
@@ -350,7 +350,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
 
 class ProblemConnectionRating(BaseProblemModel):
-    '''
+    """
     Base class for problem connection ratings
 
     Problem connection ratings are input by users within the context of
@@ -363,7 +363,7 @@ class ProblemConnectionRating(BaseProblemModel):
     Maintain problem/org/geo rather than substitute with community as
     this will most likely become a separate microservice and this extra
     granularity may be useful.
-    '''
+    """
     SUB_BLUEPRINT = 'connection_ratings'
 
     MIN_RATING = 0
@@ -443,11 +443,11 @@ class ProblemConnectionRating(BaseProblemModel):
     @classmethod
     def create_key(cls, connection, problem, org=None, geo=None,
                    user='Intertwine', **kwds):
-        '''Create Trackable key for a problem connection rating'''
+        """Create Trackable key for a problem connection rating"""
         return cls.Key(connection, problem, org, geo, user)
 
     def derive_key(self, **kwds):
-        '''Derive key from a problem connection rating instance'''
+        """Derive key from a problem connection rating instance"""
         return self.model_class.Key(self.connection, self.problem, self.org,
                                     self.geo, self.user)
 
@@ -472,13 +472,13 @@ class ProblemConnectionRating(BaseProblemModel):
     weight = orm.synonym('_weight', descriptor=weight)
 
     def update_values(self, rating=None, weight=None):
-        '''
+        """
         Update values
 
         Provides way to update both rating and weight at same time,
         since any change must be propagated to all affected aggregate
         ratings via the relevant communities.
-        '''
+        """
         if rating is None and weight is None:
             raise ValueError('rating and weight cannot both be None')
 
@@ -525,14 +525,14 @@ class ProblemConnectionRating(BaseProblemModel):
 
     def __init__(self, rating, connection, problem, org, geo,
                  user='Intertwine', weight=None):
-        '''
+        """
         Initialize a new problem connection rating
 
         The connection parameter is an instance, problem and geo
         may be either instances or human_ids, and the rest are literals
         based on the JSON problem connection rating schema. The rating
         parameter must be an integer between 0 and 4 inclusive.
-        '''
+        """
         if not isinstance(connection, ProblemConnection):
             raise InvalidEntity(variable='connection', value=connection,
                                 classname='ProblemConnection')
@@ -579,13 +579,13 @@ class ProblemConnectionRating(BaseProblemModel):
         self.update_values(rating=rating, weight=weight)
 
     def modify(self, **kwds):
-        '''
+        """
         Modify an existing problem connection rating
 
         Modify the rating field if a new value is provided and flag the
         problem connection rating as modified. Required by the Trackable
         metaclass.
-        '''
+        """
         rating = kwds.get('rating', None)
         weight = kwds.get('weight', None)
         try:
@@ -596,7 +596,7 @@ class ProblemConnectionRating(BaseProblemModel):
             pass
 
     def display(self):
-        '''Display (old custom __str__ method)'''
+        """Display (old custom __str__ method)"""
         p_name = self.problem.name
         conn = self.connection
         is_causal = conn.axis == conn.CAUSAL
@@ -620,7 +620,7 @@ class ProblemConnectionRating(BaseProblemModel):
 
 
 class ProblemConnection(BaseProblemModel):
-    '''
+    """
     Base class for problem connections
 
     A problem connection is uniquely defined by its axis ('causal' or
@@ -643,7 +643,7 @@ class ProblemConnection(BaseProblemModel):
         ('driver')         ('impact')                  ::
                                                     problem_b
                                                    ('narrower')
-    '''
+    """
     SUB_BLUEPRINT = 'connections'
     AXIS, CAUSAL, SCOPED = 'axis', 'causal', 'scoped'
     AXES = {CAUSAL, SCOPED}
@@ -711,11 +711,11 @@ class ProblemConnection(BaseProblemModel):
 
     @classmethod
     def create_key(cls, axis, problem_a, problem_b, **kwds):
-        '''Create Trackable key, a CausalKey or ScopedKey based on axis'''
+        """Create Trackable key, a CausalKey or ScopedKey based on axis"""
         return cls.Key(axis, problem_a, problem_b)
 
     def derive_key(self, generic=False, **kwds):
-        '''Derive Trackable key, a CausalKey or ScopedKey based on axis'''
+        """Derive Trackable key, a CausalKey or ScopedKey based on axis"""
         cls = self.model_class
         return cls.Key(self.axis, self.problem_a, self.problem_b)
 
@@ -743,7 +743,7 @@ class ProblemConnection(BaseProblemModel):
                 else cls.Problems(self.broader, self.narrower))
 
     def derive_category(self, problem):
-        '''Derive connection category, given a problem'''
+        """Derive connection category, given a problem"""
         is_causal = self.axis == self.CAUSAL
         p_a = self.driver if is_causal else self.broader
         p_b = self.impact if is_causal else self.narrower
@@ -760,7 +760,7 @@ class ProblemConnection(BaseProblemModel):
 
     def __init__(self, axis, problem_a, problem_b,
                  ratings_data=None, ratings_context_problem=None):
-        '''
+        """
         Initialize a new problem connection
 
         Required inputs include axis, a string with value 'causal' or
@@ -774,7 +774,7 @@ class ProblemConnection(BaseProblemModel):
         on the JSON problem connection rating schema. The problem
         parameter must be provided if ratings_data is specified, as it
         is required to define a problem connection rating.
-        '''
+        """
         # TODO: make axis an Enum
         if axis not in self.AXES:
             raise InvalidConnectionAxis(axis=axis, valid_axes=self.AXES)
@@ -810,7 +810,7 @@ class ProblemConnection(BaseProblemModel):
             self.load_ratings(ratings_data, ratings_context_problem)
 
     def modify(self, **kwds):
-        '''
+        """
         Modify an existing problem connection
 
         Append any new problem connection ratings to the ratings field
@@ -818,21 +818,21 @@ class ProblemConnection(BaseProblemModel):
         added, flag the connection as modified (via load_ratings). No
         other fields may be modified. Required by the Trackable
         metaclass.
-        '''
+        """
         ratings_data = kwds.get('ratings_data', None)
         ratings_context_problem = kwds.get('ratings_context_problem', None)
         if ratings_data and ratings_context_problem:
             self.load_ratings(ratings_data, ratings_context_problem)
 
     def load_ratings(self, ratings_data, ratings_context_problem):
-        '''
+        """
         Load a problem connection's ratings
 
         For each rating in the ratings_data, if the rating does not
         already exist, create it, else update it. Newly created ratings
         are appended to the 'ratings' field of the problem connection.
         If a rating is added, flag the connection as modified.
-        '''
+        """
         rating_added = False
         for rating_data in ratings_data:
             geo_huid = rating_data.pop('geo')
@@ -850,7 +850,7 @@ class ProblemConnection(BaseProblemModel):
             self._modified.add(self)
 
     def display(self):
-        '''Display (old custom __str__ method)'''
+        """Display (old custom __str__ method)"""
         is_causal = self.axis == self.CAUSAL
         ct = '->' if is_causal else '::'
         p_a = self.driver.name if is_causal else self.broader.name
@@ -859,7 +859,7 @@ class ProblemConnection(BaseProblemModel):
 
 
 class Problem(BaseProblemModel):
-    '''
+    """
     Base class for problems
 
     Problems and the connections between them are global in that they
@@ -880,7 +880,7 @@ class Problem(BaseProblemModel):
 
     Drivers/impacts are 'causal' connections while broader/narrower are
     'scoped' connections.
-    '''
+    """
     HUMAN_ID = 'human_id'
 
     _name = Column('name', types.String(60), index=True, unique=True)
@@ -937,7 +937,7 @@ class Problem(BaseProblemModel):
     # Exclude space placeholder: _
     # Exclude unnecessary:       !*~
     # Include safe plus space:   -+.,$'() a-zA-Z0-9
-    name_pattern = re.compile(r'''^[-+.,$'() a-zA-Z0-9]+$''')
+    name_pattern = re.compile(r"""^[-+.,$'() a-zA-Z0-9]+$""")
 
     @property
     def name(self):
@@ -977,24 +977,24 @@ class Problem(BaseProblemModel):
 
     @classmethod
     def create_key(cls, human_id=None, name=None, **kwds):
-        '''
+        """
         Create key for a problem
 
         Return a registry key allowing the Trackable metaclass to look
         up a problem instance. The key is created from the given name
         parameter.
-        '''
+        """
         human_id = human_id if human_id else cls.convert_name_to_human_id(name)
         return cls.Key(human_id)
 
     def derive_key(self, **kwds):
-        '''
+        """
         Derive key from a problem instance
 
         Return the registry key used by the Trackable metaclass from a
         problem instance. The key is derived from the human_id field on
         the problem instance.
-        '''
+        """
         return self.model_class.Key(self.human_id)
 
     @staticmethod
@@ -1003,17 +1003,17 @@ class Problem(BaseProblemModel):
 
     @staticmethod
     def infer_name_from_human_id(human_id):
-        '''Infer name from key assuming ordinary titlecase rules'''
+        """Infer name from key assuming ordinary titlecase rules"""
         return titlecase(human_id.replace('_', ' '))
 
     def __init__(self, name, definition=None, definition_url=None,
                  sponsor=None, images=[],
                  drivers=[], impacts=[], broader=[], narrower=[]):
-        '''
+        """
         Initialize a new problem
 
         Inputs are key-value pairs based on the JSON problem schema.
-        '''
+        """
         self.name = name
         self.definition = definition.strip() if definition else None
         self.definition_url = (url_normalize(definition_url)
@@ -1041,7 +1041,7 @@ class Problem(BaseProblemModel):
             self.load_connections(category=k, data=v)
 
     def modify(self, **kwds):
-        '''
+        """
         Modify an existing problem
 
         Inputs are key-value pairs based on the JSON problem schema.
@@ -1054,7 +1054,7 @@ class Problem(BaseProblemModel):
         New problem connections and ratings are added while existing
         ones are updated (via load_connections). Required by the
         Trackable metaclass.
-        '''
+        """
         for k, v in kwds.items():
             if k == 'name':
                 continue  # name cannot be updated via upload
@@ -1086,7 +1086,7 @@ class Problem(BaseProblemModel):
                 raise NameError('{} not found.'.format(k))
 
     def load_connections(self, category, data):
-        '''
+        """
         Load a problem's drivers, impacts, broader, or narrower
 
         The connections_name is the field name for a set of connections
@@ -1094,7 +1094,7 @@ class Problem(BaseProblemModel):
         'narrower'. The connections_data is the corresponding JSON data.
         The method loads the data and flags the set of problems
         modified in the process (including those that are also new).
-        '''
+        """
         cat_map = ProblemConnection.CATEGORY_MAP[category]
         axis, inverse_category = cat_map.axis, cat_map.inverse_category
         p_a, p_b = cat_map.relative_a, cat_map.relative_b
@@ -1121,12 +1121,12 @@ class Problem(BaseProblemModel):
             self._modified.add(self)
 
     def connections(self):
-        '''
+        """
         Connections
 
         Returns a generator that iterates through all the problem's
         connections
-        '''
+        """
         # ['impact', 'driver', 'narrower', 'broader']
         categories = map(attrgetter(ProblemConnection.INVERSE_COMPONENT),
                          ProblemConnection.CATEGORY_MAP.values())
@@ -1135,14 +1135,14 @@ class Problem(BaseProblemModel):
             *map(lambda x: getattr(ProblemConnection, x) == self, categories)))
 
     def connections_by_category(self):
-        '''
+        """
         Connections by category
 
         Returns an ordered dictionary of connection queries keyed by
         category that iterate alphabetically by the name of the
         adjoining problem. The category order is specified by the
         problem connection category map.
-        '''
+        """
         PC = ProblemConnection
         connections = OrderedDict()
         for category in PC.CATEGORY_MAP:

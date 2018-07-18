@@ -15,18 +15,18 @@ from ..exceptions import InterfaceException
 
 @blueprint.errorhandler(InterfaceException)
 def handle_interface_exception(error):
-    '''
+    """
     Handle Interface Exception
 
     Intercepts the error and returns a response consisting of the status
     code and a JSON representation of the error.
-    '''
+    """
     return make_response(jsonify(error.jsonify()), error.status_code)
 
 
 @blueprint.route('/', methods=['GET'])
 def render():
-    '''Generic page rendering for top level'''
+    """Generic page rendering for top level"""
     content_list = Content.query.order_by(
         Content.created_timestamp).limit(100).all()
 

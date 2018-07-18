@@ -6,7 +6,7 @@ from flask import Blueprint
 
 
 class SingletonBlueprint(Blueprint):
-    '''Wraps a Blueprint with a singleton approach'''
+    """Wrap Blueprint with a singleton pattern"""
     singleton_registry = {}
 
     def __new__(cls, *args, **kwds):

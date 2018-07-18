@@ -15,7 +15,7 @@ else:
 
 
 class QuantizedDecimal(object):
-    '''
+    """
     QuantizedDecimal
 
     A utility class for decimals with prescribed precision that are
@@ -35,7 +35,7 @@ class QuantizedDecimal(object):
     lead to rounding errors since the result is automatically quantized.
     If multiple operators need to be applied in succession without
     rounding, use the (Decimal) value of all QuantizedDecimals.
-    '''
+    """
 
     DEFAULT_PRECISION = 2
 
@@ -43,22 +43,22 @@ class QuantizedDecimal(object):
 
     @property
     def value(self):
-        '''Return the value, a Decimal quantized with the precision'''
+        """Return the value, a Decimal quantized with the precision"""
         return self._value
 
     @value.setter
     def value(self, number):
-        '''Set the Decimal value quantized with the default precision'''
+        """Set the Decimal value quantized with the default precision"""
         self._value = self.quantize(number, self.precision)
 
     @property
     def precision(self):
-        '''Return the precision, an integer'''
+        """Return the precision, an integer"""
         return self._precision
 
     @precision.setter
     def precision(self, number):
-        '''Set the precision and use it to quantize the Decimal value'''
+        """Set the precision and use it to quantize the Decimal value"""
         precision = self._get_precision(number)
         try:
             self._value = self.quantize(self.value, precision)
@@ -67,26 +67,26 @@ class QuantizedDecimal(object):
         self._precision = precision
 
     def dequantize(self):
-        '''Move decimal point to the right and return the integer'''
+        """Move decimal point to the right and return the integer"""
         return int(self.value * self._get_multiplier(self.precision))
 
     @classmethod
     def requantize(cls, integer, precision=None):
-        '''Move decimal point left by precision and return Decimal'''
+        """Move decimal point left by precision and return Decimal"""
         precision = cls._get_precision(precision)
         raw_decimal = Decimal(integer) / cls._get_multiplier(precision)
         return cls.quantize(raw_decimal, precision)
 
     @classmethod
     def quantize(cls, number, precision=None):
-        '''Cast to Decimal and quantize with precision (or default)'''
+        """Cast to Decimal and quantize with precision (or default)"""
         raw_decimal = cls.cast_to_decimal(number)
         precision = cls._get_precision(precision)
         return raw_decimal.quantize(cls._get_quant(precision))
 
     @classmethod
     def cast_to_decimal(cls, number):
-        '''Cast to Decimal'''
+        """Cast to Decimal"""
         if isinstance(number, QuantizedDecimal):
             return number.value
         if isinstance(number, Decimal):
@@ -118,7 +118,7 @@ class QuantizedDecimal(object):
 
     @classmethod
     def cast(cls, number, precision=None):
-        '''Cast to QuantizedDecimal of given precision, if not already one'''
+        """Cast to QuantizedDecimal of given precision, if not already one"""
         return (number if isinstance(number, cls) and
                 (precision is None or number.precision == precision)
                 else cls(number, precision))

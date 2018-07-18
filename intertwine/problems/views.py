@@ -17,18 +17,18 @@ from intertwine.utils.vardygr import vardygrify
 
 @blueprint.errorhandler(InterfaceException)
 def handle_interface_exception(error):
-    '''
+    """
     Handle Interface Exception
 
     Intercept the error and return a response consisting of the status
     code and a JSON representation of the error.
-    '''
+    """
     return make_response(jsonify(error.jsonify()), error.status_code)
 
 
 @blueprint.route('/', methods=['GET'])
 def render():
-    '''Generic page rendering for top level'''
+    """Generic page rendering for top level"""
     problems = Problem.query.order_by(Problem.name).all()
     template = render_template(
         'problems.html',
@@ -41,7 +41,7 @@ def render():
 @blueprint.route(Problem.form_uri(
     Problem.Key('<problem_huid>'), sub_only=True), methods=['GET'])
 def get_problem(problem_huid):
-    '''Get problem endpoint'''
+    """Get problem endpoint"""
     if json_requested():
         return get_problem_json(problem_huid)
 
@@ -49,13 +49,13 @@ def get_problem(problem_huid):
 
 
 def get_problem_json(problem_huid):
-    '''
+    """
     Get problem JSON
 
     Usage:
     curl -H 'accept:application/json' -X GET \
     'http://localhost:5000/problems/homelessness'
-    '''
+    """
     json_kwargs = dict(Problem.objectify_json_kwargs(request.args))
 
     try:
@@ -67,7 +67,7 @@ def get_problem_json(problem_huid):
 
 
 def get_problem_html(problem_huid):
-    '''
+    """
     Get problem HTML
 
     Redirect to global problem community page
@@ -75,7 +75,7 @@ def get_problem_html(problem_huid):
     Usage:
     curl -H 'accept:text/html' -X GET \
     'http://localhost:5000/problems/homelessness'
-    '''
+    """
     problem_huid = Problem.convert_name_to_human_id(problem_huid)
 
     try:
@@ -99,7 +99,7 @@ def get_problem_html(problem_huid):
     ProblemConnection.Key('<axis>', '<problem_a_huid>', '<problem_b_huid>'),
     sub_only=True), methods=['GET'])
 def get_problem_connection(axis, problem_a_huid, problem_b_huid):
-    '''Get problem connection endpoint'''
+    """Get problem connection endpoint"""
     if json_requested():
         return get_problem_connection_json(axis, problem_a_huid,
                                            problem_b_huid)
@@ -108,13 +108,13 @@ def get_problem_connection(axis, problem_a_huid, problem_b_huid):
 
 
 def get_problem_connection_json(axis, problem_a_huid, problem_b_huid):
-    '''
+    """
     Get problem connection JSON
 
     Usage:
     curl -H 'accept:application/json' -X GET \
     'http://localhost:5000/problems/connections/scoped/poverty/homelessness'
-    '''
+    """
     json_kwargs = dict(ProblemConnection.objectify_json_kwargs(request.args))
 
     try:
@@ -133,7 +133,7 @@ def get_problem_connection_html(axis, problem_a_huid, problem_b_huid):
 
 @blueprint.route('/' + ProblemConnection.SUB_BLUEPRINT, methods=['POST'])
 def add_problem_connection():
-    '''
+    """
     Add problem connection
 
     Usage:
@@ -142,7 +142,7 @@ def add_problem_connection():
         "problem_a": "Natural Disasters",
         "problem_b": "Homelessness"
     }' 'http://localhost:5000/problems/connections'
-    '''
+    """
     connection_dict = request.get_json()
     connection = ProblemConnection(**connection_dict)
 
@@ -154,7 +154,7 @@ def add_problem_connection():
 
 @blueprint.route('/' + APCR.SUB_BLUEPRINT, methods=['POST'])
 def add_rated_problem_connection():
-    '''
+    """
     Add problem connection and return aggregate rating
 
     Usage:
@@ -171,7 +171,7 @@ def add_rated_problem_connection():
         },
         "aggregation": "strict"
     }' 'http://localhost:5000/problems/rated_connections'
-    '''
+    """
     from ..geos.models import Geo
     from ..communities.models import Community
 

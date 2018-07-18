@@ -7,7 +7,7 @@ from tests.builders.master import Builder
 
 @pytest.mark.unit
 def test_uri_formation_and_instantiation(session):
-    '''Test URI formation and instantiation'''
+    """Test URI formation and instantiation"""
     from intertwine.trackable import Trackable
     from intertwine import IntertwineModel
     from intertwine.utils.enums import UriType

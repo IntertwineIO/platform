@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''Decodes data
+"""Decodes data
 
 Usage:
     data_process.py [options] <json_path>
@@ -9,7 +9,7 @@ Options:
     -h --help       This message
     -v --verbose    More information
     -q --quiet      Less information
-'''
+"""
 from __future__ import print_function
 
 import io
@@ -36,13 +36,14 @@ from intertwine.problems.exceptions import InvalidJSONPath
 
 
 class DataSessionManager(object):
-    '''Base class for managing data sessions
+    """
+    Base class for managing data sessions
 
     Takes an optional database configuration string as input (default is
     DevConfig.DATABASE) and returns a session. In the process, the
     engine, tables, session factory, and session are created only if
     they do not already exist. The session returned is a scoped_session
-    '''
+    """
     engine = None
     session_factory = None
     session = None
@@ -66,7 +67,8 @@ class DataSessionManager(object):
 
 
 def decode_problems(json_data):
-    '''Returns entities created from problem json_data
+    """
+    Return entities created from problem JSON data
 
     Takes as input a list of json data loads, each from a separate JSON
     file and returns a dictionary where the keys are classes and the
@@ -75,7 +77,7 @@ def decode_problems(json_data):
 
     Resets tracking of updates via the Trackable metaclass each time it
     is called.
-    '''
+    """
     Trackable.clear_updates()
 
     for json_data_load in json_data:
@@ -86,7 +88,8 @@ def decode_problems(json_data):
 
 
 def decode(session, json_path, *args, **options):
-    '''Loads JSON files within a path and returns data structures
+    """
+    Load JSON files within a path and return data structures
 
     Given a path to a JSON file or a directory containing JSON files,
     returns a dictionary where the keys are classes and the values are
@@ -109,7 +112,7 @@ def decode(session, json_path, *args, **options):
     >>> p2 = Problem['domestic_violence']  # Problem is subscriptable
     >>> for p in Problem:  # Problem is iterable
     ...    print(p)
-    '''
+    """
     # Gather valid json_paths based on the given file or directory
     json_paths = []
     if os.path.isfile(json_path):
@@ -144,13 +147,14 @@ def decode(session, json_path, *args, **options):
 
 
 def erase_data(session, confirm=None):
-    '''Erase all data from database and clear tracking of all instances
+    """
+    Erase all data from database and clear tracking of all instances
 
     For Trackable classes, erases all data from the database and clears
     tracking of all instances. Prompts the user to confirm by typing
     'ERASE'. Can alternatively take an optional confirm parameter with
     a value of 'ERASE' to proceed without a user prompt.
-    '''
+    """
     if confirm != 'ERASE':
         prompt = ('This will erase *all* data from the database and '
                   'clear tracking of all instances.\n'

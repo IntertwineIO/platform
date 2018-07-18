@@ -11,14 +11,14 @@ class DefaultDatabaseConfig(object):
 
 
 class NoMailServer(DefaultDatabaseConfig):
-    '''No Mailserver Configuration'''
+    """No Mailserver Configuration"""
     MAIL_SERVER = ''
     MAIL_USERNAME = ''
     MAIL_PASSWORD = ''
 
 
 class LocalMailServer(DefaultDatabaseConfig):
-    '''No Mailserver Configuration'''
+    """No Mailserver Configuration"""
     MAIL_SERVER = 'localhost'
     MAIL_USERNAME = 'admin'
     MAIL_PASSWORD = 'admin'

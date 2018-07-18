@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 Master builder for instantiating test data
-'''
+"""
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -87,7 +87,7 @@ class Builder(object):
 
     @classmethod
     def get_model_map(cls):
-        '''Build model map from configured SQLAlchemy declarative base'''
+        """Build model map from configured SQLAlchemy declarative base"""
         try:
             return cls._model_map
         except AttributeError:
@@ -99,7 +99,7 @@ class Builder(object):
 
     @classmethod
     def get_model(cls, name=None):
-        '''Get specified model or builder-implied model from model map'''
+        """Get specified model or builder-implied model from model map"""
         if not name:
             name = cls.__name__.split(cls.MODEL_BUILDER_TAG)[0]
         try:
@@ -111,7 +111,7 @@ class Builder(object):
 
     @classmethod
     def get_builder(cls, name):
-        '''Get specified builder by name from subclasses'''
+        """Get specified builder by name from subclasses"""
         try:
             builder_map = Builder._builder_map
         except AttributeError:
@@ -124,7 +124,7 @@ class Builder(object):
 
     @classmethod
     def get_model_builder(cls, model):
-        '''Get builder class for given model'''
+        """Get builder class for given model"""
         model_name = model.__name__
         model_builder_name = ''.join((model_name, cls.MODEL_BUILDER_TAG))
         try:
@@ -133,7 +133,7 @@ class Builder(object):
             return cls
 
     def get_field_builder(self, field_name, **kwds):
-        '''Get specified field builder by field name or default'''
+        """Get specified field builder by field name or default"""
         build_field_name = '_'.join((self.BUILD_FIELD_TAG, field_name))
         field_builder = getattr(self, build_field_name, None)
         if not field_builder:
@@ -141,7 +141,7 @@ class Builder(object):
         return field_builder
 
     def get_default_field_builder(self, field_name, **kwds):
-        '''Get default field/model builder from specified field type'''
+        """Get default field/model builder from specified field type"""
         model = self.model
         try:
             related_model = model.related_model(field_name)
@@ -161,11 +161,11 @@ class Builder(object):
             return partial(build_default_type, field_type=field_type, **kwds)
 
     def default_boolean(self, field_type, **kwds):
-        '''Default random boolean value'''
+        """Default random boolean value"""
         return bool(self.random.randint(0, 1))
 
     def default_datetime(self, field_type, **kwds):
-        '''Default random datetime value'''
+        """Default random datetime value"""
         now = datetime.datetime.utcnow()
         start = datetime.datetime(1900, 1, 1)
         naive_dt = self.fake.date_time_between_dates(datetime_start=start,
@@ -178,7 +178,7 @@ class Builder(object):
         return local_dt
 
     def default_float(self, field_type, **kwds):
-        '''Default random float value'''
+        """Default random float value"""
         maxsize = sys.maxsize
         max_divisor_power = len(str(maxsize))
         divisor_power = self.random.randint(0, max_divisor_power)
@@ -186,11 +186,11 @@ class Builder(object):
         return self.random.randint(-maxsize - 1, maxsize) / divisor
 
     def default_integer(self, field_type, **kwds):
-        '''Default random integer value'''
+        """Default random integer value"""
         return self.random.randint(-sys.maxsize - 1, sys.maxsize)
 
     def default_string(self, field_type, **kwds):
-        '''Default random string value'''
+        """Default random string value"""
         field_length = field_type.length
         num_chars = (self.random.randint(1, field_length) if field_length
                      else self.DEFAULT_MAX_STRING_LENGTH)
@@ -204,7 +204,7 @@ class Builder(object):
         return default_text[:field_length]
 
     def default_text(self, field_type, max_length=None, **kwds):
-        '''Default random text value'''
+        """Default random text value"""
         num_words = self.random.randint(1, len(self.DEFAULT_WORDS))
         words = []
         length = -1  # First word has no space

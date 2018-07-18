@@ -159,7 +159,7 @@ class Solarized256Style(Style):
 
 
 class CustomFormatter(logging.Formatter):
-    '''Modifies the level prefix of the log with the following level
+    """Modifies the level prefix of the log with the following level
     information:
 
     !!! - critical
@@ -167,7 +167,7 @@ class CustomFormatter(logging.Formatter):
      ?  - warn
         - info
      -  - debug
-    '''
+    """
     default_prefix = '???'
 
     color_mapping = {

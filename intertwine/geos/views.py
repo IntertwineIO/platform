@@ -15,19 +15,19 @@ from ..utils.flask_utils import crossdomain, json_requested
 
 @blueprint.errorhandler(InterfaceException)
 def handle_interface_exception(error):
-    '''
+    """
     Handle Interface Exception
 
     Intercept the error and return a response consisting of the status
     code and a JSON representation of the error.
-    '''
+    """
     return make_response(jsonify(error.jsonify()), error.status_code)
 
 
 @blueprint.route('/', methods=['GET'])
 @crossdomain(origin='*')
 def render():
-    '''Base endpoint serving both pages and the API'''
+    """Base endpoint serving both pages and the API"""
     if json_requested():
         match_string = request.args.get('match_string')
         return find_geo_matches(match_string)
@@ -36,7 +36,7 @@ def render():
 
 
 def render_index():
-    '''Generic page rendering for top level'''
+    """Generic page rendering for top level"""
     geos = Geo.query.filter(~Geo.path_parent.has(),
                             ~Geo.alias_targets.any()).order_by(Geo.name).all()
     # glvls = GeoLevel.query.filter(GeoLevel.level == 'country').all()
@@ -62,13 +62,13 @@ def render_index():
 
 
 def find_geo_matches(match_string, match_limit=None):
-    '''
+    """
     Find geo matches endpoint
 
     Usage:
     curl -H 'accept:application/json' -X GET \
     'http://localhost:5000/geos/?match_string=austin,%20tx&match_limit=-1'
-    '''
+    """
     match_string = match_string.strip('"\'')
     if not match_string:
         return jsonify(Jsonable.jsonify_value([]))
@@ -88,7 +88,7 @@ def find_geo_matches(match_string, match_limit=None):
 @blueprint.route(Geo.form_uri(
     Geo.Key('<path:geo_huid>'), sub_only=True), methods=['GET'])
 def get_geo(geo_huid):
-    '''Get geo endpoint'''
+    """Get geo endpoint"""
     if json_requested():
         return get_geo_json(geo_huid)
 
@@ -96,13 +96,13 @@ def get_geo(geo_huid):
 
 
 def get_geo_json(geo_huid):
-    '''
+    """
     Get geo JSON
 
     Usage:
     curl -H 'accept:application/json' -X GET \
     'http://localhost:5000/geos/us/tx/austin'
-    '''
+    """
     json_kwargs = dict(Geo.objectify_json_kwargs(request.args))
 
     try:
@@ -114,7 +114,7 @@ def get_geo_json(geo_huid):
 
 
 def get_geo_html(geo_huid):
-    '''Geo Page'''
+    """Geo Page"""
     geo_huid = geo_huid.lower()
 
     try:
