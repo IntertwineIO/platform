@@ -29,11 +29,11 @@ BaseGeoModel = IntertwineModel
 
 
 class GeoID(BaseGeoModel):
-    '''
+    """
     Geo ID base class
 
     Used to map geos (by level) to 3rd party IDs and vice versa.
-    '''
+    """
     SUB_BLUEPRINT = 'ids'
 
     LEVEL = 'level'
@@ -79,11 +79,11 @@ class GeoID(BaseGeoModel):
 
     @classmethod
     def create_key(cls, standard, code, **kwds):
-        '''Create Trackable key (standard/code tuple) for a geo ID'''
+        """Create Trackable key (standard/code tuple) for a geo ID"""
         return cls.Key(standard, code)
 
     def derive_key(self, **kwds):
-        '''Derive Trackable key (standard/code tuple) from a geo ID'''
+        """Derive Trackable key (standard/code tuple) from a geo ID"""
         return self.model_class.Key(self.standard, self.code)
 
     @property
@@ -123,7 +123,7 @@ class GeoID(BaseGeoModel):
     code = orm.synonym('_code', descriptor=code)
 
     def __init__(self, level, standard, code):
-        '''Initialize a new geo ID'''
+        """Initialize a new geo ID"""
         if not level:
             raise ValueError('Invalid level: {}'.format(level))
         if standard not in self.STANDARDS:
@@ -138,7 +138,7 @@ class GeoID(BaseGeoModel):
 
 
 class GeoLevel(BaseGeoModel):
-    '''
+    """
     Base class for geo levels
 
     A geo level contains level information for a particular geo, where
@@ -158,7 +158,7 @@ class GeoLevel(BaseGeoModel):
     (subdivision1), a county equivalent (subdivision2), a county
     subdivision equivalent (subdivision3), and a city
     (place).
-    '''
+    """
     SUB_BLUEPRINT = 'levels'
 
     GEO = 'geo'
@@ -246,11 +246,11 @@ class GeoLevel(BaseGeoModel):
 
     @classmethod
     def create_key(cls, geo, level, **kwds):
-        '''Create Trackable key (geo/level tuple) for a geo level'''
+        """Create Trackable key (geo/level tuple) for a geo level"""
         return cls.Key(geo, level)
 
     def derive_key(self, **kwds):
-        '''Derive Trackable key (geo/level tuple) from a geo level'''
+        """Derive Trackable key (geo/level tuple) from a geo level"""
         return self.model_class.Key(self.geo, self.level)
 
     @property
@@ -292,12 +292,12 @@ class GeoLevel(BaseGeoModel):
     @classmethod
     def redesignate_or_create(cls, geo, level, designation, ids,
                               _query_on_miss=True):
-        '''
+        """
         Redesignate (existing geolevel) or create (a new one)
 
         Also create a geoid for each standard/code in ids if it doesn't
         already exist.
-        '''
+        """
         if not geo:
             raise ValueError('Missing geo: {}'.format(geo))
 
@@ -312,7 +312,7 @@ class GeoLevel(BaseGeoModel):
         return geo_level, created
 
     def __init__(self, geo, level, designation=None):
-        '''Initialize a new geo level'''
+        """Initialize a new geo level"""
         if not geo:
             raise ValueError('Invalid geo: {}'.format(geo))
         if level not in self.UP:
@@ -326,7 +326,7 @@ class GeoLevel(BaseGeoModel):
 
 
 class GeoData(BaseGeoModel):
-    '''Base class for geo data'''
+    """Base class for geo data"""
     SUB_BLUEPRINT = 'data'
 
     GEO = 'geo'
@@ -377,11 +377,11 @@ class GeoData(BaseGeoModel):
 
     @classmethod
     def create_key(cls, geo, **kwds):
-        '''Create Trackable key (geo 1-tupled) for a geo data'''
+        """Create Trackable key (geo 1-tupled) for a geo data"""
         return cls.Key(geo)
 
     def derive_key(self, **kwds):
-        '''Derive Trackable key (geo 1-tupled) from a geo data'''
+        """Derive Trackable key (geo 1-tupled) from a geo data"""
         return self.model_class.Key(self.geo)
 
     @property
@@ -509,7 +509,7 @@ class GeoData(BaseGeoModel):
 
     @classmethod
     def extract_data(cls, record, field_names):
-        '''Extract geo data from record based on GeoData field namedtuple'''
+        """Extract geo data from record based on GeoData field namedtuple"""
         return cls.Record(
             *(cls.transform_value(data_field, getattr(record, record_field))
               for data_field, record_field
@@ -535,7 +535,7 @@ class GeoData(BaseGeoModel):
 
     @classmethod
     def create_parent_data(cls, parent_geo, child_level=None):
-        '''
+        """
         Create parent data
 
         Constructor for aggregating geo data for a parent geo from its
@@ -553,7 +553,7 @@ class GeoData(BaseGeoModel):
             A GeoData instance in which values are aggregated from the
             parent_geo's children at the given level, if there are any.
             Or None if there are no children.
-        '''
+        """
         children = (
             parent_geo.children.all() if child_level is None
             else [child for child in parent_geo.children
@@ -577,7 +577,7 @@ class GeoData(BaseGeoModel):
     def __init__(self, geo, total_pop=None, urban_pop=None,
                  latitude=None, longitude=None,
                  land_area=None, water_area=None):
-        '''Initialize a new geo level'''
+        """Initialize a new geo level"""
         self.geo = geo
         self.total_pop = total_pop
         self.urban_pop = urban_pop
@@ -602,7 +602,7 @@ geo_alias_association_table = Table(
 
 
 class Geo(BaseGeoModel):
-    '''
+    """
     Geo
 
     A 'geo' is a geographical entity, legal or otherwise. Geos may have
@@ -685,7 +685,7 @@ class Geo(BaseGeoModel):
         The level of the geo's children whose data is to be aggregated
         to calculate the geo's data. If None, all children are included.
         Only used if data is not provided as a parameter.
-    '''
+    """
     HUMAN_ID = 'human_id'
 
     PARENTS = 'parents'
@@ -937,7 +937,7 @@ class Geo(BaseGeoModel):
         self._alias_targets.remove(target)
 
     def promote_to_alias_target(self):
-        '''
+        """
         Promote alias to alias_target
 
         Convert an alias (A) with one target (B) into an alias target.
@@ -947,7 +947,7 @@ class Geo(BaseGeoModel):
         target (A). Has no effect if the geo (A) is not an alias. The
         alias (A) may not have multiple targets because each target
         could have its own set of references, so data would be lost.
-        '''
+        """
         alias_targets = self.alias_targets
         if not alias_targets:  # self is already an alias_target
             return
@@ -968,13 +968,13 @@ class Geo(BaseGeoModel):
         at.add_alias_target(self)
 
     def transfer_references(self, geo):
-        '''
+        """
         Transfer references
 
         Utility function for transferring references to another geo, for
         example, when making a geo an alias of another geo. Path
         references remain unchanged.
-        '''
+        """
         attributes = {self.PARENTS: (self.DYNAMIC, []),
                       self.CHILDREN: (self.DYNAMIC, []),
                       self.DATA: (self.NOT_DYNAMIC, None),
@@ -1099,7 +1099,7 @@ class Geo(BaseGeoModel):
     @classmethod
     def create_key(cls, human_id=None, name=None, abbrev=None, qualifier=None,
                    path_parent=None, alias_targets=None, **kwds):
-        '''
+        """
         Create Trackable key (human_id 1-tupled) for a geo
 
         The key is created by concatenating the human_id of the
@@ -1108,7 +1108,7 @@ class Geo(BaseGeoModel):
 
         When provided, a qualifier is appended, delimited by a space.
         Prohibited characters/sequences are either replaced or removed.
-        '''
+        """
         if human_id:
             return cls.Key(human_id)
 
@@ -1121,7 +1121,7 @@ class Geo(BaseGeoModel):
         return cls.Key(path + nametag)
 
     def derive_key(self, **kwds):
-        '''Derive Trackable key (human_id 1-tupled) from a geo'''
+        """Derive Trackable key (human_id 1-tupled) from a geo"""
         return self.model_class.Key(self.human_id)
 
     def __init__(self, name, abbrev=None, qualifier=None, path_parent=None,
@@ -1193,7 +1193,7 @@ class Geo(BaseGeoModel):
     def display(self, show_the=True, show_The=False, show_abbrev=True,
                 show_qualifier=True, abbrev_path=True, max_path=float('Inf'),
                 **json_kwargs):
-        '''
+        """
         Generate text for displaying a geo to a user
 
         Returns a string derived from the name, abbrev, uses_the, and
@@ -1213,7 +1213,7 @@ class Geo(BaseGeoModel):
           beyond the current geo that should be included. A value of 0
           limits the display to just the geo, a value of 1 includes the
           immediate path_parent, etc.
-        '''
+        """
         geostr = []
         geo = self
         plvl = 0
@@ -1240,7 +1240,7 @@ class Geo(BaseGeoModel):
 
     def is_known_by(self, match_string, full_name=True, case_sensitive=True,
                     include_abbrev=True, include_aliases=True):
-        '''
+        """
         Is Known By
 
         Determine if match string is a name by which the geo is known.
@@ -1252,7 +1252,7 @@ class Geo(BaseGeoModel):
         include_abbrev=True: if True, geo abbrev may be matched
         include_aliases=True: if True, aliases may be matched
         return: True iff match string matches geo name/abbrev/aliases
-        '''
+        """
         names = {self.name}
         if include_abbrev and self.abbrev:
             names.add(self.abbrev)
@@ -1277,18 +1277,18 @@ class Geo(BaseGeoModel):
 
     @staticmethod
     def sorted(*geos):
-        '''Return new list of geos sorted by population, descending'''
+        """Return new list of geos sorted by population, descending"""
         return sorted(geos, reverse=True,
                       key=lambda g: g.data.total_pop if g.data else -1)
 
     @staticmethod
     def infer_path_component_names(geo_text):
-        '''Infer path component names from geo text'''
+        """Infer path component names from geo text"""
         return (c.strip() for c in reversed(geo_text.split(',')) if c.strip())
 
     @classmethod
     def find_matches(cls, match_string, match_type=MatchType.BEST):
-        '''Return matches given a qualified geo match string'''
+        """Return matches given a qualified geo match string"""
         path_components = list(cls.infer_path_component_names(match_string))
         if not path_components:
             return []
@@ -1314,7 +1314,7 @@ class Geo(BaseGeoModel):
     @classmethod
     def find_component_matches(cls, match_string, match_type=MatchType.BEST,
                                parent=None, elevate_exact_matches=True):
-        '''Find component matches given an unqualified geo match string'''
+        """Find component matches given an unqualified geo match string"""
         alias_targets = parent.alias_targets if parent else None
         parent = alias_targets[0] if alias_targets else parent
         base_query = parent.path_children if parent else cls.query
@@ -1352,7 +1352,7 @@ class Geo(BaseGeoModel):
 
     @staticmethod
     def elevate_exact_matches(matches, match_string):
-        '''Elevate exact matches ignoring case given list of matches'''
+        """Elevate exact matches ignoring case given list of matches"""
         match_string = match_string.lower()
         exact_matches = (g for g in matches
                          if g.name.lower() == match_string or
@@ -1372,7 +1372,7 @@ class Geo(BaseGeoModel):
 
     @staticmethod
     def remove_redundant_aliases(matches):
-        '''Remove redundant aliases given list of matches'''
+        """Remove redundant aliases given list of matches"""
         match_set = set(matches)
         for geo in reversed(matches):
             alias_targets = geo.alias_targets
@@ -1384,14 +1384,14 @@ class Geo(BaseGeoModel):
 
     @staticmethod
     def get_largest_geo(*geos):
-        '''Return largest of given geos based on population'''
+        """Return largest of given geos based on population"""
         geo_pop_tuples = ((geo, geo.data.total_pop) for geo in geos)
         largest = reduce(lambda x, y: x if x[1] > y[1] else y, geo_pop_tuples)
         return largest[0]
 
     def get_related_geos(self, relation, level=None, include_aliases=False,
                          order_by=None, outer_join_data=False):
-        '''
+        """
         Get related geos (e.g. parents/children)
 
         Given a relation, returns a list of related geos at the given
@@ -1404,7 +1404,7 @@ class Geo(BaseGeoModel):
         order_by=None: by default, order by total population, descending
         outer_join_data=False: outer join Data if True or if including
             aliases else inner join; only applicable if data is required
-        '''
+        """
         if relation not in self.RELATIONS:
             raise ValueError('{rel} is not an allowed value for relation'
                              .format(rel=relation))
@@ -1442,7 +1442,7 @@ class Geo(BaseGeoModel):
         return self.data.matches(inexact=inexact, **match_dict)
 
     def jsonify_related_geos(self, relation, **json_kwargs):
-        '''
+        """
         Jsonify related geos by level
 
         Given a relation (e.g. parents/children), returns an ordered
@@ -1455,7 +1455,7 @@ class Geo(BaseGeoModel):
         I/O:
         relation: 'parents', 'children', 'path_children', etc.
         json_kwargs: JSON keyword arguments per Jsonable.jsonify()
-        '''
+        """
         limit = json_kwargs['limit']
 
         if relation not in self.RELATIONS:
@@ -1503,7 +1503,7 @@ class Geo(BaseGeoModel):
         return rv
 
     def jsonify_geo(self, geo, depth, **json_kwargs):
-        '''Jsonify geo'''
+        """Jsonify geo"""
         _json = json_kwargs['_json']
 
         geo_key = geo.json_key(depth=depth, **json_kwargs)

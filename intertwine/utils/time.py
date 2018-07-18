@@ -27,7 +27,7 @@ PendulumInfo = namedtuple(
 
 
 class FlexTime(DateTime):
-    '''
+    """
     FlexTime
 
     A datetime supporting varying degrees of granularity in the time
@@ -49,7 +49,7 @@ class FlexTime(DateTime):
 
     Alignment between granularity and the underlying datetime instance
     can be enforced via an optional 'truncate' parameter.
-    '''
+    """
     TZINFO_TAG = 'tzinfo'
     TZINFO_IDX = DateTimeInfo._fields.index(TZINFO_TAG)
     FOLD_TAG = 'fold'
@@ -63,7 +63,7 @@ class FlexTime(DateTime):
 
     @classmethod
     def determine_granularity(cls, dt, granularity=None, extend=False):
-        '''
+        """
         Determine granularity
 
         If a granularity is provided, use it.
@@ -80,7 +80,7 @@ class FlexTime(DateTime):
         granularity=None: a granularity or its integer value
         extend=False: if True, granularity is extended per above
         return: granularity enum instance
-        '''
+        """
         gmax = cls.MAX_GRANULARITY.value
 
         for single_loop_to_enable_exception_flow_control in range(1):
@@ -120,14 +120,14 @@ class FlexTime(DateTime):
 
     def derive_info(self, granularity=None, truncate=False, default=False,
                     tz_instance=False):
-        '''Derive dtinfo from flextime instance'''
+        """Derive dtinfo from flextime instance"""
         return self.form_info(self, granularity=granularity, truncate=truncate,
                               default=default, tz_instance=tz_instance)
 
     @classmethod
     def form_info(cls, dt, tz=None, granularity=None, truncate=False,
                   default=False, tz_instance=False):
-        '''
+        """
         Form (datetime) info
 
         I/O:
@@ -143,7 +143,7 @@ class FlexTime(DateTime):
         tz_instance=False: if True, cast to tzinfo instance; if False,
             cast to timezone name
         return: DateTimeInfo namedtuple
-        '''
+        """
         granularity = cls.determine_granularity(dt, granularity,
                                                 extend=not truncate)
         gval, gmax = granularity.value, cls.MAX_GRANULARITY.value
@@ -161,7 +161,7 @@ class FlexTime(DateTime):
 
     @classmethod
     def extract_field(cls, dt, idx=None, field=None):
-        '''Extract field from datetime or tuple given field or idx'''
+        """Extract field from datetime or tuple given field or idx"""
         field = field or DateTimeInfo._fields[idx]
         try:
             return getattr(dt, field)  # raise if plain tuple or fold < py3.6
@@ -175,7 +175,7 @@ class FlexTime(DateTime):
 
     @classmethod
     def extract_tzinfo(cls, dt, tz_instance=False, default=None):
-        '''Extract tzinfo name or instance from dt instance or tuple'''
+        """Extract tzinfo name or instance from dt instance or tuple"""
         try:
             tzinfo = dt.tzinfo
         except AttributeError:
@@ -185,7 +185,7 @@ class FlexTime(DateTime):
 
     @classmethod
     def timezone(cls, tz, default=None):
-        '''Get timezone instance from tzinfo string or instance'''
+        """Get timezone instance from tzinfo string or instance"""
         tz = tz or default or cls.DEFAULTS.tzinfo
         if isinstance(tz, datetime.tzinfo):
             return tz
@@ -193,7 +193,7 @@ class FlexTime(DateTime):
 
     @classmethod
     def timezone_name(cls, tz, default=None):
-        '''Get timezone name from tzinfo string or instance'''
+        """Get timezone name from tzinfo string or instance"""
         default = (cls.DEFAULTS.tzinfo if default is None else
                    cls.timezone_name(tz=default))
         try:
@@ -203,7 +203,7 @@ class FlexTime(DateTime):
             return default if tz is None else str(tz)
 
     def deflex(self, native=False):
-        '''Deflex instance by creating copy with parent DateTime'''
+        """Deflex instance by creating copy with parent DateTime"""
         dt_info = self.form_info(self, granularity=self.MAX_GRANULARITY,
                                  default=True, tz_instance=True)
         dt_kwds = dt_info._asdict()
@@ -214,22 +214,22 @@ class FlexTime(DateTime):
 
     @classmethod
     def now(cls, tz=None, granularity=None):
-        '''Now returns current time (default local) with given granularity'''
+        """Now returns current time (default local) with given granularity"""
         tz = tz or cls.LOCAL_TAG  # default to local, not UTC
         return cls.cast(super(FlexTime, cls).now(tz), granularity=granularity)
 
     def astimezone(self, tz, **kwds):
-        '''Astimezone converts flextime instance to the given time zone'''
+        """Astimezone converts flextime instance to the given time zone"""
         dt = super(FlexTime, self).astimezone(self.timezone(tz), **kwds)
         return self.instance(dt, granularity=self.granularity, truncate=False)
 
     def copy(self, **kwds):
-        '''Copy flextime instance'''
+        """Copy flextime instance"""
         return self.instance(self, granularity=self.granularity, truncate=False)
 
     @classmethod
     def cast(cls, dt, tz=None, granularity=None):
-        '''Cast datetime or dtinfo to flextime at given granularity'''
+        """Cast datetime or dtinfo to flextime at given granularity"""
         if (isinstance(dt, FlexTime) and (
                 not granularity or
                 dt.granularity == cls.Granularity(granularity))):
@@ -238,7 +238,7 @@ class FlexTime(DateTime):
 
     @classmethod
     def instance(cls, dt, tz=None, granularity=None, truncate=False, **kwds):
-        '''
+        """
         Instance
 
         I/O:
@@ -247,7 +247,7 @@ class FlexTime(DateTime):
         granularity=None:   granularity enum or its integer value
         truncate=False:     if True, values past granularity are removed
         return:             new flextime instance with granularity/info
-        '''
+        """
         granularity = cls.determine_granularity(dt, granularity)
 
         dt_info = cls.form_info(dt, tz=tz, granularity=granularity,

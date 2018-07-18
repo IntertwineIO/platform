@@ -6,7 +6,7 @@ log = logging.getLogger('intertwine.exceptions')
 
 
 class IntertwineException(Exception):
-    '''Base Intertwine exception class'''
+    """Base Intertwine exception class"""
 
     def __init__(self, message=None, *args, **kwds):
         template = message if message else ' '.join(self.__doc__.split())
@@ -19,25 +19,25 @@ class IntertwineException(Exception):
 
 
 class AliasOfAliasError(IntertwineException):
-    '''Instance may not have both aliases and targets...
-    instance: {instance!r} aliases: {aliases!r} targets: {targets!r}'''
+    """Instance may not have both aliases and targets...
+    instance: {instance!r} aliases: {aliases!r} targets: {targets!r}"""
 
 
 class AttributeConflict(IntertwineException):
-    '''{inst1!r}.{attr1!s} conflicts with {inst2!r}.{attr2!s}'''
+    """{inst1!r}.{attr1!s} conflicts with {inst2!r}.{attr2!s}"""
 
 
 class CircularReference(IntertwineException):
-    '''Setting {attr!s} on {inst!r} to {value!r} would create a
-    circular reference'''
+    """Setting {attr!s} on {inst!r} to {value!r} would create a
+    circular reference"""
 
 
 class DoesNotExist(IntertwineException):
-    '''{cls} instance does not exist for key: {key}'''
+    """{cls} instance does not exist for key: {key}"""
 
 
 class InterfaceException(IntertwineException):
-    '''Invalid usage is the base exception class for the API'''
+    """Invalid usage is the base exception class for the API"""
     error_key = 'error'
     status_code = 400  # Default error code
 
@@ -58,8 +58,8 @@ class InterfaceException(IntertwineException):
 
 
 class ResourceAlreadyExists(InterfaceException):
-    '''{cls} resource already exists for key: {key}'''
+    """{cls} resource already exists for key: {key}"""
 
 
 class ResourceDoesNotExist(InterfaceException):
-    '''{cls} resource does not exist for key: {key}'''
+    """{cls} resource does not exist for key: {key}"""

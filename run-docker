@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 Manages the execution of Intertwine's platform app using docker
 
 Usage:
@@ -13,7 +13,7 @@ Options:
     -P --push           Pushes docker image
     -R --no-run         Do not run
     -i --image IMAGE    Image to use [default: intertwineio/platform]
-'''
+"""
 import os
 import shlex
 import subprocess
@@ -25,16 +25,17 @@ logger = getLogger(__file__)
 
 
 def get_package_metadata(project_name=None):
-    '''Captures metadata information for package
+    """
+    Capture metadata information for package
 
     Providing the project name will reduce the search/install time.
 
     Args:
         project_name: top project folder and project name
 
-    Returns:
+    Return:
         dict: package metdata
-    '''
+    """
     top_folder = os.path.abspath(os.path.dirname(__file__))
     required_fields = ['version', 'license', 'url', 'description', 'project']
     metadata = {}
@@ -103,7 +104,7 @@ def cleanup_docker():
 
 
 def build_docker_image():
-    '''Builds a docker image given a path and tags that new image'''
+    """Build a docker image given a path and tag that new image"""
     # docker build -t intertwineio/base -f Dockerfile-base .
     metadata = get_package_metadata()
     version=metadata.get('versionstr')
@@ -126,7 +127,7 @@ def build_docker_image():
 
 
 def push_docker_image():
-    '''Pushes docker image to docker hub'''
+    """Push docker image to docker hub"""
     # docker push intertwineio/base
     cmd = shlex.split('docker push intertwineio/base')
     process = subprocess.Popen(cmd)

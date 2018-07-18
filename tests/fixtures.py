@@ -15,9 +15,7 @@ from config import ToxConfig
 
 @pytest.fixture(scope="module")
 def options():
-    '''Captures configuration data from config file and validates that
-    data is available'''
-
+    """Capture configuration data and validate data is available"""
     options = {
         'host': '127.0.0.1',
         'port': 5000,
@@ -41,7 +39,7 @@ class PyTestConfig(ToxConfig):
 
 @pytest.fixture(scope='function')
 def app(request):
-    '''Session-wide test `Flask` application'''
+    """Create session-wide test `Flask` application"""
     app = create_app(__name__, PyTestConfig)
 
     # Establish an application context before running the tests.
@@ -59,7 +57,7 @@ def app(request):
 
 @pytest.fixture(scope='function')
 def db(app, request):
-    '''Session-wide test database'''
+    """Create session-wide test database"""
     if os.path.exists(TESTDB_PATH):
         os.unlink(TESTDB_PATH)
 
@@ -78,7 +76,7 @@ def db(app, request):
 
 @pytest.fixture(scope='function')
 def session(db, request):
-    '''Creates a new database session for a test'''
+    """Create new database session for a test"""
     connection = db.engine.connect()
     transaction = connection.begin()
 
@@ -102,7 +100,7 @@ def session(db, request):
 
 @pytest.fixture(scope='function')
 def client(app, request):
-    '''Creates a test client'''
+    """Create test client"""
     app.config['TESTING'] = True
     client = app.test_client()
 

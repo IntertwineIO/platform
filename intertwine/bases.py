@@ -41,7 +41,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
     jsonified_model_class = JsonProperty(name='model_class', hide=True)
 
     def json_key(self, key_type=None, raw=False, tight=True, **kwds):
-        '''JSON key supports URI (default), NATURAL, and PRIMARY'''
+        """JSON key supports URI (default), NATURAL, and PRIMARY"""
         if key_type:
             if key_type is self.JsonKeyType.URI:
                 uri = self.uri
@@ -64,7 +64,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
 
     @property
     def uri(self):
-        '''Default URI property based on natural or primary key'''
+        """Default URI property based on natural or primary key"""
         cls = self.model_class
         try:
             if cls.URI_TYPE is UriType.NATURAL:
@@ -80,7 +80,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
 
     @classmethod
     def form_uri(cls, components, sub_only=False):
-        '''
+        """
         Form URI from given components
 
         components: Iterable of URL components, usually a Trackable Key
@@ -88,7 +88,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
             top-level exclusions can only be applied if a namedtuple.
         sub_only=False: If True, start with sub-blueprint (exclude blueprint)
         return: URI composed from the components
-        '''
+        """
         query_fields = cls.URI_QUERY_PARAMETERS
         try:
             path, query = cls.deconstruct_key(
@@ -168,7 +168,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
 
     @classmethod
     def blueprint_name(cls):
-        '''Get blueprint name from containing module'''
+        """Get blueprint name from containing module"""
         try:
             return cls._blueprint_name
         except AttributeError:
@@ -179,7 +179,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
 
     @classmethod
     def sub_blueprint_name(cls):
-        '''Get sub-blueprint name from class constant'''
+        """Get sub-blueprint name from class constant"""
         try:
             return cls.SUB_BLUEPRINT
         except AttributeError:
@@ -187,13 +187,13 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
 
     @classmethod
     def blueprint_subs(cls, blueprint_name):
-        '''Retrieve sub-blueprint names given blueprint name'''
+        """Retrieve sub-blueprint names given blueprint name"""
         blueprint_sub_map = cls.blueprint_sub_map()
         return blueprint_sub_map[blueprint_name]
 
     @classmethod
     def blueprint_sub_map(cls):
-        '''Sorted map of blueprint names to sub-blueprint name sets'''
+        """Sorted map of blueprint names to sub-blueprint name sets"""
         try:
             return cls._blueprint_sub_map
         except AttributeError:
@@ -206,14 +206,14 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
 
     @classmethod
     def blueprint_model(cls, blueprint_name, sub_blueprint_name=None):
-        '''Retrieve model given blueprint/sub-blueprint names'''
+        """Retrieve model given blueprint/sub-blueprint names"""
         blueprint_key = (blueprint_name, sub_blueprint_name)
         blueprint_model_map = cls.blueprint_model_map()
         return blueprint_model_map[blueprint_key]
 
     @classmethod
     def blueprint_model_map(cls):
-        '''Sorted map of (blueprint, sub-blueprint) tuples to models'''
+        """Sorted map of (blueprint, sub-blueprint) tuples to models"""
         try:
             return cls._blueprint_model_map
         except AttributeError:
@@ -228,5 +228,5 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
 
     @classmethod
     def initialize_table_model_map(cls):
-        '''Initialize table model map; invoke after loading all models'''
+        """Initialize table model map; invoke after loading all models"""
         cls._table_model_map = build_table_model_map(cls)

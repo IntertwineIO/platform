@@ -26,7 +26,7 @@ BaseCommunityModel = IntertwineModel
 
 
 class Community(BaseCommunityModel):
-    '''Base class for communities
+    """Base class for communities
 
     A 'community' resides at the intersection of a (social) problem, a
     geo, and an org and is uniquely defined by them. Each term may have
@@ -34,7 +34,7 @@ class Community(BaseCommunityModel):
     - problem is None: 'All Problems'
     - org is None: 'Any Organization (or None)'
     - geo is None: 'The World'
-    '''
+    """
     # Future: Create a top-level entity for each and let None mean None?
     # 'All Problems', 'Any Organization (or None)', and 'The World'.
     # There could also be an 'All Organizations' org that does not
@@ -157,26 +157,26 @@ class Community(BaseCommunityModel):
 
     @classmethod
     def create_key(cls, problem, org, geo, **kwds):
-        '''Create key for a community
+        """Create key for a community
 
         Return a key allowing the Trackable metaclass to register a
         community instance. The key is a namedtuple of problem, org, and
         geo.
-        '''
+        """
         return cls.Key(problem, org, geo)
 
     def derive_key(self, **kwds):
-        '''Derive key from a community instance
+        """Derive key from a community instance
 
         Return the registry key used by the Trackable metaclass from a
         community instance. The key is a namedtuple of problem, org, and
         geo.
-        '''
+        """
         return self.model_class.Key(self.problem, self.org, self.geo)
 
     @classmethod
     def manifest(cls, problem_huid, org_huid, geo_huid):
-        '''Manifest community, either real or vardygr'''
+        """Manifest community, either real or vardygr"""
         # Raise if any human ids don't exist
         key = cls.reconstruct((problem_huid, org_huid, geo_huid), as_key=True)
         try:
@@ -185,7 +185,7 @@ class Community(BaseCommunityModel):
             return vardygrify(cls, num_followers=0, **key._asdict())
 
     def __init__(self, problem, org, geo, num_followers=0):
-        '''Initialize a new community'''
+        """Initialize a new community"""
         self.problem = problem
         self.org = org
         self.geo = geo
@@ -194,25 +194,25 @@ class Community(BaseCommunityModel):
     def update_inclusive_aggregate_ratings(self, connection, user,
                                            new_user_rating,
                                            old_user_rating=None):
-        '''Update inclusive aggregate ratings
+        """
+        Update inclusive aggregate ratings
 
-        Works by updating the inclusive aggregate ratings for the
-        current community and then recursively calling itself on
-        immediately encompassing communities.
-        '''
+        Update aggregate ratings for the current community and recurse
+        on immediately encompassing communities.
+        """
         # TODO
         pass
 
     def update_aggregate_ratings(self, connection, user,
                                  new_user_rating, new_user_weight,
                                  old_user_rating=None, old_user_weight=None):
-        '''Update aggregate ratings
+        """
+        Update aggregate ratings
 
-        Given a connection, a user, and new/old rating and weight
-        values, updates all affected aggregate ratings. Intended to be
-        called in conjunction with or shortly after the rating has been
-        updated.
-        '''
+        Given a connection, a user, and new/old rating & weight values,
+        update all affected aggregate ratings. Intended to be called in
+        conjunction with or shortly after the rating has been updated.
+        """
         # Update the strict aggregate rating for this community
         apcr = APCR.query.filter_by(community=self, connection=connection,
                                     aggregation='strict').first()
@@ -227,15 +227,16 @@ class Community(BaseCommunityModel):
             new_user_rating=new_user_rating, old_user_rating=old_user_rating)
 
     def aggregate_connection_ratings(self, aggregation='strict'):
-        '''Aggregate connection ratings
+        """
+        Aggregate connection ratings
 
-        Aggregates and returns a community's connection ratings using
-        the specified aggregation method. If an aggregate rating already
+        Aggregate and return a community's connection ratings using the
+        specified aggregation method. If an aggregate rating already
         exists, it is updated; otherwise, a new one is created.
 
         If called on a vardygr community and ratings exist, a real
         community is created and linked to the new aggregate ratings.
-        '''
+        """
         community = self
         is_real_community = type(self) is Community
         community_key = self.derive_key()
@@ -278,13 +279,20 @@ class Community(BaseCommunityModel):
 
     def jsonify_connection_category(self, problem, category, aggregation,
                                     aggregate_ratings, depth, **json_kwargs):
-        '''Prepare connection rating JSON
+        """
+        Jsonify connection category
 
-        Takes a problem, category (e.g. 'drivers'), and an aggregate
-        ratings iterable as input and yields the next aggregate rating
-        JSON, where the order follows that of the input iterable and is
-        followed by unrated connections sequenced alphabetically.
-        '''
+        Yield the next aggregate rating JSON, where the order matches
+        the input iterable and is followed by unrated connections. The
+        latter are alphabetized by adjacent problem if so configured.
+
+        I/O:
+        problem:            Problem instance
+        category:           ProblemConnection category, e.g. 'drivers'
+        aggregate_ratings:  AggregateProblemConnectionRating iterable
+        depth:              jsonify depth
+        json_kwargs:        one or more JSON kwargs, excluding depth
+        """
         _json = json_kwargs['_json']
         nest = json_kwargs.get('nest', False)
         rated_connections = set()
@@ -326,17 +334,18 @@ class Community(BaseCommunityModel):
 
     def jsonify_aggregate_ratings(self, aggregation='strict', depth=1,
                                   _path='', **json_kwargs):
-        '''Jsonify aggregate ratings
+        """
+        Jsonify aggregate ratings
 
-        Returns a dictionary keyed by connection category ('drivers',
+        Return a dictionary keyed by connection category ('drivers',
         'impacts', 'broader', 'narrower') where values are lists of
         aggregate rating JSON in descending order by rating.
 
         Searches for existing aggregate connection ratings with the
         specified aggregation method, and if none are found, aggregates
         them from ratings. Connections without ratings are included last
-        in alphabetical order by the name of the adjoining problem.
-        '''
+        in alphabetical order by problem name if so configured.
+        """
         community = self
         community_exists = type(self) is Community
         problem, org, geo = self.derive_key()

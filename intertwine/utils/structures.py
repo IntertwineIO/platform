@@ -16,7 +16,7 @@ if sys.version_info < (3,):
 
 
 class Sentinel(object):
-    '''Sentinels are unique objects for special comparison use cases'''
+    """Sentinels are unique objects for special comparison use cases"""
     _id = 0
 
     def __init__(self):
@@ -28,18 +28,18 @@ class Sentinel(object):
 
 
 class InsertableOrderedDict(OrderedDict):
-    '''InsertableOrderedDict is an OrderedDict that supports insertion'''
+    """InsertableOrderedDict is an OrderedDict that supports insertion"""
     sentinel = Sentinel()
     ValueTuple = namedtuple('InsertableOrderedDictValueTuple',
                             'value, next, prior')
 
     @property
     def _dict(self):
-        '''Property for accessing inherited dict'''
+        """Property for accessing inherited dict"""
         return super(InsertableOrderedDict, self)
 
     def insert(self, reference, key, value, after=False, by_index=False):
-        '''
+        """
         Insert a key/value pair
 
         I/O:
@@ -50,7 +50,7 @@ class InsertableOrderedDict(OrderedDict):
         by_index=False: If True, use reference as index for insertion;
             by default, use reference as key for insertion
         return: None
-        '''
+        """
         insert_key, after = self._derive_insertion(reference, after, by_index)
 
         if after:
@@ -196,18 +196,18 @@ class InsertableOrderedDict(OrderedDict):
         self._beg, self._end = self._end, self._beg
 
     def items(self):
-        '''item generator (python 3 style)'''
+        """item generator (python 3 style)"""
         key = self._beg
         while key is not self.sentinel:
             yield (key, self._getitem(key).value)
             key = self._getitem(key).next
 
     def keys(self):
-        '''key generator (python 3 style)'''
+        """key generator (python 3 style)"""
         return self.__iter__()
 
     def values(self):
-        '''value generator (python 3 style)'''
+        """value generator (python 3 style)"""
         key = self._beg
         while key is not self.sentinel:
             yield self._getitem(key).value
@@ -251,25 +251,25 @@ class InsertableOrderedDict(OrderedDict):
 
 
 class MultiKeyMap(object):
-    '''
+    """
     MultiKeyMap provides an ordered map of things keyed by each field
 
     I/O:
     fields: iterable of fields, where each field is individually unique
     things: list or tuple of objects to be referenced; each object must
             have all given fields defined (but may also have others).
-    returns: MultiKeyMap instance
-    '''
+    return: MultiKeyMap instance
+    """
     def get_by(self, field, key, default=None):
-        '''Return the object for which the field value equals the key'''
+        """Return the object for which the field value equals the key"""
         return self.maps[field].get(key, default)
 
     def get_map_by(self, field):
-        '''Return the (ordered) map for the given field'''
+        """Return the (ordered) map for the given field"""
         return self.maps[field]
 
     def _check_for_duplicates(self, field, things):
-        '''Raise ValueError if any dupe things for the given field'''
+        """Raise ValueError if any dupe things for the given field"""
         if len(self.maps[field]) == len(things):
             return
 
@@ -292,18 +292,18 @@ class MultiKeyMap(object):
 
 
 class PeekableIterator(object):
-    '''Iterable that supports peeking at the next item'''
+    """Iterable that supports peeking at the next item"""
 
     def peek(self):
-        '''Peek at the next item, returning it'''
+        """Peek at the next item, returning it"""
         return self.next_item
 
     def has_next(self):
-        '''Return True if the iterator has a next item'''
+        """Return True if the iterator has a next item"""
         return self.next_item is not self.sentinel
 
     def next(self):
-        '''Increment the iterator and return the next item'''
+        """Increment the iterator and return the next item"""
         rv = self.next_item
         self.next_item = next(self.iterable, self.sentinel)
         return rv

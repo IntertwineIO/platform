@@ -19,7 +19,7 @@ import pytest
     ('Homelessness', None, 'Waxahachie', None),
 ])
 def test_jsonify(session, problem_name, org_name, geo_name, num_followers):
-    '''Tests jsonify of Jsonable mixin by producing community JSON'''
+    """Test jsonify of Jsonable mixin by producing community JSON"""
     from intertwine.communities.models import Community
     from intertwine.geos.models import Geo
     from intertwine.problems.models import Problem
@@ -69,7 +69,7 @@ def test_jsonify(session, problem_name, org_name, geo_name, num_followers):
 ])
 def test_jsonify_depth2(session, problem_name, org_name, geo_name,
                         num_followers):
-    '''Tests jsonify by producing depth 2 community JSON'''
+    """Test jsonify by producing depth 2 community JSON"""
     from intertwine.communities.models import Community
     from intertwine.geos.models import Geo
     from intertwine.problems.models import Problem

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 Manages the execution of Intertwine's platform app
 
 Usage:
@@ -13,7 +13,7 @@ Options:
     -p --port PORT      Set port [default: 5000]
     -c --config CONFIG  Set config [default: demo] (options: dev, demo, local)
     -r --rebuild        Rebuilds local database
-'''
+"""
 from __future__ import print_function
 
 import os

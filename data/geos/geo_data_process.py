@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''Loads geo data into Intertwine'''
+"""Loads geo data into Intertwine"""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -37,7 +37,7 @@ invalid_cousub_name = Cousub.invalid_name_pattern.search
 
 
 def define_record(name, *fields):
-    '''
+    """
     Obtain namedtuple class and SQLAlchemy columns given name and fields
 
     I/O:
@@ -49,7 +49,7 @@ def define_record(name, *fields):
     Each namedtuple field takes this form: <classname>_<column_name>
 
     Example: 'County.aland_sqmi' is mapped to 'county_aland_sqmi'
-    '''
+    """
     if len(fields) == 1 and ',' in fields[0]:
         fields = fields[0].split(',')
 
@@ -67,7 +67,7 @@ def define_record(name, *fields):
 
 
 def find_non_place_cousubs(geo=None, include_all=False):
-    '''Utility to find non-place cousubs'''
+    """Utility to find non-place cousubs"""
     geos = []
 
     prior_state = prior_county = None
@@ -130,7 +130,7 @@ def find_non_place_cousubs(geo=None, include_all=False):
 
 
 def load_geos(geo_session, session):
-    '''Load geos for the US'''
+    """Load geos for the US"""
     load_country_geos(geo_session, session)
     load_subdivision1_geos(geo_session, session)
     load_subdivision2_geos(geo_session, session)
@@ -143,7 +143,7 @@ def load_geos(geo_session, session):
 
 
 def load_country_geos(geo_session, session):
-    '''Load COUNTRY geos - US and USA alias'''
+    """Load COUNTRY geos - US and USA alias"""
     us = Geo(name='United States', abbrev='U.S.')
     Geo(name='United States of America', abbrev='U.S.A.', alias_targets=[us])
     GeoData(geo=us,
@@ -163,14 +163,14 @@ def load_country_geos(geo_session, session):
 
 
 def load_subdivision1_geos(geo_session, session, sub1keys=None):
-    '''Load SUBDIVISION1 geos'''
+    """Load SUBDIVISION1 geos"""
     load_states(geo_session, session, sub1keys)
     load_territories(geo_session, session, sub1keys)
     update_us_data()
 
 
 def load_states(geo_session, session, sub1keys=None):
-    '''Load U.S. states plus DC and Puerto Rico'''
+    """Load U.S. states plus DC and Puerto Rico"""
     base_query = (
         geo_session.query(GHRP).filter(GHRP.sumlev == '040',
                                        GHRP.geocomp == '00'))
@@ -215,12 +215,12 @@ def load_states(geo_session, session, sub1keys=None):
 
 
 def load_territories(geo_session, session, sub1keys=None):
-    '''
+    """
     Load U.S. territories, except for Puerto Rico
     Sources:
     www.census.gov/newsroom/releases/archives/2010_census/cb13-tps62.html
     www2.census.gov/geo/docs/reference/state.txt
-    '''
+    """
     TerritoryDataRecord = namedtuple(
         'TerritoryDataRecord',
         'fips, ansi, total_pop, urban_pop, latitude, longitude, '
@@ -265,7 +265,7 @@ def load_territories(geo_session, session, sub1keys=None):
 
 
 def update_us_data():
-    '''Update US population and area values based on subdivision1 values'''
+    """Update US population and area values based on subdivision1 values"""
     us = Geo['us']
     children = us.children.all()
     us.data.total_pop = sum((c.data.total_pop for c in children if c.data))
@@ -275,13 +275,13 @@ def update_us_data():
 
 
 def load_subdivision2_geos(geo_session, session, sub1keys=None):
-    '''Load SUBDIVISION2 geos'''
+    """Load SUBDIVISION2 geos"""
     load_state_counties(geo_session, session, sub1keys)
     load_territory_counties(geo_session, session, sub1keys)
 
 
 def load_state_counties(geo_session, session, sub1keys=None):
-    '''Load county geos in states, DC, and Puerto Rico'''
+    """Load county geos in states, DC, and Puerto Rico"""
     CountyRecord, columns = define_record(
         'CountyRecord',
         'GHRP.name, GHRP.lsadc, GHRP.statefp, '
@@ -377,7 +377,7 @@ def load_state_counties(geo_session, session, sub1keys=None):
 
 
 def load_territory_counties(geo_session, session, sub1keys=None):
-    '''Load counties in U.S. territories, except for Puerto Rico'''
+    """Load counties in U.S. territories, except for Puerto Rico"""
     TerritoryCountyDataRecord = namedtuple(
         'TerritoryCountyDataRecord',
         'fips, ansi, stusps, lsad_code, full_name')
@@ -483,7 +483,7 @@ def load_territory_counties(geo_session, session, sub1keys=None):
 
 
 def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
-    '''
+    """
     Load SUBDIVISION3 geos
 
     Create SUBDIVISION3 geo for each valid county subdivision (cousub).
@@ -497,7 +497,7 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
     session: sqlalchemy session for Intertwine database
     sub1keys=None: sequence of state abbrevs to scope the data load
     sub2keys=None: sequence of county fips ids to scope the data load
-    '''
+    """
     CousubRecord, columns = define_record(
         'CousubRecord', 'GHRP.name, GHRP.lsadc, GHRP.statefp, '
         'GHRP.countyid, GHRP.countyns, '
@@ -1219,7 +1219,7 @@ def add_level_and_rename(geo, level, designation, geoids, name, lsad,
 
 
 def resolve_geo_conflict(geo_conflict, geo, lsad, state):
-    '''
+    """
     Resolve geo conflict
 
     The geo conflict is not an alias, so resolve it by giving it an
@@ -1234,7 +1234,7 @@ def resolve_geo_conflict(geo_conflict, geo, lsad, state):
     geo: new geo with temporary path until conflict resolved
     lsad: LSAD for the new geo
     state: state geo in which geo resides
-    '''
+    """
     target_geos = geo.alias_targets if geo.alias_targets else (geo,)
     geo_conflict_qualifier = get_primary_designation(geo_conflict, state)
 
@@ -1359,7 +1359,7 @@ def resolve_geo_conflict(geo_conflict, geo, lsad, state):
 
 def create_place_from_cousub(cousub, county=None, state=None, lsad=None,
                              designation=None, ansi=None, tracker=None):
-    '''
+    """
     Create place from county subdivision (cousub)
 
     Create place and aliases for resolving conflicts from cousub. The
@@ -1371,7 +1371,7 @@ def create_place_from_cousub(cousub, county=None, state=None, lsad=None,
     county=None: county geo that is path parent of the cousub
     state=None: state geo that is path parent of the county
     lsad=None: LSAD for the cousub
-    '''
+    """
     name = cousub.name
     county = county or cousub.get_related_geos(
                     relation=PARENTS, level=SUBDIVISION2)[0]
@@ -1846,7 +1846,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
 
 
 def load_manual_fixes(geo_session, session):
-    '''Load manual fixes'''
+    """Load manual fixes"""
     # TODO: Add verbose state aliases, prevent us/washington DC alias,
     # and create new us/dc/washington
     wdc = Geo.tget('us/washington')

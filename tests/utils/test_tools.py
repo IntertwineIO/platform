@@ -35,13 +35,13 @@ def type_annotated_fn(
         param_CrosswalkSignal=None,     # type: CrosswalkSignal
         param_TrafficSignal=None):      # type: TrafficSignal
         # type: (...) -> None  # Ignore return annotation
-    '''Type Annotated Function is just used for testing'''
+    """Type Annotated Function is just used for testing"""
     pass
 
 
 @pytest.mark.unit
 def test_derive_arg_types(session):
-    '''Test Derive Kwarg Types'''
+    """Test Derive Kwarg Types"""
     from intertwine.utils.tools import (ANNOTATION_TYPE_MAP,
                                         derive_arg_types, gethalffullargspec)
 
@@ -66,7 +66,7 @@ def test_derive_arg_types(session):
 @pytest.mark.unit
 @pytest.mark.parametrize('EnumType', (CrosswalkSignal, TrafficSignal))
 def test_enumify(session, EnumType):
-    '''Test Enumify via Enum and IntEnum on name, value, int(value)'''
+    """Test Enumify via Enum and IntEnum on name, value, int(value)"""
     from intertwine.utils.tools import enumify
 
     for signal in EnumType:
@@ -93,7 +93,7 @@ def test_enumify(session, EnumType):
     ('Homelessness', None, 'Waxahachie', None),
 ])
 def test_vardygrify(session, problem_name, org_name, geo_name, num_followers):
-    '''Test vardygrify by comparing vardygr and real communities'''
+    """Test vardygrify by comparing vardygr and real communities"""
     from intertwine.communities.models import Community
     from intertwine.geos.models import Geo
     from intertwine.problems.models import Problem

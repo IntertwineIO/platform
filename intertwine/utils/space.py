@@ -29,7 +29,7 @@ class Coordinate(QuantizedDecimal):
 
 
 class GeoLocation(object):
-    '''
+    """
     GeoLocation
 
     A utility class for working with coordinates (latitude & longitude).
@@ -50,7 +50,7 @@ class GeoLocation(object):
       that successive calls will accumulate rounding errors.
     - combine_coordinates() uses Coordinates namedtuples of Decimals,
       so it is safe to use in successive calls.
-    '''
+    """
     LATITUDE = 'latitude'
     LONGITUDE = 'longitude'
     COORDINATES = (LATITUDE, LONGITUDE)
@@ -79,53 +79,53 @@ class GeoLocation(object):
 
     @property
     def latitude(self):
-        '''Return latitude, a Coordinate'''
+        """Return latitude, a Coordinate"""
         return self._latitude
 
     @latitude.setter
     def latitude(self, value):
-        '''Cast value to Coordinate and set as latitude'''
+        """Cast value to Coordinate and set as latitude"""
         self._latitude = Coordinate.cast(value)
 
     @property
     def longitude(self):
-        '''Return longitude, a Coordinate'''
+        """Return longitude, a Coordinate"""
         return self._longitude
 
     @longitude.setter
     def longitude(self, value):
-        '''Cast value to Coordinate and set as longitude'''
+        """Cast value to Coordinate and set as longitude"""
         self._longitude = Coordinate.cast(value)
 
     @property
     def coordinates(self):
-        '''Return Coordinates namedtuple of latitude/longitude'''
+        """Return Coordinates namedtuple of latitude/longitude"""
         return self.Coordinates(self.latitude, self.longitude)
 
     @coordinates.setter
     def coordinates(self, values):
-        '''Set latitude/longitude given an iterable of numbers'''
+        """Set latitude/longitude given an iterable of numbers"""
         self.latitude, self.longitude = values  # Invoke setters
 
     @property
     def values(self):
-        '''Return Coordinates namedtuple of latitude/longitude values'''
+        """Return Coordinates namedtuple of latitude/longitude values"""
         return self.Coordinates(self.latitude.value, self.longitude.value)
 
     def dequantize(self):
-        '''Return Coordinates namedtuple of dequantized latitude/longitude'''
+        """Return Coordinates namedtuple of dequantized latitude/longitude"""
         return self.Coordinates(
             self.latitude.dequantize(), self.longitude.dequantize())
 
     @classmethod
     def requantize(cls, latitude, longitude):
-        '''Return Coordinates namedtuple of requantized latitude/longitude'''
+        """Return Coordinates namedtuple of requantized latitude/longitude"""
         return cls.Coordinates(
             Coordinate.requantize(latitude), Coordinate.requantize(longitude))
 
     @classmethod
     def combine_locations(cls, *weighted_locations):
-        '''
+        """
         Combine locations and associated weights
 
         GeoLocations are accepted and returned as a convenience. Note
@@ -138,7 +138,7 @@ class GeoLocation(object):
             corresponding areas that can be cast to Decimals
 
         return: combined GeoLocation
-        '''
+        """
         weighted_coordinates = (
             (geo_location.values, weight)
             for geo_location, weight in weighted_locations)
@@ -147,7 +147,7 @@ class GeoLocation(object):
 
     @classmethod
     def combine_coordinates(cls, *weighted_coordinates):
-        '''
+        """
         Combine (Decimal) coordinates and associated weights
 
         Tuples of Decimals are accepted and returned, so successive
@@ -160,7 +160,7 @@ class GeoLocation(object):
             are corresponding areas that can be cast to Decimals
 
         return: Coordinates namedtuple of combined latitude/longitude
-        '''
+        """
         total_latitude = total_longitude = total_weight = 0
 
         for coordinate_values, weight in weighted_coordinates:
@@ -178,7 +178,7 @@ class GeoLocation(object):
 
     @classmethod
     def cast(cls, value):
-        '''Cast to GeoLocation, if not already one (i.e. if an iterable)'''
+        """Cast to GeoLocation, if not already one (i.e. if an iterable)"""
         return value if isinstance(value, cls) else cls(*value)
 
     def __init__(self, latitude, longitude, requantize=False):

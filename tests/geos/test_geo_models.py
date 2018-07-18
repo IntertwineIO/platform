@@ -8,7 +8,7 @@ import pytest
     ('Parent Test Republic', 'PTR', 'Child Test Geo'),
 ])
 def test_geo_model_create(session, parent_name, parent_abbrev, child_name):
-    '''Tests simple geo model interaction'''
+    """Test simple geo model interaction"""
     from intertwine.geos.models import Geo
 
     parent = Geo(name=parent_name, abbrev=parent_abbrev)
@@ -59,7 +59,7 @@ def test_geo_model_create(session, parent_name, parent_abbrev, child_name):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_geo_data_model(session):
-    '''Tests simple geo data model interaction'''
+    """Test simple geo data model interaction"""
     from intertwine.geos.models import Geo, GeoData
 
     total_pop, urban_pop = 1000, 800
@@ -102,7 +102,7 @@ def test_geo_data_model(session):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_geo_level_model(session):
-    '''Tests simple geo level model interaction'''
+    """Test simple geo level model interaction"""
     from intertwine.geos.models import Geo, GeoLevel
 
     level = 'place'
@@ -133,7 +133,7 @@ def test_geo_level_model(session):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_geo_id_model(session):
-    '''Tests simple geo id model interaction'''
+    """Test simple geo id model interaction"""
     from intertwine.geos.models import Geo, GeoLevel, GeoID
 
     TEST_STANDARD = 'Test Standard'
@@ -170,7 +170,7 @@ def test_geo_id_model(session):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_form_aggregate_geo(session):
-    '''Tests geo creation that aggregates children data at a geo level'''
+    """Test geo creation that aggregates children data at a geo level"""
     from intertwine.geos.models import Geo, GeoData, GeoLevel
     from intertwine.utils.space import GeoLocation
 
@@ -263,7 +263,7 @@ def test_form_aggregate_geo(session):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_geo_aliases(session):
-    '''Tests creation of geo aliases and promoting an alias'''
+    """Test creation of geo aliases and promoting an alias"""
     from intertwine.geos.models import Geo, GeoData, GeoLevel
 
     geo_data_dict = {'total_pop': 100,

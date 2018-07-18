@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 Loads user data into python
 
 Usage:
@@ -10,7 +10,7 @@ Options:
     -v --verbose          More messages
     -q --quiet            Fewer messages
     -x --exclude PATTERN  Exclude files from being processed
-'''
+"""
 from fnmatch import fnmatch as fn
 import os
 
@@ -26,9 +26,11 @@ app = create_app(config=DevConfig)
 
 
 def read_data(path, exclude=None):
-    '''Reads a file or a folder and then returns the python object
-    based on the files found.  Exclude pattern can remove a set of files
-    from processing.'''
+    """
+    Reads a file or folder and return the python object based on the
+    files found.  Exclude pattern can remove a set of files from
+    processing.
+    """
     data = {}
     if os.path.exists(path):
         if os.path.isdir(path):

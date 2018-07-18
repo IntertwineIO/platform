@@ -20,18 +20,18 @@ from .models import Community
 
 @blueprint.errorhandler(InterfaceException)
 def handle_interface_exception(error):
-    '''
+    """
     Handle Interface Exception
 
     Intercept the error and return a response consisting of the status
     code and a JSON representation of the error.
-    '''
+    """
     return make_response(jsonify(error.jsonify()), error.status_code)
 
 
 @blueprint.route('/', methods=['GET'])
 def render():
-    '''Generic page rendering for top level'''
+    """Generic page rendering for top level"""
     communities = Community.query.all()
     template = render_template(
         'communities.html',
@@ -101,7 +101,7 @@ def get_global_community(problem_huid):
 
 @blueprint.route('/<problem_huid>/<path:geo_huid>', methods=['GET'])
 def get_community(problem_huid, geo_huid):
-    '''Community Page'''
+    """Community Page"""
     # TODO: add org to URL or query string
     org_huid = None
     if json_requested():
@@ -111,13 +111,13 @@ def get_community(problem_huid, geo_huid):
 
 
 def get_community_json(problem_huid, org_huid, geo_huid):
-    '''
+    """
     Get Community JSON
 
     Usage:
     curl -H 'accept:application/json' -X GET \
     'http://localhost:5000/communities/homelessness/us/tx/austin'
-    '''
+    """
     json_kwargs = dict(Community.objectify_json_kwargs(request.args))
 
     try:

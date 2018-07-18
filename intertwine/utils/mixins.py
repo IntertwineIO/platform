@@ -14,25 +14,25 @@ from .tools import camelCaseTo_snake_case
 
 
 class AutoIdMixin(object):
-    '''Automatically creates a primary id key'''
+    """Automatically create primary id key"""
     id = Column(types.Integer, primary_key=True)
     # Ensure id is first field when jsonified
     jsonified_id = JsonProperty(name='id', begin=True)
 
 
 class AutoTablenameMixin(object):
-    '''Autogenerates table name'''
+    """Autogenerate table name"""
     @declared_attr
     def __tablename__(cls):
         return camelCaseTo_snake_case(cls.__name__)
 
 
 class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
-    '''Standardizes automatic tables'''
+    """Standardize automatic tables"""
 
 
 class AutoTimestampMixin(object):
-    '''Automatically save timestamps on create and update'''
+    """Automatically save timestamps on create and update"""
     tz = pendulum.timezone('UTC')
 
     _created_timestamp = Column(types.DateTime(), server_default=func.now())
@@ -67,7 +67,7 @@ class AutoTimestampMixin(object):
 
 
 class KeyedUp(object):
-    '''KeyedUp mixin for caching with multiple distinct field keys'''
+    """KeyedUp mixin for caching with multiple distinct field keys"""
 
     # Override with fields to be used by KeyedUp
     KEYED_UP_FIELDS = NotImplemented

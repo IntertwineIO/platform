@@ -9,7 +9,7 @@ PROBLEM_DATA_DIRECTORY = os.path.join(PROJECT_ROOT, 'data/problems')
 
 
 def create_geo_data(session):
-    '''Util to create geos referenced in problem JSON'''
+    """Util to create geos referenced in problem JSON"""
     from intertwine.geos.models import Geo
 
     assert Geo.query.all() == []
@@ -25,7 +25,7 @@ def create_geo_data(session):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_decode_problem(session):
-    '''Test decoding a standard problem'''
+    """Test decoding a standard problem"""
     from intertwine.problems.models import Problem
     from data.data_process import decode
 
@@ -55,7 +55,7 @@ def test_decode_problem(session):
 @pytest.mark.smoke
 # @pytest.mark.xfail(reason='python3 unicode issue')
 def test_decode_problem_connection(session):
-    '''Tests decoding a standard problem connection'''
+    """Test decoding a standard problem connection"""
     from intertwine.problems.models import Problem, ProblemConnection
     from data.data_process import decode
 
@@ -89,7 +89,7 @@ def test_decode_problem_connection(session):
 @pytest.mark.smoke
 # @pytest.mark.xfail(reason='python3 unicode issue')
 def test_decode_problem_connection_rating(session):
-    '''Tests decoding ratings on a single problem connection'''
+    """Test decoding ratings on a single problem connection"""
     from intertwine.problems.models import (Problem, ProblemConnection,
                                             ProblemConnectionRating)
     from data.data_process import decode
@@ -120,7 +120,7 @@ def test_decode_problem_connection_rating(session):
 @pytest.mark.smoke
 # @pytest.mark.xfail(reason='python3 unicode issue')
 def test_incremental_decode(session):
-    '''Tests decoding multiple files incrementally'''
+    """Test decoding multiple files incrementally"""
     from intertwine.trackable import Trackable
     from intertwine.geos.models import Geo
     from intertwine.problems.models import (Problem, ProblemConnection,
@@ -209,7 +209,7 @@ def test_incremental_decode(session):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_decode_same_data(session):
-    '''Tests decoding incrementally'''
+    """Test decoding incrementally"""
     from intertwine.trackable import Trackable
     from intertwine.problems.models import Problem
     from data.data_process import decode

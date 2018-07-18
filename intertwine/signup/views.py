@@ -9,7 +9,7 @@ from . import blueprint
 
 @blueprint.route('/', methods=['GET'])
 def render():
-    '''Generic page rendering for top level'''
+    """Generic page rendering for top level"""
     template = render_template(
         'sign-up.html',
         current_app=flask.current_app,

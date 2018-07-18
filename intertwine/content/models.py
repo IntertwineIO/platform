@@ -22,9 +22,9 @@ BaseContentModel = IntertwineModel
 
 
 class Content(AutoTimestampMixin, BaseContentModel):
-    '''
+    """
     Content
-    '''
+    """
     URI_TYPE = UriType.PRIMARY
 
     _title = Column(types.String(512))
@@ -59,7 +59,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
     @classmethod
     def create_key(cls, title, author_names, publication, published_timestamp,
                    **kwds):
-        '''Create Content key'''
+        """Create Content key"""
         lowered_title = title.lower()
         normalized_authors = cls.normalize_author_names(author_names)
         flex_dt = FlexTime.cast(published_timestamp)
@@ -67,7 +67,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
         return cls.Key(lowered_title, normalized_authors, publication, dt_utc)
 
     def derive_key(self, **kwds):
-        '''Derive Content key from instance'''
+        """Derive Content key from instance"""
         return self.model_class.Key(
             self.title.lower(), self.author_names, self.publication,
             self.published_timestamp.astimezone(UTC).deflex(native=True))
@@ -184,7 +184,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
 
     @published_timestamp.setter
     def published_timestamp(self, val):
-        '''Set published timestamp given FlexTime datetime or TimestampInfo'''
+        """Set published timestamp given FlexTime datetime or TimestampInfo"""
         self.set_published_timestamp_info(val)
 
     published_timestamp = orm.synonym('_published_timestamp',
@@ -206,14 +206,14 @@ class Content(AutoTimestampMixin, BaseContentModel):
 
     @property
     def published_timestamp_info(self):
-        '''Get publication datetime info namedtuple'''
+        """Get publication datetime info namedtuple"""
         return self.published_timestamp.info
 
     jsonified_published_timestamp_info = JsonProperty(
         name='published_timestamp_info', after='tzinfo_published')
 
     def set_published_timestamp_info(self, dt, granularity=None, geo=None):
-        '''
+        """
         Set publication timestamp info
 
         Set all fields related to published timestamp. This is the only
@@ -228,7 +228,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
         dt: FlexTime or regular datetime instance or DatetimeInfo tuple
         granularity=None: FlexTime granularity or associated int value
         geo=None: geo where the content was originally published
-        '''
+        """
 
         # TODO: if geo and dt is naive, set timezone based on geo
 

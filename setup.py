@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 Platform: Intertwine.io's website
 
 Untangle the world's problems
@@ -9,7 +9,7 @@ Created by Intertwine
 Copyright (c) 2015-2018
 
 License:  Proprietary.
-'''
+"""
 from __future__ import unicode_literals
 
 import datetime
@@ -22,7 +22,8 @@ from setuptools import find_packages, setup
 
 
 def setup_project():
-    '''Sets up project as needed.
+    """
+    Set up project as needed.
 
     This function should be manually updated as needed.  Placed at the
     top of the file for better grokking.
@@ -31,11 +32,11 @@ def setup_project():
 
         $ pip install .[all]
 
-    Returns:
+    Return:
         package_requires(list): List of required packages
         links(list): list of private package links
         classifiers(list): standard python package classifiers
-    '''
+    """
     # Whatever dependencies package requires
     package_requires = [
         'alchy==2.2.2',  # was 2.0.1
@@ -65,16 +66,17 @@ def setup_project():
 # Generally, only edit above this line
 # ----------------------------------------------------------------------
 def get_package_metadata(project_name=None):
-    '''Captures metadata information for package
+    """
+    Capture metadata information for package
 
     Providing the project name will reduce the search/install time.
 
     Args:
         project_name: top project folder and project name
 
-    Returns:
+    Return:
         dict: package metdata
-    '''
+    """
     top_folder = os.path.abspath(os.path.dirname(__file__))
     required_fields = ['version', 'license', 'url', 'description', 'project']
     metadata = {}
@@ -111,13 +113,14 @@ def get_package_metadata(project_name=None):
 
 
 def get_package_requirements(package_requires, required=None):
-    '''Convenience function to wrap package_requires
+    """
+    Convenience function to wrap package_requires
 
     Args:
         required(list): list of required packages to run
-    Returns:
+    Return:
         dict: A better format of requirements
-    '''
+    """
     required = package_requires if not required else required
     requirements = {
         # Debug probably is only necessary for development environments
@@ -209,14 +212,15 @@ def get_package_requirements(package_requires, required=None):
 
 
 def get_sass_manifests(metadata):
-    '''Sets up static sass conversion on an install.
+    """
+    Set up static sass conversion on an install.
 
     Args:
         metadata(dict): project metadata
 
-    Returns:
+    Return:
         dict: sass locations for project
-    '''
+    """
     SassPath = namedtuple('SassPath', ('sass', 'css', 'endpoint'))
     project_name = metadata['project']
     project_folder = os.path.abspath(os.path.dirname(__file__))
@@ -253,17 +257,18 @@ def get_sass_manifests(metadata):
 
 
 def get_console_scripts(metadata):
-    '''Convenience function to wrap console scripts.
+    """
+    Convenience function to wrap console scripts.
 
-    Expects that all command-line scripts are found within the
+    Expects all command-line scripts to be found within the
     __main__.py file and that they are functions.
 
     Args:
         metadata(dict): project metadata
 
-    Returns:
+    Return:
         list: scripts listed in format required by setup
-    '''
+    """
     scripts = []
     project_name = metadata['project']
     project_folder = os.path.abspath(os.path.dirname(__file__))
@@ -282,7 +287,7 @@ def get_console_scripts(metadata):
 
 
 def main():
-    '''Sets up the package'''
+    """Set up the package"""
     metadata = get_package_metadata()
     package_requires = setup_project()
     requirements = get_package_requirements(package_requires=package_requires)

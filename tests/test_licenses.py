@@ -11,10 +11,10 @@ from tests.decorators import license
 @license
 @pytest.mark.license
 def test_licenses(**options):
-    '''
+    """
     Checks for licenses minus those that have been identified to
     be ignored.
-    '''
+    """
     meta_files_to_check = ['METADATA', 'PKG-INFO']
 
     known_ignores = [

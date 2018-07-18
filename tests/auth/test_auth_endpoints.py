@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_auth_admin_(options):
-    '''Tests auth'''
+    """Test auth"""
     from intertwine import create_app
 
     config = options['config']
@@ -34,7 +34,7 @@ def test_auth_admin_(options):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_auth_table_generation(options):
-    '''Tests decoding incrementally'''
+    """Test decoding incrementally"""
     import os
     from intertwine import create_app
 

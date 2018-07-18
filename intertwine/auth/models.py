@@ -22,7 +22,7 @@ roles_users = Table(
 
 
 class Role(AutoTableMixin, RoleMixin, BaseAuthModel):
-    '''Allows users to have different roles'''
+    """Allows users to have different roles"""
 
     __tablename__ = 'roles'
 
@@ -44,7 +44,7 @@ class Role(AutoTableMixin, RoleMixin, BaseAuthModel):
 
 
 class User(AutoTableMixin, UserMixin, BaseAuthModel):
-    '''Basic user model'''
+    """Basic user model"""
 
     __tablename__ = 'users'
 

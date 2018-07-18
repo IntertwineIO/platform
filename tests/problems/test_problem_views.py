@@ -22,7 +22,7 @@ U_LITERAL = 'u' if sys.version_info < (3,) else ''
     for is_real_community in (True, False)])
 def test_add_rated_problem_connection(session, client, connection_category,
                                       is_real_community):
-    '''Tests aggregate problem connection rating model interaction'''
+    """Tests aggregate problem connection rating model interaction"""
     import json
 
     # from intertwine.communities.models import Community

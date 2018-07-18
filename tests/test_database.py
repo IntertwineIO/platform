@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_app_created(options):
-    '''Tests that a working app is created'''
+    """Test that a working app is created"""
     import flask
     from intertwine import create_app
 
@@ -26,7 +26,7 @@ def test_app_created(options):
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_database_created(options):
-    '''Tests that database is created'''
+    """Test that database is created"""
     import os
     from intertwine import create_app
 
