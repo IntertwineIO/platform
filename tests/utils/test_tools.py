@@ -5,7 +5,12 @@ from __future__ import (absolute_import, division, print_function,
 
 import json
 import pytest
+from collections import OrderedDict, namedtuple
+from decimal import Decimal
 from enum import Enum, IntEnum
+from past.builtins import basestring
+
+MyNamedTuple = namedtuple('MyNamedTuple', 'first second third')
 
 
 class CrosswalkSignal(Enum):
@@ -79,6 +84,62 @@ def test_enumify(session, EnumType):
         with pytest.raises(ValueError) as e_info:
             enumify(EnumType, value)
         assert EnumType.__name__ in str(e_info)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize('limit', (-1, 3, 10))
+def test_stringify(session, limit):
+    from intertwine.utils.duck_typing import isiterable
+    from intertwine.utils.tools import stringify
+    from intertwine.utils.structures import PeekableIterator
+
+    ord_a = ord('a')
+    my_data_structure = OrderedDict(
+        my_integer=42,
+        my_float=3.14159,
+        my_decimal=Decimal('2.718281828'),
+        my_string='stringy',
+        my_enum=TrafficSignal['RED'],
+        my_named_tuple=MyNamedTuple('alpha', 'beta', 'gamma'),
+        short_plain_tuple=('un', 'deux', 'trois'),
+        long_plain_tuple=tuple((f'letter {chr(ord_a + i)}' for i in range(26))),
+        short_ordered_dict=OrderedDict(a='apple', b='banana', c='cantaloupe'),
+        long_ordered_dict=OrderedDict((f'key {chr(ord_a + i)}', f'value {i + 1}')
+                                      for i in range(26)),
+    )
+
+    stringified = stringify(my_data_structure, limit)
+    remaining = stringified
+    items = PeekableIterator(my_data_structure.items())
+
+    for key, value in items:
+        start = remaining.find(key) + len(key) + 1
+        if items.has_next():
+            next_key, _ = items.peek()
+            end = remaining.find(next_key)
+        else:
+            end = len(remaining)
+
+        stringified_value = remaining[start:end]
+        standardized_value = value._asdict() if hasattr(value, '_asdict') else value
+
+        if hasattr(standardized_value, 'items'):
+            for k, v in standardized_value.items():
+                assert str(k) in stringified_value
+                assert str(v) in stringified_value
+        elif (isiterable(standardized_value) and
+                not isinstance(standardized_value, basestring)):
+            standardized_length = len(standardized_value)
+            length = standardized_length if limit < 0 else min(limit, standardized_length)
+            for i, v in enumerate(standardized_value):
+                if i < length:
+                    assert str(v) in stringified_value
+                else:
+                    assert str(v) not in stringified_value
+        else:
+            assert str(standardized_value) in stringified_value
+
+        remaining = remaining[end:]
 
 
 @pytest.mark.unit

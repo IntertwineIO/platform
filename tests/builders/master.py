@@ -15,6 +15,7 @@ import pendulum
 from faker import Faker
 
 from intertwine import IntertwineModel
+from intertwine.utils.debug import sync_debug
 from intertwine.utils.tools import derive_args
 
 if sys.version_info < (3,):
@@ -55,6 +56,7 @@ class Builder(object):
 
     _builder_count = 0
 
+    @sync_debug()
     def build(self, _query_on_miss=False, _stack=None, **kwds):
 
         self.instance_id = self._instance_count
@@ -85,6 +87,7 @@ class Builder(object):
             _query_on_miss=_query_on_miss, _save=False, **self.model_init_kwds)
         return inst
 
+    @sync_debug()
     @classmethod
     def get_model_map(cls):
         """Build model map from configured SQLAlchemy declarative base"""
@@ -97,6 +100,7 @@ class Builder(object):
                               if hasattr(model, '__table__')}
             return cls._model_map
 
+    @sync_debug()
     @classmethod
     def get_model(cls, name=None):
         """Get specified model or builder-implied model from model map"""
@@ -109,6 +113,7 @@ class Builder(object):
                 raise TypeError('Base {cls} has no model'.format(cls=cls))
             raise TypeError('No model found for {name}'.format(name=name))
 
+    @sync_debug()
     @classmethod
     def get_builder(cls, name):
         """Get specified builder by name from subclasses"""
@@ -122,6 +127,7 @@ class Builder(object):
                 b.__name__: b for b in Builder.__subclasses__()}
         return builder_map[name]
 
+    @sync_debug()
     @classmethod
     def get_model_builder(cls, model):
         """Get builder class for given model"""
@@ -132,6 +138,7 @@ class Builder(object):
         except KeyError:
             return cls
 
+    @sync_debug()
     def get_field_builder(self, field_name, **kwds):
         """Get specified field builder by field name or default"""
         build_field_name = '_'.join((self.BUILD_FIELD_TAG, field_name))
@@ -140,6 +147,7 @@ class Builder(object):
             field_builder = self.get_default_field_builder(field_name, **kwds)
         return field_builder
 
+    @sync_debug()
     def get_default_field_builder(self, field_name, **kwds):
         """Get default field/model builder from specified field type"""
         model = self.model
@@ -160,10 +168,12 @@ class Builder(object):
             build_default_type = getattr(self, build_default_type_name)
             return partial(build_default_type, field_type=field_type, **kwds)
 
+    @sync_debug()
     def default_boolean(self, field_type, **kwds):
         """Default random boolean value"""
         return bool(self.random.randint(0, 1))
 
+    @sync_debug()
     def default_datetime(self, field_type, **kwds):
         """Default random datetime value"""
         now = datetime.datetime.utcnow()
@@ -177,6 +187,7 @@ class Builder(object):
         local_dt = local_tz.convert(utc_dt)
         return local_dt
 
+    @sync_debug()
     def default_float(self, field_type, **kwds):
         """Default random float value"""
         maxsize = sys.maxsize
@@ -185,10 +196,12 @@ class Builder(object):
         divisor = 10 ** divisor_power
         return self.random.randint(-maxsize - 1, maxsize) / divisor
 
+    @sync_debug()
     def default_integer(self, field_type, **kwds):
         """Default random integer value"""
         return self.random.randint(-sys.maxsize - 1, sys.maxsize)
 
+    @sync_debug()
     def default_string(self, field_type, **kwds):
         """Default random string value"""
         field_length = field_type.length
@@ -203,6 +216,7 @@ class Builder(object):
         default_text = self.default_text(field_type, max_length=num_chars)
         return default_text[:field_length]
 
+    @sync_debug()
     def default_text(self, field_type, max_length=None, **kwds):
         """Default random text value"""
         num_words = self.random.randint(1, len(self.DEFAULT_WORDS))

@@ -56,7 +56,7 @@ def get_class(obj):
 def isiterator(obj):
     """Check if object is iterator (not just iterable)"""
     cls = obj.__class__
-    return hasattr(cls, '__iter__') and not hasattr(cls, '__len__')
+    return hasattr(cls, '__next__') and not hasattr(cls, '__len__')
 
 
 def isnamedtuple(obj):
@@ -64,11 +64,15 @@ def isnamedtuple(obj):
     return isinstance(obj, tuple) and hasattr(obj, '_asdict')
 
 
-def issequence(obj):
-    """Check if object is non-string sequence, e.g. list, tuple"""
-    cls = obj.__class__
-    return (hasattr(cls, '__iter__') and hasattr(cls, '__getitem__') and
-            not isinstance(obj, basestring) and not hasattr(obj, 'items'))
+def isnonstringsequence(obj):
+    """Check if object is a non-string sequence, e.g. list, tuple"""
+    if (isinstance(obj, basestring) or hasattr(obj, 'items') or not hasattr(obj, '__getitem__')):
+        return False
+    try:
+        iter(obj)
+        return True
+    except TypeError:
+        return False
 
 
 def merge_args(func, *args, **kwds):
