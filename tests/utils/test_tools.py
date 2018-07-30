@@ -45,7 +45,7 @@ def type_annotated_fn(
 
 
 @pytest.mark.unit
-def test_derive_arg_types(session):
+def test_derive_arg_types():
     """Test Derive Kwarg Types"""
     from intertwine.utils.tools import (ANNOTATION_TYPE_MAP,
                                         derive_arg_types, gethalffullargspec)
@@ -70,7 +70,7 @@ def test_derive_arg_types(session):
 
 @pytest.mark.unit
 @pytest.mark.parametrize('EnumType', (CrosswalkSignal, TrafficSignal))
-def test_enumify(session, EnumType):
+def test_enumify(EnumType):
     """Test Enumify via Enum and IntEnum on name, value, int(value)"""
     from intertwine.utils.tools import enumify
 
@@ -88,7 +88,7 @@ def test_enumify(session, EnumType):
 
 @pytest.mark.unit
 @pytest.mark.parametrize('limit', (-1, 3, 10))
-def test_stringify(session, limit):
+def test_stringify(limit):
     from intertwine.utils.duck_typing import isiterable
     from intertwine.utils.tools import stringify
     from intertwine.utils.structures import PeekableIterator

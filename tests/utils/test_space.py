@@ -48,7 +48,7 @@ def perform_core_quantized_interactions(cls, number):
     long(98765432109876543210),
     0
 ])
-def test_area_core_interactions(session, number):
+def test_area_core_interactions(number):
     """Test core Area interactions"""
     perform_core_quantized_interactions(Area, number)
 
@@ -61,7 +61,7 @@ def test_area_core_interactions(session, number):
     long(90),
     0
 ])
-def test_coordinate_core_interactions(session, number):
+def test_coordinate_core_interactions(number):
     """Test core Coordinate interactions"""
     perform_core_quantized_interactions(Coordinate, number)
 
@@ -70,7 +70,7 @@ def test_coordinate_core_interactions(session, number):
 @pytest.mark.parametrize(('number1', 'number2'), [
     ('2.718281828', '3.14159265359'),
 ])
-def test_geo_location_core_interactions(session, number1, number2):
+def test_geo_location_core_interactions(number1, number2):
     """Test core GeoLocation interactions"""
     coordinate1, coordinate2 = Coordinate(number1), Coordinate(number2)
     dequantized1 = coordinate1.dequantize()
@@ -115,8 +115,7 @@ def test_geo_location_core_interactions(session, number1, number2):
     [('12.3456789', '12.3456789', '37.1234567',
       '-98.7654321', '98.7654321', '21.1234567',
       '-98.7654321', '-12.3456789', '42.1234567')])
-def test_geo_location_combine(session, lat1, lon1, wt1, lat2, lon2, wt2,
-                              lat3, lon3, wt3):
+def test_geo_location_combine(lat1, lon1, wt1, lat2, lon2, wt2, lat3, lon3, wt3):
     """Test GeoLocation combine methods"""
     geo_location1 = GeoLocation(lat1, lon1)
     geo_location2 = GeoLocation(lat2, lon2)

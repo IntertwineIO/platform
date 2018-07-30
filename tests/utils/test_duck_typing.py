@@ -36,7 +36,7 @@ class CrosswalkSignal(Enum):
     (issequence,          0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0),
 ])
 def test_duck_type_checkers(
-    session, func, int_check, enum_check, enum_class_check, str_check,
+    func, int_check, enum_check, enum_class_check, str_check,
     list_check, tuple_check, namedtuple_check, dict_check, set_check,
     range_check, iterator_check, generator_check):
     """Test duck-type checker functions"""

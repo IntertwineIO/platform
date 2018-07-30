@@ -24,8 +24,7 @@ DAYLIGHT_SAVINGS_TIME_TUPLES = [
 @pytest.mark.unit
 @pytest.mark.parametrize('granularity', reversed(FlexTime.Granularity))
 @pytest.mark.parametrize('tzinfo', (None, UTC, 'US/Central'))
-def test_flex_time_now(
-        session, tzinfo, granularity):
+def test_flex_time_now(tzinfo, granularity):
     """Test now for FlexTime class"""
     gval = granularity.value
 
@@ -56,7 +55,7 @@ def test_flex_time_now(
     ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond',
         'tzinfo', 'fold'), NON_DAYLIGHT_SAVINGS_TIME_TUPLES)
 def test_flex_time_instantiation(
-        session, year, month, day, hour, minute, second, microsecond, tzinfo,
+        year, month, day, hour, minute, second, microsecond, tzinfo,
         fold, granularity):
     """Test core instantiation methods for FlexTime class"""
     full_dt_info = DateTimeInfo(
@@ -136,7 +135,7 @@ def test_flex_time_instantiation(
     ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond',
         'tzinfo', 'fold'), NON_DAYLIGHT_SAVINGS_TIME_TUPLES)
 def test_core_flex_time_interactions(
-        session, year, month, day, hour, minute, second, microsecond, tzinfo,
+        year, month, day, hour, minute, second, microsecond, tzinfo,
         fold, granularity):
     """Test core interactions for FlexTime class"""
     full_dt_info = DateTimeInfo(
@@ -183,7 +182,7 @@ def test_core_flex_time_interactions(
     ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond',
         'tzinfo', 'fold'), DAYLIGHT_SAVINGS_TIME_TUPLES)
 def test_flex_time_zone_changes(
-        session, year, month, day, hour, minute, second, microsecond, tzinfo,
+        year, month, day, hour, minute, second, microsecond, tzinfo,
         fold, granularity):
     """Test time zone changes for FlexTime class"""
     full_dt_info = DateTimeInfo(
