@@ -21,36 +21,43 @@ class CrosswalkSignal(Enum):
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    #          1              2               3          4
-    'func, int_check, enum_option_check, enum_check, str_check, '
-    #     5           6               7              8          9            10
-    'list_check, tuple_check, namedtuple_check, dict_check, set_check, generator_check', [
-    #                       1      2      3      4      5      6      7      8      9      10
-    (iscollection,        False, False, True,  False, True,  True,  True,  True,  True,  False),
-    (isiterable,          False, False, True,  True,  True,  True,  True,  True,  True,  True),
-    (isiterator,          False, False, False, False, False, False, False, False, False, True),
-    (isnamedtuple,        False, False, False, False, False, False, True,  False, False, False),
-    (isnonstringsequence, False, False, True,  False, True,  True,  True,  False, False, False),
-    (issequence,          False, False, True,  True,  True,  True,  True,  False, False, False),
+    #          1          2              3              4
+    'func, int_check, enum_check, enum_class_check, str_check, '
+    #     5           6               7              8          9
+    'list_check, tuple_check, namedtuple_check, dict_check, set_check, '
+    #     10            11               12
+    'range_check, iterator_check, generator_check', [
+    #                     1  2  3  4  5  6  7  8  9 10 11 12
+    (iscollection,        0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0),
+    (isiterable,          0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    (isiterator,          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1),
+    (isnamedtuple,        0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0),
+    (isnonstringsequence, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0),
+    (issequence,          0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0),
 ])
 def test_duck_type_checkers(
-    session, func, int_check, enum_option_check, enum_check, str_check,
-    list_check, tuple_check, namedtuple_check, dict_check, set_check, generator_check):
+    session, func, int_check, enum_check, enum_class_check, str_check,
+    list_check, tuple_check, namedtuple_check, dict_check, set_check,
+    range_check, iterator_check, generator_check):
     """Test duck-type checker functions"""
-    assert int_check is func(0)
-    assert int_check is func(42)
-    assert enum_option_check is func(CrosswalkSignal.WALK)
-    assert enum_check is func(CrosswalkSignal)
-    assert str_check is func('')
-    assert str_check is func('Holy Hand Grenade')
-    assert list_check is func([])
-    assert list_check is func([1, 2, 3])
-    assert tuple_check is func(())
-    assert tuple_check is func(('a', 'b', 'c'))
-    assert namedtuple_check is func(MyNamedTuple('alpha', 'beta', 'gamma'))
-    assert dict_check is func({})
-    assert dict_check is func({'a': 1, 'b': 2, 'c': 3})
-    assert set_check is func(set())
-    assert set_check is func({-1, 0, 1})
-    assert generator_check is func(x for x in range(0))
-    assert generator_check is func(x ** 2 for x in range(3))
+    assert bool(int_check) is func(0)
+    assert bool(int_check) is func(42)
+    assert bool(enum_check) is func(CrosswalkSignal.WALK)
+    assert bool(enum_class_check) is func(CrosswalkSignal)
+    assert bool(str_check) is func('')
+    assert bool(str_check) is func('Holy Hand Grenade')
+    assert bool(list_check) is func([])
+    assert bool(list_check) is func([1, 2, 3])
+    assert bool(tuple_check) is func(())
+    assert bool(tuple_check) is func(('a', 'b', 'c'))
+    assert bool(namedtuple_check) is func(MyNamedTuple('alpha', 'beta', 'gamma'))
+    assert bool(dict_check) is func({})
+    assert bool(dict_check) is func({'a': 1, 'b': 2, 'c': 3})
+    assert bool(set_check) is func(set())
+    assert bool(set_check) is func({-1, 0, 1})
+    assert bool(range_check) is func(range(0))
+    assert bool(range_check) is func(range(3))
+    assert bool(iterator_check) is func(iter(range(0)))
+    assert bool(iterator_check) is func(iter(range(3)))
+    assert bool(generator_check) is func(x for x in range(0))
+    assert bool(generator_check) is func(x ** 2 for x in range(3))
