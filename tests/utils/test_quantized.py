@@ -31,7 +31,7 @@ POW = 'pow(a, b)'
     42,
 ])
 @pytest.mark.parametrize('precision', [None, 0, 1, 7])
-def test_quantized_decimal_core_interactions(session, number, precision):
+def test_quantized_decimal_core_interactions(number, precision):
     """Test core quantized decimal interactions"""
     prec = (QuantizedDecimal.DEFAULT_PRECISION if precision is None
             else precision)
@@ -66,7 +66,7 @@ def test_quantized_decimal_core_interactions(session, number, precision):
     ('2.718281828', '3.14159265359'),
 ])
 @pytest.mark.parametrize('precision', [5])
-def test_quantized_decimal_comparisons(session, precision, number1, number2):
+def test_quantized_decimal_comparisons(precision, number1, number2):
     """Test quantized decimal comparisons"""
     qd1 = QuantizedDecimal(number1, precision)
     qd2 = QuantizedDecimal(number2, precision)
@@ -123,8 +123,7 @@ def stringify_operation(operator, *operands):
 @pytest.mark.parametrize(('number1', 'number2'),
                          [('34.21138532110', '1.01234567890')])
 @pytest.mark.parametrize('precision', [11])
-def test_quantized_decimal_binary_math(session, operator, number1, number2,
-                                       precision):
+def test_quantized_decimal_binary_math(operator, number1, number2, precision):
     """Test quantized decimal binary operations, including in-place"""
     qd1 = QuantizedDecimal(number1, precision)
     qd2 = QuantizedDecimal(number2, precision)
@@ -160,7 +159,7 @@ def test_quantized_decimal_binary_math(session, operator, number1, number2,
 @pytest.mark.parametrize('operator', [ABS, '+', '-'])
 @pytest.mark.parametrize('number', ['2.718281828'])
 @pytest.mark.parametrize('precision', [9])
-def test_quantized_decimal_unary_math(session, operator, number, precision):
+def test_quantized_decimal_unary_math(operator, number, precision):
     """Test quantized decimal unary operations"""
     qd1 = QuantizedDecimal(number, precision)
     assert qd1 == qd1.value
@@ -178,7 +177,7 @@ def test_quantized_decimal_unary_math(session, operator, number, precision):
 @pytest.mark.parametrize('operator', [COMPLEX, FLOAT, INT, LONG])
 @pytest.mark.parametrize('number', [2 ** 63 + 0.1234567])
 @pytest.mark.parametrize('precision', [7])
-def test_quantized_decimal_type_cast(session, operator, number, precision):
+def test_quantized_decimal_type_cast(operator, number, precision):
     """Test quantized decimal type casts"""
     qd1 = QuantizedDecimal(number, precision)
     assert qd1 == qd1.value

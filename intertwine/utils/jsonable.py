@@ -14,6 +14,7 @@ from itertools import chain, islice
 from math import floor
 from mock.mock import NonCallableMagicMock
 from operator import attrgetter, itemgetter
+from past.builtins import basestring
 
 import sqlalchemy
 from sqlalchemy import orm
@@ -21,9 +22,9 @@ from sqlalchemy.orm.descriptor_props import SynonymProperty as SP
 from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
+from .duck_typing import isiterable, isiterator
 from .structures import InsertableOrderedDict, PeekableIterator
-from .tools import (derive_defaults, derive_arg_types, enumify, get_class,
-                    isiterator, isiterable, stringify)
+from .tools import derive_defaults, derive_arg_types, enumify, get_class, stringify
 
 # Python version compatibilities
 if sys.version_info < (3,):
@@ -371,7 +372,7 @@ class Jsonable(object):
         if isinstance(value, NonCallableMagicMock):
             return None
 
-        if not isiterable(value) or value_is_class:
+        if not isiterable(value) or isinstance(value, basestring) or value_is_class:
             default = default or cls.ensure_json_safe
             return default(value)
 

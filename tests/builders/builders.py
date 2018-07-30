@@ -10,6 +10,7 @@ import sys
 import uuid
 from collections import OrderedDict
 
+from intertwine.utils.debug import sync_debug
 from intertwine.utils.space import Area, Coordinate, GeoLocation
 from intertwine.utils.tools import get_value
 from tests.builders.master import Builder
@@ -39,11 +40,21 @@ class ProblemBuilder(Builder):
         'Memory Loss',
     }
 
+    @sync_debug()
     def build_name(self, **kwds):
         include = self.include or self.NAMES
         exclude = self.exclude
         names = include - exclude
         return self.random.choice(tuple(names))
+
+    URLS = {
+        'http://harrypotter.wikia.com/wiki/Tom_Riddle',
+        'http://harrypotter.wikia.com/wiki/Dark_Arts',
+    }
+
+    @sync_debug()
+    def build_definition_url(self, **kwds):
+        return self.random.choice(tuple(self.URLS))
 
     def __init__(self, model=None, include=None, exclude=None, **kwds):
         super(ProblemBuilder, self).__init__(**kwds)
