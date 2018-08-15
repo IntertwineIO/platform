@@ -5,6 +5,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import sys
 from collections import Counter, OrderedDict, namedtuple
+from enum import IntEnum
 from operator import eq, attrgetter, itemgetter
 
 from .tools import nth_key
@@ -354,3 +355,136 @@ class Stack(list):
 
     def __init__(self, iterable=Sentinel.by_key('Stack')):
         super().__init__() if iterable is self.sentinel else super().__init__(iterable)
+
+
+class FieldPath(Stack):
+    """
+    Field path
+
+    Track traversal of related model instances (via their fields) to
+    generate all relevant paths.
+
+    The paths include the absolute path from the base model followed by
+    all relative paths anchored by the models given at initialization.
+    Paths are ordered from longest to shortest, so higher specificity
+    takes precedence over lower specificity.
+
+    Each value emitted is a 2-tuple in the form (model, path), where
+    model is the class anchoring the path.
+
+    Usage:
+
+    >>> fp = FieldPath(base=Child, models={Father, Mother})
+
+    >>> list(fp.paths)
+    [(__main__.Child, '.')]
+
+    >>> fp.push('dad', Father)
+
+    >>> list(fp.paths)
+    [(__main__.Child, '.dad'), (__main__.Father, '.')]
+
+    >>> fp.push('wife', Mother)
+
+    >>> list(fp.paths)
+    [(__main__.Child, '.dad.wife'),
+     (__main__.Father, '.wife'),
+     (__main__.Mother, '.')]
+
+    >>> fp.push('children', Child)
+
+    >>> list(fp.paths)
+    [(__main__.Child, '.dad.wife.children'),
+     (__main__.Father, '.wife.children'),
+     (__main__.Mother, '.children')]
+
+    >>> fp.pop()
+    ['children', __main__.Child]
+
+    >>> fp.push('dad', Father)
+
+    >>> list(fp.paths)
+    [(__main__.Child, '.dad.wife.dad'),
+     (__main__.Father, '.wife.dad'),
+     (__main__.Mother, '.dad'),
+     (__main__.Father, '.')]
+    """
+    SELF_DESIGNATION = '.'
+    PATH_DELIMITER = '.'
+    Field = IntEnum('Field', 'FIELD MODEL', start=0, module=__name__)
+    Path = namedtuple('Path', 'model path')
+
+    def push(self, field, model=None):
+        length = len(self)
+        # Use lists instead of (named)tuples here for mutability
+        super().push([field, model])
+        if not length or model in self.models:
+            self._starts.append(length)
+
+    def pop(self):
+        component = super().pop()
+        model = component[self.Field.MODEL]
+        length = len(self)
+        if not length or model in self.models:
+            index = self._starts.pop()
+            assert index == length
+        return component
+
+    @property
+    def last_field(self):
+        return self[-1][self.Field.FIELD]
+
+    @last_field.setter
+    def last_field(self, value):
+        self[-1][self.Field.FIELD] = value
+
+    @property
+    def last_model(self):
+        return self[-1][self.Field.MODEL]
+
+    @last_model.setter
+    def last_model(self, value):
+        length = len(self)
+        if length != 1:
+            old_value = self.last_model
+            if (old_value in self.models) != (value in self.models):
+                if old_value in self.models:
+                    index = self._starts.pop()
+                    assert index == length - 1
+                else:  # value in self.models
+                    self._starts.append(length - 1)
+
+        self[-1][self.Field.MODEL] = value
+
+    def form_path(self, start=0):
+        """Form path relative to the given start index"""
+        length = len(self)
+        if length - start == 1:
+            return self.SELF_DESIGNATION
+        # Use list vs. generator for joining: https://stackoverflow.com/a/26635939/5521300
+        # Use range vs. (i)slice for list iteration: https://stackoverflow.com/q/8671280/5521300
+        field_names = ['' if i == start else self[i][self.Field.FIELD]
+                       for i in range(start, length)]
+        return self.PATH_DELIMITER.join(field_names)
+
+    @property
+    def paths(self):
+        """
+        Paths
+
+        Property returning a path generator that emits the absolute path
+        followed by each relative path anchored by an initialized model,
+        in order from longest to shortest. This ordering allows higher
+        specificity to take precedence over lower specificity.
+
+        Each value emitted is a 2-tuple in the form (model, path), where
+        model is the class anchoring the path.
+        """
+        return ((self[start][self.Field.MODEL], self.form_path(start))
+                for start in self._starts)
+
+    def __init__(self, base, models):
+        super().__init__()
+        self.models = {model for model in models} if models else set()
+        self._starts = []
+        self.push(self.SELF_DESIGNATION, base)
