@@ -306,7 +306,7 @@ class Jsonable(object):
         return cls.JSON_PATH_DELIMITER.join(path_components)
 
     @classmethod
-    def jsonify_value(cls, value, kwarg_map=None, _json=None):
+    def jsonify_value(cls, value, kwarg_map=None, _path=None, _json=None):
         """
         Jsonify value
 
@@ -333,20 +333,22 @@ class Jsonable(object):
         I/O:
         value: The item to be jsonified.
 
-        kwarg_map=None: Dictionary of JSON kwargs keyed by class.
-            The 'object' class can store default values for all classes.
-            JSON kwargs may include any of the jsonify kwargs, though
-            root and _json are ignored as the former is predetermined
-            and the latter is passed separately.
+        kwarg_map=None: Dictionary of JSON kwargs keyed by class. The
+            'object' kwargs are initial defaults. JSON kwargs may not
+            include root/kwarg_map/_path/_json as root is predetermined
+            and kwarg_map/_path/_json are passed separately.
+
+        _path=None: Private path to current field from base object
 
         _json=None: Private top-level JSON dict for recursion
         """
         kwarg_map = {} if kwarg_map is None else kwarg_map
+        _path = '' if _path is None else _path
 
         if _json is None:
             _json = OrderedDict()
             _json[cls.JSON_ROOT] = cls.jsonify_value(
-                value, kwarg_map, _json)
+                value, kwarg_map, _path, _json)
             return _json
 
         json_kwargs = (kwarg_map.get(get_class(value)) or
@@ -366,7 +368,7 @@ class Jsonable(object):
                 item_key = None
             is_nested = not item_key or (depth > 0 and nest)
             if is_nested or (depth > 0 and item_key not in _json):
-                jsonified = value.jsonify(_json=_json, **json_kwargs)
+                jsonified = value.jsonify(_json=_json, kwarg_map=kwarg_map, **json_kwargs)
             return jsonified if is_nested else item_key
 
         if isinstance(value, NonCallableMagicMock):
@@ -382,8 +384,8 @@ class Jsonable(object):
 
         if hasattr(value, 'items'):  # dictionary
             items = OrderedDict(
-                (cls.jsonify_value(k, kwarg_map, _json),
-                 cls.jsonify_value(value[k], kwarg_map, _json))
+                (cls.jsonify_value(k, kwarg_map, _path, _json),
+                 cls.jsonify_value(value[k], kwarg_map, _path, _json))
                 for k in item_iterator)
 
         else:  # tuple/list
@@ -394,7 +396,7 @@ class Jsonable(object):
                 constructor = list
 
             items = constructor(
-                cls.jsonify_value(item, kwarg_map, _json)
+                cls.jsonify_value(item, kwarg_map, _path, _json)
                 for item in item_iterator)
 
         if all_item_iterator.has_next():  # paginate
@@ -412,7 +414,7 @@ class Jsonable(object):
         return items
 
     def jsonify(self,
-                config=None,     # type: Dict[Text: Union[int, float]]
+                config=None,     # type: Dict[Text, Union[int, float, Dict[Any, Any]]]
                 depth=1,         # type: int
                 hide=None,       # type: Set[Text]
                 hide_all=False,  # type: bool
@@ -423,8 +425,9 @@ class Jsonable(object):
                 nest=False,      # type: bool
                 root=True,       # type: bool
                 default=None,    # type: Callable[Any, [bool, int, float, str, None]]
+                kwarg_map=None,  # type: Dict[type, Dict[Text, Union[int, float, Dict[Any, Any]]]]
                 _path=None,      # type: Text
-                _json=None):     # type: Dict[Text: Any]
+                _json=None):     # type: Dict[Text, Any]
         """
         Jsonify
 
@@ -500,8 +503,15 @@ class Jsonable(object):
             Default function used to ensure value is json-safe. Defaults
             to Jsonable.ensure_json_safe.
 
+        kwarg_map=None:
+            Dictionary of JSON kwargs keyed by class. Any 'object' class
+            values in kwarg_map will be overwritten by the other JSON
+            kwargs (further mutated by field). JSON kwargs may include
+            any jsonify kwargs except root, kwarg_map, and _json as root
+            is predetermined and kwarg_map/_json are passed separately.
+
         _path=None:
-            Private path to current field from the base object:
+            Private path to current field from base object:
                 .<base_object_field>.<related_object_field> (etc.)
 
         _json=None:
@@ -511,6 +521,7 @@ class Jsonable(object):
         config = {} if config is None else config
         hide = set() if hide is None else hide
         default = default or self.ensure_json_safe
+        kwarg_map = {} if kwarg_map is None else kwarg_map.copy()
         dot_setting_kwargs = None
 
         if _path is None:
@@ -559,7 +570,7 @@ class Jsonable(object):
             elif hide_all:
                 continue
 
-            field_json_kwargs = dict(depth=depth - 1, _path=field_path, **base_json_kwargs)
+            field_json_kwargs = dict(depth=depth - 1, **base_json_kwargs)
             if field_setting_kwargs:
                 field_json_kwargs.update(field_setting_kwargs)
 
@@ -568,14 +579,16 @@ class Jsonable(object):
                     # Defer depth decrement handling to JSON property
                     if field_setting_depth is None:
                         field_json_kwargs['depth'] = depth
-                    self_json[field] = prop(obj=self, _json=_json, **field_json_kwargs)
+                    self_json[field] = prop(
+                        obj=self, _json=_json, _path=field_path, **field_json_kwargs)
                 continue
 
             value = getattr(self, field)
 
-            kwarg_map = {object: field_json_kwargs}
+            kwarg_map[object] = field_json_kwargs
+
             # jsonify_value returns jsonified item if nest
-            self_json[field] = self.jsonify_value(value, kwarg_map, _json)
+            self_json[field] = self.jsonify_value(value, kwarg_map, field_path, _json)
 
         if root and not nest and self.JSON_ROOT not in _json:
             _json[self.JSON_ROOT] = self_key
