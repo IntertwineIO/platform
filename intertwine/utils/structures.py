@@ -334,3 +334,23 @@ class PeekableIterator:
         self.sentinel = sentinel or self._default_sentinel
         self.next_item = next(self.iterable, self.sentinel)
         super(PeekableIterator, self).__init__(*args, **kwds)
+
+
+class Stack(list):
+    """Basic stack data structure"""
+    sentinel = Sentinel('Stack')
+
+    def push(self, item):
+        """Push item onto the stack"""
+        super().append(item)
+
+    def append(self, item):
+        """Append is not supported; see 'push'"""
+        raise AttributeError("'Stack' object has no attribute 'append'")
+
+    def peek(self):
+        """Peek at item to be returned if 'pop' is called next"""
+        return self[-1] if self else self.sentinel
+
+    def __init__(self, iterable=Sentinel.by_key('Stack')):
+        super().__init__() if iterable is self.sentinel else super().__init__(iterable)
