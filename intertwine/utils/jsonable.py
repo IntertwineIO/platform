@@ -368,7 +368,8 @@ class Jsonable(object):
                 item_key = None
             is_nested = not item_key or (depth > 0 and nest)
             if is_nested or (depth > 0 and item_key not in _json):
-                jsonified = value.jsonify(_json=_json, kwarg_map=kwarg_map, **json_kwargs)
+                jsonified = value.jsonify(
+                    kwarg_map=kwarg_map, _path=_path, _json=_json, **json_kwargs)
             return jsonified if is_nested else item_key
 
         if isinstance(value, NonCallableMagicMock):
