@@ -15,21 +15,38 @@ if sys.version_info < (3,):
     from itertools import imap as map
 
 
-class Sentinel(object):
+class Sentinel:
     """Sentinels are unique objects for special comparison use cases"""
-    _id = 0
+    _count = 0
+    _registry = {}
+    _default_key_template = 'sentinel_{id}'
 
-    def __init__(self):
-        self.id = self.__class__._id
-        self.__class__._id += 1
+    @classmethod
+    def by_key(cls, key):
+        return cls._registry[key]
+
+    def __init__(self, key=None):
+        cls = self.__class__
+        self.id = cls._count
+        cls._count += 1
+        key = self._default_key_template.format(id=self.id) if key is None else key
+        if key in cls._registry:
+            raise KeyError(f"Sentinel key '{key}' already in use!")
+        self.key = key
+        cls._registry[key] = self
 
     def __repr__(self):
-        return '<{cls}: {id}>'.format(cls=self.__class__.__name__, id=self.id)
+        class_name = self.__class__.__name__
+        return f"{class_name}.by_key('{self.key}')"
+
+    def __bool__(self):
+        """Sentinels evaluate to False like None or empty string"""
+        return False
 
 
 class InsertableOrderedDict(OrderedDict):
     """InsertableOrderedDict is an OrderedDict that supports insertion"""
-    sentinel = Sentinel()
+    sentinel = Sentinel('InsertableOrderedDict')
     ValueTuple = namedtuple('InsertableOrderedDictValueTuple',
                             'value, next, prior')
 
@@ -293,6 +310,7 @@ class MultiKeyMap(object):
 
 class PeekableIterator(object):
     """Iterable that supports peeking at the next item"""
+    _default_sentinel = Sentinel('PeekableIterator')
 
     def peek(self):
         """Peek at the next item, returning it"""
@@ -314,6 +332,6 @@ class PeekableIterator(object):
 
     def __init__(self, iterable, sentinel=None, *args, **kwds):
         self.iterable = iter(iterable)
-        self.sentinel = sentinel or Sentinel()
+        self.sentinel = sentinel or self._default_sentinel
         self.next_item = next(self.iterable, self.sentinel)
         super(PeekableIterator, self).__init__(*args, **kwds)
