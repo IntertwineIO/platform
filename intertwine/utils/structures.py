@@ -213,18 +213,18 @@ class InsertableOrderedDict(OrderedDict):
         self._beg, self._end = self._end, self._beg
 
     def items(self):
-        """item generator (python 3 style)"""
+        """item generator"""
         key = self._beg
         while key is not self.sentinel:
             yield (key, self._getitem(key).value)
             key = self._getitem(key).next
 
     def keys(self):
-        """key generator (python 3 style)"""
+        """key generator"""
         return self.__iter__()
 
     def values(self):
-        """value generator (python 3 style)"""
+        """value generator"""
         key = self._beg
         while key is not self.sentinel:
             yield self._getitem(key).value
@@ -241,7 +241,6 @@ class InsertableOrderedDict(OrderedDict):
         return not self.__eq__(other)
 
     def _initialize(self, _iter_or_map, _as_iter):
-        # self._dict = {}
         sentinel = self.sentinel
         keygetter = itemgetter(0) if _as_iter else lambda x: x
         valgetter = itemgetter(1) if _as_iter else lambda x: _iter_or_map[x]
@@ -267,7 +266,7 @@ class InsertableOrderedDict(OrderedDict):
             self._initialize(_iter_or_map, _as_iter=False)
 
 
-class MultiKeyMap(object):
+class MultiKeyMap:
     """
     MultiKeyMap provides an ordered map of things keyed by each field
 
@@ -308,7 +307,7 @@ class MultiKeyMap(object):
         super(MultiKeyMap, self).__init__(*args, **kwds)
 
 
-class PeekableIterator(object):
+class PeekableIterator:
     """Iterable that supports peeking at the next item"""
     _default_sentinel = Sentinel('PeekableIterator')
 
