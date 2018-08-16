@@ -376,24 +376,24 @@ class FieldPath(Stack):
 
     >>> fp = FieldPath(base=Child, models={Father, Mother})
 
-    >>> list(fp.paths)
+    >>> list(fp.emit())
     [(__main__.Child, '.')]
 
     >>> fp.push('dad', Father)
 
-    >>> list(fp.paths)
+    >>> list(fp.emit())
     [(__main__.Child, '.dad'), (__main__.Father, '.')]
 
     >>> fp.push('wife', Mother)
 
-    >>> list(fp.paths)
+    >>> list(fp.emit())
     [(__main__.Child, '.dad.wife'),
      (__main__.Father, '.wife'),
      (__main__.Mother, '.')]
 
     >>> fp.push('children', Child)
 
-    >>> list(fp.paths)
+    >>> list(fp.emit())
     [(__main__.Child, '.dad.wife.children'),
      (__main__.Father, '.wife.children'),
      (__main__.Mother, '.children')]
@@ -403,7 +403,7 @@ class FieldPath(Stack):
 
     >>> fp.push('dad', Father)
 
-    >>> list(fp.paths)
+    >>> list(fp.emit())
     [(__main__.Child, '.dad.wife.dad'),
      (__main__.Father, '.wife.dad'),
      (__main__.Mother, '.dad'),
@@ -467,15 +467,14 @@ class FieldPath(Stack):
                        for i in range(start, length)]
         return self.PATH_DELIMITER.join(field_names)
 
-    @property
-    def paths(self):
+    def emit(self):
         """
-        Paths
+        Emit
 
-        Property returning a path generator that emits the absolute path
-        followed by each relative path anchored by an initialized model,
-        in order from longest to shortest. This ordering allows higher
-        specificity to take precedence over lower specificity.
+        Return generator that emits the absolute path followed by each
+        relative path anchored by an initialized model, in order from
+        longest to shortest. This allows higher specificity to take
+        precedence over lower specificity.
 
         Each value emitted is a 2-tuple in the form (model, path), where
         model is the class anchoring the path.
