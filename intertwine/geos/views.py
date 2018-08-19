@@ -77,12 +77,12 @@ def find_geo_matches(match_string, match_limit=None):
     geo_matches = Geo.find_matches(match_string)
     json_kwargs = dict(Geo.objectify_json_kwargs(request.args))
     # hide = {Geo.PARENTS, Geo.CHILDREN, Geo.PATH_CHILDREN}
-    json_kwarg_map = {Geo: json_kwargs}
+    kwarg_map = {Geo: json_kwargs}
 
     if match_limit:
-        json_kwarg_map[object] = dict(limit=match_limit)
+        kwarg_map[object] = dict(limit=match_limit)
 
-    return jsonify(Jsonable.jsonify_value(geo_matches, json_kwarg_map))
+    return jsonify(Jsonable.jsonify_value(geo_matches, kwarg_map))
 
 
 @blueprint.route(Geo.form_uri(

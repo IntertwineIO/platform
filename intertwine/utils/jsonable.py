@@ -12,7 +12,6 @@ from enum import Enum, EnumMeta
 from functools import partial
 from itertools import chain, islice
 from math import floor
-from mock.mock import NonCallableMagicMock
 from operator import attrgetter, itemgetter
 from past.builtins import basestring
 
@@ -23,7 +22,7 @@ from sqlalchemy.orm.properties import ColumnProperty as CP
 from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 from .duck_typing import isiterable, isiterator
-from .structures import InsertableOrderedDict, PeekableIterator
+from .structures import FieldPath, InsertableOrderedDict, PeekableIterator
 from .tools import derive_defaults, derive_arg_types, enumify, get_class, stringify
 
 # Python version compatibilities
@@ -295,8 +294,6 @@ class Jsonable(object):
             return value
         if isinstance(value, datetime):
             return value.isoformat()
-        if isinstance(value, NonCallableMagicMock):
-            return None
         return unicode(value)
 
     @classmethod
@@ -313,51 +310,47 @@ class Jsonable(object):
         Convert any value or acyclic collection to a JSON-serializable
         dict. The conversion utilizes the following rules:
 
-            1.  If the value has a jsonify method, invoke it if either:
+            1.  If value has jsonify method, invoke it if...
                 a.  nest is True or
                 b.  value has no key or
                 c.  both depth > 0 and the key is new (not in _json)
                 Return the key if it exists and not nesting; otherwise
                 return the jsonified value.
-            2.  If the value is a NonCallableMagicMock, return None
-            3.  If the value is not iterable, the given default method
-                in the kwarg_map - or ensure_json_safe - is used.
-            4.  If iterable.items(), return an OrderedDict in which
+            2.  If value is not iterable, the relevant default method
+                in kwarg_map - or ensure_json_safe - is used.
+            3.  If iterable has items, return an OrderedDict in which
                 jsonify_value is recursively called on each key/value.
-            5.  Else if an iterable without items(), return sequence in
-                which jsonify_value is recursively called on each item.
-                If the iterable is a namedtuple, the sequence is a
-                namedtuple and any limit is ignored. Otherwise, the
-                sequence is a list.
+            4.  Else if iterable without items, return sequence in which
+                jsonify_value is recursively called on each item. If
+                iterable is a namedtuple, the sequence is a namedtuple
+                without limit; otherwise, the sequence is a list.
 
         I/O:
-        value: The item to be jsonified.
+        value: Value to be jsonified.
 
         kwarg_map=None: Dictionary of JSON kwargs keyed by class. The
-            'object' kwargs are initial defaults. JSON kwargs may not
-            include root/kwarg_map/_path/_json as root is predetermined
-            and kwarg_map/_path/_json are passed separately.
+            'object' kwargs serve as initial defaults. JSON kwargs may
+            not include root, kwarg_map, _path, or _json, as root is
+            predetermined and the rest are passed separately.
 
         _path=None: Private path to current field from base object
 
         _json=None: Private top-level JSON dict for recursion
         """
         kwarg_map = {} if kwarg_map is None else kwarg_map
-        _path = '' if _path is None else _path
+        if _path is None:
+            _path = FieldPath(None, (k for k, v in kwarg_map.items() if 'config' in v))
 
         if _json is None:
             _json = OrderedDict()
-            _json[cls.JSON_ROOT] = cls.jsonify_value(
-                value, kwarg_map, _path, _json)
+            _json[cls.JSON_ROOT] = cls.jsonify_value(value, kwarg_map, _path, _json)
             return _json
 
-        json_kwargs = (kwarg_map.get(get_class(value)) or
-                       kwarg_map.get(object, {}))
-        json_kwargs[cls.JSON_ROOT] = False  # _json['root'] is already set
+        json_kwargs = kwarg_map.get(get_class(value)) or kwarg_map.get(object, {})
+        json_kwargs['root'] = False  # _json['root'] has already been set
 
         depth, limit, key_type, nest, default = (
-            cls.extract_json_kwargs(
-                json_kwargs, 'depth', 'limit', 'key_type', 'nest', 'default'))
+            cls.extract_json_kwargs(json_kwargs, 'depth', 'limit', 'key_type', 'nest', 'default'))
 
         value_is_class = inspect.isclass(value)
 
@@ -372,16 +365,12 @@ class Jsonable(object):
                     kwarg_map=kwarg_map, _path=_path, _json=_json, **json_kwargs)
             return jsonified if is_nested else item_key
 
-        if isinstance(value, NonCallableMagicMock):
-            return None
-
         if not isiterable(value) or isinstance(value, basestring) or value_is_class:
             default = default or cls.ensure_json_safe
             return default(value)
 
         all_item_iterator = PeekableIterator(value)
-        item_iterator = (islice(all_item_iterator, limit) if limit > 0
-                         else all_item_iterator)
+        item_iterator = islice(all_item_iterator, limit) if limit > 0 else all_item_iterator
 
         if hasattr(value, 'items'):  # dictionary
             items = OrderedDict(
@@ -470,7 +459,7 @@ class Jsonable(object):
 
         hide_all=False:
             By default, all fields are included, but can be individually
-            excluded via config or hide; if true, all fields are
+            excluded via config or hide; if True, all fields are
             excluded, but can be individually included via config.
 
         limit=10:
@@ -494,61 +483,67 @@ class Jsonable(object):
             Make all repr values tight (without whitespace).
 
         nest=False:
-            By default all relationships are by reference with JSON
-            objects stored in the top-level dict.
+            If True, nest related objects; by default all relationships
+            are by reference with JSON objects stored in top-level dict
 
         root=True:
-            If True, add root key to top-level dict.
+            If True (default), add root key to top-level dict
 
         default=None:
-            Default function used to ensure value is json-safe. Defaults
-            to Jsonable.ensure_json_safe.
+            Default function override to ensure_json_safe
 
         kwarg_map=None:
             Dictionary of JSON kwargs keyed by class. Any 'object' class
             values in kwarg_map will be overwritten by the other JSON
             kwargs (further mutated by field). JSON kwargs may include
-            any jsonify kwargs except root, kwarg_map, and _json as root
-            is predetermined and kwarg_map/_json are passed separately.
+            any jsonify kwargs except root, kwarg_map, _path, and _json,
+            as root is predetermined and the rest are passed separately.
 
         _path=None:
-            Private path to current field from base object:
-                .<base_object_field>.<related_object_field> (etc.)
+            Private FieldPath object from base model to current field
 
         _json=None:
-            Private top-level JSON dict for recursion.
+            Private top-level JSON dict for recursion
         """
         _json = OrderedDict() if _json is None else _json
         config = {} if config is None else config
         hide = set() if hide is None else hide
         default = default or self.ensure_json_safe
         kwarg_map = {} if kwarg_map is None else kwarg_map.copy()
-        dot_setting_kwargs = None
+        model = get_class(self)
 
         if _path is None:
-            _path = ''
-            if '.' in config:
-                dot_setting_kwargs = self.extract_settings('.', config, use_floor=True)
+            _path = FieldPath(model, (k for k, v in kwarg_map.items() if 'config' in v))
+        else:
+            _path.last_model = model
 
-        base_json_kwargs = dict(
+        base_kwargs = dict(
             config=config, depth=depth, hide=hide, hide_all=hide_all,
             limit=limit, key_type=key_type, raw=raw, tight=tight, nest=nest,
             root=False, default=default)  # exclude: _path, _json
-        if dot_setting_kwargs:
-            base_json_kwargs.update(dot_setting_kwargs)
 
-        hide_all = base_json_kwargs['hide_all']
-        nest = base_json_kwargs['nest']
+        dot_config = (config if len(_path) == 1 else kwarg_map[model]['config']
+                      if (model in kwarg_map and 'config' in kwarg_map[model]) else None)
+
+        if dot_config and '.' in dot_config:
+            dot_settings = self.extract_settings('.', dot_config, use_floor=True)
+            if dot_settings:
+                base_kwargs.update(dot_settings)
+
+        depth = base_kwargs.pop('depth')
+        if depth < 1:
+            raise ValueError(f'Jsonify depth must be >= 1; value: {depth}')
+
+        hide_all = base_kwargs['hide_all']
+        nest = base_kwargs['nest']
 
         # TODO: Check if item already exists and needs to be enhanced?
         self_json = OrderedDict()
         if not nest:
-            self_key = self.json_key(**base_json_kwargs)
+            self_key = self.json_key(key_type=base_kwargs['key_type'],
+                                     raw=base_kwargs['raw'],
+                                     tight=base_kwargs['tight'])
             _json[self_key] = self_json
-
-        depth = base_json_kwargs.pop('depth')
-        if depth < 1:
-            raise ValueError(f'Jsonify depth must be >= 1; value: {depth}')
 
         fields = self.fields()
 
@@ -556,40 +551,42 @@ class Jsonable(object):
             if field in hide:
                 continue
 
-            field_setting_kwargs = field_setting_depth = None
-            field_path = self.form_path(_path, field)
+            with _path.component(field) as field_paths:
+                field_settings = depth_setting = None
 
-            if field_path in config:
-                field_setting_kwargs = self.extract_settings(field_path, config)
-
-                if 'depth' in field_setting_kwargs:
-                    field_setting_depth = field_setting_kwargs['depth']
-                    if field_setting_depth == 0:
+                for i, (anchor_model, field_path) in enumerate(field_paths):
+                    field_config = config if i == 0 else kwarg_map[anchor_model]['config']
+                    if field_path in field_config:
+                        field_settings = self.extract_settings(field_path, field_config)
+                        break
+                else:
+                    if hide_all:
                         continue
-                    field_setting_kwargs['depth'] = int(floor(field_setting_depth))
 
-            elif hide_all:
-                continue
+                if field_settings and 'depth' in field_settings:
+                    depth_setting = field_settings['depth']
+                    if depth_setting == 0:
+                        continue
+                    field_settings['depth'] = int(floor(depth_setting))  # Is floor necessary?
 
-            field_json_kwargs = dict(depth=depth - 1, **base_json_kwargs)
-            if field_setting_kwargs:
-                field_json_kwargs.update(field_setting_kwargs)
+                field_kwargs = dict(depth=depth - 1, **base_kwargs)
+                if field_settings:
+                    field_kwargs.update(field_settings)
 
-            if isinstance(prop, JsonProperty):
-                if not prop.hide:
-                    # Defer depth decrement handling to JSON property
-                    if field_setting_depth is None:
-                        field_json_kwargs['depth'] = depth
-                    self_json[field] = prop(
-                        obj=self, _json=_json, _path=field_path, **field_json_kwargs)
-                continue
+                if isinstance(prop, JsonProperty):
+                    if not prop.hide:
+                        if depth_setting is None:
+                            field_kwargs['depth'] = depth  # Defer depth decrement to property
+                        self_json[field] = prop(
+                            obj=self, _json=_json, _path=_path, **field_kwargs)
+                    continue
 
-            value = getattr(self, field)
+                value = getattr(self, field)
 
-            kwarg_map[object] = field_json_kwargs
+                kwarg_map[object] = field_kwargs
 
-            # jsonify_value returns jsonified item if nest
-            self_json[field] = self.jsonify_value(value, kwarg_map, field_path, _json)
+                # jsonify_value returns jsonified item if nest
+                self_json[field] = self.jsonify_value(value, kwarg_map, _path, _json)
 
         if root and not nest and self.JSON_ROOT not in _json:
             _json[self.JSON_ROOT] = self_key
@@ -609,9 +606,9 @@ class Jsonable(object):
                 if setting_kwargs['depth'] < 0:
                     raise ValueError('Jsonify depth setting must be >= 0; '
                                      f"value: {setting_kwargs['depth']}")
-        else:
+        else:  # numeric settings
             depth = int(floor(abs(settings))) if use_floor else abs(settings)
-            hide_all = settings < 0
+            hide_all = settings < 0  # negative number is shorthand for hide all
             setting_kwargs = {'depth': depth, 'hide_all': hide_all}
 
         return setting_kwargs
