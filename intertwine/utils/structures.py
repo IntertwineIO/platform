@@ -422,23 +422,19 @@ class FieldPath(Stack):
      (__main__.Father, '.wife'),
      (__main__.Mother, '.')]
 
+    >>> with fp.component('dad', Father) as paths:
+            print(list(paths))
+    [(<class '__main__.Child'>, '.dad.wife.dad'),
+     (<class '__main__.Father'>, '.wife.dad'),
+     (<class '__main__.Mother'>, '.dad'),
+     (<class '__main__.Father'>, '.')]
+
     >>> fp.push('children', Child)
 
     >>> list(fp.emit())
     [(__main__.Child, '.dad.wife.children'),
      (__main__.Father, '.wife.children'),
      (__main__.Mother, '.children')]
-
-    >>> fp.pop()
-    ['children', __main__.Child]
-
-    >>> fp.push('dad', Father)
-
-    >>> list(fp.emit())
-    [(__main__.Child, '.dad.wife.dad'),
-     (__main__.Father, '.wife.dad'),
-     (__main__.Mother, '.dad'),
-     (__main__.Father, '.')]
     """
     SELF_DESIGNATION = '.'
     PATH_DELIMITER = '.'
@@ -446,6 +442,7 @@ class FieldPath(Stack):
     Path = namedtuple('Path', 'model path')
 
     def push(self, field, model=None):
+        """Push [field, model] onto path; model default is None"""
         length = len(self)
         # Use lists instead of (named)tuples here for mutability
         super().push([field, model])
@@ -453,6 +450,7 @@ class FieldPath(Stack):
             self._starts.append(length)
 
     def pop(self):
+        """Pop last [field, model] from path"""
         component = super().pop()
         model = component[self.Field.MODEL]
         length = len(self)
@@ -463,18 +461,28 @@ class FieldPath(Stack):
 
     @property
     def last_field(self):
+        """Last field getter property returns last field from path"""
         return self[-1][self.Field.FIELD]
 
     @last_field.setter
     def last_field(self, value):
+        """Last field setter property sets last field on path"""
         self[-1][self.Field.FIELD] = value
+        return value
+
+    def with_last_field_as(self, value):
+        """Return path object with last field assigned to value"""
+        self.last_field = value
+        return self
 
     @property
     def last_model(self):
+        """Last model getter property returns last model from path"""
         return self[-1][self.Field.MODEL]
 
     @last_model.setter
     def last_model(self, value):
+        """Last model setter property sets last model on path"""
         length = len(self)
         if length != 1:
             old_value = self.last_model
@@ -486,6 +494,31 @@ class FieldPath(Stack):
                     self._starts.append(length - 1)
 
         self[-1][self.Field.MODEL] = value
+        return value
+
+    def with_last_model_as(self, value):
+        """Return path object with last model assigned to value"""
+        self.last_model = value
+        return self
+
+    @contextmanager
+    def component(self, field, model=None):
+        """
+        Component context manager
+
+        Ensure any component pushed is popped and yield a field path
+        generator (see 'emit') for use in the optional 'as' clause of
+        the 'with' statement.
+        """
+        self.push(field, model)
+        try:
+            yield self.emit()
+        finally:
+            self.pop()
+
+    def element(self, element):
+        """Element is not supported; see 'component' context manager"""
+        raise AttributeError("'FieldPath' object has no attribute 'element'")
 
     def form_path(self, start=0):
         """Form path relative to the given start index"""
