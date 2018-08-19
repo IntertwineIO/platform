@@ -5,6 +5,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import sys
 from collections import Counter, OrderedDict, namedtuple
+from contextlib import contextmanager
 from enum import IntEnum
 from operator import eq, attrgetter, itemgetter
 
@@ -341,17 +342,47 @@ class Stack(list):
     """Basic stack data structure"""
     sentinel = Sentinel('Stack')
 
-    def push(self, item):
-        """Push item onto the stack"""
-        super().append(item)
+    def push(self, element):
+        """Push element onto the stack"""
+        super().append(element)
 
-    def append(self, item):
-        """Append is not supported; see 'push'"""
-        raise AttributeError("'Stack' object has no attribute 'append'")
+    def pop(self):
+        """Pop last element from stack"""
+        return super().pop()
 
     def peek(self):
         """Peek at item to be returned if 'pop' is called next"""
         return self[-1] if self else self.sentinel
+
+    def append(self, element):
+        """Append is not supported; see 'push'"""
+        raise AttributeError("'Stack' object has no attribute 'append'")
+
+    @contextmanager
+    def element(self, element):
+        """
+        Element context manager
+
+        Ensure any element pushed is popped and yield the pushed element
+        for use in the optional 'as' clause of the 'with' statement.
+
+        Usage:
+        >>> stack = Stack((1, 2, 3))
+        >>> print(stack)
+        [1, 2, 3]
+        >>> with stack.element(4) as last:
+                print(last)
+                print(stack)
+        4
+        [1, 2, 3, 4]
+        >>> print(stack)
+        [1, 2, 3]
+        """
+        self.push(element)
+        try:
+            yield self.peek()
+        finally:
+            self.pop()
 
     def __init__(self, iterable=Sentinel.by_key('Stack')):
         super().__init__() if iterable is self.sentinel else super().__init__(iterable)
