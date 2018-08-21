@@ -355,15 +355,16 @@ class Jsonable(object):
         value_is_class = inspect.isclass(value)
 
         if hasattr(value, cls.JSONIFY) and not value_is_class:
+            if nest and depth > 0:
+                return value.jsonify(kwarg_map=kwarg_map, _path=_path, _json=_json, **json_kwargs)
             try:
                 item_key = value.json_key(**json_kwargs)
             except AttributeError:
                 item_key = None
-            is_nested = not item_key or (depth > 0 and nest)
-            if is_nested or (depth > 0 and item_key not in _json):
+            if not item_key or (depth > 0 and item_key not in _json):
                 jsonified = value.jsonify(
                     kwarg_map=kwarg_map, _path=_path, _json=_json, **json_kwargs)
-            return jsonified if is_nested else item_key
+            return item_key or jsonified
 
         if not isiterable(value) or isinstance(value, basestring) or value_is_class:
             default = default or cls.ensure_json_safe
