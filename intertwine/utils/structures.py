@@ -403,38 +403,49 @@ class FieldPath(Stack):
     Each value emitted is a 2-tuple in the form (model, path), where
     model is the class anchoring the path.
 
+    Example:
+
+    index:     0      1      2      3
+    fields:   n/a   'dad'  'wife' 'dad'
+    models:  Child   Man   Woman   Man                paths
+    ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––----
+    base:           .dad   .wife  .dad    ->    .dad.wife.dad.name
+    Man:                   .wife  .dad    ->        .wife.dad.name
+    Woman:                        .dad    ->             .dad.name
+    Man:                            .     ->                 .name
+
     Usage:
 
-    >>> fp = FieldPath(base=Child, models={Father, Mother})
+    >>> fp = FieldPath(base=Child, models={Man, Woman})
 
     >>> list(fp.emit())
     [(__main__.Child, '.')]
 
-    >>> fp.push('dad', Father)
+    >>> fp.push('dad', Man)
 
     >>> list(fp.emit())
-    [(__main__.Child, '.dad'), (__main__.Father, '.')]
+    [(__main__.Child, '.dad'), (__main__.Man, '.')]
 
-    >>> fp.push('wife', Mother)
+    >>> fp.push('wife', Woman)
 
     >>> list(fp.emit())
     [(__main__.Child, '.dad.wife'),
-     (__main__.Father, '.wife'),
-     (__main__.Mother, '.')]
+     (__main__.Man, '.wife'),
+     (__main__.Woman, '.')]
 
-    >>> with fp.component('dad', Father) as paths:
+    >>> with fp.component('dad', Man) as paths:
             print(list(paths))
     [(<class '__main__.Child'>, '.dad.wife.dad'),
-     (<class '__main__.Father'>, '.wife.dad'),
-     (<class '__main__.Mother'>, '.dad'),
-     (<class '__main__.Father'>, '.')]
+     (<class '__main__.Man'>, '.wife.dad'),
+     (<class '__main__.Woman'>, '.dad'),
+     (<class '__main__.Man'>, '.')]
 
     >>> fp.push('children', Child)
 
     >>> list(fp.emit())
     [(__main__.Child, '.dad.wife.children'),
-     (__main__.Father, '.wife.children'),
-     (__main__.Mother, '.children')]
+     (__main__.Man, '.wife.children'),
+     (__main__.Woman, '.children')]
     """
     SELF_DESIGNATION = '.'
     PATH_DELIMITER = '.'
@@ -535,13 +546,24 @@ class FieldPath(Stack):
         """
         Emit
 
-        Return generator that emits the absolute path followed by each
-        relative path anchored by an initialized model, in order from
-        longest to shortest. This allows higher specificity to take
-        precedence over lower specificity.
+        Return generator that emits 2-tuples in the form (model, path),
+        where model is the class anchoring the path.
 
-        Each value emitted is a 2-tuple in the form (model, path), where
-        model is the class anchoring the path.
+        The first 2-tuple contains the absolute path (aka base path) and
+        each subsequent 2-tuple contains a relative path anchored by an
+        initialized model, ordered longest to shortest. This allows
+        higher specificity to take precedence over lower specificity.
+
+        Example:
+
+        index:     0      1      2      3      4
+        fields:   n/a   'dad'  'wife' 'dad'  'name'
+        models:  Child   Man   Woman   Man    None          paths
+        ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+        base:           .dad   .wife  .dad   .name -> .dad.wife.dad.name
+        Man:                   .wife  .dad   .name ->     .wife.dad.name
+        Woman:                        .dad   .name ->          .dad.name
+        Man:                                 .name ->              .name
         """
         return ((self[start][self.Field.MODEL], self.form_path(start))
                 for start in self._starts)
