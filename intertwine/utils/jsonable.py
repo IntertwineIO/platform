@@ -646,9 +646,7 @@ class Jsonable(object):
 
         Yield specified JSON kwarg (name, value) tuples sequentially,
         casting each to its annotated type in jsonify(). Casting allows
-        transmission of JSON kwargs via query string. Any missing/None
-        values are replaced by jsonify arg defaults. If no kwarg names
-        are given, all JSON kwargs are yielded.
+        transmission of JSON kwargs via query string.
 
         json_kwargs: dict or dict-like object with a get() method
         *kwarg_names: names of JSON kwargs to be objectified
@@ -664,14 +662,14 @@ class Jsonable(object):
             except (ValueError, TypeError):  # (string literal, non-string)
                 pass
 
-            if kwarg_value is not None:
-                kwarg_type = cls.JSONIFY_ARG_TYPES.get(kwarg_name)
-                if isinstance(kwarg_type, EnumMeta):
-                    kwarg_type = partial(enumify, kwarg_type)
-                if kwarg_type:
-                    kwarg_value = kwarg_type(kwarg_value)
-            else:
-                kwarg_value = cls.JSONIFY_ARG_DEFAULTS[kwarg_name]
+            if kwarg_value is None:
+                continue
+
+            kwarg_type = cls.JSONIFY_ARG_TYPES.get(kwarg_name)
+            if isinstance(kwarg_type, EnumMeta):
+                kwarg_type = partial(enumify, kwarg_type)
+            if kwarg_type:
+                kwarg_value = kwarg_type(kwarg_value)
 
             yield kwarg_name, kwarg_value
 
