@@ -73,13 +73,16 @@ def find_geo_matches(match_string, match_limit=None):
     if not match_string:
         return jsonify(Jsonable.jsonify_value([]))
 
-    match_limit = match_limit or int(request.args.get('match_limit', 0))
     geo_matches = Geo.find_matches(match_string)
+    match_limit = match_limit or int(request.args.get('match_limit', 0))
+
     geo_json_kwargs = dict(Geo.objectify_json_kwargs(request.args))
+    if 'limit' not in geo_json_kwargs:
+        geo_json_kwargs['limit'] = Geo.JSONIFY_ARG_DEFAULTS['limit']
+
     # hide = {Geo.PARENTS, Geo.CHILDREN, Geo.PATH_CHILDREN}
     kwarg_map = {Geo: geo_json_kwargs}
     json_kwargs = dict(limit=match_limit) if match_limit else {}
-    import pdb; pdb.set_trace()
 
     return jsonify(Jsonable.jsonify_value(geo_matches, kwarg_map, **json_kwargs))
 
