@@ -108,7 +108,7 @@ def get_geo_json(geo_huid):
     json_kwargs = dict(Geo.objectify_json_kwargs(request.args))
 
     try:
-        geo = Geo.reconstruct(geo_huid)
+        geo = Geo.reconstruct(Geo.Key(geo_huid))
     except KeyError as e:
         raise ResourceDoesNotExist(str(e))
 
