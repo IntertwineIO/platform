@@ -75,14 +75,13 @@ def find_geo_matches(match_string, match_limit=None):
 
     match_limit = match_limit or int(request.args.get('match_limit', 0))
     geo_matches = Geo.find_matches(match_string)
-    json_kwargs = dict(Geo.objectify_json_kwargs(request.args))
+    geo_json_kwargs = dict(Geo.objectify_json_kwargs(request.args))
     # hide = {Geo.PARENTS, Geo.CHILDREN, Geo.PATH_CHILDREN}
-    kwarg_map = {Geo: json_kwargs}
+    kwarg_map = {Geo: geo_json_kwargs}
+    json_kwargs = dict(limit=match_limit) if match_limit else {}
+    import pdb; pdb.set_trace()
 
-    if match_limit:
-        kwarg_map[object] = dict(limit=match_limit)
-
-    return jsonify(Jsonable.jsonify_value(geo_matches, kwarg_map))
+    return jsonify(Jsonable.jsonify_value(geo_matches, kwarg_map, **json_kwargs))
 
 
 @blueprint.route(Geo.form_uri(

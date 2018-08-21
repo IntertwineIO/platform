@@ -303,12 +303,12 @@ class Jsonable(object):
         return cls.JSON_PATH_DELIMITER.join(path_components)
 
     @classmethod
-    def jsonify_value(cls, value, kwarg_map=None, _path=None, _json=None):
+    def jsonify_value(cls, value, kwarg_map=None, _path=None, _json=None, **json_kwargs):
         """
         Jsonify value
 
-        Convert any value or acyclic collection to a JSON-serializable
-        dict. The conversion utilizes the following rules:
+        Convert any value or collection to a JSON-serializable dict.
+        The conversion utilizes the following rules:
 
             1.  If value has jsonify method, invoke it if...
                 a.  nest is True or
@@ -326,16 +326,29 @@ class Jsonable(object):
                 without limit; otherwise, the sequence is a list.
 
         I/O:
-        value: Value to be jsonified.
+        value:
+            Value to be jsonified. May be a literal, iterable,
+            JsonProperty, or object that supports the jsonify protocol.
 
-        kwarg_map=None: Dictionary of JSON kwargs keyed by class. The
-            'object' kwargs serve as initial defaults. JSON kwargs may
-            not include root, kwarg_map, _path, or _json, as root is
+        kwarg_map=None:
+            Dictionary of JSON kwargs keyed by class. Used to override
+            JSON kwargs on a class-by-class basis. May include any
+            jsonify parameters except root, kwarg_map, _path, or _json,
+            as root is predetermined and the rest are passed separately.
+            All paths in each model-specific config are relative to the
+            model and longer paths take precedence over shorter ones.
+
+        _path=None:
+            Private FieldPath object from base model to current field
+
+        _json=None:
+            Private top-level JSON dict for recursion
+
+        **json_kwargs:
+            Keyword arguments to be used when calling jsonify, unless
+            the value's class is in kwarg_map. May include any jsonify
+            kwargs except root, kwarg_map, _path, or _json, as root is
             predetermined and the rest are passed separately.
-
-        _path=None: Private path to current field from base object
-
-        _json=None: Private top-level JSON dict for recursion
         """
         kwarg_map = {} if kwarg_map is None else kwarg_map
         if _path is None:
@@ -343,11 +356,11 @@ class Jsonable(object):
 
         if _json is None:
             _json = OrderedDict()
-            _json[cls.JSON_ROOT] = cls.jsonify_value(value, kwarg_map, _path, _json)
+            _json[cls.JSON_ROOT] = cls.jsonify_value(value, kwarg_map, _path, _json, **json_kwargs)
             return _json
 
-        json_kwargs = kwarg_map.get(get_class(value)) or kwarg_map.get(object, {})
-        json_kwargs['root'] = False  # _json['root'] has already been set
+        json_kwargs = kwarg_map.get(get_class(value)) or json_kwargs
+        json_kwargs['root'] = False  # _json[cls.JSON_ROOT] has already been set
 
         depth, limit, key_type, nest, default = (
             cls.extract_json_kwargs(json_kwargs, 'depth', 'limit', 'key_type', 'nest', 'default'))
@@ -375,8 +388,8 @@ class Jsonable(object):
 
         if hasattr(value, 'items'):  # dictionary
             items = OrderedDict(
-                (cls.jsonify_value(k, kwarg_map, _path, _json),
-                 cls.jsonify_value(value[k], kwarg_map, _path, _json))
+                (cls.jsonify_value(k, kwarg_map, _path, _json, **json_kwargs),
+                 cls.jsonify_value(value[k], kwarg_map, _path, _json, **json_kwargs))
                 for k in item_iterator)
 
         else:  # tuple/list
@@ -387,7 +400,7 @@ class Jsonable(object):
                 constructor = list
 
             items = constructor(
-                cls.jsonify_value(item, kwarg_map, _path, _json)
+                cls.jsonify_value(item, kwarg_map, _path, _json, **json_kwargs)
                 for item in item_iterator)
 
         if all_item_iterator.has_next():  # paginate
@@ -510,7 +523,7 @@ class Jsonable(object):
         config = {} if config is None else config
         hide = set() if hide is None else hide
         default = default or self.ensure_json_safe
-        kwarg_map = {} if kwarg_map is None else kwarg_map.copy()
+        kwarg_map = {} if kwarg_map is None else kwarg_map
         model = get_class(self)
 
         if _path is None:
@@ -584,10 +597,9 @@ class Jsonable(object):
 
                 value = getattr(self, field)
 
-                kwarg_map[object] = field_kwargs
-
                 # jsonify_value returns jsonified item if nest
-                self_json[field] = self.jsonify_value(value, kwarg_map, _path, _json)
+                self_json[field] = self.jsonify_value(
+                    value, kwarg_map, _path, _json, **field_kwargs)
 
         if root and not nest and self.JSON_ROOT not in _json:
             _json[self.JSON_ROOT] = self_key

@@ -61,10 +61,9 @@ def get_problem_network(geo_huid):
     communities.extend(vardygr_communities)
 
     config = configure_problem_network_community_json()
-    kwarg_map = {object: {'limit': -1},
-                 Community: {'config': config, 'nest': False}}
+    kwarg_map = {Community: {'config': config, 'nest': False}}
 
-    return jsonify(Jsonable.jsonify_value(communities, kwarg_map))
+    return jsonify(Jsonable.jsonify_value(communities, kwarg_map, limit=-1))
 
 
 @blueprint.route('/problems/', methods=['GET'])
