@@ -359,7 +359,10 @@ class Jsonable(object):
             _json[cls.JSON_ROOT] = cls.jsonify_value(value, kwarg_map, _path, _json, **json_kwargs)
             return _json
 
-        json_kwargs = kwarg_map.get(get_class(value)) or json_kwargs
+        class_kwargs = kwarg_map.get(get_class(value))
+        if class_kwargs:
+            json_kwargs.update(class_kwargs)
+
         json_kwargs['root'] = False  # _json[cls.JSON_ROOT] has already been set
 
         depth, limit, key_type, nest, default = (
