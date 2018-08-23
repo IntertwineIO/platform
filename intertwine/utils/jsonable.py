@@ -68,6 +68,9 @@ class JsonProperty(object):
             rv = list(value) if isiterator(value) else value
         return rv
 
+    def __repr__(self):
+        return f'<JsonProperty {self.index}: {self.name}>'
+
 
 class Jsonable(object):
 
@@ -281,10 +284,6 @@ class Jsonable(object):
                 # Insert before 'end' fields
                 fields.insert(len(fields) - end_count - 1, jp_name,
                               prop, after=True, by_index=True)
-        # Remove hidden last so they can serve as before/after anchors
-        for jp in jsonify_properties:
-            if jp.hide and jp.name in fields:
-                del fields[jp.name]
 
         return fields
 
@@ -537,7 +536,7 @@ class Jsonable(object):
         base_kwargs = dict(
             config=config, depth=depth, hide=hide, hide_all=hide_all,
             limit=limit, key_type=key_type, raw=raw, tight=tight, nest=nest,
-            root=False, default=default)  # exclude: _path, _json
+            root=False, default=default)  # exclude: kwarg_map, _path, _json
 
         dot_config = (config if len(_path) == 1 else kwarg_map[model]['config']
                       if (model in kwarg_map and 'config' in kwarg_map[model]) else None)
@@ -554,7 +553,7 @@ class Jsonable(object):
         hide_all = base_kwargs['hide_all']
         nest = base_kwargs['nest']
 
-        # TODO: Check if item already exists and needs to be enhanced?
+        # TODO: check if item already exists and needs to be enhanced?
         self_json = OrderedDict()
         if not nest:
             self_key = self.json_key(key_type=base_kwargs['key_type'],
@@ -565,10 +564,11 @@ class Jsonable(object):
         fields = self.fields()
 
         for field, prop in fields.items():
-            if field in hide:
-                continue
-
             with _path.component(field) as field_paths:
+
+                is_json_property = isinstance(prop, JsonProperty)
+                hide_field = hide_all or field in hide or (is_json_property and prop.hide)
+
                 field_settings = depth_setting = None
 
                 for i, (anchor_model, field_path) in enumerate(field_paths):
@@ -576,26 +576,25 @@ class Jsonable(object):
                     if field_path in field_config:
                         field_settings = self.extract_settings(field_path, field_config)
                         break
-                else:
-                    if hide_all:
-                        continue
 
                 if field_settings and 'depth' in field_settings:
                     depth_setting = field_settings['depth']
-                    if depth_setting == 0:
-                        continue
-                    field_settings['depth'] = int(floor(depth_setting))  # Is floor necessary?
+                    hide_field = depth_setting == 0  # override hide setting
+                    field_settings['depth'] = int(floor(depth_setting))  # is floor necessary?
+
+                if hide_field:
+                    continue
 
                 field_kwargs = dict(depth=depth - 1, **base_kwargs)
+
                 if field_settings:
                     field_kwargs.update(field_settings)
 
-                if isinstance(prop, JsonProperty):
-                    if not prop.hide:
-                        if depth_setting is None:
-                            field_kwargs['depth'] = depth  # Defer depth decrement to property
-                        self_json[field] = prop(
-                            obj=self, _json=_json, _path=_path, **field_kwargs)
+                if is_json_property and prop.method:
+                    if depth_setting is None:
+                        field_kwargs['depth'] = depth  # defer depth decrement to property
+                    self_json[field] = prop(
+                        obj=self, kwarg_map=kwarg_map, _json=_json, _path=_path, **field_kwargs)
                     continue
 
                 value = getattr(self, field)
