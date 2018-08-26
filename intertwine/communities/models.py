@@ -18,7 +18,7 @@ from intertwine.problems.models import (
     ProblemConnectionRating as PCR,
     Problem)
 from intertwine.trackable.exceptions import KeyMissingFromRegistryAndDatabase
-from intertwine.utils.jsonable import Jsonable, JsonProperty
+from intertwine.utils.jsonable import JsonProperty
 from intertwine.utils.structures import PeekableIterator
 from intertwine.utils.vardygr import vardygrify
 
@@ -333,7 +333,7 @@ class Community(BaseCommunityModel):
                 yield jsonified if depth > 1 and nest else key
 
     def jsonify_aggregate_ratings(self, aggregation='strict', depth=1,
-                                  _path='', **json_kwargs):
+                                  _path=None, **json_kwargs):
         """
         Jsonify aggregate ratings
 
@@ -363,16 +363,18 @@ class Community(BaseCommunityModel):
                 ars.sort(key=attrgetter('connection_category', 'rating'),
                          reverse=True)
 
-        rv = {category: list(community.jsonify_connection_category(
-              problem, category, aggregation, aggregate_ratings, depth,
-              _path=Jsonable.form_path(_path, category), **json_kwargs))
-              for category, aggregate_ratings
-              in groupby(ars, key=attrgetter('connection_category'))}
+        with _path.component('{category}'):
 
-        for category in PC.CATEGORY_MAP:
-            if category not in rv:
-                rv[category] = list(community.jsonify_connection_category(
-                    problem, category, aggregation, None, depth,
-                    _path=Jsonable.form_path(_path, category), **json_kwargs))
+            rv = {category: list(community.jsonify_connection_category(
+                  problem, category, aggregation, aggregate_ratings, depth,
+                  _path=_path.with_last_field_as(category), **json_kwargs))
+                  for category, aggregate_ratings
+                  in groupby(ars, key=attrgetter('connection_category'))}
+
+            for category in PC.CATEGORY_MAP:
+                if category not in rv:
+                    rv[category] = list(community.jsonify_connection_category(
+                        problem, category, aggregation, None, depth,
+                        _path=_path.with_last_field_as(category), **json_kwargs))
 
         return rv

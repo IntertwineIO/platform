@@ -5,6 +5,8 @@ from __future__ import (absolute_import, division, print_function,
 
 import sys
 from collections import Counter, OrderedDict, namedtuple
+from contextlib import contextmanager
+from enum import IntEnum
 from operator import eq, attrgetter, itemgetter
 
 from .tools import nth_key
@@ -15,21 +17,38 @@ if sys.version_info < (3,):
     from itertools import imap as map
 
 
-class Sentinel(object):
+class Sentinel:
     """Sentinels are unique objects for special comparison use cases"""
-    _id = 0
+    _count = 0
+    _registry = {}
+    _default_key_template = 'sentinel_{id}'
 
-    def __init__(self):
-        self.id = self.__class__._id
-        self.__class__._id += 1
+    @classmethod
+    def by_key(cls, key):
+        return cls._registry[key]
+
+    def __init__(self, key=None):
+        cls = self.__class__
+        self.id = cls._count
+        cls._count += 1
+        key = self._default_key_template.format(id=self.id) if key is None else key
+        if key in cls._registry:
+            raise KeyError(f"Sentinel key '{key}' already in use!")
+        self.key = key
+        cls._registry[key] = self
 
     def __repr__(self):
-        return '<{cls}: {id}>'.format(cls=self.__class__.__name__, id=self.id)
+        class_name = self.__class__.__name__
+        return f"{class_name}.by_key('{self.key}')"
+
+    def __bool__(self):
+        """Sentinels evaluate to False like None or empty string"""
+        return False
 
 
 class InsertableOrderedDict(OrderedDict):
     """InsertableOrderedDict is an OrderedDict that supports insertion"""
-    sentinel = Sentinel()
+    sentinel = Sentinel('InsertableOrderedDict')
     ValueTuple = namedtuple('InsertableOrderedDictValueTuple',
                             'value, next, prior')
 
@@ -196,18 +215,18 @@ class InsertableOrderedDict(OrderedDict):
         self._beg, self._end = self._end, self._beg
 
     def items(self):
-        """item generator (python 3 style)"""
+        """item generator"""
         key = self._beg
         while key is not self.sentinel:
             yield (key, self._getitem(key).value)
             key = self._getitem(key).next
 
     def keys(self):
-        """key generator (python 3 style)"""
+        """key generator"""
         return self.__iter__()
 
     def values(self):
-        """value generator (python 3 style)"""
+        """value generator"""
         key = self._beg
         while key is not self.sentinel:
             yield self._getitem(key).value
@@ -224,7 +243,6 @@ class InsertableOrderedDict(OrderedDict):
         return not self.__eq__(other)
 
     def _initialize(self, _iter_or_map, _as_iter):
-        # self._dict = {}
         sentinel = self.sentinel
         keygetter = itemgetter(0) if _as_iter else lambda x: x
         valgetter = itemgetter(1) if _as_iter else lambda x: _iter_or_map[x]
@@ -250,7 +268,7 @@ class InsertableOrderedDict(OrderedDict):
             self._initialize(_iter_or_map, _as_iter=False)
 
 
-class MultiKeyMap(object):
+class MultiKeyMap:
     """
     MultiKeyMap provides an ordered map of things keyed by each field
 
@@ -291,8 +309,9 @@ class MultiKeyMap(object):
         super(MultiKeyMap, self).__init__(*args, **kwds)
 
 
-class PeekableIterator(object):
+class PeekableIterator:
     """Iterable that supports peeking at the next item"""
+    _default_sentinel = Sentinel('PeekableIterator')
 
     def peek(self):
         """Peek at the next item, returning it"""
@@ -314,6 +333,243 @@ class PeekableIterator(object):
 
     def __init__(self, iterable, sentinel=None, *args, **kwds):
         self.iterable = iter(iterable)
-        self.sentinel = sentinel or Sentinel()
+        self.sentinel = sentinel or self._default_sentinel
         self.next_item = next(self.iterable, self.sentinel)
         super(PeekableIterator, self).__init__(*args, **kwds)
+
+
+class Stack(list):
+    """Basic stack data structure"""
+    sentinel = Sentinel('Stack')
+
+    def push(self, element):
+        """Push element onto the stack"""
+        super().append(element)
+
+    def pop(self):
+        """Pop last element from stack"""
+        return super().pop()
+
+    def peek(self):
+        """Peek at item to be returned if 'pop' is called next"""
+        return self[-1] if self else self.sentinel
+
+    def append(self, element):
+        """Append is not supported; see 'push'"""
+        raise AttributeError("'Stack' object has no attribute 'append'")
+
+    @contextmanager
+    def element(self, element):
+        """
+        Element context manager
+
+        Ensure any element pushed is popped and yield the pushed element
+        for use in the optional 'as' clause of the 'with' statement.
+
+        Usage:
+        >>> stack = Stack((1, 2, 3))
+        >>> print(stack)
+        [1, 2, 3]
+        >>> with stack.element(4) as last:
+                print(last)
+                print(stack)
+        4
+        [1, 2, 3, 4]
+        >>> print(stack)
+        [1, 2, 3]
+        """
+        self.push(element)
+        try:
+            yield self.peek()
+        finally:
+            self.pop()
+
+    def __init__(self, iterable=Sentinel.by_key('Stack')):
+        super().__init__() if iterable is self.sentinel else super().__init__(iterable)
+
+
+class FieldPath(Stack):
+    """
+    Field path
+
+    Track traversal of related model instances (via their fields) to
+    generate all relevant paths.
+
+    The paths include the absolute path from the base model followed by
+    all relative paths anchored by the models given at initialization.
+    Paths are ordered from longest to shortest, so higher specificity
+    takes precedence over lower specificity.
+
+    Each value emitted is a 2-tuple in the form (model, path), where
+    model is the class anchoring the path.
+
+    Example:
+
+    index:     0      1      2      3
+    fields:   n/a   'dad'  'wife' 'dad'
+    models:  Child   Man   Woman   Man                paths
+    ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––----
+    base:           .dad   .wife  .dad    ->    .dad.wife.dad.name
+    Man:                   .wife  .dad    ->        .wife.dad.name
+    Woman:                        .dad    ->             .dad.name
+    Man:                            .     ->                 .name
+
+    Usage:
+
+    >>> fp = FieldPath(base=Child, models={Man, Woman})
+
+    >>> list(fp.emit())
+    [(__main__.Child, '.')]
+
+    >>> fp.push('dad', Man)
+
+    >>> list(fp.emit())
+    [(__main__.Child, '.dad'), (__main__.Man, '.')]
+
+    >>> fp.push('wife', Woman)
+
+    >>> list(fp.emit())
+    [(__main__.Child, '.dad.wife'),
+     (__main__.Man, '.wife'),
+     (__main__.Woman, '.')]
+
+    >>> with fp.component('dad', Man) as paths:
+            print(list(paths))
+    [(<class '__main__.Child'>, '.dad.wife.dad'),
+     (<class '__main__.Man'>, '.wife.dad'),
+     (<class '__main__.Woman'>, '.dad'),
+     (<class '__main__.Man'>, '.')]
+
+    >>> fp.push('children', Child)
+
+    >>> list(fp.emit())
+    [(__main__.Child, '.dad.wife.children'),
+     (__main__.Man, '.wife.children'),
+     (__main__.Woman, '.children')]
+    """
+    SELF_DESIGNATION = '.'
+    PATH_DELIMITER = '.'
+    Field = IntEnum('Field', 'FIELD MODEL', start=0, module=__name__)
+    Path = namedtuple('Path', 'model path')
+
+    def push(self, field, model=None):
+        """Push [field, model] onto path; model default is None"""
+        length = len(self)
+        # Use lists instead of (named)tuples here for mutability
+        super().push([field, model])
+        if not length or model in self.models:
+            self._starts.append(length)
+
+    def pop(self):
+        """Pop last [field, model] from path"""
+        component = super().pop()
+        model = component[self.Field.MODEL]
+        length = len(self)
+        if not length or model in self.models:
+            index = self._starts.pop()
+            assert index == length
+        return component
+
+    @property
+    def last_field(self):
+        """Last field getter property returns last field from path"""
+        return self[-1][self.Field.FIELD]
+
+    @last_field.setter
+    def last_field(self, value):
+        """Last field setter property sets last field on path"""
+        self[-1][self.Field.FIELD] = value
+        return value
+
+    def with_last_field_as(self, value):
+        """Return path object with last field assigned to value"""
+        self.last_field = value
+        return self
+
+    @property
+    def last_model(self):
+        """Last model getter property returns last model from path"""
+        return self[-1][self.Field.MODEL]
+
+    @last_model.setter
+    def last_model(self, value):
+        """Last model setter property sets last model on path"""
+        length = len(self)
+        if length != 1:
+            old_value = self.last_model
+            if (old_value in self.models) != (value in self.models):
+                if old_value in self.models:
+                    index = self._starts.pop()
+                    assert index == length - 1
+                else:  # value in self.models
+                    self._starts.append(length - 1)
+
+        self[-1][self.Field.MODEL] = value
+        return value
+
+    def with_last_model_as(self, value):
+        """Return path object with last model assigned to value"""
+        self.last_model = value
+        return self
+
+    @contextmanager
+    def component(self, field, model=None):
+        """
+        Component context manager
+
+        Ensure any component pushed is popped and yield a field path
+        generator (see 'emit') for use in the optional 'as' clause of
+        the 'with' statement.
+        """
+        self.push(field, model)
+        try:
+            yield self.emit()
+        finally:
+            self.pop()
+
+    def element(self, element):
+        """Element is not supported; see 'component' context manager"""
+        raise AttributeError("'FieldPath' object has no attribute 'element'")
+
+    def form_path(self, start=0):
+        """Form path relative to the given start index"""
+        length = len(self)
+        if length - start == 1:
+            return self.SELF_DESIGNATION
+        # Use list vs. generator for joining: https://stackoverflow.com/a/26635939/5521300
+        # Use range vs. (i)slice for list iteration: https://stackoverflow.com/q/8671280/5521300
+        field_names = ['' if i == start else self[i][self.Field.FIELD]
+                       for i in range(start, length)]
+        return self.PATH_DELIMITER.join(field_names)
+
+    def emit(self):
+        """
+        Emit
+
+        Return generator that emits 2-tuples in the form (model, path),
+        where model is the class anchoring the path.
+
+        The first 2-tuple contains the absolute path (aka base path) and
+        each subsequent 2-tuple contains a relative path anchored by an
+        initialized model, ordered longest to shortest. This allows
+        higher specificity to take precedence over lower specificity.
+
+        Example:
+
+        index:     0      1      2      3      4
+        fields:   n/a   'dad'  'wife' 'dad'  'name'
+        models:  Child   Man   Woman   Man    None          paths
+        ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+        base:           .dad   .wife  .dad   .name -> .dad.wife.dad.name
+        Man:                   .wife  .dad   .name ->     .wife.dad.name
+        Woman:                        .dad   .name ->          .dad.name
+        Man:                                 .name ->              .name
+        """
+        return ((self[start][self.Field.MODEL], self.form_path(start))
+                for start in self._starts)
+
+    def __init__(self, base, models):
+        super().__init__()
+        self.models = {model for model in models} if models else set()
+        self._starts = []
+        self.push(self.SELF_DESIGNATION, base)

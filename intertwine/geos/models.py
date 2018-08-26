@@ -216,6 +216,7 @@ class GeoLevel(BaseGeoModel):
 
     jsonified_ids = JsonProperty(name='ids', method='jsonify_ids')
 
+    # TODO: Handle via jsonify_value
     def jsonify_ids(self, nest, hide, **json_kwargs):
         geoids_json = OrderedDict()
         hidden = set(hide) | self.ID_FIELDS | {GeoID.LEVEL, GeoID.STANDARD}
