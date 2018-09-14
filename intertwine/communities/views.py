@@ -14,6 +14,7 @@ from intertwine.geos.models import Geo
 from intertwine.problems.models import Problem, ProblemConnection
 from intertwine.utils.flask_utils import json_requested
 from intertwine.utils.jsonable import Jsonable
+from intertwine.utils.structures import FieldPath
 from intertwine.utils.vardygr import vardygrify
 from .models import Community
 
@@ -84,12 +85,12 @@ def configure_problem_network_community_json():
         '.aggregate_ratings': {'depth': 2, 'hide_all': True, 'nest': True},
     }
     for category in ProblemConnection.CATEGORY_MAP:
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'rating')] = 1
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'adjacent_problem_name')] = 1
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'adjacent_community_url')] = 1
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'rating')] = 1
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'adjacent_problem_name')] = 1
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'adjacent_community_url')] = 1
     return config
 
 
@@ -121,7 +122,6 @@ def get_community_json(problem_huid, org_huid, geo_huid):
 
     try:
         community = Community.manifest(problem_huid, org_huid, geo_huid)
-
     except IntertwineException as e:
         raise ResourceDoesNotExist(str(e))
 
@@ -201,11 +201,11 @@ def configure_community_json():
         '.aggregate_ratings': -2
     }
     for category in ProblemConnection.CATEGORY_MAP:
-        config[Jsonable.form_path('.problem', category)] = 0
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'rating')] = 1
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'adjacent_problem_name')] = 1
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'adjacent_community_url')] = 1
+        config[FieldPath.form_path('.problem', category)] = 0
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'rating')] = 1
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'adjacent_problem_name')] = 1
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'adjacent_community_url')] = 1
     return config

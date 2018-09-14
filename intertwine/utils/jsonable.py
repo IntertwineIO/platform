@@ -77,7 +77,6 @@ class Jsonable(object):
     JSONIFY = 'jsonify'  # Must match the method name
     JSON_ROOT = 'root'
     JSON_PAGINATION = 'pagination'
-    JSON_PATH_DELIMITER = '.'
     JSON_PRIVATE_DESIGNATION = '_'
     JSON_PROPERTY_EXCLUSIONS = {'descriptor_dict', 'object_session'}
     ID_FIELDS = {'id', 'pk', 'qualified_pk', 'json_key'}
@@ -291,12 +290,6 @@ class Jsonable(object):
         if isinstance(value, datetime):
             return value.isoformat()
         return unicode(value)
-
-    @classmethod
-    def form_path(cls, base, *fields):
-        path_components = list(fields)
-        path_components.insert(0, base)
-        return cls.JSON_PATH_DELIMITER.join(path_components)
 
     @classmethod
     def jsonify_value(cls, value, kwarg_map=None, _path=None, _json=None, **json_kwargs):
