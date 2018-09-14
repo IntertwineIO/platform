@@ -3,9 +3,9 @@
 import os
 import pytest
 
-from definitions import PROJECT_ROOT
+import settings
 
-PROBLEM_DATA_DIRECTORY = os.path.join(PROJECT_ROOT, 'data/problems')
+PROBLEM_DATA_DIRECTORY = os.path.join(settings.PROJECT_ROOT, 'data/problems')
 
 
 def create_geo_data(session):
