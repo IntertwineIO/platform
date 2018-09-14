@@ -259,31 +259,28 @@ class Jsonable(object):
         for jp in jsonify_properties:
             jp_name = jp.name
             begin, end, before, after = jp.begin, jp.end, jp.before, jp.after
-            method = jp.method
-            # Override if method; otherwise just relocate original
-            prop = jp if method else fields[jp_name]
             if jp_name in fields:
                 if sum(map(bool, (begin, end, before, after))) == 0:
-                    fields[jp_name] = prop  # Replace at same location
+                    fields[jp_name] = jp  # Replace at same location
                     continue
                 del fields[jp_name]  # Delete as it's reinserted below
             if begin:
                 # Insert after other 'begin' fields
-                fields.insert(begin_count, jp_name, prop, by_index=True)
+                fields.insert(begin_count, jp_name, jp, by_index=True)
                 begin_count += 1
             elif end:
                 # Insert after other 'end' fields
-                fields.insert(len(fields) - 1, jp_name, prop, after=True,
+                fields.insert(len(fields) - 1, jp_name, jp, after=True,
                               by_index=True)
                 end_count += 1
             elif before:
-                fields.insert(before, jp_name, prop)
+                fields.insert(before, jp_name, jp)
             elif after:
-                fields.insert(after, jp_name, prop, after=True)
+                fields.insert(after, jp_name, jp, after=True)
             else:
                 # Insert before 'end' fields
                 fields.insert(len(fields) - end_count - 1, jp_name,
-                              prop, after=True, by_index=True)
+                              jp, after=True, by_index=True)
 
         return fields
 
