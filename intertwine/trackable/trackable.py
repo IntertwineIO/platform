@@ -18,7 +18,7 @@ from .exceptions import (
     KeyMissingFromRegistry, KeyMissingFromRegistryAndDatabase,
     KeyRegisteredAndNoModify)
 from .utils import (build_table_model_map, dehumpify, get_class, isiterator,
-                    isnamedtuple, merge_args)
+                    isnamedtuple, isnonstringsequence, merge_args)
 
 # Python version compatibilities
 U_LITERAL = 'u' if sys.version_info < (3,) else ''
@@ -498,10 +498,10 @@ class Trackable(ModelMeta):
         if _base is None:
             if isiterator(path):
                 path = tuple(path)
+            if not (isnonstringsequence(path) or isinstance(path, OrderedDict)):
+                raise TypeError('path must be list/tuple/iterator or OrderedDict')
             _path_ismap = hasattr(path, 'items')
             _query_ismap = hasattr(query, 'items')
-            if _path_ismap and not isinstance(path, OrderedDict):
-                raise TypeError('path must be ordered')
             _path_list = list(path.values()) if _path_ismap else path
             _query_list = list(query.values()) if _query_ismap else query
 

@@ -118,9 +118,10 @@ def get_geo_json(geo_huid):
 def get_geo_html(geo_huid):
     """Geo Page"""
     geo_huid = geo_huid.lower()
+    geo_key = Geo.Key(geo_huid)
 
     try:
-        geo = Geo.reconstruct(geo_huid)
+        geo = Geo.reconstruct(geo_key)
     except KeyError:
         # TODO: Instead of aborting, reroute to geo_not_found page
         # Oops! 'X' is not a geo found in Intertwine.
