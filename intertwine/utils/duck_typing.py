@@ -35,7 +35,7 @@ def isnamedtuple(obj):
 
 
 def isnonstringsequence(obj):
-    """Check if object is a non-string sequence, e.g. list, tuple"""
+    """Check if object is non-string sequence: list, tuple, range..."""
     if (isinstance(obj, basestring) or hasattr(obj, 'items') or not hasattr(obj, '__getitem__')):
         return False
     try:
