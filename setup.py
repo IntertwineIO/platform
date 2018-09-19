@@ -52,6 +52,7 @@ def setup_project():
         'future==0.16.0',
         'mock==2.0.0',
         'pendulum==2.0.1',  # was 1.2.5
+        'requests==2.19.1',
         'SQLAlchemy==1.2.7',  # was 1.1.14
         'timezonefinder==2.1.2',
         'titlecase==0.12.0',
