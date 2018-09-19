@@ -8,6 +8,8 @@ from flask import (abort, jsonify, make_response, redirect, render_template,
                    request)
 
 from . import blueprint
+from intertwine.connectors.contextualize.community_content_connector import (
+    CommunityContentConnector)
 from intertwine.exceptions import (InterfaceException, IntertwineException,
                                    ResourceDoesNotExist)
 from intertwine.geos.models import Geo
@@ -209,3 +211,26 @@ def configure_community_json():
         config[FieldPath.form_path('.aggregate_ratings', category,
                                    'adjacent_community_url')] = 1
     return config
+
+
+@blueprint.route('/content/<problem_huid>/<path:geo_huid>', methods=['GET'])
+def get_community_content_json(problem_huid, geo_huid):
+    """
+    Get Community Content JSON
+
+    1. TODO: Query for content based on problem, org, and geo
+    2. Hit contextualize endpoint to retrieve content/initiate fetch
+
+    Usage:
+    curl -H 'accept:application/json' -X GET \
+    'http://localhost:5000/communities/content/homelessness/us/tx'
+    """
+    org_huid = None
+    try:
+        community = Community.manifest(problem_huid, org_huid, geo_huid)
+    except IntertwineException as e:
+        raise ResourceDoesNotExist(str(e))
+
+    connector = CommunityContentConnector(community)
+    content = connector.fetch()
+    return jsonify(content)
