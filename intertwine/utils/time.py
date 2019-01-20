@@ -57,7 +57,7 @@ class FlexTime(DateTime):
     LOCAL_TAG = 'local'
     Granularity = Enum('Granularity',
                        [f.upper() for f in DateTimeInfo._fields[:TZINFO_IDX]])
-    MAX_GRANULARITY = tuple(Granularity)[-1]
+    MAX_GRANULARITY = Granularity(len(Granularity))
     DEFAULTS = DateTimeInfo(None, 1, 1, 0, 0, 0, 0, UTC, 0)
     NULLS = DateTimeInfo(*(None for _ in range(len(DateTimeInfo._fields))))
 
