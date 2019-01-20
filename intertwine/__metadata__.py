@@ -21,7 +21,7 @@ __author_email__ = 'engineering@intertwine.io'
 __maintainer__ = 'Intertwine'
 __maintainer_email__ = 'engineering@intertwine.io'
 
-__copyright_years__ = '2015-2018'
+__copyright_years__ = '2015-2019'
 __license__ = 'Copyright Intertwine'
 __url__ = 'https://github.com/IntertwineIO/platform.git'
 __version__ = tuple([
