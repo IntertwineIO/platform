@@ -136,10 +136,10 @@ def test_class_decorator(args, kwds, dargs, dkwds, expected, raises):
 
 @pytest.mark.unit
 @pytest.mark.parametrize("args, kwds, dargs, dkwds, expected, raises", [
-    pytest.mark.xfail((None, None, None, None, None, False), reason='decorated class method needs self'),
-    pytest.mark.xfail((('a', 'b'), {'c': 'd'}, None, None, (('a', 'b'), {'c': 'd'}), False), reason='decorated class method needs self'),
-    pytest.mark.xfail((('e', 'f'), None, None, None, ('e', 'f'), False), reason='decorated class method needs self'),
-    pytest.mark.xfail((None, {'g': 'h'}, None, None, {'g': 'h'}, False), reason='decorated class method needs self'),
+    # pytest.mark.xfail((None, None, None, None, None, False), reason='decorated class method needs self'),
+    # pytest.mark.xfail((('a', 'b'), {'c': 'd'}, None, None, (('a', 'b'), {'c': 'd'}), False), reason='decorated class method needs self'),
+    # pytest.mark.xfail((('e', 'f'), None, None, None, ('e', 'f'), False), reason='decorated class method needs self'),
+    # pytest.mark.xfail((None, {'g': 'h'}, None, None, {'g': 'h'}, False), reason='decorated class method needs self'),
 
     (None, None, (1, ), None, None, False),
     (('a', 'b'), {'c': 'd'}, (1, ), None, (('a', 'b'), {'c': 'd'}), False),
