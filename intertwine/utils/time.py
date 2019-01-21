@@ -231,8 +231,7 @@ class FlexTime(DateTime):
     def cast(cls, dt, tz=None, granularity=None):
         """Cast datetime or dtinfo to flextime at given granularity"""
         if (isinstance(dt, FlexTime) and (
-                not granularity or
-                dt.granularity == cls.Granularity(granularity))):
+                not granularity or dt.granularity == cls.Granularity(granularity))):
             return dt
         return cls.instance(dt, tz=tz, granularity=granularity, truncate=True)
 
@@ -285,8 +284,7 @@ class FlexTime(DateTime):
     def __eq__(self, other):
         try:
             # info is not compared to support equality across time zones
-            return (self.granularity is other.granularity and
-                    super(FlexTime, self).__eq__(other))
+            return (self.granularity is other.granularity and super(FlexTime, self).__eq__(other))
         except AttributeError:
             return super(FlexTime, self).__eq__(other)
 

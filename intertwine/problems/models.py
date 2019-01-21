@@ -244,8 +244,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         new_aggregate_weight = (
             self.weight + new_user_weight - old_user_weight)
         new_aggregate_rating = (
-            (self.rating * self.weight + increase - decrease) * 1.0 /
-            new_aggregate_weight)
+            (self.rating * self.weight + increase - decrease) * 1.0 / new_aggregate_weight)
 
         self.rating, self.weight = new_aggregate_rating, new_aggregate_weight
 
@@ -257,8 +256,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         # TODO: add 'inherited' to point to a different context for ratings
         if aggregation not in self.AGGREGATIONS:
             raise InvalidAggregation(aggregation=aggregation)
-        if ((rating is None and weight is not None) or
-                (rating is not None and weight is None)):
+        if ((rating is None and weight is not None) or (rating is not None and weight is None)):
             raise InconsistentArguments(arg1_name='rating', arg1_value=rating,
                                         art2_name='weight', arg2_value=weight)
         if (ratings is not None and rating is not None):
@@ -290,10 +288,8 @@ class AggregateProblemConnectionRating(BaseProblemModel):
                     '{field} value of {value} is not a Real number.'
                     .format(field=field, value=value))
 
-        if not ((rating >= self.MIN_RATING and rating <= self.MAX_RATING) or
-                rating == self.NO_RATING):
-            raise InvalidAggregateConnectionRating(rating=rating,
-                                                   connection=connection)
+        if (rating != self.NO_RATING and (rating < self.MIN_RATING or rating > self.MAX_RATING)):
+            raise InvalidAggregateConnectionRating(rating=rating, connection=connection)
 
         self.community = community
         self.connection = connection
@@ -486,10 +482,8 @@ class ProblemConnectionRating(BaseProblemModel):
 
         if rating is None:
             rating = old_rating = self.rating
-        elif (not isinstance(rating, int) or
-                rating < self.MIN_RATING or rating > self.MAX_RATING):
-            raise InvalidProblemConnectionRating(rating=rating,
-                                                 *self.derive_key())
+        elif (not isinstance(rating, int) or rating < self.MIN_RATING or rating > self.MAX_RATING):
+            raise InvalidProblemConnectionRating(rating=rating, *self.derive_key())
         else:
             old_rating = self.rating if hasattr(self, '_rating') else None
             if rating != old_rating:
@@ -498,10 +492,8 @@ class ProblemConnectionRating(BaseProblemModel):
 
         if weight is None:
             weight = old_weight = self.weight
-        elif (not isinstance(weight, int) or
-                weight < self.MIN_WEIGHT or weight > self.MAX_WEIGHT):
-            raise InvalidProblemConnectionWeight(weight=weight,
-                                                 *self.derive_key())
+        elif (not isinstance(weight, int) or weight < self.MIN_WEIGHT or weight > self.MAX_WEIGHT):
+            raise InvalidProblemConnectionWeight(weight=weight, *self.derive_key())
         else:
             old_weight = self.weight if hasattr(self, '_weight') else None
             if weight != old_weight:

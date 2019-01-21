@@ -1355,9 +1355,7 @@ class Geo(BaseGeoModel):
     def elevate_exact_matches(matches, match_string):
         """Elevate exact matches ignoring case given list of matches"""
         match_string = match_string.lower()
-        exact_matches = (g for g in matches
-                         if g.name.lower() == match_string or
-                         (g.abbrev and g.abbrev.lower() == match_string))
+        exact_matches = (g for g in matches if g.is_exact_match(match_string))
         len_matches_before = len(matches)
         matches[:0] = exact_matches
         len_matches_after = len(matches)
@@ -1367,9 +1365,16 @@ class Geo(BaseGeoModel):
         for i, g in enumerate(reversed(matches), start=1):
             if i > len_matches_before:
                 break
-            if (g.name.lower() == match_string or
-                    (g.abbrev and g.abbrev.lower() == match_string)):
+            if g.is_exact_match(match_string):
                 del matches[len_matches_after - i]
+
+    def is_exact_match(self, match_string):
+        """True iff name or abbrev match lowercase string"""
+        if self.name.lower() == match_string:
+            return True
+        if self.abbrev and self.abbrev.lower() == match_string:
+            return True
+        return False
 
     @staticmethod
     def remove_redundant_aliases(matches):

@@ -109,5 +109,4 @@ def json_requested():
             return True
 
     best = accept_mimetypes.best_match(['application/json', 'text/html'])
-    return (best == 'application/json' and
-            accept_mimetypes[best] > accept_mimetypes['text/html'])
+    return (best == 'application/json' and accept_mimetypes[best] > accept_mimetypes['text/html'])

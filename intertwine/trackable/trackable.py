@@ -442,8 +442,7 @@ class Trackable(ModelMeta):
             for field, component in key._asdict().items():
                 name = '.'.join((_base, field)) if _base else field
 
-                is_query_param = (_is_query_param or field in query_fields or
-                                  name in query_fields)
+                is_query_param = (_is_query_param or field in query_fields or name in query_fields)
 
                 try:
                     component_key = component.derive_key()
@@ -512,8 +511,8 @@ class Trackable(ModelMeta):
         for field in fields:
             name = '.'.join((_base, field)) if _base else field
 
-            is_query_param = (_is_query_param or field in query_fields or
-                              (_query_ismap and name in query))
+            is_query_param = (_is_query_param or field in query_fields or (
+                _query_ismap and name in query))
 
             try:
                 component_cls = cls.related_model(field)

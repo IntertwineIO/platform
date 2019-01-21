@@ -123,16 +123,14 @@ class Content(AutoTimestampMixin, BaseContentModel):
         author_name = author_name.strip()
         author_name_components = [c.strip() for c in author_name.split(',')]
         credential = None
-        if (len(author_name_components) > 1 and
-                cls.is_credential(author_name_components[-1])):
+        if (len(author_name_components) > 1 and cls.is_credential(author_name_components[-1])):
             credential = author_name_components[-1]
             author_name_components = author_name_components[:-1]
 
         if len(author_name_components) == 1:
             author_name_components = [
                 c.strip() for c in author_name_components[0].split()]
-            if (len(author_name_components) > 1 and
-                    cls.is_credential(author_name_components[-1])):
+            if (len(author_name_components) > 1 and cls.is_credential(author_name_components[-1])):
                 credential = author_name_components[-1]
                 author_name_components = author_name_components[:-1]
             author_name = ' '.join(author_name_components)

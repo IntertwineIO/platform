@@ -77,7 +77,6 @@ class Jsonable(object):
     JSONIFY = 'jsonify'  # Must match the method name
     JSON_ROOT = 'root'
     JSON_PAGINATION = 'pagination'
-    JSON_PRIVATE_DESIGNATION = '_'
     JSON_PROPERTY_EXCLUSIONS = {'descriptor_dict', 'object_session'}
     ID_FIELDS = {'id', 'pk', 'qualified_pk', 'json_key'}
     _fields = {}
@@ -200,9 +199,10 @@ class Jsonable(object):
         for rp in chain(sa_properties[RP][0], sa_properties[RP][1]):
             for column_name in (c.key for c in rp.local_columns):
                 is_primary_key = column_name in pk
-                is_foreign_key = (not is_primary_key and
-                                  len(column_name) >= FKE_LEN and
-                                  column_name[-FKE_LEN:] == FOREIGN_KEY_ENDING)
+                is_foreign_key = (
+                    not is_primary_key and len(column_name) >= FKE_LEN and (
+                        column_name[-FKE_LEN:] == FOREIGN_KEY_ENDING)
+                )
                 matching_name = column_name in fields
                 if is_foreign_key and matching_name:
                     columns_to_remove.add(column_name)
@@ -234,10 +234,11 @@ class Jsonable(object):
             del fields[syn_name]
 
         # Gather non-SQLAlchemy public properties
-        property_generator = ((k, v) for k, v in inspect.getmembers(cls)
-                              if k[0] != cls.JSON_PRIVATE_DESIGNATION and
-                              k not in cls.JSON_PROPERTY_EXCLUSIONS and
-                              isinstance(v, (property, JsonProperty)))
+        property_generator = (
+            (k, v) for k, v in inspect.getmembers(cls)
+            if k[0] != '_' and k not in cls.JSON_PROPERTY_EXCLUSIONS and (
+                isinstance(v, (property, JsonProperty)))
+        )
 
         py_properties = []
         jsonify_properties = []
