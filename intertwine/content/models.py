@@ -12,7 +12,6 @@ from sqlalchemy import (Column,
 # from titlecase import titlecase
 
 from intertwine import IntertwineModel
-# from intertwine.third_party import urlnorm
 from intertwine.utils.enums import UriType
 from intertwine.utils.mixins import AutoTimestampMixin
 from intertwine.utils.jsonable import JsonProperty
