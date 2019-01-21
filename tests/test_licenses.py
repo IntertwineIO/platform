@@ -20,6 +20,7 @@ def test_licenses(**options):
     known_ignores = [
 
         # Python standard packages
+        'filelock',          # Unlicense
         'speaklater',        # BSD - Python3.6 standard package
 
         # Pip packages added
@@ -116,6 +117,7 @@ def test_licenses(**options):
         'ISC', 'ISCL', 'Internet Software Consortium',
         'Artistic-Perl-1.0',  # opensource.org/licenses/Artistic-Perl-1.0
         'Artistic-2.0',  # opensource.org/licenses/Artistic-2.0
+        'Unlicense'  # http://unlicense.org/
     ]
 
     for installed_distribution in pkg_resources.working_set:
