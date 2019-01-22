@@ -12,7 +12,6 @@ from sqlalchemy import (Column,
 # from titlecase import titlecase
 
 from intertwine import IntertwineModel
-# from intertwine.third_party import urlnorm
 from intertwine.utils.enums import UriType
 from intertwine.utils.mixins import AutoTimestampMixin
 from intertwine.utils.jsonable import JsonProperty
@@ -124,16 +123,14 @@ class Content(AutoTimestampMixin, BaseContentModel):
         author_name = author_name.strip()
         author_name_components = [c.strip() for c in author_name.split(',')]
         credential = None
-        if (len(author_name_components) > 1 and
-                cls.is_credential(author_name_components[-1])):
+        if (len(author_name_components) > 1 and cls.is_credential(author_name_components[-1])):
             credential = author_name_components[-1]
             author_name_components = author_name_components[:-1]
 
         if len(author_name_components) == 1:
             author_name_components = [
                 c.strip() for c in author_name_components[0].split()]
-            if (len(author_name_components) > 1 and
-                    cls.is_credential(author_name_components[-1])):
+            if (len(author_name_components) > 1 and cls.is_credential(author_name_components[-1])):
                 credential = author_name_components[-1]
                 author_name_components = author_name_components[:-1]
             author_name = ' '.join(author_name_components)

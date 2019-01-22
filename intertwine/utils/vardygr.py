@@ -53,8 +53,8 @@ class Vardygr(type):
     @classmethod
     def _set_vardygr_attributes(meta, model_class, attrs):
         for attr_name in dir(model_class):
-            if ((attr_name[:2] == '__' and attr_name not in meta.VARDYGR_INCLUDED) or
-                    attr_name in meta.VARDYGR_EXCLUDED):
+            if (attr_name in meta.VARDYGR_EXCLUDED or (
+                    attr_name[:2] == '__' and attr_name not in meta.VARDYGR_INCLUDED)):
                 continue
 
             try:

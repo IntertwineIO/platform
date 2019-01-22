@@ -531,8 +531,8 @@ class FieldPath(Stack):
         """Element is not supported; see 'component' context manager"""
         raise AttributeError("'FieldPath' object has no attribute 'element'")
 
-    def form_path(self, start=0):
-        """Form path relative to the given start index"""
+    def relative_path(self, start=0):
+        """Relative path from the given start index"""
         length = len(self)
         if length - start == 1:
             return self.SELF_DESIGNATION
@@ -565,8 +565,12 @@ class FieldPath(Stack):
         Woman:                        .dad   .name ->          .dad.name
         Man:                                 .name ->              .name
         """
-        return ((self[start][self.Field.MODEL], self.form_path(start))
+        return ((self[start][self.Field.MODEL], self.relative_path(start))
                 for start in self._starts)
+
+    @classmethod
+    def form_path(cls, *components):
+        return cls.PATH_DELIMITER.join(components)
 
     def __init__(self, base, models):
         super().__init__()

@@ -29,12 +29,12 @@ def dehumpify(camelcase):
     length = len(camelcase)
     for i, c in enumerate(reversed(camelcase), start=1):
         following_idx = length - i + 1
-        followed_by_lower = (following_idx < length and
-                             ord_a <= ord(camelcase[following_idx]) <= ord_z)
+        followed_by_lower = (
+            following_idx < length and ord_a <= ord(camelcase[following_idx]) <= ord_z)
         is_upper = ord_A <= ord(c) <= ord_Z
         preceding_idx = length - i - 1
-        preceded_by_upper = (preceding_idx > -1 and
-                             ord_A <= ord(camelcase[preceding_idx]) <= ord_Z)
+        preceded_by_upper = (
+            preceding_idx > -1 and ord_A <= ord(camelcase[preceding_idx]) <= ord_Z)
         if is_upper and (followed_by_lower or not preceded_by_upper):
             yield camelcase[:-i]
 
@@ -65,7 +65,7 @@ def isnamedtuple(obj):
 
 
 def isnonstringsequence(obj):
-    """Check if object is a non-string sequence, e.g. list, tuple"""
+    """Check if object is non-string sequence: list, tuple, range..."""
     if (isinstance(obj, basestring) or hasattr(obj, 'items') or not hasattr(obj, '__getitem__')):
         return False
     try:

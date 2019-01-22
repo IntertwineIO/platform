@@ -26,19 +26,20 @@ class CrosswalkSignal(Enum):
     #     5           6               7              8          9
     'list_check, tuple_check, namedtuple_check, dict_check, set_check, '
     #     10            11               12
-    'range_check, iterator_check, generator_check', [
-    #                     1  2  3  4  5  6  7  8  9 10 11 12
-    (iscollection,        0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0),
-    (isiterable,          0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-    (isiterator,          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1),
-    (isnamedtuple,        0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0),
-    (isnonstringsequence, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0),
-    (issequence,          0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0),
-])
+    'range_check, iterator_check, generator_check',
+    [
+     #                     1  2  3  4  5  6  7  8  9 10 11 12
+     (iscollection,        0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0),
+     (isiterable,          0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+     (isiterator,          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1),
+     (isnamedtuple,        0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0),
+     (isnonstringsequence, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0),
+     (issequence,          0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0),
+    ])
 def test_duck_type_checkers(
-    func, int_check, enum_check, enum_class_check, str_check,
-    list_check, tuple_check, namedtuple_check, dict_check, set_check,
-    range_check, iterator_check, generator_check):
+        func, int_check, enum_check, enum_class_check, str_check,
+        list_check, tuple_check, namedtuple_check, dict_check, set_check,
+        range_check, iterator_check, generator_check):
     """Test duck-type checker functions"""
     assert bool(int_check) is func(0)
     assert bool(int_check) is func(42)

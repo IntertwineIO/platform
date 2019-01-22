@@ -8,12 +8,15 @@ from flask import (abort, jsonify, make_response, redirect, render_template,
                    request)
 
 from . import blueprint
+from intertwine.connectors.contextualize.community_content_connector import (
+    CommunityContentConnector)
 from intertwine.exceptions import (InterfaceException, IntertwineException,
                                    ResourceDoesNotExist)
 from intertwine.geos.models import Geo
 from intertwine.problems.models import Problem, ProblemConnection
 from intertwine.utils.flask_utils import json_requested
 from intertwine.utils.jsonable import Jsonable
+from intertwine.utils.structures import FieldPath
 from intertwine.utils.vardygr import vardygrify
 from .models import Community
 
@@ -84,12 +87,12 @@ def configure_problem_network_community_json():
         '.aggregate_ratings': {'depth': 2, 'hide_all': True, 'nest': True},
     }
     for category in ProblemConnection.CATEGORY_MAP:
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'rating')] = 1
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'adjacent_problem_name')] = 1
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'adjacent_community_url')] = 1
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'rating')] = 1
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'adjacent_problem_name')] = 1
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'adjacent_community_url')] = 1
     return config
 
 
@@ -121,7 +124,6 @@ def get_community_json(problem_huid, org_huid, geo_huid):
 
     try:
         community = Community.manifest(problem_huid, org_huid, geo_huid)
-
     except IntertwineException as e:
         raise ResourceDoesNotExist(str(e))
 
@@ -201,11 +203,34 @@ def configure_community_json():
         '.aggregate_ratings': -2
     }
     for category in ProblemConnection.CATEGORY_MAP:
-        config[Jsonable.form_path('.problem', category)] = 0
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'rating')] = 1
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'adjacent_problem_name')] = 1
-        config[Jsonable.form_path('.aggregate_ratings', category,
-                                  'adjacent_community_url')] = 1
+        config[FieldPath.form_path('.problem', category)] = 0
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'rating')] = 1
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'adjacent_problem_name')] = 1
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'adjacent_community_url')] = 1
     return config
+
+
+@blueprint.route('/content/<problem_huid>/<path:geo_huid>', methods=['GET'])
+def get_community_content_json(problem_huid, geo_huid):
+    """
+    Get Community Content JSON
+
+    1. TODO: Query for content based on problem, org, and geo
+    2. Hit contextualize endpoint to retrieve content/initiate fetch
+
+    Usage:
+    curl -H 'accept:application/json' -X GET \
+    'http://localhost:5000/communities/content/homelessness/us/tx'
+    """
+    org_huid = None
+    try:
+        community = Community.manifest(problem_huid, org_huid, geo_huid)
+    except IntertwineException as e:
+        raise ResourceDoesNotExist(str(e))
+
+    connector = CommunityContentConnector(community)
+    content = connector.fetch()
+    return jsonify(content)

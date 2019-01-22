@@ -77,8 +77,6 @@ class Jsonable(object):
     JSONIFY = 'jsonify'  # Must match the method name
     JSON_ROOT = 'root'
     JSON_PAGINATION = 'pagination'
-    JSON_PATH_DELIMITER = '.'
-    JSON_PRIVATE_DESIGNATION = '_'
     JSON_PROPERTY_EXCLUSIONS = {'descriptor_dict', 'object_session'}
     ID_FIELDS = {'id', 'pk', 'qualified_pk', 'json_key'}
     _fields = {}
@@ -201,9 +199,10 @@ class Jsonable(object):
         for rp in chain(sa_properties[RP][0], sa_properties[RP][1]):
             for column_name in (c.key for c in rp.local_columns):
                 is_primary_key = column_name in pk
-                is_foreign_key = (not is_primary_key and
-                                  len(column_name) >= FKE_LEN and
-                                  column_name[-FKE_LEN:] == FOREIGN_KEY_ENDING)
+                is_foreign_key = (
+                    not is_primary_key and len(column_name) >= FKE_LEN and (
+                        column_name[-FKE_LEN:] == FOREIGN_KEY_ENDING)
+                )
                 matching_name = column_name in fields
                 if is_foreign_key and matching_name:
                     columns_to_remove.add(column_name)
@@ -235,10 +234,11 @@ class Jsonable(object):
             del fields[syn_name]
 
         # Gather non-SQLAlchemy public properties
-        property_generator = ((k, v) for k, v in inspect.getmembers(cls)
-                              if k[0] != cls.JSON_PRIVATE_DESIGNATION and
-                              k not in cls.JSON_PROPERTY_EXCLUSIONS and
-                              isinstance(v, (property, JsonProperty)))
+        property_generator = (
+            (k, v) for k, v in inspect.getmembers(cls)
+            if k[0] != '_' and k not in cls.JSON_PROPERTY_EXCLUSIONS and (
+                isinstance(v, (property, JsonProperty)))
+        )
 
         py_properties = []
         jsonify_properties = []
@@ -259,31 +259,28 @@ class Jsonable(object):
         for jp in jsonify_properties:
             jp_name = jp.name
             begin, end, before, after = jp.begin, jp.end, jp.before, jp.after
-            method = jp.method
-            # Override if method; otherwise just relocate original
-            prop = jp if method else fields[jp_name]
             if jp_name in fields:
                 if sum(map(bool, (begin, end, before, after))) == 0:
-                    fields[jp_name] = prop  # Replace at same location
+                    fields[jp_name] = jp  # Replace at same location
                     continue
                 del fields[jp_name]  # Delete as it's reinserted below
             if begin:
                 # Insert after other 'begin' fields
-                fields.insert(begin_count, jp_name, prop, by_index=True)
+                fields.insert(begin_count, jp_name, jp, by_index=True)
                 begin_count += 1
             elif end:
                 # Insert after other 'end' fields
-                fields.insert(len(fields) - 1, jp_name, prop, after=True,
+                fields.insert(len(fields) - 1, jp_name, jp, after=True,
                               by_index=True)
                 end_count += 1
             elif before:
-                fields.insert(before, jp_name, prop)
+                fields.insert(before, jp_name, jp)
             elif after:
-                fields.insert(after, jp_name, prop, after=True)
+                fields.insert(after, jp_name, jp, after=True)
             else:
                 # Insert before 'end' fields
                 fields.insert(len(fields) - end_count - 1, jp_name,
-                              prop, after=True, by_index=True)
+                              jp, after=True, by_index=True)
 
         return fields
 
@@ -294,12 +291,6 @@ class Jsonable(object):
         if isinstance(value, datetime):
             return value.isoformat()
         return unicode(value)
-
-    @classmethod
-    def form_path(cls, base, *fields):
-        path_components = list(fields)
-        path_components.insert(0, base)
-        return cls.JSON_PATH_DELIMITER.join(path_components)
 
     @classmethod
     def jsonify_value(cls, value, kwarg_map=None, _path=None, _json=None, **json_kwargs):

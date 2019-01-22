@@ -57,7 +57,7 @@ class FlexTime(DateTime):
     LOCAL_TAG = 'local'
     Granularity = Enum('Granularity',
                        [f.upper() for f in DateTimeInfo._fields[:TZINFO_IDX]])
-    MAX_GRANULARITY = tuple(Granularity)[-1]
+    MAX_GRANULARITY = Granularity(len(Granularity))
     DEFAULTS = DateTimeInfo(None, 1, 1, 0, 0, 0, 0, UTC, 0)
     NULLS = DateTimeInfo(*(None for _ in range(len(DateTimeInfo._fields))))
 
@@ -231,8 +231,7 @@ class FlexTime(DateTime):
     def cast(cls, dt, tz=None, granularity=None):
         """Cast datetime or dtinfo to flextime at given granularity"""
         if (isinstance(dt, FlexTime) and (
-                not granularity or
-                dt.granularity == cls.Granularity(granularity))):
+                not granularity or dt.granularity == cls.Granularity(granularity))):
             return dt
         return cls.instance(dt, tz=tz, granularity=granularity, truncate=True)
 
@@ -285,8 +284,7 @@ class FlexTime(DateTime):
     def __eq__(self, other):
         try:
             # info is not compared to support equality across time zones
-            return (self.granularity is other.granularity and
-                    super(FlexTime, self).__eq__(other))
+            return (self.granularity is other.granularity and super(FlexTime, self).__eq__(other))
         except AttributeError:
             return super(FlexTime, self).__eq__(other)
 

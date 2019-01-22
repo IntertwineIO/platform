@@ -119,9 +119,9 @@ class QuantizedDecimal(object):
     @classmethod
     def cast(cls, number, precision=None):
         """Cast to QuantizedDecimal of given precision, if not already one"""
-        return (number if isinstance(number, cls) and
-                (precision is None or number.precision == precision)
-                else cls(number, precision))
+        if isinstance(number, cls) and (precision is None or number.precision == precision):
+            return number
+        return cls(number, precision)
 
     def __init__(self, number, precision=None, requantize=False):
         self.precision = precision  # Must precede value
