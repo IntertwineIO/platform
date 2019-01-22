@@ -47,8 +47,7 @@ class Builder(object):
     culpa qui officia deserunt mollit anim id est laborum.
     '''
     DEFAULT_WORDS = DEFAULT_TEXT.split()
-    NOW = pendulum.tomorrow()  # temporary
-    # NOW = pendulum.now()
+    NOW = pendulum.now()
     SEED = int(NOW.strftime('%Y%m%d'))  # Daily seed: YYYYMMDD
 
     fake = Faker()
