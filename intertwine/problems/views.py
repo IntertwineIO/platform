@@ -59,7 +59,7 @@ def get_problem_json(problem_huid):
     json_kwargs = dict(Problem.objectify_json_kwargs(request.args))
 
     try:
-        problem = Problem.reconstruct(problem_huid)
+        problem = Problem.reconstruct(Problem.Key(problem_huid))
     except KeyError as e:
         raise ResourceDoesNotExist(str(e))
 
@@ -79,7 +79,7 @@ def get_problem_html(problem_huid):
     problem_huid = Problem.convert_name_to_human_id(problem_huid)
 
     try:
-        problem = Problem.reconstruct(problem_huid)
+        problem = Problem.reconstruct(Problem.Key(problem_huid))
     except KeyError:
         # TODO: Instead of aborting, reroute to problem_not_found page
         # Oops! 'X' is not a problem found in Intertwine.
@@ -119,7 +119,7 @@ def get_problem_connection_json(axis, problem_a_huid, problem_b_huid):
 
     try:
         connection = ProblemConnection.reconstruct(
-            (axis, problem_a_huid, problem_b_huid))
+            ProblemConnection.Key(axis, problem_a_huid, problem_b_huid))
     except IntertwineException as e:
         raise ResourceDoesNotExist(str(e))
 
