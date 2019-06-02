@@ -60,6 +60,7 @@ target/
 
 # Virtualenv
 venv*/
+.virtualenv/
 
 # Mac
 .DS_Store
