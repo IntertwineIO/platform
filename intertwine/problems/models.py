@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import re
 from collections import OrderedDict, namedtuple
+from contextlib import suppress
 from numbers import Real
 from operator import attrgetter
 
@@ -15,7 +13,9 @@ from url_normalize import url_normalize
 
 from intertwine import IntertwineModel
 from intertwine.geos.models import Geo
+from intertwine.trackable.exceptions import KeyMissingFromRegistryAndDatabase
 from intertwine.utils.enums import UriType
+from intertwine.utils.analytics import average
 
 from .exceptions import (CircularConnection,
                          InconsistentArguments,
@@ -171,22 +171,52 @@ class AggregateProblemConnectionRating(BaseProblemModel):
                      'connection, community, aggregation')
 
     @property
-    def adjacent_problem_name(self):
-        problem = self.community.problem
-        connection = self.connection
-        problem_a, problem_b = connection.problems
-        adjacent_problem = (problem_a if problem is problem_b else problem_b)
-        return adjacent_problem.name
+    def adjacent_community_url(self):
+        Community = self.community.model_class
+        return Community.form_uri(Community.Key(problem=self.adjacent_problem,
+                                                org=self.community.org,
+                                                geo=self.community.geo))
 
     @property
-    def adjacent_community_url(self):
-        from ..communities.models import Community
-        problem = self.community.problem
-        connection = self.connection
-        problem_a, problem_b = connection.problems
-        adjacent_problem = (problem_a if problem is problem_b else problem_b)
-        return Community.form_uri(Community.Key(
-            adjacent_problem, self.community.org, self.community.geo))
+    def adjacent_community(self):
+        Community = self.community.model_class
+        with suppress(KeyMissingFromRegistryAndDatabase):
+            return Community[Community.Key(problem=self.adjacent_problem,
+                                           org=self.community.org,
+                                           geo=self.community.geo)]
+
+    @property
+    def adjacent_problem_name(self):
+        return self.adjacent_problem.name
+
+    @property
+    def adjacent_problem(self):
+        problem_a, problem_b = self.connection.problems
+        return problem_a if self.community.problem is problem_b else problem_b
+
+    @property
+    def symmetric_rating(self):
+        reverse_aggregate_rating = self.reverse_aggregate_rating
+        if not reverse_aggregate_rating or reverse_aggregate_rating.rating == self.NO_RATING:
+            return self.rating
+
+        if self.rating == self.NO_RATING:
+            return reverse_aggregate_rating.rating
+
+        return average(
+            [self.rating, reverse_aggregate_rating.rating],
+            [self.community.significance, reverse_aggregate_rating.community.significance])
+
+    @property
+    def reverse_aggregate_rating(self):
+        adjacent_community = self.adjacent_community
+        if not adjacent_community:
+            return None
+
+        with suppress(KeyMissingFromRegistryAndDatabase):
+            return self.model_class[self.Key(connection=self.connection,
+                                             community=adjacent_community,
+                                             aggregation=self.aggregation)]
 
     @classmethod
     def create_key(cls, connection, community, aggregation=STRICT, **kwds):
@@ -226,7 +256,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
             # Sub w/ r.user.expertise(problem, org, geo)
             aggregate_weight += r.weight
 
-        aggregate_rating = ((weighted_rating_total * 1.0 / aggregate_weight)
+        aggregate_rating = ((weighted_rating_total / aggregate_weight)
                             if aggregate_weight > cls.NO_WEIGHT
                             else cls.NO_RATING)
 
@@ -241,10 +271,9 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         increase = new_user_rating * new_user_weight
         decrease = old_user_rating * old_user_weight
 
-        new_aggregate_weight = (
-            self.weight + new_user_weight - old_user_weight)
+        new_aggregate_weight = self.weight + new_user_weight - old_user_weight
         new_aggregate_rating = (
-            (self.rating * self.weight + increase - decrease) * 1.0 / new_aggregate_weight)
+            (self.rating * self.weight + increase - decrease) / new_aggregate_weight)
 
         self.rating, self.weight = new_aggregate_rating, new_aggregate_weight
 

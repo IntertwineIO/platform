@@ -79,6 +79,7 @@ def configure_problem_network_community_json():
         '.': -1,
         '.name': 1,
         '.num_followers': 1,
+        '.significance': 1,
         '.problem': {'depth': 2, 'hide_all': True, 'nest': True},
         '.problem.name': 1,
         '.problem.uri': 1,
@@ -89,6 +90,8 @@ def configure_problem_network_community_json():
     for category in ProblemConnection.CATEGORY_MAP:
         config[FieldPath.form_path('.aggregate_ratings', category,
                                    'rating')] = 1
+        config[FieldPath.form_path('.aggregate_ratings', category,
+                                   'symmetric_rating')] = 1
         config[FieldPath.form_path('.aggregate_ratings', category,
                                    'adjacent_problem_name')] = 1
         config[FieldPath.form_path('.aggregate_ratings', category,
