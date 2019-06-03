@@ -283,6 +283,14 @@ def gethalffullargspec(func):
             kwonlyargs=None, kwonlydefaults=None, annotations=None, *argspec)
 
 
+def is_child_class(obj, classinfo):
+    """Check if obj extends classinfo; return None if invalid params"""
+    try:
+        return issubclass(obj, classinfo)
+    except TypeError:
+        return None
+
+
 def iterator(obj):
     """Return object's iterator if iterable, else None"""
     try:
