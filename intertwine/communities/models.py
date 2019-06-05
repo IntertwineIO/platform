@@ -126,7 +126,7 @@ class Community(BaseCommunityModel):
 
     @property
     def significance(self):
-        """Numeric measure of a community's importance; minimum 1"""
+        """Float reflecting a community's importance; minimum 1"""
         return math.log((self.num_followers or 0) + 1) + 1
 
     # Querying use cases:

@@ -72,21 +72,11 @@ class Image(BaseProblemModel):
 
     @classmethod
     def create_key(cls, problem, url, **kwds):
-        """
-        Create key for an image
-
-        Return a key allowing the Trackable metaclass to register an
-        image. The key is a namedtuple of problem and url.
-        """
+        """Create Trackable key"""
         return cls.Key(problem, url_normalize(url))
 
     def derive_key(self, **kwds):
-        """
-        Derive key from an image instance
-
-        Return the registry key used by the Trackable metaclass from an
-        image instance. The key is a namedtuple of problem and url.
-        """
+        """Derive Trackable key from problem and url fields"""
         return self.model_class.Key(self.problem, self.url)
 
     def __init__(self, url, problem):
@@ -172,6 +162,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
     @property
     def adjacent_community_url(self):
+        """Return URL for adjacent community"""
         Community = self.community.model_class
         return Community.form_uri(Community.Key(problem=self.adjacent_problem,
                                                 org=self.community.org,
@@ -179,6 +170,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
     @property
     def adjacent_community(self):
+        """Return adjacent community instance or None"""
         Community = self.community.model_class
         with suppress(KeyMissingFromRegistryAndDatabase):
             return Community[Community.Key(problem=self.adjacent_problem,
@@ -187,15 +179,29 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
     @property
     def adjacent_problem_name(self):
+        """Return name for adjacent problem"""
         return self.adjacent_problem.name
 
     @property
     def adjacent_problem(self):
+        """Return adjacent problem instance"""
         problem_a, problem_b = self.connection.problems
         return problem_a if self.community.problem is problem_b else problem_b
 
     @property
     def symmetric_rating(self):
+        """
+        Symmetric rating
+
+        A rating derived from the aggregate ratings in each direction:
+        - If both have NO_RATING, the symmetric rating is NO_RATING.
+        - If one has NO_RATING, use the reverse direction rating.
+        - If both have ratings, they are averaged and weighted by their
+        respective community's significance.
+
+        I/O:
+        return: int or float representing the symmetric rating
+        """
         reverse_aggregate_rating = self.reverse_aggregate_rating
         if not reverse_aggregate_rating or reverse_aggregate_rating.rating == self.NO_RATING:
             return self.rating
@@ -209,6 +215,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
     @property
     def reverse_aggregate_rating(self):
+        """Return reverse aggregate rating instance or None"""
         adjacent_community = self.adjacent_community
         if not adjacent_community:
             return None
@@ -220,23 +227,11 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
     @classmethod
     def create_key(cls, connection, community, aggregation=STRICT, **kwds):
-        """
-        Create key for an aggregate rating
-
-        Return a key allowing the Trackable metaclass to register an
-        aggregate problem connection rating instance. The key is a
-        namedtuple of connection, community, and aggregation.
-        """
+        """Create Trackable key"""
         return cls.Key(connection, community, aggregation)
 
     def derive_key(self, **kwds):
-        """
-        Derive key from an aggregate rating instance
-
-        Return the registry key used by the Trackable metaclass from an
-        aggregate problem connection rating instance. The key is a
-        namedtuple of connection, community, and aggregation fields.
-        """
+        """Derive Trackable key from connection/community/aggregation"""
         return self.model_class.Key(
             self.connection, self.community, self.aggregation)
 
@@ -245,7 +240,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
         """
         Calculate values
 
-        Given an iterable of ratings, returns a tuple consisting of the
+        Given an iterable of ratings, return a tuple consisting of the
         aggregate rating and the aggregate weight. If ratings is empty,
         the aggregate rating defaults to -1 and the aggregate weight
         defaults to 0.
@@ -264,7 +259,7 @@ class AggregateProblemConnectionRating(BaseProblemModel):
 
     def update_values(self, new_user_rating, new_user_weight,
                       old_user_rating=None, old_user_weight=None):
-        """Update values"""
+        """Update aggregate rating/weight given rating/weight change"""
         old_user_rating = 0 if old_user_rating is None else old_user_rating
         old_user_weight = 0 if old_user_weight is None else old_user_weight
 
@@ -998,24 +993,12 @@ class Problem(BaseProblemModel):
 
     @classmethod
     def create_key(cls, human_id=None, name=None, **kwds):
-        """
-        Create key for a problem
-
-        Return a registry key allowing the Trackable metaclass to look
-        up a problem instance. The key is created from the given name
-        parameter.
-        """
+        """Create Trackable key"""
         human_id = human_id if human_id else cls.convert_name_to_human_id(name)
         return cls.Key(human_id)
 
     def derive_key(self, **kwds):
-        """
-        Derive key from a problem instance
-
-        Return the registry key used by the Trackable metaclass from a
-        problem instance. The key is derived from the human_id field on
-        the problem instance.
-        """
+        """Derive key from human_id field"""
         return self.model_class.Key(self.human_id)
 
     @staticmethod
