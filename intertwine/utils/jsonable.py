@@ -14,6 +14,7 @@ from itertools import chain, islice
 from math import floor
 from operator import attrgetter, itemgetter
 from past.builtins import basestring
+from typing import Any, Callable, Dict, Set, Text, Union
 
 import sqlalchemy
 from sqlalchemy import orm
@@ -416,7 +417,7 @@ class Jsonable(object):
                 hide=None,       # type: Set[Text]
                 hide_all=False,  # type: bool
                 limit=10,        # type: int
-                key_type=None,   # type: JsonKeyType
+                key_type=None,   # type: self.JsonKeyType
                 raw=False,       # type: bool
                 tight=True,      # type: bool
                 nest=False,      # type: bool

@@ -3,6 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import math
 from collections import namedtuple
 from itertools import groupby
 from operator import attrgetter
@@ -123,6 +124,11 @@ class Community(BaseCommunityModel):
 
     geo = orm.synonym('_geo', descriptor=geo)
 
+    @property
+    def significance(self):
+        """Float reflecting a community's importance; minimum 1"""
+        return math.log((self.num_followers or 0) + 1) + 1
+
     # Querying use cases:
     #
     # 1. Fetch the community for a particular problem, org, and geo, to
@@ -238,7 +244,6 @@ class Community(BaseCommunityModel):
         community is created and linked to the new aggregate ratings.
         """
         community = self
-        is_real_community = type(self) is Community
         community_key = self.derive_key()
         problem, org, geo = community_key
 
@@ -249,7 +254,7 @@ class Community(BaseCommunityModel):
                          .order_by(PCR.connection_category, PCR.connection_id))
         pcrs = PeekableIterator(pcrs)
         # Create and persist a community only if necessary
-        if not is_real_community and pcrs.has_next():
+        if not isinstance(self, Community) and pcrs.has_next():
             existing_community = Community.tget(community_key)
             if existing_community:
                 community = existing_community
