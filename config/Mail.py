@@ -1,8 +1,7 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 
-class DefaultDatabaseConfig(object):
+class DefaultDatabaseConfig:
     MAIL_SERVER = 'smtp.example.com'
     MAIL_PORT = 465
     MAIL_USE_SSL = True

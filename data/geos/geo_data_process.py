@@ -1,9 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Loads geo data into Intertwine"""
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
+"""Load geo data into Intertwine"""
 from collections import Counter, defaultdict, namedtuple
 
 from sqlalchemy import desc
@@ -317,7 +314,7 @@ def load_state_counties(geo_session, session, sub1keys=None):
                 state=state.abbrev, name=state.name))
             prior_stusps = stusps
 
-        print(u"\t{name}, {state} ({standard}, '{code}')"
+        print("\t{name}, {state} ({standard}, '{code}')"
               .format(name=r.ghrp_name, state=state.abbrev, standard=ANSI,
                       code=r.ghrp_countyns))
 
@@ -426,7 +423,7 @@ def load_territory_counties(geo_session, session, sub1keys=None):
                 state=territory.abbrev, name=territory.name))
             prior_stusps = stusps
 
-        print(u"\t{name}, {state} ({standard}, '{code}')"
+        print("\t{name}, {state} ({standard}, '{code}')"
               .format(name=full_name, state=stusps, standard=ANSI, code=ansi))
 
         name, lsad, affix, _, _ = LSAD.deaffix(full_name, lsad_code)
@@ -451,7 +448,7 @@ def load_territory_counties(geo_session, session, sub1keys=None):
             pass
 
         else:
-            print(u"\t{name}, {state} ({standard}, '{code}')"
+            print("\t{name}, {state} ({standard}, '{code}')"
                   " with same place ANSI exists".format(
                     name=full_name, state=stusps, standard=ANSI, code=ansi))
 
@@ -550,7 +547,7 @@ def load_subdivision3_geos(geo_session, session, sub1keys=None, sub2keys=None):
 
         # Invalid cousub (e.g. 'County subdivisions not defined')
         if cousubns == '00000000':
-            print(u"\t\tSkipping invalid cousub: {name} ({standard}, '{code}')"
+            print("\t\tSkipping invalid cousub: {name} ({standard}, '{code}')"
                   .format(name=r.ghrp_name, standard=ANSI, code=cousubns))
             continue
 
@@ -1569,7 +1566,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
                 CBSARecord(*records.peek()).cbsa_cbsa_code != cbsa_code):
 
             cbsa_name = r.cbsa_cbsa_name
-            print(u"\t\tCBSA: {name} ({cbsa_2010}, '{code}')"
+            print("\t\tCBSA: {name} ({cbsa_2010}, '{code}')"
                   .format(name=cbsa_name, cbsa_2010=CBSA_2010, code=cbsa_code))
 
             cbsa = Geo(name=cbsa_name + ' Area',
@@ -1663,7 +1660,7 @@ def load_cbsa_geos(geo_session, session, sub1keys=None, cbsa_keys=None):
                         CBSARecord(*records.peek()).cbsa_csa_code != csa_code):
 
                     csa_name = r.cbsa_csa_name
-                    print(u"\t\tCSA: {name} ({csa_2010}, '{code}')"
+                    print("\t\tCSA: {name} ({csa_2010}, '{code}')"
                           .format(name=csa_name, csa_2010=CSA_2010,
                                   code=csa_code))
 

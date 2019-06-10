@@ -1,12 +1,9 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from sqlalchemy.orm.attributes import InstrumentedAttribute, QueryableAttribute
-# from sqlalchemy.orm.instrumentation import ClassManager
-# from sqlalchemy.sql.schema import MetaData
 
 
 class Vardygr(type):
-    u"""
+    """
     Vardygr
 
     A metaclass for uninstrumented imitation of SQLAlchemy models, used
@@ -29,14 +26,14 @@ class Vardygr(type):
 
     About the name:
 
-        Vardoger, also known as vardyvle or vardyger [or vardygr], is a
+        Vardøger, also known as vardyvle or vardyger [or vardygr], is a
         spirit predecessor in Scandinavian folklore. Stories typically
-        include instances that are nearly deja vu in substance, but in
+        include instances that are nearly déjà vu in substance, but in
         reverse, where a spirit with the subject's footsteps, voice,
         scent, or appearance and overall demeanor precedes them in a
         location or activity, resulting in witnesses believing they've
         seen or heard the actual person before the person physically
-        arrives. This bears a subtle difference from a doppelganger,
+        arrives. This bears a subtle difference from a doppelgänger,
         with a less sinister connotation. It has been likened to being a
         phantom double, or form of bilocation.
 

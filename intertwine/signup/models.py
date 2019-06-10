@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import datetime
 
 from . import signup_db
@@ -18,7 +16,7 @@ class SignUp(signup_db.Model):
     def __init__(self, email, username):
         self.email = email
         self.username = username
-        self.timestamp = datetime.datetime()
+        self.timestamp = datetime.datetime.utcnow()
 
     def __repr__(self):
         cname = self.__class__.__name__

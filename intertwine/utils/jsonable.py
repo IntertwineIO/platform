@@ -1,11 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import inspect
 import json
-import sys
 from collections import OrderedDict, namedtuple
 from datetime import datetime
 from enum import Enum, EnumMeta
@@ -13,7 +8,6 @@ from functools import partial
 from itertools import chain, islice
 from math import floor
 from operator import attrgetter, itemgetter
-from past.builtins import basestring
 from typing import Any, Callable, Dict, Set, Text, Union
 
 import sqlalchemy
@@ -24,19 +18,12 @@ from sqlalchemy.orm.relationships import RelationshipProperty as RP
 
 from .duck_typing import isiterable, isiterator
 from .structures import FieldPath, InsertableOrderedDict, PeekableIterator
-from .tools import derive_defaults, derive_arg_types, enumify, get_class, stringify
+from .tools import TEXT_TYPES, derive_defaults, derive_arg_types, enumify, get_class, stringify
 
-# Python version compatibilities
-if sys.version_info < (3,):
-    JSON_NUMBER_TYPES = (bool, float, int, long)  # noqa: ignore=F821
-    lmap = map  # legacy map returning list
-    from itertools import imap as map
-else:
-    JSON_NUMBER_TYPES = (bool, float, int)
-    unicode = str
+JSON_NUMBER_TYPES = (bool, int, float)
 
 
-class JsonProperty(object):
+class JsonProperty:
 
     _count = 0
 
@@ -73,7 +60,7 @@ class JsonProperty(object):
         return f'<JsonProperty {self.index}: {self.name}>'
 
 
-class Jsonable(object):
+class Jsonable:
 
     JSONIFY = 'jsonify'  # Must match the method name
     JSON_ROOT = 'root'
@@ -291,7 +278,7 @@ class Jsonable(object):
             return value
         if isinstance(value, datetime):
             return value.isoformat()
-        return unicode(value)
+        return str(value)
 
     @classmethod
     def jsonify_value(cls, value, kwarg_map=None, _path=None, _json=None, **json_kwargs):
@@ -373,7 +360,7 @@ class Jsonable(object):
                     kwarg_map=kwarg_map, _path=_path, _json=_json, **json_kwargs)
             return item_key or jsonified
 
-        if not isiterable(value) or isinstance(value, basestring) or value_is_class:
+        if not isiterable(value) or isinstance(value, TEXT_TYPES) or value_is_class:
             default = default or cls.ensure_json_safe
             return default(value)
 
@@ -684,8 +671,6 @@ class Jsonable(object):
         return self.__unicode__().encode('utf-8')
 
     def __str__(self):
-        if sys.version_info < (3,):
-            return self.__bytes__()
         return self.__unicode__()
 
     def __unicode__(self):  # py2 only

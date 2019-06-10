@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Manages the execution of Intertwine's platform app
@@ -14,8 +14,6 @@ Options:
     -c --config CONFIG  Set config [default: demo] (options: dev, demo, local)
     -r --rebuild        Rebuilds local database
 """
-from __future__ import print_function
-
 import os
 
 from intertwine import create_app

@@ -112,7 +112,7 @@ def test_class_decorator(args, kwds, dargs, dkwds, expected, raises):
 
     if not raises:
         @decorator
-        class bar(object):
+        class bar:
 
             def __init__(self, *targs, **tkwds):
                 self.args = targs
@@ -164,7 +164,7 @@ def test_class_method_decorator(args, kwds, dargs, dkwds, expected, raises):
     decorator = get_decorator(*dargs, **dkwds)
 
     if not raises:
-        class bar(object):
+        class bar:
 
             def __init__(self, *targs, **tkwds):
                 self.args = targs

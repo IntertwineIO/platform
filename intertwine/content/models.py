@@ -1,15 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 from collections import namedtuple
 
 import pendulum
 from sqlalchemy import (Column,
                         # ForeignKey,
                         Index, orm, types)
-# from titlecase import titlecase
 
 from intertwine import IntertwineModel
 from intertwine.utils.enums import UriType
@@ -56,9 +51,8 @@ class Content(AutoTimestampMixin, BaseContentModel):
                      'title, author_names, publication, published_timestamp')
 
     @classmethod
-    def create_key(cls, title, author_names, publication, published_timestamp,
-                   **kwds):
-        """Create Content key"""
+    def create_key(cls, title, author_names, publication, published_timestamp, **kwds):
+        """Create Trackable key"""
         lowered_title = title.lower()
         normalized_authors = cls.normalize_author_names(author_names)
         flex_dt = FlexTime.cast(published_timestamp)
@@ -66,7 +60,7 @@ class Content(AutoTimestampMixin, BaseContentModel):
         return cls.Key(lowered_title, normalized_authors, publication, dt_utc)
 
     def derive_key(self, **kwds):
-        """Derive Content key from instance"""
+        """Derive Trackable key from instance"""
         return self.model_class.Key(
             self.title.lower(), self.author_names, self.publication,
             self.published_timestamp.astimezone(UTC).deflex(native=True))

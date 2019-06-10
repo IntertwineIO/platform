@@ -1,14 +1,12 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
+import inspect
 import json
 import pytest
 from collections import OrderedDict, namedtuple
 from decimal import Decimal
 from enum import Enum, IntEnum
-from past.builtins import basestring
+
+from intertwine.utils.tools import TEXT_TYPES
 
 MyNamedTuple = namedtuple('MyNamedTuple', 'first second third')
 
@@ -47,15 +45,13 @@ def type_annotated_fn(
 @pytest.mark.unit
 def test_derive_arg_types():
     """Test Derive Kwarg Types"""
-    from intertwine.utils.tools import (ANNOTATION_TYPE_MAP,
-                                        derive_arg_types, gethalffullargspec)
+    from intertwine.utils.tools import ANNOTATION_TYPE_MAP, derive_arg_types
 
     custom = (CrosswalkSignal, TrafficSignal)
     custom_map = {typ_.__name__: typ_ for typ_ in custom}
 
     arg_type_generator = derive_arg_types(type_annotated_fn, custom=custom)
-
-    args = gethalffullargspec(type_annotated_fn).args
+    args = inspect.getfullargspec(type_annotated_fn).args
 
     start = 1 if args[0] in {'self', 'cls', 'meta'} else 0
 
@@ -128,7 +124,7 @@ def test_stringify(limit):
                 assert str(k) in stringified_value
                 assert str(v) in stringified_value
         elif (isiterable(standardized_value) and
-                not isinstance(standardized_value, basestring)):
+                not isinstance(standardized_value, TEXT_TYPES)):
             standardized_length = len(standardized_value)
             length = standardized_length if limit < 0 else min(limit, standardized_length)
             for i, v in enumerate(standardized_value):
@@ -150,7 +146,7 @@ def test_stringify(limit):
     ('Sexual Assault', 'University of Texas', 'Austin', 5000),
     ('Homeless Often Lack ID', None, 'Travis County', 100),
     ('Lack of Standard Homeless Metrics', None, 'Greater Austin', 3),
-    ('Homelessness', None, u'Lopeño', 0),
+    ('Homelessness', None, 'Lopeño', 0),
     ('Homelessness', None, 'Waxahachie', None),
 ])
 def test_vardygrify(session, problem_name, org_name, geo_name, num_followers):

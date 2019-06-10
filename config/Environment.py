@@ -1,8 +1,7 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 
-class EnvironmentConfig(object):
+class EnvironmentConfig:
     """Base class for environments"""
     ERROR_404_HELP = True  # Flask-Restful setting
 

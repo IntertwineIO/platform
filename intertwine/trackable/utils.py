@@ -1,21 +1,9 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import inspect
-import sys
 from itertools import islice
 
-from past.builtins import basestring
-
-# Python version compatibilities
-if sys.version_info < (3,):
-    lzip = zip  # legacy zip returning list of tuples
-    from itertools import izip as zip
-
-
 SELF_REFERENTIAL_PARAMS = {'self', 'cls', 'meta'}
+TEXT_TYPES = (str, bytes)
 
 
 ord_A = ord('A')
@@ -66,7 +54,7 @@ def isnamedtuple(obj):
 
 def isnonstringsequence(obj):
     """Check if object is non-string sequence: list, tuple, range..."""
-    if (isinstance(obj, basestring) or hasattr(obj, 'items') or not hasattr(obj, '__getitem__')):
+    if (isinstance(obj, TEXT_TYPES) or hasattr(obj, 'items') or not hasattr(obj, '__getitem__')):
         return False
     try:
         iter(obj)

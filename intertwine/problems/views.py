@@ -1,16 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from flask import (abort, current_app, jsonify, make_response, redirect,
-                   render_template, request)
+from flask import abort, current_app, jsonify, make_response, redirect, render_template, request
 
 from . import blueprint
 from .models import Problem, ProblemConnection
 from .models import AggregateProblemConnectionRating as APCR
-from ..exceptions import (InterfaceException, IntertwineException,
-                          ResourceDoesNotExist)
+from intertwine.exceptions import InterfaceException, IntertwineException, ResourceDoesNotExist
 from intertwine.utils.flask_utils import json_requested
 from intertwine.utils.vardygr import vardygrify
 

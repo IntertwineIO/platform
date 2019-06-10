@@ -1,7 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import json
 import pytest
-import sys
 
 from intertwine.communities.models import Community
 from intertwine.geos.models import Geo
@@ -9,9 +8,6 @@ from intertwine.problems.models import Problem
 from intertwine.problems.models import ProblemConnection as PC
 from intertwine.problems.models import AggregateProblemConnectionRating as APCR
 from intertwine.utils.vardygr import vardygrify
-
-# Python version compatibilities
-U_LITERAL = 'u' if sys.version_info < (3,) else ''
 
 
 @pytest.mark.unit
@@ -23,12 +19,6 @@ U_LITERAL = 'u' if sys.version_info < (3,) else ''
 def test_add_rated_problem_connection(session, client, connection_category,
                                       is_real_community):
     """Tests aggregate problem connection rating model interaction"""
-    import json
-
-    # from intertwine.communities.models import Community
-    # from intertwine.geos.models import Geo
-    # from intertwine.problems.models import Problem, ProblemConnection
-
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
     org = 'University of Texas'

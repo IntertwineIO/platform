@@ -1,15 +1,15 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import pytest
 
+from intertwine.problems.models import Problem
+from intertwine.trackable import Trackable
+from intertwine.trackable.exceptions import KeyMissingFromRegistryAndDatabase
 from tests.builders.master import Builder
 
 
 @pytest.mark.unit
 def test_trackable_class_keys(session):
     """Test Trackable Class Keys"""
-    from intertwine.trackable import Trackable
-
     for class_name, cls in Trackable._classes.items():
         key_class_name = cls.Key.__name__.split('Key')[0]
         assert key_class_name == class_name
@@ -27,8 +27,6 @@ def test_trackable_class_keys(session):
 @pytest.mark.unit
 def test_trackable_deconstruction_reconstruction(session):
     """Test Trackable Deconstruction & Reconstruction"""
-    from intertwine.trackable import Trackable
-
     for class_name, cls in Trackable._classes.items():
         builder = Builder(cls, optional=False)
         inst = builder.build()
@@ -80,9 +78,6 @@ def test_trackable_deconstruction_reconstruction(session):
 @pytest.mark.unit
 def test_trackable_tget(session):
     """Test Trackable get (tget)"""
-    from intertwine.problems.models import Problem
-    from intertwine.trackable import Trackable
-
     problem_name = 'Test Problem'
     problem_key = Problem.create_key(name='Test Problem')
     assert len(problem_key) == 1
@@ -131,11 +126,6 @@ def test_trackable_tget(session):
 @pytest.mark.unit
 def test_trackable_indexability(session):
     """Test Trackable indexability (via []s)"""
-    from intertwine.problems.models import Problem
-    from intertwine.trackable import Trackable
-    from intertwine.trackable.exceptions import (
-        KeyMissingFromRegistryAndDatabase)
-
     problem_name = 'Test Problem'
     problem_key = Problem.create_key(name='Test Problem')
     assert len(problem_key) == 1

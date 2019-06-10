@@ -1,11 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Master builder for instantiating test data
 """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 import datetime
 import string
 import sys
@@ -18,17 +15,13 @@ from intertwine import IntertwineModel
 from intertwine.utils.debug import sync_debug
 from intertwine.utils.tools import derive_args
 
-if sys.version_info < (3,):
-    LETTERS = string.letters
-    LOWERCASE = string.lowercase
-else:
-    LETTERS = string.ascii_letters
-    LOWERCASE = string.ascii_lowercase
+LETTERS = string.ascii_letters
+LOWERCASE = string.ascii_lowercase
 
 SQLALCHEMY_MODEL_BASE = IntertwineModel
 
 
-class Builder(object):
+class Builder:
 
     MODEL_BUILDER_TAG = 'Builder'
     BUILDER_FIELD_TAG = 'builder'
@@ -49,6 +42,7 @@ class Builder(object):
     DEFAULT_WORDS = DEFAULT_TEXT.split()
     NOW = pendulum.now()
     SEED = int(NOW.strftime('%Y%m%d'))  # Daily seed: YYYYMMDD
+    # SEED = 20190604
 
     fake = Faker()
     fake.seed(SEED)

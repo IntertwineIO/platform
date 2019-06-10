@@ -1,17 +1,15 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import pytest
 
+from intertwine import IntertwineModel
+from intertwine.trackable import Trackable
+from intertwine.utils.enums import UriType
 from tests.builders.master import Builder
 
 
 @pytest.mark.unit
 def test_uri_formation_and_instantiation(session):
     """Test URI formation and instantiation"""
-    from intertwine.trackable import Trackable
-    from intertwine import IntertwineModel
-    from intertwine.utils.enums import UriType
-
     for class_name, cls in Trackable._classes.items():
         # Register existing for builders since registry is cleared below
         Trackable.register_existing(session)

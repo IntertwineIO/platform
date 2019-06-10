@@ -1,9 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from uuid import uuid4
 
 
-class DefaultConfig(object):
+class DefaultConfig:
     """Base class for all configurations"""
 
     DEBUG = False

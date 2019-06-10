@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Platform: Intertwine.io's website
@@ -10,8 +10,6 @@ Copyright (c) 2015-2019
 
 License:  Proprietary.
 """
-from __future__ import unicode_literals
-
 import datetime
 import os
 import re
@@ -294,10 +292,9 @@ def main():
     project_name = metadata['project']
     classifiers = metadata.get('classifiers')
     extras = {k: v for k, v in requirements.items() if k != 'requirements'}
-    year = metadata.get('copyright_years') or datetime.datetime.now().year
+    year = metadata.get('copyright_years') or datetime.datetime.utcnow().year
     lic = metadata.get('license') or 'Copyright {year} - all rights reserved'.format(year=year)
     sass_manifests = get_sass_manifests(metadata)
-    # import pdb; pdb.set_trace()
     links = []
     if sys.platform.startswith('3'):
         links = [

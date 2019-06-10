@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import flask
-from flask import (abort, jsonify, make_response, redirect, render_template,
-                   request)
+from flask import abort, jsonify, make_response, redirect, render_template, request
 
 from . import blueprint
 from .models import Geo, GeoLevel

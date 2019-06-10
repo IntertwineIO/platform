@@ -1,14 +1,16 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import pytest
+
+from intertwine.communities.models import Community
+from intertwine.geos.models import Geo
+from intertwine.problems.models import (
+    Image, Problem, ProblemConnection, ProblemConnectionRating, AggregateProblemConnectionRating)
 
 
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_problem_model(session):
     """Tests simple problem model interaction"""
-    from intertwine.problems.models import Image, Problem
-
     problem_name = 'This is a Test Problem'
     problem = Problem(problem_name)
     assert Problem[problem.derive_key()] is problem
@@ -21,8 +23,6 @@ def test_problem_model(session):
 @pytest.mark.smoke
 def test_problem_connection_model(session):
     """Tests simple problem connection model interaction"""
-    from intertwine.problems.models import Problem, ProblemConnection
-
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
     problem2 = Problem(problem_name_base + ' 02')
@@ -47,11 +47,6 @@ def test_problem_connection_model(session):
 @pytest.mark.smoke
 def test_problem_connection_rating_model(session):
     """Tests simple problem connection rating model interaction"""
-    from intertwine.geos.models import Geo
-    from intertwine.problems.models import (Problem,
-                                            ProblemConnection,
-                                            ProblemConnectionRating)
-
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
     problem2 = Problem(problem_name_base + ' 02')
@@ -88,13 +83,6 @@ def test_problem_connection_rating_model(session):
 @pytest.mark.smoke
 def test_aggregate_problem_connection_rating_model(session):
     """Tests aggregate problem connection rating model interaction"""
-    from intertwine.communities.models import Community
-    from intertwine.geos.models import Geo
-    from intertwine.problems.models import (Problem,
-                                            ProblemConnection,
-                                            ProblemConnectionRating,
-                                            AggregateProblemConnectionRating)
-
     problem_name_base = 'Test Problem'
     problem1 = Problem(problem_name_base + ' 01')
     problem2 = Problem(problem_name_base + ' 02')

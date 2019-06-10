@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from flask import Blueprint
 from flask_login import LoginManager
 from flask_security import Security, SQLAlchemyUserDatastore

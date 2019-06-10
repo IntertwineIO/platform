@@ -1,20 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import sys
 from decimal import Decimal
 
-# Python version compatibilities
-if sys.version_info < (3,):
-    INT_TYPES = (int, long)  # noqa: ignore=F821
-else:
-    INT_TYPES = (int,)
-    long = int
-    unicode = str
 
-
-class QuantizedDecimal(object):
+class QuantizedDecimal:
     """
     QuantizedDecimal
 
@@ -271,6 +259,3 @@ class QuantizedDecimal(object):
 
     def __int__(self):
         return int(self.value)
-
-    def __long__(self):
-        return long(self.value)

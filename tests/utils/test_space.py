@@ -1,17 +1,9 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import pytest
-import sys
 from decimal import Decimal
 
-from intertwine.utils.space import Area, Coordinate, GeoLocation
+import pytest
 
-# Python version compatibilities
-if sys.version_info >= (3,):
-    long = int
-    unicode = str
+from intertwine.utils.space import Area, Coordinate, GeoLocation
 
 
 def perform_core_quantized_interactions(cls, number):
@@ -44,8 +36,8 @@ def perform_core_quantized_interactions(cls, number):
 @pytest.mark.parametrize('number', [
     str('0.123456'),
     float(987654321.123456),
-    int(512),
-    long(98765432109876543210),
+    512,
+    98765432109876543210,
     0
 ])
 def test_area_core_interactions(number):
@@ -57,8 +49,8 @@ def test_area_core_interactions(number):
 @pytest.mark.parametrize('number', [
     str('0.1234567890'),
     float(12.1234567890),
-    int(-90),
-    long(90),
+    -90,
+    90,
     0
 ])
 def test_coordinate_core_interactions(number):

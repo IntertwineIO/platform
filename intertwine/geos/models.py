@@ -1,8 +1,4 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import sys
 from collections import OrderedDict, namedtuple
 from functools import reduce
 
@@ -18,12 +14,6 @@ from intertwine.utils.jsonable import JsonProperty
 from intertwine.utils.space import Area, Coordinate, GeoLocation
 from intertwine.utils.tools import (define_constants_at_module_scope,
                                     find_any_words)
-
-# Python version compatibilities
-if sys.version_info < (3,):
-    lzip = zip  # legacy zip returning list of tuples
-    from itertools import izip as zip
-
 
 BaseGeoModel = IntertwineModel
 
@@ -1114,7 +1104,7 @@ class Geo(BaseGeoModel):
             return cls.Key(human_id)
 
         path = path_parent.human_id + Geo.PATH_DELIMITER if path_parent else ''
-        nametag = u'{abbrev_or_name}{qualifier}'.format(
+        nametag = '{abbrev_or_name}{qualifier}'.format(
             abbrev_or_name=abbrev if abbrev else name,
             qualifier=' ' + qualifier if qualifier else '')
         nametag = (nametag.replace('.', '').replace(', ', '_')
@@ -1222,12 +1212,12 @@ class Geo(BaseGeoModel):
 
             the = ('The ' if geo.uses_the and show_The else (
                    'the ' if geo.uses_the and show_the else ''))
-            abbrev = (u' ({})'.format(geo.abbrev)
+            abbrev = (' ({})'.format(geo.abbrev)
                       if geo.abbrev and show_abbrev else '')
-            qualifier = (u' {}'.format(geo.qualifier)
+            qualifier = (' {}'.format(geo.qualifier)
                          if geo.qualifier and show_qualifier else '')
             if plvl == 0:
-                geostr.append(u'{the}{name}{abbrev}{qualifier}'.format(
+                geostr.append('{the}{name}{abbrev}{qualifier}'.format(
                     the=the, name=geo.name, abbrev=abbrev,
                     qualifier=qualifier))
             else:

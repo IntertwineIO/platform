@@ -1,22 +1,12 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import inspect
 import numbers
 import re
 import sys
-from collections import namedtuple
 from itertools import chain, islice
 
-if sys.version_info < (3,):
-    lzip = zip  # legacy zip returning list of tuples
-    from itertools import izip as zip
-else:
-    unicode = str
-
 SELF_REFERENTIAL_PARAMS = {'self', 'cls', 'meta'}
+TEXT_TYPES = (str, bytes)
 
 
 def add_leading_zeros(number, width):
@@ -101,7 +91,7 @@ def derive_args(func, include_self=False, include_optional=True,
     include_private=False:
     return: arg generator
     """
-    fullargspec = gethalffullargspec(func)
+    fullargspec = inspect.getfullargspec(func)
     args, defaults = fullargspec.args, fullargspec.defaults
     start = 1 if not include_self and args[0] in SELF_REFERENTIAL_PARAMS else 0
     num_args = len(args) if args else 0
@@ -113,7 +103,7 @@ def derive_args(func, include_self=False, include_optional=True,
     return arg_generator
 
 
-def _derive_defaults_py3(func, public_only=True):
+def derive_defaults(func, public_only=True):
     """
     Derive Defaults (Python 3.x)
 
@@ -130,39 +120,19 @@ def _derive_defaults_py3(func, public_only=True):
     return arg_defaults
 
 
-def _derive_defaults_py2(func, public_only=True):
-    """
-    Derive Defaults (Python 2.6+)
-
-    Return generator of (arg, default) tuples for the given function
-    https://stackoverflow.com/questions/12627118/get-a-function-arguments-default-value
-
-    Never use directly; use derive_defaults instead.
-    """
-    fullargspec = gethalffullargspec(func)
-    args, defaults = fullargspec.args, fullargspec.defaults
-    arg_defaults = zip(args[-len(defaults):], defaults)
-    if public_only:
-        return exclude_private_keys(arg_defaults)
-    return arg_defaults
-
-
-derive_defaults = (_derive_defaults_py2 if sys.version_info < (3,)
-                   else _derive_defaults_py3)
-
-
 # Map of mypy-style type annotations and corresponding types
 ANNOTATION_TYPE_MAP = {
     'Dict': dict,
     'List': list,
     'Set': set,
-    'Text': unicode,
+    'Text': str,
     'Tuple': tuple,
     'bool': bool,
     'float': float,
     'int': int,
     'str': str,
-    'unicode': unicode,
+    'bytes': bytes,
+    'unicode': str,
 }
 
 
@@ -258,29 +228,6 @@ def get_value(value, default, checks=None):
     """Get value or default as determined by checks"""
     checks = checks or {None}
     return value if value not in checks else default
-
-
-if sys.version_info < (3,):
-    FullArgSpec = namedtuple('FullArgSpec', 'args, varargs, varkw, defaults, '
-                             'kwonlyargs, kwonlydefaults, annotations')
-
-
-def gethalffullargspec(func):
-    """
-    gethalffullargspec
-
-    Call getfullargspec (py3) or getargspec (py2) and return the py3
-    FullArgSpec namedtuple in both cases - hence, it's 1/2 full...
-    FullArgSpec has a varkw term instead of ArgSpec's keywords term.
-    In py2, kwonlyargs, kwonlydefaults, and annotations are None.
-    """
-    try:  # py3
-        return inspect.getfullargspec(func)
-
-    except AttributeError:  # py2
-        argspec = inspect.getargspec(func)
-        return FullArgSpec(
-            kwonlyargs=None, kwonlydefaults=None, annotations=None, *argspec)
 
 
 def is_child_class(obj, classinfo):
@@ -414,7 +361,7 @@ def stringify(thing, limit=-1, _lvl=0):
 
     # If a namedtuple, stringify it whole
     if hasattr(thing, '_asdict'):
-        strings.append(u'{ind}{namedtuple}'.format(
+        strings.append('{ind}{namedtuple}'.format(
             ind=ind, namedtuple=thing))
 
     # If a list/tuple, stringify and add each item
@@ -434,25 +381,25 @@ def stringify(thing, limit=-1, _lvl=0):
                 continue
             # If there's one value, put the key and value on one line
             elif len(v_str.split('\n')) == 1:
-                strings.append(u'{ind}{key}: {value}'.format(
+                strings.append('{ind}{key}: {value}'.format(
                     ind=ind, key=k, value=v_str.strip()))
             # There are multiple values, so list them below the key
             else:
-                strings.append(u'{ind}{key}:\n{value}'.format(
+                strings.append('{ind}{key}:\n{value}'.format(
                     ind=ind, key=k, value=v_str))
 
     # If a custom object, use its __unicode__ method, but indent it
     elif hasattr(thing, '__dict__'):
-        strings.append(u'{ind}{object}'.format(
-            ind=ind, object=('\n' + ind).join(unicode(thing).split('\n'))))
+        strings.append('{ind}{object}'.format(
+            ind=ind, object=('\n' + ind).join(str(thing).split('\n'))))
 
     # If a number, use commas for readability
     elif isinstance(thing, numbers.Number) and not isinstance(thing, bool):
-        strings.append(u'{ind}{number:,}'.format(ind=ind, number=thing))
+        strings.append('{ind}{number:,}'.format(ind=ind, number=thing))
 
     # It is a non-numeric 'primitive' (e.g. boolean, string, etc.)
     else:
-        strings.append(u'{ind}{primitive}'.format(
+        strings.append('{ind}{primitive}'.format(
             ind=ind, primitive=thing))
 
     if len_thing > limit:
