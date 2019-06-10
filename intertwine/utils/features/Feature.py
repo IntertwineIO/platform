@@ -4,7 +4,7 @@ import json
 # from ..registry import RegistryObject
 
 
-class Feature(object):
+class Feature:
     """
     Feature flag
 

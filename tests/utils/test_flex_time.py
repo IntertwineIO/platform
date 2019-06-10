@@ -1,10 +1,5 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import pytest
-import sys
 from datetime import datetime
 
 from pendulum import DateTime, timezone
@@ -72,28 +67,18 @@ def test_flex_time_instantiation(
         tz_instance=True)
 
     dt_native_kwargs = dt_info_native._asdict()
-    if sys.version_info < (3, 6):
-        del dt_native_kwargs[FlexTime.FOLD_TAG]
     native_dt = datetime(**dt_native_kwargs)
 
     dt_native_args = dt_info_native[:FlexTime.FOLD_IDX]
-    if sys.version_info < (3, 6):
-        native_dt_via_args = datetime(*dt_native_args)
-    else:
-        native_dt_via_args = datetime(fold=fold, *dt_native_args)
+    native_dt_via_args = datetime(fold=fold, *dt_native_args)
     assert native_dt == native_dt_via_args
 
     dt_naive_kwargs = dt_info_native._asdict()
-    if sys.version_info < (3, 6):
-        del dt_naive_kwargs[FlexTime.FOLD_TAG]
     del dt_naive_kwargs[FlexTime.TZINFO_TAG]
     naive_dt = datetime(**dt_naive_kwargs)
 
     dt_naive_args = dt_info_native[:FlexTime.TZINFO_IDX]
-    if sys.version_info < (3, 6):
-        naive_dt_via_args = datetime(*dt_naive_args)
-    else:
-        naive_dt_via_args = datetime(fold=fold, *dt_naive_args)
+    naive_dt_via_args = datetime(fold=fold, *dt_naive_args)
     assert naive_dt == naive_dt_via_args
 
     # base_dt = DateTime(**dt_info_with_defaults._asdict())
@@ -149,8 +134,6 @@ def test_core_flex_time_interactions(
         tz_instance=True)
 
     dt_native_kwargs = dt_info_native._asdict()
-    if sys.version_info < (3, 6):
-        del dt_native_kwargs[FlexTime.FOLD_TAG]
 
     native_dt = datetime(**dt_native_kwargs)
     base_dt = DateTime(**dt_info_native._asdict())

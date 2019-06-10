@@ -1,17 +1,12 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import flask
-from flask import (abort, jsonify, make_response, redirect, render_template,
-                   request)
+from flask import abort, jsonify, make_response, redirect, render_template, request
 
 from . import blueprint
 from intertwine.connectors.contextualize.community_content_connector import (
     CommunityContentConnector)
-from intertwine.exceptions import (InterfaceException, IntertwineException,
-                                   ResourceDoesNotExist)
+from intertwine.exceptions import (
+    InterfaceException, IntertwineException, ResourceDoesNotExist)
 from intertwine.geos.models import Geo
 from intertwine.problems.models import Problem, ProblemConnection
 from intertwine.utils.flask_utils import json_requested

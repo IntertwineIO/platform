@@ -1,9 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import json
+
 import pytest
 
 
@@ -15,7 +12,7 @@ import pytest
     ('Sexual Assault', 'University of Texas', 'Austin', 5000),
     ('Homeless Often Lack ID', None, 'Travis County', 100),
     ('Lack of Standard Homeless Metrics', None, 'Greater Austin', 3),
-    ('Homelessness', None, u'Lopeño', 0),
+    ('Homelessness', None, 'Lopeño', 0),
     ('Homelessness', None, 'Waxahachie', None),
 ])
 def test_jsonify(session, problem_name, org_name, geo_name, num_followers):
@@ -64,7 +61,7 @@ def test_jsonify(session, problem_name, org_name, geo_name, num_followers):
     ('Sexual Assault', 'University of Texas', 'Austin', 5000),
     ('Homeless Often Lack ID', None, 'Travis County', 100),
     ('Lack of Standard Homeless Metrics', None, 'Greater Austin', 3),
-    ('Homelessness', None, u'Lopeño', 0),
+    ('Homelessness', None, 'Lopeño', 0),
     ('Homelessness', None, 'Waxahachie', None),
 ])
 def test_jsonify_depth2(session, problem_name, org_name, geo_name,

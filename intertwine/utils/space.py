@@ -1,21 +1,11 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import sys
 from collections import namedtuple
-from past.builtins import basestring
 
 import pendulum
 from timezonefinder import TimezoneFinder
 
 from intertwine.utils.quantized import QuantizedDecimal
-
-# Python version compatibilities
-if sys.version_info < (3,):
-    INT_TYPES = (int, long)  # noqa: ignore=F821
-else:
-    INT_TYPES = (int,)
+from intertwine.utils.tools import TEXT_TYPES
 
 
 class Area(QuantizedDecimal):
@@ -28,7 +18,7 @@ class Coordinate(QuantizedDecimal):
     DEFAULT_PRECISION = 7  # 7: 11 mm; 6: 0.11 m (https://goo.gl/7qq5sR)
 
 
-class GeoLocation(object):
+class GeoLocation:
     """
     GeoLocation
 
@@ -201,14 +191,14 @@ class GeoLocation(object):
     # Container Methods
 
     def __getitem__(self, key):
-        field = self.COORDINATES[key] if isinstance(key, INT_TYPES) else key
-        if isinstance(field, basestring) and field[0] == '_':
+        field = self.COORDINATES[key] if isinstance(key, int) else key
+        if isinstance(field, TEXT_TYPES) and field[0] == '_':
             raise AttributeError('Attempting to access private member')
         return getattr(self, field)
 
     def __setitem__(self, key, value):
-        field = self.COORDINATES[key] if isinstance(key, INT_TYPES) else key
-        if isinstance(field, basestring) and field[0] == '_':
+        field = self.COORDINATES[key] if isinstance(key, int) else key
+        if isinstance(field, TEXT_TYPES) and field[0] == '_':
             raise AttributeError('Attempting to access private member')
         setattr(self, field, value)
 

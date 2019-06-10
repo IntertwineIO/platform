@@ -1,17 +1,19 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
 import pytest
 
 import settings
+from data.data_process import decode
+from intertwine.geos.models import Geo
+from intertwine.problems.models import (
+    Problem, ProblemConnection, ProblemConnectionRating)
+from intertwine.trackable import Trackable
 
 PROBLEM_DATA_DIRECTORY = os.path.join(settings.PROJECT_ROOT, 'data/problems')
 
 
 def create_geo_data(session):
     """Util to create geos referenced in problem JSON"""
-    from intertwine.geos.models import Geo
-
     assert Geo.query.all() == []
     us = Geo(name='United States', abbrev='U.S.')
     tx = Geo(name='Texas', abbrev='TX', path_parent=us, parents=[us])
@@ -26,9 +28,6 @@ def create_geo_data(session):
 @pytest.mark.smoke
 def test_decode_problem(session):
     """Test decoding a standard problem"""
-    from intertwine.problems.models import Problem
-    from data.data_process import decode
-
     assert session is not None
     assert Problem.query.all() == []
 
@@ -56,9 +55,6 @@ def test_decode_problem(session):
 # @pytest.mark.xfail(reason='python3 unicode issue')
 def test_decode_problem_connection(session):
     """Test decoding a standard problem connection"""
-    from intertwine.problems.models import Problem, ProblemConnection
-    from data.data_process import decode
-
     assert session is not None
     assert Problem.query.all() == []
     assert ProblemConnection.query.all() == []
@@ -90,10 +86,6 @@ def test_decode_problem_connection(session):
 # @pytest.mark.xfail(reason='python3 unicode issue')
 def test_decode_problem_connection_rating(session):
     """Test decoding ratings on a single problem connection"""
-    from intertwine.problems.models import (Problem, ProblemConnection,
-                                            ProblemConnectionRating)
-    from data.data_process import decode
-
     create_geo_data(session)
 
     u = decode(session, PROBLEM_DATA_DIRECTORY)  # Decode entire directory
@@ -121,12 +113,6 @@ def test_decode_problem_connection_rating(session):
 # @pytest.mark.xfail(reason='python3 unicode issue')
 def test_incremental_decode(session):
     """Test decoding multiple files incrementally"""
-    from intertwine.trackable import Trackable
-    from intertwine.geos.models import Geo
-    from intertwine.problems.models import (Problem, ProblemConnection,
-                                            ProblemConnectionRating)
-    from data.data_process import decode
-
     create_geo_data(session)
 
     # Initial data load:
@@ -210,10 +196,6 @@ def test_incremental_decode(session):
 @pytest.mark.smoke
 def test_decode_same_data(session):
     """Test decoding incrementally"""
-    from intertwine.trackable import Trackable
-    from intertwine.problems.models import Problem
-    from data.data_process import decode
-
     create_geo_data(session)
 
     json_path = os.path.join(PROBLEM_DATA_DIRECTORY, 'problems02.json')

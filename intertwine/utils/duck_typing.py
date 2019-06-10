@@ -1,11 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from past.builtins import basestring
+from intertwine.utils.tools import TEXT_TYPES
 
 
 def iscollection(obj):
     """Check if object is a collection: list, tuple, dict, set..."""
-    if isinstance(obj, basestring) or not hasattr(obj, '__len__'):
+    if isinstance(obj, TEXT_TYPES) or not hasattr(obj, '__len__'):
         return False
     try:
         iter(obj)
@@ -36,7 +35,7 @@ def isnamedtuple(obj):
 
 def isnonstringsequence(obj):
     """Check if object is non-string sequence: list, tuple, range..."""
-    if (isinstance(obj, basestring) or hasattr(obj, 'items') or not hasattr(obj, '__getitem__')):
+    if (isinstance(obj, TEXT_TYPES) or hasattr(obj, 'items') or not hasattr(obj, '__getitem__')):
         return False
     try:
         iter(obj)

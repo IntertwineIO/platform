@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from datetime import datetime
+
 
 __all__ = (
     '__project__', '__description__', '__versionstr__', '__author__',
@@ -13,7 +14,7 @@ __all__ = (
 # ----------------------------------------------------------------------
 __project__ = 'intertwine'
 __description__ = "Untangle the world's problems"
-__versionstr__ = '0.3.0-dev'
+__versionstr__ = '0.4.0-dev'
 
 __author__ = 'Intertwine'
 __author_email__ = 'engineering@intertwine.io'
@@ -21,7 +22,7 @@ __author_email__ = 'engineering@intertwine.io'
 __maintainer__ = 'Intertwine'
 __maintainer_email__ = 'engineering@intertwine.io'
 
-__copyright_years__ = '2015-2019'
+__copyright_years__ = f'2015-{datetime.utcnow().year}'
 __license__ = 'Copyright Intertwine'
 __url__ = 'https://github.com/IntertwineIO/platform.git'
 __version__ = tuple([
@@ -40,9 +41,7 @@ __classifiers__ = [
     'License :: Other/Proprietary License',
     'Natural Language :: English',
     'Operating System :: POSIX',
-    'Programming Language :: Python :: 2.7',
-    'Programming Language :: Python :: 3.5',
-    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: Implementation :: CPython',
     'Programming Language :: Python :: Implementation :: PyPy',
     'Topic :: Software Development',

@@ -1,14 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import inspect
-import sys
 from collections import namedtuple, OrderedDict
 
 from alchy.model import ModelMeta
-from past.builtins import basestring
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm import aliased, class_mapper
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -17,11 +11,9 @@ from .exceptions import (
     InvalidRegistryKey, KeyConflictError, KeyInconsistencyError,
     KeyMissingFromRegistry, KeyMissingFromRegistryAndDatabase,
     KeyRegisteredAndNoModify)
-from .utils import (build_table_model_map, dehumpify, get_class, isiterator,
-                    isnamedtuple, isnonstringsequence, merge_args)
-
-# Python version compatibilities
-U_LITERAL = 'u' if sys.version_info < (3,) else ''
+from .utils import (
+    TEXT_TYPES, build_table_model_map, dehumpify, get_class, isiterator,
+    isnamedtuple, isnonstringsequence, merge_args)
 
 
 def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
@@ -66,9 +58,9 @@ def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
     try:
         key = self.derive_key()
     except AttributeError:
-        if isinstance(self, basestring) and not raw:
-            return u"{u}'{s}'".format(u=U_LITERAL, s=self)
-        # repr adds u''s and extra escapes for printing unicode
+        if isinstance(self, TEXT_TYPES) and not raw:
+            return f"'{self}'"
+        # repr adds extra escapes for printing unicode
         return repr(self)
 
     osqb, op, cp, csqb = '[', '(', ')', ']'
@@ -84,7 +76,7 @@ def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
         if not named:
             raise ValueError
         key_name = type(key).__name__.replace('_', '.')
-        treprs = [u'{f}={trepr}'.format(
+        treprs = ['{f}={trepr}'.format(
                   f=f, trepr=trepr(getattr(key, f),
                                    named, raw, tight, outclassed, _lvl + 1))
                   for f in key._fields]
@@ -94,16 +86,16 @@ def trepr(self, named=False, raw=True, tight=False, outclassed=True, _lvl=0):
         treprs = [trepr(v, named, raw, tight, outclassed, _lvl + 1)
                   for v in key]
 
-    all_1_line = (u'{cls}{osqb}{key_name}{op}{treprs}{cp}{csqb}'
+    all_1_line = ('{cls}{osqb}{key_name}{op}{treprs}{cp}{csqb}'
                   .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
-                          treprs=(u',' + sp).join(treprs), cp=cp, csqb=csqb))
+                          treprs=(',' + sp).join(treprs), cp=cp, csqb=csqb))
 
     if len(ind1) + len(all_1_line) < Trackable.MAX_WIDTH or tight:
         return all_1_line
     else:
-        return (u'{cls}{osqb}{key_name}{op}\n{ind2}{treprs}\n{ind1}{cp}{csqb}'
+        return ('{cls}{osqb}{key_name}{op}\n{ind2}{treprs}\n{ind1}{cp}{csqb}'
                 .format(cls=cls, osqb=osqb, key_name=key_name, op=op,
-                        ind2=ind2, treprs=(u',\n' + ind2).join(treprs),
+                        ind2=ind2, treprs=(',\n' + ind2).join(treprs),
                         ind1=ind1, cp=cp, csqb=csqb))
 
 
@@ -557,9 +549,9 @@ class Trackable(ModelMeta):
         hyper_key: Trackable key in which objects are replaced by keys
             Example:
             ProblemConnection_CausalKey(
-                axis=u'causal',
-                driver=Problem_Key(human_id=u'domestic_violence'),
-                impact=Problem_Key(human_id=u'homelessness')
+                axis='causal',
+                driver=Problem_Key(human_id='domestic_violence'),
+                impact=Problem_Key(human_id='homelessness')
             )
         _alias=None: Private parameter containing SQLAlchemy alias for
             each foreign key join; used to distinguish between multiple
@@ -595,9 +587,9 @@ class Trackable(ModelMeta):
         hyper_key: Trackable key in which objects are replaced by keys
             Example:
             ProblemConnection_CausalKey(
-                axis=u'causal',
-                driver=Problem_Key(human_id=u'domestic_violence'),
-                impact=Problem_Key(human_id=u'homelessness')
+                axis='causal',
+                driver=Problem_Key(human_id='domestic_violence'),
+                impact=Problem_Key(human_id='homelessness')
             )
         return: instance matching given query_key
         raise: KeyMissingFromRegistryAndDatabase if no instance is found

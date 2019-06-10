@@ -1,9 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
 
 
-class DefaultDatabaseConfig(object):
+class DefaultDatabaseConfig:
     """Default config for database"""
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite://'
     SQLALCHEMY_TRACK_MODIFICATIONS = False

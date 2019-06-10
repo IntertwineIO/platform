@@ -1,15 +1,11 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-import pytest
 import random
 from collections import OrderedDict, namedtuple
 from random import choice
 
-from intertwine.utils.structures import (InsertableOrderedDict, MultiKeyMap,
-                                         Sentinel)
+import pytest
+
+from intertwine.utils.structures import InsertableOrderedDict, MultiKeyMap, Sentinel
 from intertwine.utils.tools import nth_item
 
 

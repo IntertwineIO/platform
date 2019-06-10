@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Decodes data
 
@@ -10,8 +10,6 @@ Options:
     -v --verbose    More information
     -q --quiet      Less information
 """
-from __future__ import print_function
-
 import io
 import json
 import logging
@@ -35,7 +33,7 @@ from intertwine.problems.models import BaseProblemModel, Problem
 from intertwine.problems.exceptions import InvalidJSONPath
 
 
-class DataSessionManager(object):
+class DataSessionManager:
     """
     Base class for managing data sessions
 

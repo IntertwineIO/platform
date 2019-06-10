@@ -1,15 +1,16 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
 import pytest
+
+import flask
+
+from intertwine import create_app
 
 
 @pytest.mark.unit
 @pytest.mark.smoke
 def test_app_created(options):
     """Test that a working app is created"""
-    import flask
-    from intertwine import create_app
-
     config = options['config']
     app = create_app(config=config)
     assert 'SERVER_NAME' in app.config
@@ -27,9 +28,6 @@ def test_app_created(options):
 @pytest.mark.smoke
 def test_database_created(options):
     """Test that database is created"""
-    import os
-    from intertwine import create_app
-
     # Find the database file
     config = options['config']
     app = create_app(config=config)

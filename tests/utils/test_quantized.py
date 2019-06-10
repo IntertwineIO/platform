@@ -1,33 +1,23 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import pytest
-import sys
 from decimal import Decimal
 
-from intertwine.utils.quantized import QuantizedDecimal
+import pytest
 
-# Python version compatibilities
-if sys.version_info >= (3,):
-    long = int
-    unicode = str
+from intertwine.utils.quantized import QuantizedDecimal
 
 ABS = 'abs(a)'
 COMPLEX = 'complex(a)'
 DIVMOD = 'divmod(a, b)'
 FLOAT = 'float(a)'
 INT = 'int(a)'
-LONG = 'long(a)'
 POW = 'pow(a, b)'
 
 
 @pytest.mark.unit
 @pytest.mark.parametrize('number', [
     str('3.14159265359'),
-    unicode('3.14159265359'),
     float(3.14159265359),
-    long(98765432109876543210),
+    98765432109876543210,
     42,
 ])
 @pytest.mark.parametrize('precision', [None, 0, 1, 7])
@@ -174,7 +164,7 @@ def test_quantized_decimal_unary_math(operator, number, precision):
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize('operator', [COMPLEX, FLOAT, INT, LONG])
+@pytest.mark.parametrize('operator', [COMPLEX, FLOAT, INT])
 @pytest.mark.parametrize('number', [2 ** 63 + 0.1234567])
 @pytest.mark.parametrize('precision', [7])
 def test_quantized_decimal_type_cast(operator, number, precision):

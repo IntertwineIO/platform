@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Tests conversion
@@ -11,8 +11,6 @@ Options:
    -d --decoding DECODE    Describes the final file format desired  [default: utf-8]
    -v --verbose            More spam
 """
-from __future__ import print_function
-
 import os
 
 import docopt

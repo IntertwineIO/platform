@@ -1,20 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-import sys
 from collections import Counter, OrderedDict, namedtuple
 from contextlib import contextmanager
 from enum import IntEnum
 from operator import eq, attrgetter, itemgetter
 
 from .tools import nth_key
-
-# Python version compatibilities
-if sys.version_info < (3,):
-    lmap = map  # legacy map returning list
-    from itertools import imap as map
 
 
 class Sentinel:
@@ -135,8 +125,8 @@ class InsertableOrderedDict(OrderedDict):
         return self.__class__(self)
 
     def __repr__(self):
-        return u'{cls}({tuples})'.format(cls=self.__class__.__name__,
-                                         tuples=tuple(self.items()))
+        return '{cls}({tuples})'.format(cls=self.__class__.__name__,
+                                        tuples=tuple(self.items()))
 
     def _get(self, key, default=None):
         return self._dict.get(key, default)
@@ -253,7 +243,7 @@ class InsertableOrderedDict(OrderedDict):
         for obj in peekable:
             key, value = keygetter(obj), valgetter(obj)
             if self.get(key, sentinel) is not sentinel:
-                raise KeyError(u"Duplicate key: '{}'".format(key))
+                raise KeyError("Duplicate key: '{}'".format(key))
             next_key = (keygetter(peekable.peek()) if peekable.has_next()
                         else sentinel)
             self._setitem(key, self.ValueTuple(value, next_key, prior_key))

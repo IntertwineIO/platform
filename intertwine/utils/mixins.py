@@ -1,8 +1,4 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import pendulum
 from sqlalchemy import Column, orm, types
 from sqlalchemy.ext.declarative import declared_attr
@@ -13,14 +9,14 @@ from .structures import MultiKeyMap
 from .tools import camelCaseTo_snake_case
 
 
-class AutoIdMixin(object):
+class AutoIdMixin:
     """Automatically create primary id key"""
     id = Column(types.Integer, primary_key=True)
     # Ensure id is first field when jsonified
     jsonified_id = JsonProperty(name='id', begin=True)
 
 
-class AutoTablenameMixin(object):
+class AutoTablenameMixin:
     """Autogenerate table name"""
     @declared_attr
     def __tablename__(cls):
@@ -31,7 +27,7 @@ class AutoTableMixin(AutoIdMixin, AutoTablenameMixin):
     """Standardize automatic tables"""
 
 
-class AutoTimestampMixin(object):
+class AutoTimestampMixin:
     """Automatically save timestamps on create and update"""
     tz = pendulum.timezone('UTC')
 
@@ -66,7 +62,7 @@ class AutoTimestampMixin(object):
                                                end=True)
 
 
-class KeyedUp(object):
+class KeyedUp:
     """KeyedUp mixin for caching with multiple distinct field keys"""
 
     # Override with fields to be used by KeyedUp

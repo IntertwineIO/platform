@@ -1,6 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
 import pytest
+
+from intertwine import create_app
 
 
 @pytest.mark.skip("Auth is currently disabled")
@@ -8,8 +10,6 @@ import pytest
 @pytest.mark.smoke
 def test_auth_admin_(options):
     """Test auth"""
-    from intertwine import create_app
-
     config = options['config']
     app = create_app(config)
     assert 'auth' in app.blueprints
@@ -35,9 +35,6 @@ def test_auth_admin_(options):
 @pytest.mark.smoke
 def test_auth_table_generation(options):
     """Test decoding incrementally"""
-    import os
-    from intertwine import create_app
-
     config = options['config']
     app = create_app(config)
     filepath = app.config['DATABASE'].split('///')[-1]

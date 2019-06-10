@@ -1,10 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from intertwine.utils.blueprints import create_singleton_blueprint
 
 
 def test_singleton_blueprints():
-    from intertwine.utils.blueprints import create_singleton_blueprint
-
     x = create_singleton_blueprint('example', __name__)
     y = create_singleton_blueprint('example', __name__)
     assert(x == y)

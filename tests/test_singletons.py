@@ -1,12 +1,12 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import pytest
+
+from intertwine.utils.blueprints import create_singleton_blueprint
+from intertwine.utils.decorators import memoize, singleton
 
 
 @pytest.mark.skip('Feature not ready')
 def test_singleton_blueprints():
-    from intertwine.utils.blueprints import create_singleton_blueprint
-
     x = create_singleton_blueprint('example', __name__)
     y = create_singleton_blueprint('example', __name__)
     assert(x == y)
@@ -18,8 +18,6 @@ def test_singleton_blueprints():
 
 @pytest.mark.skip('Feature not ready')
 def test_singleton_decorator():
-    from intertwine.utils.decorators import singleton
-
     @singleton(parametric=True)
     def test(*args, **kwds):
         print('hi')
@@ -31,8 +29,6 @@ def test_singleton_decorator():
 
 
 def test_memoize_decorator():
-    from intertwine.utils.decorators import memoize
-
     @memoize
     def test(*args, **kwds):
         print('hi')

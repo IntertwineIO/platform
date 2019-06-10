@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import sys
 from collections import OrderedDict
 from itertools import chain, groupby
+from urllib.parse import parse_qsl, urlencode, urlparse
 
 from alchy.model import ModelBase
 
@@ -14,13 +12,6 @@ from intertwine.utils.enums import UriType
 from intertwine.utils.jsonable import Jsonable, JsonProperty
 from intertwine.utils.mixins import AutoTableMixin
 from intertwine.utils.tools import get_value
-
-if sys.version_info >= (3,):
-    from urllib.parse import parse_qsl, urlencode, urlparse
-    unicode = str
-else:
-    from urllib import urlencode
-    from urlparse import parse_qsl, urlparse
 
 
 class BaseIntertwineMeta(InitiationMetaMixin, Trackable):
@@ -98,7 +89,7 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
         except AttributeError:
             path, query = components, None
 
-        path_components = (unicode(component) if component is not None else ''
+        path_components = (str(component) if component is not None else ''
                            for component in path)
 
         sub_blueprint = cls.sub_blueprint_name()

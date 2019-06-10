@@ -1,10 +1,5 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import datetime
-import sys
 from collections import namedtuple
 from enum import Enum
 from itertools import chain, islice
@@ -207,8 +202,6 @@ class FlexTime(DateTime):
         dt_info = self.form_info(self, granularity=self.MAX_GRANULARITY,
                                  default=True, tz_instance=True)
         dt_kwds = dt_info._asdict()
-        if native and sys.version_info < (3, 6):
-            del dt_kwds[self.FOLD_TAG]
         return (datetime.datetime(**dt_kwds) if native
                 else DateTime(**dt_kwds))
 

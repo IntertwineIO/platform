@@ -3,7 +3,7 @@ import functools
 from types import FunctionType, MethodType
 
 
-class login_required(object):
+class login_required:
     """Login decorator controls permissions for a function
 
     The login_required decorator can decorate a function (preferred) or

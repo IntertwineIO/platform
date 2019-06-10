@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import re
 from collections import OrderedDict, namedtuple
@@ -6,7 +5,6 @@ from contextlib import suppress
 from numbers import Real
 from operator import attrgetter
 
-from past.builtins import basestring
 from sqlalchemy import Column, ForeignKey, Index, or_, orm, types
 from titlecase import titlecase
 from url_normalize import url_normalize
@@ -14,8 +12,8 @@ from url_normalize import url_normalize
 from intertwine import IntertwineModel
 from intertwine.geos.models import Geo
 from intertwine.trackable.exceptions import KeyMissingFromRegistryAndDatabase
-from intertwine.utils.enums import UriType
 from intertwine.utils.analytics import average
+from intertwine.utils.enums import UriType
 
 from .exceptions import (CircularConnection,
                          InconsistentArguments,
@@ -562,7 +560,7 @@ class ProblemConnectionRating(BaseProblemModel):
             self.connection_category = (connection.BROADER if problem is p_b
                                         else connection.NARROWER)
 
-        if isinstance(problem, basestring):
+        if isinstance(problem, str):
             problem_human_id = problem
             problem = Problem[problem_human_id]
             if not problem:
@@ -573,7 +571,7 @@ class ProblemConnectionRating(BaseProblemModel):
             raise InvalidProblemForConnection(problem=problem,
                                               connection=connection)
 
-        if isinstance(geo, basestring):
+        if isinstance(geo, str):
             geo_human_id = geo
             geo = Geo[geo_human_id]
             if not geo:
@@ -804,7 +802,7 @@ class ProblemConnection(BaseProblemModel):
             if not problem:
                 raise ValueError('Invalid problem or problem name: {p}'
                                  .format(p=problem))
-            if isinstance(problem, basestring):
+            if isinstance(problem, str):
                 problem_name = problem
                 problem_key = Problem.create_key(name=problem_name)
                 try:

@@ -1,11 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Custom builders for instantiating test data
 """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 import sys
 import uuid
 from collections import OrderedDict

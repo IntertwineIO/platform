@@ -1,6 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import pytest
+
+from intertwine.geos.models import Geo, GeoData, GeoID, GeoLevel
+from intertwine.utils.space import GeoLocation
 
 
 @pytest.mark.unit
@@ -9,8 +11,6 @@ import pytest
 ])
 def test_geo_model_create(session, parent_name, parent_abbrev, child_name):
     """Test simple geo model interaction"""
-    from intertwine.geos.models import Geo
-
     parent = Geo(name=parent_name, abbrev=parent_abbrev)
     child = Geo(name=child_name, path_parent=parent, parents=[parent])
 
@@ -60,8 +60,6 @@ def test_geo_model_create(session, parent_name, parent_abbrev, child_name):
 @pytest.mark.smoke
 def test_geo_data_model(session):
     """Test simple geo data model interaction"""
-    from intertwine.geos.models import Geo, GeoData
-
     total_pop, urban_pop = 1000, 800
     latitude, longitude = 30.0, -97.0
     land_area, water_area = 4321, 1234
@@ -103,8 +101,6 @@ def test_geo_data_model(session):
 @pytest.mark.smoke
 def test_geo_level_model(session):
     """Test simple geo level model interaction"""
-    from intertwine.geos.models import Geo, GeoLevel
-
     level = 'place'
     designation = 'city'
     geo = Geo(name='Test Geo Place')
@@ -134,8 +130,6 @@ def test_geo_level_model(session):
 @pytest.mark.smoke
 def test_geo_id_model(session):
     """Test simple geo id model interaction"""
-    from intertwine.geos.models import Geo, GeoLevel, GeoID
-
     TEST_STANDARD = 'Test Standard'
 
     GeoID.STANDARDS.add(TEST_STANDARD)
@@ -171,9 +165,6 @@ def test_geo_id_model(session):
 @pytest.mark.smoke
 def test_form_aggregate_geo(session):
     """Test geo creation that aggregates children data at a geo level"""
-    from intertwine.geos.models import Geo, GeoData, GeoLevel
-    from intertwine.utils.space import GeoLocation
-
     data_level = 'place'
 
     child_a_dict = {'total_pop': 100,
@@ -264,8 +255,6 @@ def test_form_aggregate_geo(session):
 @pytest.mark.smoke
 def test_geo_aliases(session):
     """Test creation of geo aliases and promoting an alias"""
-    from intertwine.geos.models import Geo, GeoData, GeoLevel
-
     geo_data_dict = {'total_pop': 100,
                      'urban_pop': 80,
                      'latitude': 42,
