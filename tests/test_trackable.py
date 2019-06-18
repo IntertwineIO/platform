@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+from intertwine.communities.models import Community
 from intertwine.problems.models import Problem
 from intertwine.trackable import Trackable
 from intertwine.trackable.exceptions import KeyMissingFromRegistryAndDatabase
@@ -25,54 +26,56 @@ def test_trackable_class_keys(session):
 
 
 @pytest.mark.unit
-def test_trackable_deconstruction_reconstruction(session):
+@pytest.mark.parametrize('org_is_null', [(False,), (True,)])
+def test_trackable_deconstruction_reconstruction(session, org_is_null):
     """Test Trackable Deconstruction & Reconstruction"""
     for class_name, cls in Trackable._classes.items():
         builder = Builder(cls, optional=False)
-        inst = builder.build()
-        path_as_list, query_as_list = inst.deconstruct(named=False)
-        path_as_od, query_as_od = inst.deconstruct(named=True)
-        query_as_dict = dict(query_as_od)
+
+        # Test null query parameter value
+        has_null_org = org_is_null and 'org' in cls.Key._fields
+        inst = builder.build(org=None) if has_null_org else builder.build()
+
+        path, query = inst.deconstruct(query_fields={'org'})
+        path_values = list(path.values())
+        query = dict(query)
 
         # Reconstruct with retrieve=False
-        reconstructed_via_list = cls.reconstruct(path_as_list, query_as_list)
+        kwargs = dict(query=query, query_fields={'org'}, retrieve=False, as_key=False)
+        reconstructed = cls.reconstruct(path, **kwargs)
+        assert reconstructed is inst
+        reconstructed_via_list = cls.reconstruct(path_values, **kwargs)
         assert reconstructed_via_list is inst
-        reconstructed_via_od = cls.reconstruct(path_as_od, query_as_od)
-        assert reconstructed_via_od is inst
-        reconstructed_via_dict = cls.reconstruct(path_as_od, query_as_dict)
-        assert reconstructed_via_dict is inst
 
         # Reconstruct as hyper-key
-        hyper_key_via_list = cls.reconstruct(path_as_list, query_as_list,
-                                             retrieve=True, as_key=True)
-        hyper_key_via_od = cls.reconstruct(path_as_od, query_as_od,
-                                           retrieve=True, as_key=True)
-        assert hyper_key_via_list == hyper_key_via_od
+        kwargs = dict(query=query, query_fields={'org'}, retrieve=True, as_key=True)
+        hyper_key = cls.reconstruct(path, **kwargs)
+        hyper_key_via_list = cls.reconstruct(path_values, **kwargs)
+        assert hyper_key_via_list == hyper_key
 
         # Reconstitute from hyper-key
+        reconstituted = cls.reconstitute(hyper_key)
+        assert reconstituted is inst
         reconstituted_via_list = cls.reconstitute(hyper_key_via_list)
         assert reconstituted_via_list is inst
-        reconstituted_via_od = cls.reconstitute(hyper_key_via_od)
-        assert reconstituted_via_od is inst
 
         session.add(inst)
         session.commit()
 
         # Reconstruct with retrieve=True (and as_key=False) queries the db
-        reconstructed_via_list = cls.reconstruct(path_as_list, query_as_list,
-                                                 retrieve=True)
-        assert reconstructed_via_list is inst
-        reconstructed_via_od = cls.reconstruct(path_as_od, query_as_od,
-                                               retrieve=True)
-        assert reconstructed_via_od is inst
+        kwargs = dict(query=query, query_fields={'org'}, retrieve=True)
+        retrieved = cls.reconstruct(path, **kwargs)
+        assert retrieved is inst
+        retrieved_via_list = cls.reconstruct(path_values, **kwargs)
+        assert retrieved_via_list is inst
 
         # Reconstruct as key
-        key = inst.derive_key()
-        key_via_list = cls.reconstruct(path_as_list, query_as_list,
-                                       as_key=True)
-        assert key_via_list == key
-        key_via_od = cls.reconstruct(path_as_od, query_as_od, as_key=True)
-        assert key_via_od == key
+        kwargs = dict(query=query, query_fields={'org'}, as_key=True)
+        key_check = inst.derive_key()
+        key = cls.reconstruct(path, **kwargs)
+        assert key == key_check
+        key_via_list = cls.reconstruct(path_values, **kwargs)
+        assert key_via_list == key_check
 
 
 @pytest.mark.unit

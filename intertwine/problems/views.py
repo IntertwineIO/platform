@@ -32,8 +32,7 @@ def render():
     return template
 
 
-@blueprint.route(Problem.form_uri(
-    Problem.Key('<problem_huid>'), sub_only=True), methods=['GET'])
+@blueprint.route(Problem.form_uri(Problem.Key('<problem_huid>'), sub_only=True), methods=['GET'])
 def get_problem(problem_huid):
     """Get problem endpoint"""
     if json_requested():

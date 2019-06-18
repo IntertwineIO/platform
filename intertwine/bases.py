@@ -8,6 +8,7 @@ from alchy.model import ModelBase
 from intertwine.initiation import InitiationMixin, InitiationMetaMixin
 from intertwine.trackable import Trackable
 from intertwine.trackable.utils import build_table_model_map
+from intertwine.utils.duck_typing import isnamedtuple
 from intertwine.utils.enums import UriType
 from intertwine.utils.jsonable import Jsonable, JsonProperty
 from intertwine.utils.mixins import AutoTableMixin
@@ -70,44 +71,30 @@ class BaseIntertwineModel(InitiationMixin, Jsonable, AutoTableMixin,
     jsonified_uri = JsonProperty(name='uri', before='json_key', hide=True)
 
     @classmethod
-    def form_uri(cls, components, sub_only=False):
+    def form_uri(cls, key, sub_only=False):
         """
-        Form URI from given components
+        Form URI from given key
 
-        components: Iterable of URL components, usually a Trackable Key
-            namedtuple derived from the instance or formed manually. Any
-            top-level exclusions can only be applied if a namedtuple.
-        sub_only=False: If True, start with sub-blueprint (exclude blueprint)
-        return: URI composed from the components
+        key: object key namedtuple, typically a Trackable or primary key
+        sub_only=False: If True, start with sub-blueprint, not blueprint
+        return: URI composed from the key components
         """
+        if not isnamedtuple(key):
+            key = cls.create_key(*key)
+
         query_fields = cls.URI_QUERY_PARAMETERS
-        try:
-            path, query = cls.deconstruct_key(
-                components, query_fields=query_fields, named=True)
-            path = path.values()
+        path, query = cls.deconstruct_key(key, query_fields=query_fields)
+        key_path = (str(component) if component is not None else ''
+                    for component in path.values())
 
-        except AttributeError:
-            path, query = components, None
-
-        path_components = (str(component) if component is not None else ''
-                           for component in path)
-
+        base_path = [''] if sub_only else ['', cls.blueprint_name()]  # '' to prefix '/'
         sub_blueprint = cls.sub_blueprint_name()
+        if sub_blueprint:
+            base_path.append(sub_blueprint)
 
-        if sub_only:
-            all_path_components = (
-                chain(('', sub_blueprint), path_components)  # '' to prefix /
-                if sub_blueprint else chain(('',), path_components))
-        else:
-            blueprint = cls.blueprint_name()
-            all_path_components = (
-                chain(('', blueprint, sub_blueprint), path_components)
-                if sub_blueprint else chain(('', blueprint), path_components))
-
-        path_string = '/'.join(all_path_components)
+        path_string = '/'.join(chain(base_path, key_path))
         query_string = urlencode(query)
-        uri = ('?'.join((path_string, query_string)) if query_string
-               else path_string)
+        uri = '?'.join((path_string, query_string)) if query_string else path_string
         return uri
 
     @classmethod

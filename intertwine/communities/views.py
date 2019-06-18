@@ -41,8 +41,9 @@ def render():
 
 @blueprint.route('/problems/<path:geo_huid>', methods=['GET'])
 def get_problem_network(geo_huid):
-    # TODO: add org to URL or query string
-    org = None
+    org_raw_huid = request.args.get('org')
+    org_huid = None if org_raw_huid and org_raw_huid.capitalize() == 'None' else org_raw_huid
+    org = org_huid  # TODO: query for org once model is implemented
     geo_huid = 'global' if not geo_huid else geo_huid.lower()
     geo_huid = geo_huid[:-1] if geo_huid and geo_huid[-1] == '/' else geo_huid
     geo = None if geo_huid == 'global' else Geo.query.filter_by(human_id=geo_huid).first()
@@ -102,8 +103,8 @@ def get_global_community(problem_huid):
 @blueprint.route('/<problem_huid>/<path:geo_huid>', methods=['GET'])
 def get_community(problem_huid, geo_huid):
     """Community Page"""
-    # TODO: add org to URL or query string
-    org_huid = None
+    org_raw_huid = request.args.get('org')
+    org_huid = None if org_raw_huid and org_raw_huid.capitalize() == 'None' else org_raw_huid
     if json_requested():
         return get_community_json(problem_huid, org_huid, geo_huid)
 
@@ -144,8 +145,7 @@ def get_community_html(problem_huid, org_huid, geo_huid):
         # Or, you can create 'X' in Intertwine'
         abort(404)
 
-    # TODO: add org to URL or query string
-    org = None
+    org = org_huid  # TODO: query for org once model is implemented
     # org = 'University of Texas'
     geo_huid = geo_huid.lower()
 
@@ -223,7 +223,8 @@ def get_community_content_json(problem_huid, geo_huid):
     curl -H 'accept:application/json' -X GET \
     'http://localhost:5000/communities/content/homelessness/us/tx'
     """
-    org_huid = None
+    org_raw_huid = request.args.get('org')
+    org_huid = None if org_raw_huid and org_raw_huid.capitalize() == 'None' else org_raw_huid
     try:
         community = Community.manifest(problem_huid, org_huid, geo_huid)
     except IntertwineException as e:
