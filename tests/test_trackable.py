@@ -41,41 +41,34 @@ def test_trackable_deconstruction_reconstruction(session, org_is_null):
         query = dict(query)
 
         # Reconstruct with retrieve=False
-        kwargs = dict(query=query, query_fields={'org'}, retrieve=False, as_key=False)
+        kwargs = dict(query=query, query_fields={'org'}, retrieve=False)
         reconstructed = cls.reconstruct(path, **kwargs)
         assert reconstructed is inst
         reconstructed_via_list = cls.reconstruct(path_values, **kwargs)
         assert reconstructed_via_list is inst
 
         # Reconstruct as hyper-key
-        kwargs = dict(query=query, query_fields={'org'}, retrieve=True, as_key=True)
-        hyper_key = cls.reconstruct(path, **kwargs)
-        hyper_key_via_list = cls.reconstruct(path_values, **kwargs)
+        hyper_key = cls.reconstruct_key(path, query=query, query_fields={'org'})
+        hyper_key_via_list = cls.reconstruct_key(path_values, query=query, query_fields={'org'})
         assert hyper_key_via_list == hyper_key
 
         # Reconstitute from hyper-key
         reconstituted = cls.reconstitute(hyper_key)
         assert reconstituted is inst
-        reconstituted_via_list = cls.reconstitute(hyper_key_via_list)
-        assert reconstituted_via_list is inst
 
         session.add(inst)
         session.commit()
 
-        # Reconstruct with retrieve=True (and as_key=False) queries the db
-        kwargs = dict(query=query, query_fields={'org'}, retrieve=True)
-        retrieved = cls.reconstruct(path, **kwargs)
+        # Retrieve from hyper-key (query db)
+        retrieved = cls.retrieve(hyper_key)
         assert retrieved is inst
-        retrieved_via_list = cls.reconstruct(path_values, **kwargs)
-        assert retrieved_via_list is inst
 
-        # Reconstruct as key
-        kwargs = dict(query=query, query_fields={'org'}, as_key=True)
-        key_check = inst.derive_key()
-        key = cls.reconstruct(path, **kwargs)
-        assert key == key_check
-        key_via_list = cls.reconstruct(path_values, **kwargs)
-        assert key_via_list == key_check
+        # Reconstruct with retrieve=True (query db)
+        kwargs = dict(query=query, query_fields={'org'}, retrieve=True)
+        reconstructed = cls.reconstruct(path, **kwargs)
+        assert reconstructed is inst
+        reconstructed_via_list = cls.reconstruct(path_values, **kwargs)
+        assert reconstructed_via_list is inst
 
 
 @pytest.mark.unit

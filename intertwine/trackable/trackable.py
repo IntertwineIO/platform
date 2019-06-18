@@ -6,6 +6,7 @@ from alchy.model import ModelMeta
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm import aliased, class_mapper
 from sqlalchemy.orm.attributes import InstrumentedAttribute
+from sqlalchemy.orm.exc import NoResultFound
 
 from .exceptions import (
     InvalidRegistryKey, KeyConflictError, KeyInconsistencyError,
@@ -458,29 +459,46 @@ class Trackable(ModelMeta):
 
         return URIComponents(path, query)
 
-    def reconstruct(cls, path, query=None, query_fields=None, retrieve=False, as_key=False,
-                    _base=None, _path_values=None, _index=0):
+    def reconstruct(cls, path, query=None, query_fields=None, retrieve=None):
         """
         Reconstruct
 
-        Instantiate from URI path and query arguments by recursively
-        reconstructing in a depth-first manner.
+        Instantiate from URI path and query arguments.
 
         I/O:
         path: URI path parameter values as a list or OrderedDict
         query=None: URI query string values as a dict
         query_fields=None: set of fields to be sourced from query string
-        retrieve=False: if retrieve is False (default), instantiate
-            foreign keys during reconstruction; if retrieve is True,
-            reconstruct via single query, but forgo Trackable caching;
-            if as_key is also True, return hyper_key instead of instance
-        as_key=False: if not as_key (default), return instance;
-            if as_key is True and retrieve is False, return key;
-            if as_key is True and retrieve is True, return hyper_key
-        return: instance (or key if as_key) matching given components
+        retrieve=None: if retrieve is True, reconstruct via single
+            query, but forgo Trackable caching; if False, reconstitute
+            foreign keys during reconstruction; if None (default),
+            attempt retrieve and fail-over to reconstitute
+        return: instance specified by path and query
         raise: if no instance is found:
-            KeyMissingFromRegistryAndDatabase (retrieve=False)
             NoResultFound (retrieve=True)
+            KeyMissingFromRegistryAndDatabase (retrieve=False)
+        """
+        hyper_key = cls.reconstruct_key(path, query=query, query_fields=query_fields)
+        if retrieve is None:
+            try:
+                return cls.retrieve(hyper_key)
+            except NoResultFound:
+                return cls.reconstitute(hyper_key)
+        return cls.retrieve(hyper_key) if retrieve else cls.reconstitute(hyper_key)
+
+    def reconstruct_key(cls, path, query=None, query_fields=None,
+                        _base=None, _path_values=None, _index=0):
+        """
+        Reconstruct
+
+        Create hyper-key from URI path and query arguments by
+        recursively reconstructing in a depth-first manner.
+
+        I/O:
+        path: URI path parameter values as a list or OrderedDict
+        query=None: URI query string values as a dict
+        query_fields=None: set of fields to be sourced from query string
+        return: hyper_key
         """
         is_map = hasattr(path, 'items')
         if _base is None:
@@ -500,9 +518,8 @@ class Trackable(ModelMeta):
 
             try:
                 component_cls = cls.related_model(field)
-                component_value, _index = component_cls.reconstruct(
+                component_value, _index = component_cls.reconstruct_key(
                     path=path, query=query, query_fields=query_fields,
-                    retrieve=retrieve, as_key=False,
                     _base=name, _path_values=_path_values, _index=_index)
                 key_components.append(component_value)
 
@@ -515,15 +532,7 @@ class Trackable(ModelMeta):
                     _index += 1
 
         key = cls.create_key(*key_components)
-
-        if as_key:
-            return key if _base is None else (key, _index)
-
-        if retrieve:
-            return cls.retrieve(key) if _base is None else (key, _index)
-
-        inst = cls[key]
-        return inst if _base is None else (inst, _index)
+        return key if _base is None else (key, _index)
 
     def retrieve(cls, hyper_key, _alias=None, _query=None):
         """
