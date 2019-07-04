@@ -83,8 +83,7 @@ def find_geo_matches(match_string, match_limit=None):
     return jsonify(Jsonable.jsonify_value(geo_matches, kwarg_map, **json_kwargs))
 
 
-@blueprint.route(Geo.form_uri(
-    Geo.Key('<path:geo_huid>'), sub_only=True), methods=['GET'])
+@blueprint.route(Geo.form_uri(Geo.Key('<path:geo_huid>'), sub_only=True), methods=['GET'])
 def get_geo(geo_huid):
     """Get geo endpoint"""
     if json_requested():

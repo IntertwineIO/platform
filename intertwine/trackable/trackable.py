@@ -6,6 +6,7 @@ from alchy.model import ModelMeta
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm import aliased, class_mapper
 from sqlalchemy.orm.attributes import InstrumentedAttribute
+from sqlalchemy.orm.exc import NoResultFound
 
 from .exceptions import (
     InvalidRegistryKey, KeyConflictError, KeyInconsistencyError,
@@ -213,7 +214,7 @@ def _validate_(self, registry_key):
 URIComponents = namedtuple('URIComponents', 'path, query')
 
 
-def deconstruct(self, query_fields=None, named=True):
+def deconstruct(self, query_fields=None, include_query_nulls=False):
     """
     Deconstruct
 
@@ -222,17 +223,18 @@ def deconstruct(self, query_fields=None, named=True):
     deconstructed recursively in a depth-first manner.
 
     query_fields=None: set of query parameter field names
-    named=True: by default, path and query are OrderedDicts, in which
-        each key includes the full field path delimited by period ('.');
-        if False, path and query are lists.
+    include_query_nulls=False: by default, null query parameter
+        values are not included in the query term
     return: URIComponents namedtuple, in the form, (path, query), where
         path contains the URI path parameter values and query contains
         the URI query string parameter values. The path and query are
-        OrderedDicts if named is True and lists otherwise.
+        OrderedDicts in which each key includes the full field path
+        delimited by period ('.')
     """
     cls = get_class(self)
     key = self.derive_key()
-    return cls.deconstruct_key(key=key, query_fields=query_fields, named=named)
+    return cls.deconstruct_key(key=key, query_fields=query_fields,
+                               include_query_nulls=include_query_nulls)
 
 
 class Trackable(ModelMeta):
@@ -409,8 +411,8 @@ class Trackable(ModelMeta):
         inst._update_(_prefix=_prefix, _suffix=_suffix, **all_kwds)
         return inst, False
 
-    def deconstruct_key(cls, key, query_fields=None, named=True, _base=None,
-                        _path=None, _query=None, _is_query_param=False):
+    def deconstruct_key(cls, key, query_fields=None, include_query_nulls=False,
+                        _base=None, _path=None, _query=None, _is_query_param=False):
         """
         Deconstruct Key
 
@@ -418,124 +420,119 @@ class Trackable(ModelMeta):
         given the specified query_fields. Object key components are
         deconstructed recursively in a depth-first manner.
 
+        key: Trackable key, a namedtuple
         query_fields=None: set of query parameter field names
-        named=True: by default, path and query are OrderedDicts, in
-            which each key includes the full field path delimited by
-            period ('.'); if False, path and query are lists.
+        include_query_nulls=False: by default, null query parameter
+            values are not included in the query term
         return: URIComponents namedtuple, in the form, (path, query),
             where path contains the URI path parameter values and query
             contains the URI query string parameter values. The path and
-            query are OrderedDicts if named is True and lists otherwise.
+            query are OrderedDicts in which each key includes the full
+            field path delimited by period ('.')
         """
-        if named:
-            path = _path or OrderedDict()
-            query = _query or OrderedDict()
-            query_fields = set() if query_fields is None else query_fields
-            for field, component in key._asdict().items():
-                name = '.'.join((_base, field)) if _base else field
+        path = _path or OrderedDict()
+        query = _query or OrderedDict()
+        query_fields = set() if query_fields is None else query_fields
+        for field, component in key._asdict().items():
+            name = '.'.join((_base, field)) if _base else field
 
-                is_query_param = (_is_query_param or field in query_fields or name in query_fields)
+            is_query_param = (_is_query_param or field in query_fields or name in query_fields)
 
-                try:
-                    component_key = component.derive_key()
-                    component_cls = get_class(component)
-                    component_path, component_query = (
-                        component_cls.deconstruct_key(
-                            key=component_key, query_fields=query_fields,
-                            named=True, _base=name, _path=path, _query=query,
-                            _is_query_param=is_query_param))
-                    path.update(component_path)
-                    query.update(component_query)
+            try:
+                component_key = component.derive_key()
+                component_cls = get_class(component)
+                component_path, component_query = (
+                    component_cls.deconstruct_key(
+                        key=component_key, query_fields=query_fields,
+                        include_query_nulls=include_query_nulls,
+                        _base=name, _path=path, _query=query,
+                        _is_query_param=is_query_param))
+                path.update(component_path)
+                query.update(component_query)
 
-                except AttributeError:
-                    if is_query_param:
+            except AttributeError:
+                if is_query_param:
+                    if component is not None or include_query_nulls:
                         query[name] = component
-                    else:
-                        path[name] = component
+                else:
+                    path[name] = component
 
-            return URIComponents(path, query)
-        else:
-            # If named is False, recurse with names but don't return them
-            path, query = cls.deconstruct_key(key, query_fields=query_fields,
-                                              named=True)
-            return URIComponents(tuple(path.values()), tuple(query.values()))
+        return URIComponents(path, query)
 
-    def reconstruct(cls, path=None, query=None, retrieve=False, as_key=False,
-                    query_fields=None, _is_query_param=False, _base=None,
-                    _path_list=None, _query_list=None,
-                    _path_ismap=None, _query_ismap=None, _pidx=0, _qidx=0):
+    def reconstruct(cls, path, query=None, query_fields=None, retrieve=None):
         """
         Reconstruct
 
-        Instantiate from deconstructed object's key components by
+        Instantiate from URI path and query arguments.
+
+        I/O:
+        path: URI path parameter values as a list or OrderedDict
+        query=None: URI query string values as a dict
+        query_fields=None: set of fields to be sourced from query string
+        retrieve=None: if retrieve is True, reconstruct via single
+            query, but forgo Trackable caching; if False, reconstitute
+            foreign keys during reconstruction; if None (default),
+            attempt retrieve and fail-over to reconstitute
+        return: instance specified by path and query
+        raise: if no instance is found:
+            NoResultFound (retrieve=True)
+            KeyMissingFromRegistryAndDatabase (retrieve=False)
+        """
+        hyper_key = cls.reconstruct_key(path, query=query, query_fields=query_fields)
+        if retrieve is None:
+            try:
+                return cls.retrieve(hyper_key)
+            except NoResultFound:
+                return cls.reconstitute(hyper_key)
+        return cls.retrieve(hyper_key) if retrieve else cls.reconstitute(hyper_key)
+
+    def reconstruct_key(cls, path, query=None, query_fields=None,
+                        _base=None, _path_values=None, _index=0):
+        """
+        Reconstruct
+
+        Create hyper-key from URI path and query arguments by
         recursively reconstructing in a depth-first manner.
 
         I/O:
-        path=None: URI path parameter values as a list or OrderedDict
-        query=None: URI query string values as a list or dict
-        retrieve=False: if retrieve is False (default), instantiate
-            foreign keys during reconstruction; if retrieve is True,
-            reconstruct via single query, but forgo Trackable caching;
-            if as_key is also True, return hyper_key instead of instance
-        as_key=False: if not as_key (default), return instance;
-            if as_key is True and retrieve is False, return key;
-            if as_key is True and retrieve is True, return hyper_key
+        path: URI path parameter values as a list or OrderedDict
+        query=None: URI query string values as a dict
         query_fields=None: set of fields to be sourced from query string
-        return: instance (or key if as_key) matching given components
-        raise: if no instance is found:
-            KeyMissingFromRegistryAndDatabase (retrieve=False)
-            NoResultFound (retrieve=True)
+        return: hyper_key
         """
+        is_map = hasattr(path, 'items')
         if _base is None:
             if isiterator(path):
                 path = tuple(path)
             if not (isnonstringsequence(path) or isinstance(path, OrderedDict)):
                 raise TypeError('path must be list/tuple/iterator or OrderedDict')
-            _path_ismap = hasattr(path, 'items')
-            _query_ismap = hasattr(query, 'items')
-            _path_list = list(path.values()) if _path_ismap else path
-            _query_list = list(query.values()) if _query_ismap else query
+            _path_values = list(path.values()) if is_map else path
 
-        query_fields = query_fields or set()
         key_components = []
         fields = cls.Key._fields
 
         for field in fields:
             name = '.'.join((_base, field)) if _base else field
 
-            is_query_param = (_is_query_param or field in query_fields or (
-                _query_ismap and name in query))
+            is_query_param = (query_fields and field in query_fields) or (query and name in query)
 
             try:
                 component_cls = cls.related_model(field)
-                component_value, _pidx, _qidx = component_cls.reconstruct(
-                    path=path, query=query, retrieve=retrieve, as_key=False,
-                    query_fields=query_fields, _is_query_param=is_query_param,
-                    _base=name, _path_list=_path_list, _query_list=_query_list,
-                    _path_ismap=_path_ismap, _query_ismap=_query_ismap,
-                    _pidx=_pidx, _qidx=_qidx)
+                component_value, _index = component_cls.reconstruct_key(
+                    path=path, query=query, query_fields=query_fields,
+                    _base=name, _path_values=_path_values, _index=_index)
                 key_components.append(component_value)
 
             except AttributeError:
                 if is_query_param:
-                    key_components.append(query[name] if _query_ismap
-                                          else _query_list[_qidx])
-                    _qidx += 1
+                    # query params are optional when null
+                    key_components.append(query.get(name) if query else None)
                 else:
-                    key_components.append(path[name] if _path_ismap
-                                          else _path_list[_pidx])
-                    _pidx += 1
+                    key_components.append(path[name] if is_map else _path_values[_index])
+                    _index += 1
 
         key = cls.create_key(*key_components)
-
-        if as_key:
-            return key if _base is None else (key, _pidx, _qidx)
-
-        if retrieve:
-            return cls.retrieve(key) if _base is None else (key, _pidx, _qidx)
-
-        inst = cls[key]
-        return inst if _base is None else (inst, _pidx, _qidx)
+        return key if _base is None else (key, _index)
 
     def retrieve(cls, hyper_key, _alias=None, _query=None):
         """
