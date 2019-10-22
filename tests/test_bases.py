@@ -8,7 +8,7 @@ from intertwine.utils.enums import UriType
 from tests.builders.master import Builder
 
 @pytest.mark.unit
-def test_uri_formation_and_instantiation(session):
+def test_uri_formation_and_instantiation(session, caching):
     """Test URI formation and instantiation"""
     for class_name, cls in Trackable._classes.items():
         # Register existing for builders since registry is cleared below
@@ -32,7 +32,7 @@ def test_uri_formation_and_instantiation(session):
 
 
 @pytest.mark.unit
-def test_uri_formation_and_instantiation_with_null_query_value(session):
+def test_uri_formation_and_instantiation_with_null_query_value(session, caching):
     """Test URI formation and instantiation"""
     cls = Community
     # Register existing for builders since registry is cleared below

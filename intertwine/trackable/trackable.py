@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import inspect
 from collections import namedtuple, OrderedDict
+from contextlib import contextmanager
 
 from alchy.model import ModelMeta
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
@@ -243,9 +244,13 @@ class Trackable(ModelMeta):
 
     Trackable is a metaclass for tracking instances. This enables the
     following capabilities:
-    - dirty detection
+    - unique keys based on natural keys
+    - subscriptable by natural keys to obtain instances
+    - default repr that returns instance when eval'ed
+
+    If caching is enabled:
     - caching with failover to query
-    - default repr based on natural keys
+    - dirty detection
 
     Each class of type Trackable maintains a registry of instances. New
     instances are automatically registered and the constructor only
@@ -279,10 +284,12 @@ class Trackable(ModelMeta):
     """
 
     # Max width used for Trackable's default repr
-    MAX_WIDTH = 79
+    MAX_WIDTH = 99
 
     ID_TAG = 'id'
     _ID_TAG = '_id'
+
+    caching_enabled = False
 
     # Keep track of all classes that are Trackable
     _classes = {}
@@ -315,6 +322,9 @@ class Trackable(ModelMeta):
         key = cls.create_key(**all_kwds)
         if key is None or key == '':
             raise InvalidRegistryKey(key=key, classname=cls.__name__)
+        if not cls.caching_enabled:
+            return super(Trackable, cls).__call__(*args, **kwds)
+
         inst = cls._instances.get(key, None)
         if inst is None:
             inst = super(Trackable, cls).__call__(*args, **kwds)
@@ -329,6 +339,19 @@ class Trackable(ModelMeta):
             cls._updates.update(inst._modified)
             del inst._modified
         return inst
+
+    @classmethod
+    @contextmanager
+    def caching(cls):
+        """Context manager for enabling caching"""
+        prior_caching_enabled, Trackable.caching_enabled = (
+            Trackable.caching_enabled, True)
+        try:
+            yield
+        finally:
+            Trackable.caching_enabled = prior_caching_enabled
+            if not prior_caching_enabled:
+                cls.clear_instances()
 
     def _create_(cls, _save=True, *args, **kwds):
         inst = cls(*args, **kwds)
@@ -729,25 +752,38 @@ class Trackable(ModelMeta):
             When True, the database is queried if the key is not found
             in the registry.
         """
+        if cls.caching_enabled:
+            try:
+                return cls._retrieve_from_cache(key)
+            except KeyError:
+                if not query_on_miss:
+                    return default
+
+        instance = cls._retrieve_from_database(key)
+
+        if instance is None:
+            return default
+        if cls.caching_enabled:
+            key = cls._repair_key(key)
+            cls._instances[key] = instance
+        return instance
+
+    def _retrieve_from_cache(cls, key):
         try:
             return cls._instances[key]
         except KeyError:
-            pass
+            key = cls._repair_key(key)
+            return cls._instances[key]
 
-        if not isinstance(key, tuple):
-            key = (key,)  # convert non-tuple to 1-tuple
-            try:
-                return cls._instances[key]
-            except KeyError:
-                pass
-
-        if not query_on_miss:
-            return default
-
-        key = cls.create_key(*key)  # convert tuple to key
-        key_dict = key._asdict()
+    def _retrieve_from_database(cls, key):
         try:
-            instance = cls.query.filter_by(**key_dict).first()
+            fields = key._asdict()
+        except AttributeError:
+            key = cls._repair_key(key)
+            fields = key._asdict()
+
+        try:
+            instance = cls.query.filter_by(**fields).first()
             if instance is None:
                 raise ValueError
 
@@ -756,18 +792,19 @@ class Trackable(ModelMeta):
             mapper = class_mapper(cls)
             props = set(p.key for p in mapper.iterate_properties)
 
-            for field, value in key._asdict().items():
-                if field not in props:
-                    del key_dict[field]
-                    key_dict[field + cls._ID_TAG] = getattr(value, cls.ID_TAG)
+            for name, value in fields.copy().items():
+                if name not in props:
+                    del fields[name]
+                    fields[name + cls._ID_TAG] = getattr(value, cls.ID_TAG)
 
-            instance = cls.query.filter_by(**key_dict).first()
+            instance = cls.query.filter_by(**fields).first()
 
-        if instance is None:
-            return default
-
-        cls._instances[key] = instance
         return instance
+
+    def _repair_key(cls, key):
+        if not isinstance(key, tuple):
+            return cls.create_key(key)  # convert non-tuple to key
+        return cls.create_key(*key)  # convert tuple to key
 
     def __getitem__(cls, key):
         instance = cls.tget(key)

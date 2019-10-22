@@ -13,10 +13,10 @@ def test_problem_model(session):
     """Tests simple problem model interaction"""
     problem_name = 'This is a Test Problem'
     problem = Problem(problem_name)
-    assert Problem[problem.derive_key()] is problem
     session.add(problem)
     session.commit()
     assert session.query(Problem).first() is problem
+    assert Problem[problem.derive_key()] is problem
 
 
 @pytest.mark.unit
@@ -27,11 +27,11 @@ def test_problem_connection_model(session):
     problem1 = Problem(problem_name_base + ' 01')
     problem2 = Problem(problem_name_base + ' 02')
     connection = ProblemConnection('causal', problem1, problem2)
-    assert ProblemConnection[connection.derive_key()] is connection
     session.add(problem1)
     session.add(problem2)
     session.add(connection)
     session.commit()
+    assert ProblemConnection[connection.derive_key()] is connection
     problems = session.query(Problem).order_by(Problem.name).all()
     assert len(problems) == 2
     assert problems[0] is problem1
@@ -61,13 +61,13 @@ def test_problem_connection_rating_model(session):
                                      geo=geo,
                                      user='new_user')
 
-    assert ProblemConnectionRating[rating.derive_key()] is rating
     session.add(geo)
     session.add(problem1)
     session.add(problem2)
     session.add(connection)
     session.add(rating)
     session.commit()
+    assert ProblemConnectionRating[rating.derive_key()] is rating
     ratings = session.query(ProblemConnectionRating).all()
     assert len(ratings) == 1
     r = ratings[0]

@@ -26,7 +26,7 @@ def create_geo_data(session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_decode_problem(session):
+def test_decode_problem(session, caching):
     """Test decoding a standard problem"""
     assert session is not None
     assert Problem.query.all() == []
@@ -53,7 +53,7 @@ def test_decode_problem(session):
 @pytest.mark.unit
 @pytest.mark.smoke
 # @pytest.mark.xfail(reason='python3 unicode issue')
-def test_decode_problem_connection(session):
+def test_decode_problem_connection(session, caching):
     """Test decoding a standard problem connection"""
     assert session is not None
     assert Problem.query.all() == []
@@ -84,7 +84,7 @@ def test_decode_problem_connection(session):
 @pytest.mark.unit
 @pytest.mark.smoke
 # @pytest.mark.xfail(reason='python3 unicode issue')
-def test_decode_problem_connection_rating(session):
+def test_decode_problem_connection_rating(session, caching):
     """Test decoding ratings on a single problem connection"""
     create_geo_data(session)
 
@@ -111,7 +111,7 @@ def test_decode_problem_connection_rating(session):
 @pytest.mark.unit
 @pytest.mark.smoke
 # @pytest.mark.xfail(reason='python3 unicode issue')
-def test_incremental_decode(session):
+def test_incremental_decode(session, caching):
     """Test decoding multiple files incrementally"""
     create_geo_data(session)
 
@@ -194,7 +194,7 @@ def test_incremental_decode(session):
 
 @pytest.mark.unit
 @pytest.mark.smoke
-def test_decode_same_data(session):
+def test_decode_same_data(session, caching):
     """Test decoding incrementally"""
     create_geo_data(session)
 
