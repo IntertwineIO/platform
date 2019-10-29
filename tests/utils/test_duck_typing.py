@@ -2,6 +2,7 @@
 import pytest
 from collections import namedtuple
 from enum import Enum
+from itertools import tee
 
 from intertwine.utils.duck_typing import (
     iscollection, isiterable, isiterator, isnamedtuple, isnonstringsequence, issequence)
@@ -59,5 +60,8 @@ def test_duck_type_checkers(
     assert bool(range_check) is func(range(3))
     assert bool(iterator_check) is func(iter(range(0)))
     assert bool(iterator_check) is func(iter(range(3)))
+    generator = (x ** 2 for x in range(3))
+    gen_x, gen_y = tee(generator, 2)
+    assert bool(generator_check) is func(gen_x)
+    assert list(gen_x) == list(gen_y), f'{func} consumes the generator!'
     assert bool(generator_check) is func(x for x in range(0))
-    assert bool(generator_check) is func(x ** 2 for x in range(3))
