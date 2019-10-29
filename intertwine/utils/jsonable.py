@@ -360,7 +360,7 @@ class Jsonable:
                     kwarg_map=kwarg_map, _path=_path, _json=_json, **json_kwargs)
             return item_key or jsonified
 
-        if not isiterable(value) or isinstance(value, TEXT_TYPES) or value_is_class:
+        if value_is_class or isinstance(value, TEXT_TYPES) or not isiterable(value):
             default = default or cls.ensure_json_safe
             return default(value)
 
