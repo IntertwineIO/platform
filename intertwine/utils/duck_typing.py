@@ -37,19 +37,11 @@ def isnonstringsequence(obj):
     """Check if object is non-string sequence: list, tuple, range..."""
     if (isinstance(obj, TEXT_TYPES) or hasattr(obj, 'items') or not hasattr(obj, '__getitem__')):
         return False
-    try:
-        iter(obj)
-        return True
-    except TypeError:
-        return False
+    return isiterable(obj)
 
 
 def issequence(obj):
     """Check if object is a sequence, e.g. list, tuple"""
     if (hasattr(obj, 'items') or not hasattr(obj, '__getitem__')):
         return False
-    try:
-        iter(obj)
-        return True
-    except TypeError:
-        return False
+    return isiterable(obj)
