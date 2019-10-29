@@ -105,3 +105,10 @@ def client(app, request):
 
     request.addfinalizer(teardown)
     return client
+
+
+@pytest.fixture(scope='function')
+def caching(app, request):
+    """Enable caching of model instances"""
+    with Trackable.caching():
+        yield

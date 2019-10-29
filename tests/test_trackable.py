@@ -9,7 +9,7 @@ from tests.builders.master import Builder
 
 
 @pytest.mark.unit
-def test_trackable_class_keys(session):
+def test_trackable_class_keys(session, caching):
     """Test Trackable Class Keys"""
     for class_name, cls in Trackable._classes.items():
         key_class_name = cls.Key.__name__.split('Key')[0]
@@ -27,7 +27,7 @@ def test_trackable_class_keys(session):
 
 @pytest.mark.unit
 @pytest.mark.parametrize('org_is_null', [(False,), (True,)])
-def test_trackable_deconstruction_reconstruction(session, org_is_null):
+def test_trackable_deconstruction_reconstruction(session, caching, org_is_null):
     """Test Trackable Deconstruction & Reconstruction"""
     for class_name, cls in Trackable._classes.items():
         builder = Builder(cls, optional=False)
@@ -72,7 +72,7 @@ def test_trackable_deconstruction_reconstruction(session, org_is_null):
 
 
 @pytest.mark.unit
-def test_trackable_tget(session):
+def test_trackable_tget(session, caching):
     """Test Trackable get (tget)"""
     problem_name = 'Test Problem'
     problem_key = Problem.create_key(name='Test Problem')
@@ -120,7 +120,7 @@ def test_trackable_tget(session):
 
 
 @pytest.mark.unit
-def test_trackable_indexability(session):
+def test_trackable_indexability(session, caching):
     """Test Trackable indexability (via []s)"""
     problem_name = 'Test Problem'
     problem_key = Problem.create_key(name='Test Problem')
