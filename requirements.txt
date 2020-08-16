@@ -17,7 +17,6 @@ blinker==1.4              # via flask-mail, flask-principal
 certifi==2019.3.9         # via requests
 chardet==3.0.4            # via requests
 click==7.0                # via flask
-coverage==5.2.1           # via pytest-cov
 docopt==0.6.2             # via -r requirements.in
 dominate==2.3.5           # via flask-bootstrap
 faker==0.8.13             # via -r requirements.in
@@ -34,6 +33,7 @@ flask-wtf==0.14.2         # via -r requirements.in, flask-security
 flask==1.0.2              # via -r requirements.in, flask-babelex, flask-bootstrap, flask-login, flask-mail, flask-principal, flask-restful, flask-security, flask-sqlalchemy, flask-wtf
 future==0.16.0            # via -r requirements.in, url-normalize
 idna==2.7                 # via requests
+importlib-metadata==1.7.0  # via flake8, pluggy
 itsdangerous==1.1.0       # via flask, flask-security
 jinja2==2.10.1            # via flask, flask-babelex
 markupsafe==1.1.1         # via jinja2
@@ -49,9 +49,8 @@ py==1.9.0                 # via pytest
 pycodestyle==2.6.0        # via flake8
 pydash==4.7.5             # via alchy
 pyflakes==2.2.0           # via flake8
-pytest-cov==2.7.1         # via -r requirements.in
 pytest-flake8==1.0.4      # via -r requirements.in
-pytest==4.5.0             # via -r requirements.in, pytest-cov, pytest-flake8
+pytest==4.5.0             # via -r requirements.in, pytest-flake8
 python-dateutil==2.8.0    # via faker, pendulum
 pytz==2019.1              # via babel, flask-restful
 pytzdata==2019.1          # via pendulum
@@ -69,6 +68,7 @@ wcwidth==0.2.5            # via pytest
 werkzeug==0.15.5          # via -r requirements.in, flask
 wrapt==1.10.11            # via -r requirements.in
 wtforms==2.2.1            # via flask-wtf
+zipp==3.1.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
